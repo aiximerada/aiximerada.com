@@ -3,49 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code 產生器</title>
+    <title>QR Code 智能工廠 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
-        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        :root {
+            --bg-dark: #050510;
+            --neon-purple: #bc13fe;
+            --neon-blue: #00f3ff;
+            --glass-panel: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
-        .container { width: 100%; max-width: 400px; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; text-align: center; }
-        input { width: 100%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 20px; box-sizing: border-box; }
-        #qrcode { background: white; padding: 10px; border-radius: 10px; display: inline-block; margin-top: 20px; }
-        .btn { padding: 10px 25px; background: var(--suisei-cyan); border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        /* --- 頂部導航 --- */
+        .header { width: 90%; max-width: 900px; margin-top: 20px; margin-bottom: 20px; position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { 
+            color: var(--neon-blue); text-decoration: none; border: 1px solid var(--neon-blue); 
+            padding: 8px 15px; border-radius: 20px; background: rgba(0,0,0,0.5); 
+            display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.3s;
+        }
+        .back-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+        h1 { margin: 0; font-size: 1.5rem; text-shadow: 0 0 10px var(--neon-blue); display: flex; align-items: center; gap: 10px; }
+
+        /* --- 主容器 --- */
+        .main-container {
+            width: 90%; max-width: 900px;
+            display: grid; grid-template-columns: 300px 1fr; gap: 20px;
+        }
+
+        /* 左側：控制面板 */
+        .control-panel {
+            background: var(--glass-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 25px;
+            height: fit-content;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        label { font-size: 0.9rem; color: var(--neon-blue); font-weight: bold; margin-bottom: 5px; display: block; }
+        
+        textarea {
+            width: 100%; height: 200px;
+            background: rgba(0,0,0,0.3); border: 1px solid #444; color: #fff;
+            padding: 10px; border-radius: 10px; resize: none; outline: none; box-sizing: border-box;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+        textarea:focus { border-color: var(--neon-blue); }
+
+        .color-group { display: flex; gap: 10px; }
+        .color-picker { flex: 1; }
+        input[type="color"] {
+            width: 100%; height: 40px; border: none; background: none; cursor: pointer;
+        }
+
+        .gen-btn {
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            color: #fff; border: none; padding: 12px; border-radius: 10px;
+            cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .gen-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 243, 255, 0.3); }
+
+        /* 右側：預覽區 */
+        .preview-panel {
+            background: rgba(255,255,255,0.02);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px dashed rgba(255,255,255,0.1);
+            min-height: 400px;
+        }
+
+        .action-bar {
+            display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .action-btn:hover { background: #fff; color: #000; }
+        .btn-zip { background: var(--neon-purple); border-color: var(--neon-purple); }
+
+        /* QR Code 卡片網格 */
+        .qr-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;
+        }
+
+        .qr-card {
+            background: #fff; color: #000;
+            border-radius: 10px; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative; transition: 0.3s;
+        }
+        .qr-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 243, 255, 0.4); }
+
+        .qr-img-box { margin-bottom: 10px; }
+        .qr-img-box img { max-width: 100%; }
+
+        .qr-text {
+            font-size: 0.8rem; color: #555; width: 100%;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;
+            margin-bottom: 10px; font-weight: bold;
+        }
+        
+        .dl-single {
+            background: #eee; color: #333; text-decoration: none;
+            padding: 5px 15px; border-radius: 5px; font-size: 0.8rem; font-weight: bold;
+            transition: 0.2s;
+        }
+        .dl-single:hover { background: var(--neon-blue); color: #000; }
+
+        @media (max-width: 768px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
     <div class="header">
         <a href="tools.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 工具區</a>
-        <h2>QR Code 產生器</h2>
+        <h1><i class="fa-solid fa-qrcode"></i> QR Code 智能工廠</h1>
     </div>
 
-    <div class="container">
-        <input type="text" id="text" placeholder="輸入網址或文字..." value="https://google.com">
-        <button class="btn" onclick="genQR()">生成</button>
-        <div id="qrcode"></div>
+    <div class="main-container">
+        <div class="control-panel">
+            <div>
+                <label><i class="fa-solid fa-pen"></i> 輸入連結 (每行一個)</label>
+                <textarea id="url-input" placeholder="https://google.com&#10;https://facebook.com&#10;WIFI:S:MyWifi;T:WPA;P:1234;;"></textarea>
+            </div>
+            
+            <label><i class="fa-solid fa-palette"></i> 色彩設定</label>
+            <div class="color-group">
+                <div class="color-picker">
+                    <span style="font-size:0.8rem; color:#aaa">前景色</span>
+                    <input type="color" id="color-dark" value="#000000">
+                </div>
+                <div class="color-picker">
+                    <span style="font-size:0.8rem; color:#aaa">背景色</span>
+                    <input type="color" id="color-light" value="#ffffff">
+                </div>
+            </div>
+
+            <button class="gen-btn" onclick="generateQRs()">
+                <i class="fa-solid fa-bolt"></i> 立即批量生產
+            </button>
+        </div>
+
+        <div class="preview-panel">
+            <div class="action-bar" id="action-bar" style="display:none;">
+                <button class="action-btn" onclick="clearAll()"><i class="fa-solid fa-trash"></i> 清空</button>
+                <button class="action-btn btn-zip" onclick="downloadAllZip()"><i class="fa-solid fa-file-zipper"></i> 下包下載 (ZIP)</button>
+            </div>
+            
+            <div id="qr-grid" class="qr-grid">
+                <div style="grid-column: 1/-1; text-align: center; color: #aaa; padding-top: 100px;">
+                    <i class="fa-solid fa-cubes-stacked" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                    <p>等待生產中...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        function genQR() {
-            const text = document.getElementById("text").value;
-            const container = document.getElementById("qrcode");
-            container.innerHTML = "";
-            if(!text) return;
-            new QRCode(container, {
-                text: text,
-                width: 200,
-                height: 200
+        const urlInput = document.getElementById('url-input');
+        const colorDark = document.getElementById('color-dark');
+        const colorLight = document.getElementById('color-light');
+        const qrGrid = document.getElementById('qr-grid');
+        const actionBar = document.getElementById('action-bar');
+        
+        let generatedData = []; // 存儲生成的資料 {url, base64}
+
+        function generateQRs() {
+            const text = urlInput.value.trim();
+            if (!text) { alert("請輸入至少一個連結或文字！"); return; }
+
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            // 清空舊資料
+            qrGrid.innerHTML = '';
+            generatedData = [];
+            actionBar.style.display = 'flex';
+
+            lines.forEach((line, index) => {
+                const card = document.createElement('div');
+                card.className = 'qr-card';
+                
+                // QR 容器
+                const qrBox = document.createElement('div');
+                qrBox.className = 'qr-img-box';
+                qrBox.id = `qr-${index}`; // 用於 QRCode 庫定位
+                
+                // 文字標籤
+                const label = document.createElement('div');
+                label.className = 'qr-text';
+                label.innerText = line;
+                label.title = line; // 滑鼠懸停顯示完整
+
+                // 下載按鈕 (暫時不放 href，等生成完再補)
+                const dlBtn = document.createElement('a');
+                dlBtn.className = 'dl-single';
+                dlBtn.innerText = "下載";
+                
+                card.appendChild(qrBox);
+                card.appendChild(label);
+                card.appendChild(dlBtn);
+                qrGrid.appendChild(card);
+
+                // 生成 QR Code
+                // 注意: qrcodejs 生成的是 canvas 或 img，我們需要稍微延遲抓取
+                new QRCode(qrBox, {
+                    text: line,
+                    width: 150,
+                    height: 150,
+                    colorDark : colorDark.value,
+                    colorLight : colorLight.value,
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+                // 處理圖片數據 (因為 QRCode 生成可能是非同步渲染 DOM)
+                setTimeout(() => {
+                    const img = qrBox.querySelector('img');
+                    if (img && img.src) {
+                        dlBtn.href = img.src;
+                        dlBtn.download = `qrcode_${index+1}.png`;
+                        generatedData.push({ name: `qrcode_${index+1}.png`, data: img.src });
+                    } else {
+                        // 如果庫是用 canvas 渲染
+                        const canvas = qrBox.querySelector('canvas');
+                        if (canvas) {
+                            const dataUrl = canvas.toDataURL("image/png");
+                            dlBtn.href = dataUrl;
+                            dlBtn.download = `qrcode_${index+1}.png`;
+                            generatedData.push({ name: `qrcode_${index+1}.png`, data: dataUrl });
+                            
+                            // 為了美觀，強制轉為 img 顯示
+                            const newImg = document.createElement('img');
+                            newImg.src = dataUrl;
+                            qrBox.innerHTML = '';
+                            qrBox.appendChild(newImg);
+                        }
+                    }
+                }, 100);
             });
         }
-        genQR(); // 預設生成一次
+
+        function clearAll() {
+            if(confirm("確定要清空所有結果嗎？")) {
+                qrGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: #aaa; padding-top: 100px;">
+                        <i class="fa-solid fa-cubes-stacked" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                        <p>已清空，等待生產中...</p>
+                    </div>`;
+                actionBar.style.display = 'none';
+                generatedData = [];
+            }
+        }
+
+        function downloadAllZip() {
+            if (generatedData.length === 0) { alert("沒有可下載的 QR Code"); return; }
+
+            const zip = new JSZip();
+            const folder = zip.folder("qrcodes");
+
+            generatedData.forEach((item) => {
+                // 去掉 data:image/png;base64, 前綴
+                const base64Data = item.data.split(',')[1];
+                folder.file(item.name, base64Data, {base64: true});
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "qrcodes_batch.zip");
+            });
+        }
+
+        // --- 星空特效 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--neon-blue)';
+                    star.style.boxShadow = '0 0 5px var(--neon-blue)';
+                }
+                container.appendChild(star);
+            }
+        }
+        window.addEventListener('load', createTwinklingStars);
     </script>
 </body>
 </html>
