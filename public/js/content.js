@@ -1,5 +1,5 @@
 // js/content.js
-// 玉露寶庫完整功能目錄 (已移除手工皂與機車紀錄)
+// 玉露寶庫完整功能目錄 (已移除：手工皂、機車、故障藝術、零件牆)
 
 var siteContent = {
     // --- 1. 核心與關於 ---
@@ -29,20 +29,6 @@ var siteContent = {
         desc: "滴滴答答...將文字轉換為神祕的摩斯密碼，支援雙向翻譯與播放。",
         url: "morse.html",
         icon: "fa-solid fa-code",
-        type: "tool"
-    },
-    glitch: {
-        title: "故障藝術產生器",
-        desc: "Glitch Art 風格製造機。將平凡的照片轉化為充滿賽博龐克感的數位藝術。",
-        url: "glitch.html",
-        icon: "fa-solid fa-eye-dropper",
-        type: "tool"
-    },
-    partswall: {
-        title: "零件展示牆",
-        desc: "收藏與展示各種數位零件與素材的展示空間。",
-        url: "partswall.html",
-        icon: "fa-solid fa-shapes",
         type: "tool"
     },
     
