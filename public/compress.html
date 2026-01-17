@@ -3,79 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速圖片壓縮</title>
+    <title>極速圖片壓縮 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
-        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        :root {
+            --bg-dark: #050510;
+            --neon-cyan: #00f3ff;
+            --duck-yellow: #ffde3d;
+            --glass-panel: rgba(255, 255, 255, 0.08);
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
-        .container { width: 100%; max-width: 500px; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; text-align: center; }
-        .upload-area { border: 2px dashed var(--suisei-cyan); padding: 40px; border-radius: 10px; cursor: pointer; margin-bottom: 20px; }
-        .upload-area:hover { background: rgba(59,198,228,0.1); }
-        img { max-width: 100%; margin-top: 20px; border-radius: 10px; display: none; }
-        .btn { padding: 10px 25px; background: var(--suisei-cyan); border: none; border-radius: 20px; cursor: pointer; display: none; margin: 10px auto; }
+        /* --- 頂部導航 --- */
+        .header { width: 90%; max-width: 800px; margin-top: 20px; margin-bottom: 20px; position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { 
+            color: var(--neon-cyan); text-decoration: none; border: 1px solid var(--neon-cyan); 
+            padding: 8px 15px; border-radius: 20px; background: rgba(0,0,0,0.5); 
+            display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.3s;
+        }
+        .back-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+        h1 { margin: 0; font-size: 1.5rem; text-shadow: 0 0 10px var(--neon-cyan); display: flex; align-items: center; gap: 10px; }
+
+        /* --- 主容器 --- */
+        .main-container {
+            width: 90%; max-width: 800px;
+            background: var(--glass-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 25px;
+        }
+
+        /* --- 鴨鴨控制區 --- */
+        .control-panel {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1.1rem; color: var(--duck-yellow); font-weight: bold; }
+        .duck-levels { display: flex; justify-content: space-between; font-size: 0.8rem; color: #aaa; margin-top: 5px; padding: 0 5px; }
+        .level-mark { position: relative; cursor: pointer; transition: 0.2s; }
+        .level-mark:hover { color: #fff; }
+        .level-mark::before { content: '|'; display: block; text-align: center; margin-bottom: 2px; color: #555; }
+
+        /* 客製化滑動條 */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        /* 滑軌 */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 10px; background: #333; border-radius: 5px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        /* 滑塊 (鴨子) */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 40px; width: 40px;
+            margin-top: -16px; /* 垂直置中 */
+            background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦆</text></svg>");
+            background-repeat: no-repeat;
+            border: none;
+            transition: transform 0.1s;
+        }
+        input[type=range]:active::-webkit-slider-thumb { transform: scale(1.2) rotate(-10deg); }
+
+        /* --- 上傳區 --- */
+        .upload-area {
+            border: 2px dashed var(--neon-cyan);
+            background: rgba(0, 243, 255, 0.05);
+            border-radius: 15px;
+            height: 150px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .upload-area:hover { background: rgba(0, 243, 255, 0.15); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); }
+        .upload-area i { font-size: 3rem; color: var(--neon-cyan); margin-bottom: 10px; }
+        .upload-text { font-size: 1.1rem; color: #fff; }
+        .upload-sub { font-size: 0.9rem; color: #aaa; }
+
+        /* --- 圖片列表 --- */
+        .image-list {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;
+            max-height: 500px; overflow-y: auto;
+        }
+        .img-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex; flex-direction: column; gap: 10px;
+            position: relative;
+        }
+        .img-preview {
+            width: 100%; height: 120px; object-fit: cover; border-radius: 5px;
+            background: #000;
+        }
+        .img-info { font-size: 0.8rem; color: #ccc; display: flex; justify-content: space-between; }
+        .savings { color: var(--neon-cyan); font-weight: bold; }
+        .btn-dl {
+            background: var(--neon-cyan); color: #000; border: none; padding: 5px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.9rem;
+            text-align: center; text-decoration: none; display: block;
+        }
+        .btn-dl:hover { background: #fff; }
+
+        /* --- 底部按鈕 --- */
+        .actions { display: flex; justify-content: flex-end; gap: 15px; margin-top: 10px; }
+        .action-btn {
+            background: #fff; color: #000; border: none; padding: 10px 25px;
+            border-radius: 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;
+            transition: 0.3s;
+        }
+        .btn-zip { background: var(--duck-yellow); }
+        .btn-zip:hover { box-shadow: 0 0 15px var(--duck-yellow); transform: translateY(-2px); }
+        .hidden { display: none; }
+
+        /* 讀取動畫 */
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center;
+            border-radius: 10px; z-index: 5;
+        }
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
     <div class="header">
         <a href="tools.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 工具區</a>
-        <h2>極速圖片壓縮</h2>
+        <h1><i class="fa-solid fa-image"></i> 極速圖片壓縮</h1>
     </div>
 
-    <div class="container">
-        <div class="upload-area" onclick="document.getElementById('fileIn').click()">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 3rem; margin-bottom: 10px;"></i>
-            <p>點擊上傳圖片</p>
+    <div class="main-container">
+        <div class="control-panel">
+            <div class="slider-label">
+                <span><i class="fa-solid fa-feather"></i> 壓縮等級</span>
+                <span id="level-text">半鴨 (50%)</span>
+            </div>
+            <input type="range" id="quality-slider" min="1" max="95" value="50" oninput="updateLabel(this.value)">
+            <div class="duck-levels">
+                <span class="level-mark" onclick="setSlider(25)">小鴨<br>25%</span>
+                <span class="level-mark" onclick="setSlider(50)">半鴨<br>50%</span>
+                <span class="level-mark" onclick="setSlider(75)">暴力鴨<br>75%</span>
+                <span class="level-mark" onclick="setSlider(90)">變態鴨<br>90%</span>
+            </div>
         </div>
-        <input type="file" id="fileIn" accept="image/*" style="display:none" onchange="handleFile()">
-        <p id="info"></p>
-        <img id="preview">
-        <a id="download" class="btn">下載壓縮圖</a>
+
+        <div class="upload-area" onclick="document.getElementById('fileIn').click()">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <div class="upload-text">點擊選擇圖片 或 拖曳至此</div>
+            <div class="upload-sub">支援批量上傳 (JPG, PNG)</div>
+        </div>
+        <input type="file" id="fileIn" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+
+        <div id="result-area" class="hidden">
+            <div class="actions">
+                <button class="action-btn" onclick="clearAll()"><i class="fa-solid fa-trash"></i> 清空</button>
+                <button class="action-btn btn-zip" onclick="downloadAll()"><i class="fa-solid fa-file-zipper"></i> 打包下載 (ZIP)</button>
+            </div>
+            <div id="image-list" class="image-list"></div>
+        </div>
     </div>
 
     <script>
-        function handleFile() {
-            const file = document.getElementById('fileIn').files[0];
-            if(!file) return;
+        const slider = document.getElementById('quality-slider');
+        const levelText = document.getElementById('level-text');
+        const imageList = document.getElementById('image-list');
+        const resultArea = document.getElementById('result-area');
+        
+        let processedImages = []; // 存儲處理後的圖片數據 {name, blob}
 
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    // 簡單壓縮邏輯：最大寬度 1024
-                    let w = img.width, h = img.height;
-                    const maxW = 1024;
-                    if(w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-                    
-                    canvas.width = w; canvas.height = h;
-                    ctx.drawImage(img, 0, 0, w, h);
-                    
-                    // 轉為 JPEG 0.7 品質
-                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    document.getElementById('preview').src = compressed;
-                    document.getElementById('preview').style.display = 'block';
-                    
-                    const dl = document.getElementById('download');
-                    dl.href = compressed;
-                    dl.download = 'compressed_' + file.name;
-                    dl.style.display = 'inline-block';
-                    dl.innerText = "下載壓縮圖";
-                    
-                    document.getElementById('info').innerText = `原始: ${(file.size/1024).toFixed(1)}KB -> 壓縮後: 約 ${(compressed.length/1024 * 0.75).toFixed(1)}KB`;
+        function updateLabel(val) {
+            let text = "";
+            let color = "#fff";
+            
+            if (val <= 30) { text = "小鴨 (輕微)"; color = "#4ade80"; }
+            else if (val <= 60) { text = "半鴨 (平衡)"; color = "#ffde3d"; }
+            else if (val <= 85) { text = "暴力鴨 (強力)"; color = "#f97316"; }
+            else { text = "變態鴨 (極限)"; color = "#ef4444"; }
+            
+            levelText.innerText = `${text} ${val}%`;
+            levelText.style.color = color;
+        }
+
+        function setSlider(val) {
+            slider.value = val;
+            updateLabel(val);
+        }
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            resultArea.classList.remove('hidden');
+
+            const quality = 1 - (slider.value / 100); // 滑動條值越大，quality 越小 (壓縮越重)
+
+            for (let file of files) {
+                await processImage(file, quality);
+            }
+            // 清空 input 讓同檔案可再次選取
+            document.getElementById('fileIn').value = ''; 
+        }
+
+        function processImage(file, quality) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        // 尺寸調整 (如果太大稍微縮小，避免手機跑不動)
+                        let w = img.width, h = img.height;
+                        const maxSide = 1920; 
+                        if (w > maxSide || h > maxSide) {
+                            if (w > h) { h = Math.round(h * maxSide / w); w = maxSide; }
+                            else { w = Math.round(w * maxSide / h); h = maxSide; }
+                        }
+
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+
+                        // 壓縮輸出
+                        canvas.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            addCard(file, blob, url);
+                            processedImages.push({ name: `compressed_${file.name}`, blob: blob });
+                            resolve();
+                        }, 'image/jpeg', quality);
+                    };
+                };
+            });
+        }
+
+        function addCard(originalFile, compressedBlob, url) {
+            const originalSize = (originalFile.size / 1024).toFixed(1);
+            const compressedSize = (compressedBlob.size / 1024).toFixed(1);
+            const saved = ((originalFile.size - compressedBlob.size) / originalFile.size * 100).toFixed(0);
+            const isSaved = saved > 0;
+
+            const card = document.createElement('div');
+            card.className = 'img-card';
+            card.innerHTML = `
+                <img src="${url}" class="img-preview">
+                <div class="img-info">
+                    <span>原: ${originalSize}KB</span>
+                    <span>後: ${compressedSize}KB</span>
+                </div>
+                <div class="img-info">
+                    <span class="savings">${isSaved ? '省下 ' + saved + '%' : '已最佳化'}</span>
+                </div>
+                <a href="${url}" download="compressed_${originalFile.name}" class="btn-dl">下載</a>
+            `;
+            imageList.appendChild(card);
+        }
+
+        function clearAll() {
+            imageList.innerHTML = '';
+            processedImages = [];
+            resultArea.classList.add('hidden');
+        }
+
+        function downloadAll() {
+            if (processedImages.length === 0) return;
+            
+            const zip = new JSZip();
+            const folder = zip.folder("images");
+
+            processedImages.forEach((img) => {
+                folder.file(img.name, img.blob);
+            });
+
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "duck_compressed_images.zip");
+            });
+        }
+
+        // --- 星空特效 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--duck-yellow)';
+                    star.style.boxShadow = '0 0 5px var(--duck-yellow)';
                 }
+                container.appendChild(star);
             }
         }
+        window.addEventListener('load', createTwinklingStars);
     </script>
 </body>
 </html>
