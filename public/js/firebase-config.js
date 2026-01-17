@@ -9,13 +9,13 @@ import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-    // ⚠️ 請確保這裡依然是您自己的設定 (不要動到這裡)
-    apiKey: "您的_API_KEY",
-    authDomain: "您的專案ID.firebaseapp.com",
-    projectId: "您的專案ID",
-    storageBucket: "您的專案ID.appspot.com",
-    messagingSenderId: "您的ID",
-    appId: "您的APP_ID"
+  apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+  authDomain: "yulubox.firebaseapp.com",
+  projectId: "yulubox",
+  storageBucket: "yulubox.firebasestorage.app",
+  messagingSenderId: "256466567852",
+  appId: "1:256466567852:web:233b74668908ffcb9b9509",
+  measurementId: "G-YPCY41EKWX"
 };
 
 // 初始化
