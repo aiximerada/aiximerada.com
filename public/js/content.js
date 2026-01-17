@@ -1,87 +1,87 @@
 // js/content.js
-// 玉露寶庫完整功能目錄 (已移除：手工皂、機車、故障藝術、零件牆)
+// 3.0 資料庫：功能嚴格分類
 
 var siteContent = {
-    // --- 1. 核心與關於 ---
     common: {
         siteTitle: "玉露寶庫",
         siteSubtitle: "AIXIMERADA.COM",
-        footerText: "© 2026 玉露寶庫 System | All Rights Reserved"
+        footerText: "© 2026 玉露寶庫 System"
     },
 
-    // --- 2. 生產力工具組 ---
-    compress: {
-        title: "極速圖片壓縮",
-        desc: "圖片太大傳不出去？無需上傳伺服器，本地端快速壓縮與轉檔，保障隱私。",
-        url: "compress.html",
-        icon: "fa-solid fa-compress",
-        type: "tool"
-    },
-    qrcode: {
-        title: "QR Code 產生器",
-        desc: "輸入網址或文字，一秒生成專屬 QR Code，支援顏色自訂與下載。",
-        url: "qrcode.html",
-        icon: "fa-solid fa-qrcode",
-        type: "tool"
-    },
-    morse: {
-        title: "摩斯密碼翻譯機",
-        desc: "滴滴答答...將文字轉換為神祕的摩斯密碼，支援雙向翻譯與播放。",
-        url: "morse.html",
-        icon: "fa-solid fa-code",
-        type: "tool"
-    },
-    
-    // --- 3. 遊戲與挑戰 ---
-    typing: {
-        title: "中英打練習器",
-        desc: "提升您的打字速度！支援中文與英文模式，即時計算 WPM 與準確率。",
-        url: "typing.html",
-        icon: "fa-solid fa-keyboard",
-        type: "game"
-    },
-    firewall: {
-        title: "防火牆防禦戰",
-        desc: "警告！病毒入侵中。滑動攔截紅色病毒，放行綠色封包，考驗反應力。",
-        url: "firewall.html",
-        icon: "fa-solid fa-shield-virus",
-        type: "game"
-    },
-    reflex: {
-        title: "極限反應測試",
-        desc: "當顏色改變時點擊螢幕！測量您的神經反射速度，精確到毫秒。",
-        url: "reflex.html",
-        icon: "fa-solid fa-bolt",
-        type: "game"
-    },
-    memory: {
-        title: "記憶力大翻牌",
-        desc: "經典的翻牌配對遊戲。在有限時間內記住圖案位置，挑戰大腦極限。",
-        url: "memory.html",
-        icon: "fa-solid fa-brain",
-        type: "game"
-    },
-    lottery: {
-        title: "幸運大抽獎",
-        desc: "選擇困難症救星！設定選項或數字，讓命運輪盤幫您做決定。",
-        url: "lottery.html",
-        icon: "fa-solid fa-ticket",
-        type: "game"
-    },
+    // ========== 🕹️ 娛樂區 (Games) ==========
+    entertainment: [
+        {
+            title: "防火牆防禦戰",
+            desc: "滑動攔截紅色病毒，放行綠色封包。",
+            url: "firewall.html",
+            icon: "fa-solid fa-shield-virus"
+        },
+        {
+            title: "中英打練習",
+            desc: "WPM 打字速度測試與練習。",
+            url: "typing.html",
+            icon: "fa-solid fa-keyboard"
+        },
+        {
+            title: "極限反應測試",
+            desc: "毫秒級的神經反應速度測試。",
+            url: "reflex.html",
+            icon: "fa-solid fa-bolt"
+        },
+        {
+            title: "記憶力大翻牌",
+            desc: "考驗瞬間記憶力的配對遊戲。",
+            url: "memory.html",
+            icon: "fa-solid fa-brain"
+        },
+        {
+            title: "幸運大抽獎",
+            desc: "命運輪盤，解決選擇困難症。",
+            url: "lottery.html",
+            icon: "fa-solid fa-ticket"
+        },
+        {
+            title: "極速跑者",
+            desc: "點擊跳躍避開障礙物的小遊戲。",
+            url: "run.html",
+            icon: "fa-solid fa-person-running"
+        }
+    ],
 
-    // --- 4. 系統與其他 ---
-    run: {
-        title: "極速跑者",
-        desc: "經典跑步小遊戲，點擊跳躍避開障礙物，看看你能跑多遠？",
-        url: "run.html",
-        icon: "fa-solid fa-person-running",
-        type: "game"
-    },
-    system: {
-        title: "系統狀態",
-        desc: "檢視伺服器連線狀態、版本資訊與系統日誌。",
-        url: "system.html",
-        icon: "fa-solid fa-server",
-        type: "tool"
+    // ========== 🛠️ 工具區 (Tools) ==========
+    tools: [
+        {
+            title: "極速圖片壓縮",
+            desc: "本地端運算，無需上傳，保障隱私。",
+            url: "compress.html",
+            icon: "fa-solid fa-compress"
+        },
+        {
+            title: "QR Code 產生器",
+            desc: "輸入網址或文字，一秒生成條碼。",
+            url: "qrcode.html",
+            icon: "fa-solid fa-qrcode"
+        },
+        {
+            title: "摩斯密碼翻譯",
+            desc: "文字與摩斯電碼雙向翻譯與播放。",
+            url: "morse.html",
+            icon: "fa-solid fa-code"
+        },
+        {
+            title: "系統狀態",
+            desc: "檢視伺服器連線與版本資訊。",
+            url: "system.html",
+            icon: "fa-solid fa-server"
+        }
+    ],
+
+    // ========== 🛒 商城 (Shop) ==========
+    shop: {
+        title: "商城",
+        subtitle: "SHOP & GOODS",
+        desc: "大吉大利手工皂與數位商品專區。",
+        placeholderIcon: "fa-solid fa-store",
+        url: "shop.html"
     }
 };
