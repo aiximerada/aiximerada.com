@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code 批量工廠 - 啊吧啊吧</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <style>
+        /* 樣式保持不變，為節省篇幅直接套用之前的 CSS */
+        :root { --bg-deep: #0b1021; --suisei-cyan: #3bc6e4; --card-bg: rgba(255, 255, 255, 0.95); }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); color: #333; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
+        .container { width: 90%; max-width: 1000px; padding: 40px 20px; text-align: center; }
+        .header-area { margin-bottom: 30px; }
+        h1 { color: white; text-shadow: 0 0 10px var(--suisei-cyan); font-size: 2.5rem; margin-bottom: 10px; }
+        .back-link { color: #ccc; text-decoration: none; font-size: 1rem; transition: 0.3s; display: inline-block; margin-bottom: 20px;}
+        .back-link:hover { color: var(--suisei-cyan); }
+        
+        .control-box { background: var(--card-bg); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); margin-bottom: 30px; }
+        textarea { width: 100%; height: 150px; padding: 15px; border: 2px solid #eee; border-radius: 10px; margin-bottom: 20px; box-sizing: border-box;}
+        .btn-group { display: flex; gap: 10px; justify-content: center; }
+        button { padding: 12px 30px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-gen { background: var(--suisei-cyan); color: white; }
+        .btn-down { background: #333; color: white; display: none; }
+        button:hover { transform: scale(1.05); }
+
+        .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .qr-card { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .qr-card img { width: 100%; height: auto; }
+        .qr-link { font-size: 0.8rem; color: #666; word-break: break-all; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-area">
+            <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> 回首頁</a>
+            <h1 data-i18n="qrcode.pageTitle">QR Code 批量工廠</h1>
+        </div>
+
+        <div class="control-box">
+            <p data-i18n="qrcode.desc">輸入網址 (一行一個)</p>
+            <textarea id="urlInput" placeholder="https://google.com..."></textarea>
+            <div class="btn-group">
+                <button class="btn-gen" onclick="generateQR()" data-i18n="qrcode.btnPreview">生成預覽</button>
+                <button class="btn-down" id="downloadBtn" onclick="downloadAll()" data-i18n="qrcode.btnDownload">下載 ZIP</button>
+            </div>
+        </div>
+
+        <div class="qr-grid" id="qrGrid"></div>
+    </div>
+
+    <script src="js/content.js"></script>
+    <script src="js/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <script>
+        let qrData = [];
+
+        function generateQR() {
+            const input = document.getElementById('urlInput').value;
+            const urls = input.split('\n').filter(u => u.trim() !== '');
+            const grid = document.getElementById('qrGrid');
+            const downBtn = document.getElementById('downloadBtn');
+            
+            if (urls.length === 0) {
+                // 使用 SweetAlert2
+                Swal.fire({ icon: 'warning', title: '嘿！', text: '請至少輸入一個網址喔' });
+                return;
+            }
+
+            grid.innerHTML = '';
+            qrData = [];
+            downBtn.style.display = 'none';
+
+            urls.forEach((url, index) => {
+                const card = document.createElement('div');
+                card.className = 'qr-card';
+                const div = document.createElement('div');
+                card.appendChild(div);
+                const p = document.createElement('p');
+                p.className = 'qr-link';
+                p.innerText = url;
+                card.appendChild(p);
+                grid.appendChild(card);
+
+                new QRCode(div, {
+                    text: url,
+                    width: 150,
+                    height: 150
+                });
+
+                // 稍微延遲以確保 canvas 生成
+                setTimeout(() => {
+                    const img = div.querySelector('img');
+                    if (img) qrData.push({ url: url, src: img.src });
+                    if (qrData.length === urls.length) downBtn.style.display = 'block';
+                }, 100);
+            });
+            
+            // 生成完成提示
+            Swal.fire({
+                icon: 'success',
+                title: '生成完畢',
+                text: `成功生成了 ${urls.length} 個 QR Code`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        async function downloadAll() {
+            const zip = new JSZip();
+            qrData.forEach((item, i) => {
+                const base64Data = item.src.split(',')[1];
+                // 檔名處理：只取網域部分避免檔名過長
+                let fileName = item.url.replace(/(^\w+:|^)\/\//, '').split('/')[0];
+                zip.file(`${fileName}_${i+1}.png`, base64Data, {base64: true});
+            });
+
+            const content = await zip.generateAsync({type:"blob"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = "qrcodes.zip";
+            a.click();
+            
+            Swal.fire({ icon: 'success', title: '下載開始', text: '您的壓縮檔正在路上！' });
+        }
+    </script>
+</body>
+</html>

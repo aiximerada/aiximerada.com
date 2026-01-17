@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>零件牆標籤工廠 (多圖版) - 啊吧啊吧</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-deep: #0b1021;
+            --suisei-cyan: #3bc6e4;
+            --suisei-dark: #225a76;
+            --star-gold: #f2c94c;
+            --panel-bg: rgba(255, 255, 255, 0.98);
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            color: #333;
+            height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* 頂部導航 */
+        .header-bar {
+            height: 60px; background: rgba(11, 16, 33, 0.95); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; color: white;
+        }
+        .back-btn { color: #ccc; text-decoration: none; margin-right: 20px; font-size: 0.9rem; transition: 0.3s; }
+        .back-btn:hover { color: var(--suisei-cyan); }
+        .action-btn {
+            background: var(--suisei-dark); color: white; border: none; padding: 8px 15px;
+            border-radius: 6px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; margin-left: 10px;
+        }
+        .action-btn:hover { filter: brightness(1.1); }
+        .btn-cyan { background: var(--suisei-cyan); color: #000; font-weight: bold; }
+        .btn-gold { background: var(--star-gold); color: #333; font-weight: bold;}
+
+        /* 主工作區 */
+        .main-workspace { flex: 1; display: flex; height: calc(100vh - 60px); }
+
+        /* 左側：零件庫 */
+        .sidebar-left { width: 300px; background: var(--panel-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 50;}
+        .sidebar-header { padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa; }
+        .search-box { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 10px;}
+        .category-tabs { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 5px; }
+        .cat-tag { 
+            padding: 2px 8px; background: #eee; border-radius: 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: 0.2s;
+        }
+        .cat-tag:hover { background: #ddd; }
+        .cat-tag.active { background: var(--suisei-cyan); color: white; }
+        
+        .library-content { flex: 1; overflow-y: auto; padding: 10px; }
+        .part-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .part-item { 
+            aspect-ratio: 1; border: 1px solid #eee; border-radius: 4px; overflow: hidden; cursor: grab; position: relative; background: #fff;
+        }
+        .part-item:hover { border-color: var(--suisei-cyan); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .part-item img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+        .part-name { 
+            position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); color: white; 
+            font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* 中間：畫布 */
+        .canvas-area { flex: 1; background: #222; display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; }
+        .canvas-wrapper { box-shadow: 0 0 50px rgba(0,0,0,0.5); border: 1px solid #444; }
+
+        /* 右側：工具箱 */
+        .sidebar-right { width: 280px; background: var(--panel-bg); border-left: 1px solid var(--border-color); padding: 15px; overflow-y: auto; z-index: 50;}
+        .tool-section { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section-title { font-weight: bold; margin-bottom: 10px; display: block; color: var(--suisei-dark); font-size: 0.95rem; }
+        
+        .input-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .input-row input { flex: 1; padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .tool-btn { 
+            width: 100%; padding: 10px; border: 1px solid #ccc; background: white; border-radius: 5px; 
+            cursor: pointer; text-align: left; margin-bottom: 5px; transition: 0.2s; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tool-btn:hover { background: #f0f8ff; border-color: var(--suisei-cyan); }
+        .tool-btn i { color: var(--suisei-cyan); }
+        
+        .bind-box {
+            background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px; border-radius: 5px; margin-top: 5px;
+        }
+        .bind-box label { font-size: 0.8rem; color: #1565c0; display: block; margin-bottom: 3px; font-weight: bold;}
+        .bind-box input { width: 100%; padding: 6px; border: 1px solid #90caf9; border-radius: 3px; box-sizing: border-box; font-weight: bold;}
+
+        .upload-status { font-size: 0.8rem; color: var(--suisei-cyan); margin-top: 5px; display: none; }
+
+        /* 預覽視窗 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            z-index: 2000; display: none; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; width: 95%; max-width: 1000px; height: 90vh; border-radius: 10px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .modal-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; background: #f0f0f0; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;}
+        .preview-card { 
+            background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            width: 250px; display: flex; flex-direction: column; align-items: center;
+        }
+        .preview-card img { max-width: 100%; height: auto; border: 1px solid #eee; }
+        .preview-info { margin-top: 10px; font-size: 0.8rem; color: #555; text-align: center; width: 100%; word-break: break-all;}
+    </style>
+</head>
+<body>
+
+    <header class="header-bar">
+        <div style="display: flex; align-items: center;">
+            <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 回首頁</a>
+            <span style="font-weight: bold; font-size: 1.1rem;">零件牆標籤工廠</span>
+        </div>
+        <div style="display: flex;">
+            <button class="action-btn" onclick="saveTemplate()"><i class="fa-solid fa-floppy-disk"></i> 儲存模板</button>
+            <button class="action-btn btn-cyan" onclick="triggerExcelImport()">
+                <i class="fa-solid fa-file-excel"></i> 導入 Excel 生產
+            </button>
+        </div>
+    </header>
+
+    <div class="main-workspace">
+        
+        <div class="sidebar-left">
+            <div class="sidebar-header">
+                <input type="text" class="search-box" placeholder="搜尋零件名稱..." oninput="filterLibrary(this.value)">
+                <div class="category-tabs" id="categoryTabs">
+                    </div>
+            </div>
+            <div class="library-content">
+                <div class="part-grid" id="partLibrary">
+                    </div>
+                <div style="text-align: center; margin-top: 20px; color: #999; font-size: 0.8rem;">
+                    拖曳零件至畫布
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div class="canvas-wrapper">
+                <canvas id="c"></canvas>
+            </div>
+        </div>
+
+        <div class="sidebar-right">
+            
+            <div class="tool-section">
+                <span class="section-title">1. 畫布/標籤尺寸 (px)</span>
+                <div class="input-row">
+                    <input type="number" id="canvasW" value="600" placeholder="寬">
+                    <span>x</span>
+                    <input type="number" id="canvasH" value="400" placeholder="高">
+                </div>
+                <button class="tool-btn" onclick="resizeCanvas()" style="justify-content:center;">套用尺寸</button>
+                <div class="input-row" style="margin-top:10px;">
+                    <span style="font-size:0.8rem;">背景色:</span>
+                    <input type="color" value="#ffffff" onchange="canvas.setBackgroundColor(this.value, canvas.renderAll.bind(canvas))">
+                </div>
+            </div>
+
+            <div class="tool-section">
+                <span class="section-title">2. 上傳零件庫</span>
+                <input type="text" id="uploadCategory" placeholder="輸入分類名稱 (如: 螺絲)" style="width:100%; padding:5px; margin-bottom:5px; box-sizing: border-box;">
+                <button class="tool-btn" onclick="document.getElementById('fileInput').click()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> 選擇圖片 (自動強力壓縮)
+                </button>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+                <div id="uploadStatus" class="upload-status"><i class="fa-solid fa-spinner fa-spin"></i> 壓縮中...</div>
+            </div>
+
+            <div class="tool-section">
+                <span class="section-title">3. 設計模板</span>
+                
+                <button class="tool-btn" onclick="addText()">
+                    <i class="fa-solid fa-font"></i> 新增文字
+                </button>
+                <button class="tool-btn" onclick="addPartPlaceholder()">
+                    <i class="fa-regular fa-image"></i> 新增零件佔位區 (圖片框)
+                </button>
+                <p style="font-size:0.75rem; color:#666; margin-top:5px;">
+                    * <b>多圖技巧</b>：新增多個佔位區，並分別設定不同的「Excel 欄位名稱」(例如：零件A、零件B)。
+                </p>
+            </div>
+
+            <div class="tool-section" id="propPanel" style="opacity:0.5; pointer-events:none;">
+                <span class="section-title">4. 物件屬性</span>
+                <div class="input-row">
+                    <span style="font-size:0.9rem;">顏色:</span>
+                    <input type="color" id="colorPicker" oninput="changeColor(this.value)">
+                </div>
+                
+                <div class="bind-box">
+                    <label><i class="fa-solid fa-link"></i> Excel 欄位綁定</label>
+                    <input type="text" id="bindInput" placeholder="例如：零件" oninput="updateBind(this.value)">
+                    <div style="font-size:0.7rem; color:#666; margin-top:5px; line-height: 1.4;">
+                        輸入 Excel 中的標題名稱。<br>
+                        如果是<b>圖片框</b>，系統會填入該名稱對應的零件圖。
+                    </div>
+                </div>
+
+                <button class="tool-btn" style="color:red; margin-top:10px;" onclick="deleteActiveObject()">
+                    <i class="fa-solid fa-trash"></i> 刪除物件 (Del)
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <input type="file" id="excelInput" accept=".xlsx, .xls" style="display:none">
+
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-print"></i> 批量生成預覽</h3>
+                <div>
+                    <span id="previewCount" style="margin-right:15px; font-weight:bold; color:var(--suisei-cyan);">共 0 張</span>
+                    <button class="action-btn btn-gold" onclick="downloadAll()"><i class="fa-solid fa-download"></i> 打包下載 ZIP</button>
+                    <button class="action-btn" style="background:#666;" onclick="closePreview()"><i class="fa-solid fa-xmark"></i> 關閉</button>
+                </div>
+            </div>
+            <div class="modal-body" id="previewContainer">
+                </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.0/dist/browser-image-compression.js"></script>
+
+    <script>
+        // --- 初始化設定 ---
+        const canvas = new fabric.Canvas('c', { backgroundColor: '#fff', preserveObjectStacking: true });
+        let partsLibrary = JSON.parse(localStorage.getItem('partswall_library')) || []; 
+        let generatedBlobs = [];
+
+        // 初始化
+        resizeCanvas();
+        renderLibrary();
+        setupEvents();
+
+        // --- 1. 畫布與基本操作 ---
+        function resizeCanvas() {
+            const w = parseInt(document.getElementById('canvasW').value) || 600;
+            const h = parseInt(document.getElementById('canvasH').value) || 400;
+            canvas.setWidth(w);
+            canvas.setHeight(h);
+            canvas.renderAll();
+        }
+
+        function addText() {
+            const text = new fabric.IText('文字', { left: 50, top: 50, fontSize: 40, fill: '#333' });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+        }
+
+        // 新增零件佔位符 (支援多欄位)
+        function addPartPlaceholder() {
+            const rect = new fabric.Rect({
+                width: 150, height: 150,
+                fill: '#f5f5f5', stroke: '#999', strokeWidth: 2, strokeDashArray: [5, 5],
+                originX: 'center', originY: 'center'
+            });
+            
+            // 預設綁定名稱
+            const defaultBind = '零件'; 
+            
+            const text = new fabric.Text(`{${defaultBind}}`, {
+                fontSize: 18, fill: '#666', originX: 'center', originY: 'center'
+            });
+
+            const group = new fabric.Group([rect, text], { left: 100, top: 100 });
+            
+            // 重要：標記為佔位符
+            group.set('isPlaceholder', true);
+            group.set('bindingKey', defaultBind);
+
+            canvas.add(group);
+            canvas.setActiveObject(group);
+        }
+
+        function deleteActiveObject() {
+            const active = canvas.getActiveObjects();
+            if (active.length) {
+                canvas.discardActiveObject();
+                active.forEach(obj => canvas.remove(obj));
+                canvas.requestRenderAll();
+            }
+        }
+
+        function updatePropPanel() {
+            const obj = canvas.getActiveObject();
+            const panel = document.getElementById('propPanel');
+            if (obj) {
+                panel.style.opacity = '1'; panel.style.pointerEvents = 'auto';
+                
+                let color = '#000000';
+                if(obj.fill && typeof obj.fill === 'string') color = obj.fill;
+                document.getElementById('colorPicker').value = color;
+
+                document.getElementById('bindInput').value = obj.bindingKey || '';
+            } else {
+                panel.style.opacity = '0.5'; panel.style.pointerEvents = 'none';
+                document.getElementById('bindInput').value = '';
+            }
+        }
+
+        function changeColor(hex) {
+            const obj = canvas.getActiveObject();
+            if (obj) {
+                if (obj.type === 'i-text' || obj.type === 'text') {
+                    obj.set('fill', hex);
+                } else if (obj.isPlaceholder) {
+                    obj._objects[0].set('stroke', hex); // 改框框色
+                } else {
+                    obj.set('fill', hex);
+                }
+                canvas.requestRenderAll();
+            }
+        }
+
+        function updateBind(val) {
+            const obj = canvas.getActiveObject();
+            if(obj) {
+                const key = val.trim();
+                obj.set('bindingKey', key);
+                
+                // 視覺更新：如果是佔位符，更新裡面的文字顯示
+                if(obj.isPlaceholder && obj._objects && obj._objects[1]) {
+                    obj._objects[1].set('text', `{${key}}`);
+                    canvas.requestRenderAll();
+                }
+            }
+        }
+
+        // --- 2. 零件庫管理 ---
+        async function handleUpload(e) {
+            const files = e.target.files;
+            if (!files.length) return;
+            
+            const category = document.getElementById('uploadCategory').value || '未分類';
+            const status = document.getElementById('uploadStatus');
+            status.style.display = 'block';
+
+            for (let i = 0; i < files.length; i++) {
+                let file = files[i];
+                try {
+                    file = await imageCompression(file, { maxSizeMB: 0.2, maxWidthOrHeight: 800, useWebWorker: true });
+                } catch(err) { console.warn('壓縮失敗', err); }
+
+                const dataUrl = await readFileAsDataURL(file);
+                const name = file.name.split('.')[0]; 
+                
+                partsLibrary.unshift({ id: Date.now() + i, name: name, category: category, data: dataUrl });
+            }
+
+            if(partsLibrary.length > 50) partsLibrary = partsLibrary.slice(0, 50); // 限制數量
+
+            try { localStorage.setItem('partswall_library', JSON.stringify(partsLibrary)); } 
+            catch(err) { alert('空間不足，部分圖片未儲存'); }
+
+            renderLibrary();
+            status.style.display = 'none';
+            e.target.value = '';
+        }
+
+        function renderLibrary(filterText = '', filterCat = 'all') {
+            const container = document.getElementById('partLibrary');
+            const tabsContainer = document.getElementById('categoryTabs');
+            container.innerHTML = '';
+
+            const categories = ['all', ...new Set(partsLibrary.map(p => p.category))];
+            let tabsHtml = '';
+            categories.forEach(cat => {
+                const active = cat === filterCat ? 'active' : '';
+                const label = cat === 'all' ? '全部' : cat;
+                tabsHtml += `<div class="cat-tag ${active}" onclick="renderLibrary('${filterText}', '${cat}')">${label}</div>`;
+            });
+            tabsContainer.innerHTML = tabsHtml;
+
+            const filtered = partsLibrary.filter(p => {
+                const matchName = p.name.toLowerCase().includes(filterText.toLowerCase());
+                const matchCat = filterCat === 'all' || p.category === filterCat;
+                return matchName && matchCat;
+            });
+
+            filtered.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'part-item';
+                div.innerHTML = `<img src="${p.data}"><div class="part-name">${p.name}</div>`;
+                div.onclick = () => addPartToCanvas(p.data);
+                div.draggable = true;
+                div.ondragstart = (e) => { e.dataTransfer.setData('imgUrl', p.data); };
+                container.appendChild(div);
+            });
+        }
+
+        function filterLibrary(text) {
+            const activeTab = document.querySelector('.cat-tag.active');
+            const cat = activeTab ? (activeTab.innerText === '全部' ? 'all' : activeTab.innerText) : 'all';
+            renderLibrary(text, cat);
+        }
+
+        function addPartToCanvas(url, left=100, top=100) {
+            fabric.Image.fromURL(url, img => {
+                img.scaleToWidth(150);
+                img.set({left: left, top: top});
+                canvas.add(img);
+                canvas.setActiveObject(img);
+            });
+        }
+
+        // --- 3. Excel 導入與批量生成 (支援多欄位) ---
+        function triggerExcelImport() { document.getElementById('excelInput').click(); }
+
+        document.getElementById('excelInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const ab = await file.arrayBuffer();
+            const wb = XLSX.read(ab);
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+            if (!data.length) { alert("Excel 無資料"); return; }
+
+            openPreview();
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '<div style="width:100%; text-align:center;">正在生成...<i class="fa-solid fa-spinner fa-spin"></i></div>';
+            generatedBlobs = [];
+
+            canvas.discardActiveObject();
+            // 保存模板時，要記得包含我們自定義的屬性
+            const templateJson = JSON.stringify(canvas.toJSON(['bindingKey', 'isPlaceholder']));
+
+            previewContainer.innerHTML = ''; 
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i]; 
+                
+                await new Promise(r => canvas.loadFromJSON(templateJson, r));
+
+                const objects = canvas.getObjects();
+                
+                // 遍歷所有物件尋找綁定
+                for (const obj of objects) {
+                    const key = obj.bindingKey; 
+                    
+                    if (key && row[key] !== undefined) {
+                        const val = String(row[key]);
+
+                        // 文字
+                        if (obj.type === 'i-text' || obj.type === 'text') {
+                            obj.set('text', val);
+                        }
+                        
+                        // 圖片佔位符
+                        if (obj.isPlaceholder) {
+                            // 根據 Excel 內容去零件庫找圖 (模糊比對)
+                            const part = partsLibrary.find(p => p.name.includes(val));
+                            
+                            // 記錄位置
+                            const phLeft = obj.left;
+                            const phTop = obj.top;
+                            const phW = obj.width * obj.scaleX;
+                            const phH = obj.height * obj.scaleY;
+
+                            // 移除佔位符
+                            canvas.remove(obj);
+
+                            if (part) {
+                                await new Promise(resolve => {
+                                    fabric.Image.fromURL(part.data, img => {
+                                        // 縮放並置中 (Contain)
+                                        const scaleX = phW / img.width;
+                                        const scaleY = phH / img.height;
+                                        const scale = Math.min(scaleX, scaleY);
+                                        
+                                        img.scale(scale);
+                                        img.set({
+                                            left: phLeft, 
+                                            top: phTop,
+                                            originX: 'center', 
+                                            originY: 'center'
+                                        });
+                                        canvas.add(img);
+                                        resolve();
+                                    });
+                                });
+                            } else {
+                                // 沒找到圖，顯示紅字
+                                const errText = new fabric.Text(`無圖:${val}`, {
+                                    fontSize: 20, fill: 'red', left: phLeft, top: phTop, originX: 'center', originY: 'center'
+                                });
+                                canvas.add(errText);
+                            }
+                        }
+                    }
+                }
+
+                canvas.renderAll();
+                const blob = await (await fetch(canvas.toDataURL({format:'png', multiplier:1}))).blob();
+                
+                // 檔名：嘗試用第一欄的資料當檔名，避免重複
+                const firstKey = Object.keys(row)[0];
+                const fileName = row[firstKey] ? `${row[firstKey]}.png` : `label_${i}.png`;
+                generatedBlobs.push({ name: fileName, blob: blob });
+
+                const card = document.createElement('div');
+                card.className = 'preview-card';
+                card.innerHTML = `
+                    <img src="${URL.createObjectURL(blob)}">
+                    <div class="preview-info">${fileName}</div>
+                `;
+                previewContainer.appendChild(card);
+            }
+
+            document.getElementById('previewCount').innerText = `共 ${generatedBlobs.length} 張`;
+            canvas.loadFromJSON(templateJson, canvas.renderAll.bind(canvas));
+            e.target.value = '';
+        });
+
+        // --- 4. 下載 ---
+        function openPreview() { document.getElementById('previewModal').style.display = 'flex'; }
+        function closePreview() { document.getElementById('previewModal').style.display = 'none'; }
+        
+        async function downloadAll() {
+            if (!generatedBlobs.length) return;
+            const zip = new JSZip();
+            generatedBlobs.forEach(item => {
+                zip.file(item.name, item.blob);
+            });
+            const content = await zip.generateAsync({type:"blob"});
+            saveAs(content, "labels_output.zip");
+        }
+
+        // --- 5. 事件監聽 ---
+        function setupEvents() {
+            window.addEventListener('keydown', (e) => {
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+                if(e.key === 'Delete' || e.key === 'Backspace') deleteActiveObject();
+            });
+
+            canvas.on('selection:created', updatePropPanel);
+            canvas.on('selection:updated', updatePropPanel);
+            canvas.on('selection:cleared', updatePropPanel);
+            
+            const wrapper = document.querySelector('.canvas-wrapper');
+            wrapper.addEventListener('dragover', e => e.preventDefault());
+            wrapper.addEventListener('drop', e => {
+                e.preventDefault();
+                const url = e.dataTransfer.getData('imgUrl');
+                if(url) addPartToCanvas(url, e.layerX, e.layerY);
+            });
+            
+            document.getElementById('fileInput').addEventListener('change', handleUpload);
+        }
+        
+        function readFileAsDataURL(file) {
+            return new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function saveTemplate() {
+            const json = JSON.stringify(canvas.toJSON(['bindingKey', 'isPlaceholder']));
+            localStorage.setItem('partswall_template', json);
+            alert('模板已儲存');
+        }
+    </script>
+</body>
+</html>

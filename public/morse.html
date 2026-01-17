@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摩斯電碼收發機 - 啊吧啊吧</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg-deep: #050811; --suisei-cyan: #3bc6e4; --card-bg: rgba(13, 27, 51, 0.85); --text-glow: 0 0 8px rgba(59, 198, 228, 0.8); }
+        body { font-family: 'Microsoft JhengHei', 'Consolas', monospace; background: radial-gradient(circle at center, #1a2c4e 0%, #050811 100%); color: #ecf0f1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; margin: 0; }
+        .grid-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(59, 198, 228, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 198, 228, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -2; pointer-events: none; }
+        .container { width: 95%; max-width: 800px; padding: 40px 20px; box-sizing: border-box;}
+        .header-area { margin-bottom: 30px; text-align: center; position: relative; }
+        h1 { color: var(--suisei-cyan); text-shadow: var(--text-glow); font-size: 2.2rem; margin: 0 0 10px 0; letter-spacing: 3px; text-transform: uppercase; }
+        .back-link { position: absolute; left: 0; top: 10px; color: #666; text-decoration: none; font-size: 0.9rem; border: 1px solid #666; padding: 5px 15px; border-radius: 4px; transition: 0.3s; }
+        .back-link:hover { color: var(--suisei-cyan); border-color: var(--suisei-cyan); box-shadow: var(--text-glow); }
+
+        .terminal-card { background: var(--card-bg); border: 1px solid var(--suisei-cyan); padding: 30px; border-radius: 10px; box-shadow: var(--text-glow); }
+        textarea { width: 100%; height: 100px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: var(--suisei-cyan); padding: 15px; font-family: 'Consolas', monospace; font-size: 1.1rem; resize: vertical; box-sizing: border-box; }
+        textarea:focus { outline: none; border-color: var(--suisei-cyan); }
+        .label-txt { color: #888; margin-bottom: 10px; display: block; font-weight: bold; }
+
+        .btn-group { display: flex; gap: 15px; margin: 25px 0; flex-wrap: wrap; }
+        .btn-cyber { flex: 1; min-width: 120px; padding: 12px; background: var(--suisei-cyan); color: #000; border: none; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: 0.3s; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); font-family: 'Microsoft JhengHei', inherit; }
+        .btn-cyber:hover { background: #fff; box-shadow: var(--text-glow); }
+        .btn-cyber.play { background: #ffbb33; } .btn-cyber.play:hover { background: #fff; }
+        
+        #outputArea { height: 150px; background: #000; color: #ffbb33; font-size: 1.3rem; white-space: pre-wrap; word-break: break-all; }
+        .playing-indicator { display: inline-block; width: 15px; height: 15px; background: #ffbb33; border-radius: 50%; margin-left: 10px; opacity: 0; transition: 0.1s; }
+        .playing-indicator.active { opacity: 1; box-shadow: 0 0 10px #ffbb33; }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="container">
+        <div class="header-area">
+            <a href="index.html" class="back-link">&lt; 退出系統</a>
+            <h1 data-i18n="morse.pageTitle">MORSE CODE TERMINAL</h1>
+            <p style="color:#888" data-i18n="morse.desc"></p>
+        </div>
+
+        <div class="terminal-card">
+            <label class="label-txt" data-i18n="morse.labelInput">輸入訊息</label>
+            <textarea id="inputText" data-i18n-placeholder="morse.placeholder"></textarea>
+
+            <div class="btn-group">
+                <button class="btn-cyber" onclick="encodeMorse()" data-i18n="morse.btnEncode">加密 (文字→電碼)</button>
+                <button class="btn-cyber" onclick="decodeMorse()" data-i18n="morse.btnDecode">解碼 (電碼→文字)</button>
+                <button class="btn-cyber play" onclick="playMorse()" id="btnPlay">
+                    <i class="fa-solid fa-volume-high"></i> <span data-i18n="morse.btnPlay">播放訊號音</span>
+                    <span class="playing-indicator" id="playDot"></span>
+                </button>
+            </div>
+
+            <label class="label-txt" data-i18n="morse.labelOutput">轉換結果</label>
+            <textarea id="outputArea" readonly></textarea>
+        </div>
+    </div>
+
+    <script src="js/content.js"></script>
+    <script src="js/loader.js"></script>
+
+    <script>
+        // 摩斯密碼表
+        const MORSE_TABLE = { 'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.', 'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-', 'Y': '-.--', 'Z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': '/' };
+        const REVERSE_TABLE = Object.fromEntries(Object.entries(MORSE_TABLE).map(([k, v]) => [v, k]));
+
+        function encodeMorse() {
+            const input = document.getElementById('inputText').value.toUpperCase();
+            let output = input.split('').map(char => MORSE_TABLE[char] || char).join(' ');
+            document.getElementById('outputArea').value = output;
+        }
+
+        function decodeMorse() {
+            const input = document.getElementById('inputText').value.trim();
+            let output = input.split(' ').map(code => REVERSE_TABLE[code] || code).join('');
+            document.getElementById('outputArea').value = output;
+        }
+
+        // 音效播放 (使用 Web Audio API)
+        let audioCtx = null;
+        let isPlaying = false;
+
+        async function playMorse() {
+            if (isPlaying) return;
+            const btn = document.getElementById('btnPlay');
+            const dot = document.getElementById('playDot');
+            const code = document.getElementById('outputArea').value || document.getElementById('inputText').value;
+            
+            if (!code.match(/[.\-\/]/)) { alert("請先輸入或轉換成摩斯電碼！"); return; }
+
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            isPlaying = true;
+            btn.disabled = true;
+            
+            const UNIT = 100; // 基礎時間單位 (ms)
+            
+            for (const char of code) {
+                if (!isPlaying) break;
+                if (char === '.') {
+                    dot.classList.add('active'); await beep(UNIT); dot.classList.remove('active'); await delay(UNIT);
+                } else if (char === '-') {
+                    dot.classList.add('active'); await beep(UNIT * 3); dot.classList.remove('active'); await delay(UNIT);
+                } else if (char === ' ' || char === '/') {
+                    await delay(UNIT * 2); // 字母間隔 (已經有一個 UNIT delay，再加 2 個變 3 個)
+                }
+            }
+            isPlaying = false;
+            btn.disabled = false;
+        }
+
+        function beep(duration) {
+            return new Promise(resolve => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sine'; osc.frequency.value = 600; // 頻率
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01); // 淡入
+                osc.start();
+                setTimeout(() => {
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.01); // 淡出
+                    osc.stop(audioCtx.currentTime + 0.05);
+                    resolve();
+                }, duration);
+            });
+        }
+        function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+    </script>
+</body>
+</html>
