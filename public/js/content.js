@@ -1,5 +1,5 @@
 // js/content.js
-// 3.0 資料庫：功能嚴格分類
+// 玉露寶庫 3.2 (娛樂區僅保留抽獎)
 
 var siteContent = {
     common: {
@@ -11,41 +11,16 @@ var siteContent = {
     // ========== 🕹️ 娛樂區 (Games) ==========
     entertainment: [
         {
-            title: "防火牆防禦戰",
-            desc: "滑動攔截紅色病毒，放行綠色封包。",
-            url: "firewall.html",
-            icon: "fa-solid fa-shield-virus"
-        },
-        {
-            title: "中英打練習",
-            desc: "WPM 打字速度測試與練習。",
-            url: "typing.html",
-            icon: "fa-solid fa-keyboard"
-        },
-        {
-            title: "極限反應測試",
-            desc: "毫秒級的神經反應速度測試。",
-            url: "reflex.html",
-            icon: "fa-solid fa-bolt"
-        },
-        {
-            title: "記憶力大翻牌",
-            desc: "考驗瞬間記憶力的配對遊戲。",
-            url: "memory.html",
-            icon: "fa-solid fa-brain"
-        },
-        {
             title: "幸運大抽獎",
             desc: "命運輪盤，解決選擇困難症。",
             url: "lottery.html",
             icon: "fa-solid fa-ticket"
-        },
-        {
-            title: "極速跑者",
-            desc: "點擊跳躍避開障礙物的小遊戲。",
-            url: "run.html",
-            icon: "fa-solid fa-person-running"
         }
+        // [已封存] 防火牆 (firewall.html)
+        // [已封存] 打字機 (typing.html)
+        // [已封存] 反應測試 (reflex.html)
+        // [已封存] 記憶翻牌 (memory.html)
+        // [已封存] 極速逃亡 (run.html)
     ],
 
     // ========== 🛠️ 工具區 (Tools) ==========

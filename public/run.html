@@ -16,11 +16,12 @@
             margin: 0; padding: 0;
             background-color: var(--bg-dark);
             color: #fff;
-            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif; /* 強制微軟正黑體 */
+            font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
             overflow: hidden;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             height: 100vh;
             user-select: none;
+            touch-action: none; /* 禁止觸控縮放 */
         }
 
         /* --- 背景網格特效 --- */
@@ -32,7 +33,7 @@
             background-size: 40px 40px;
             transform: perspective(500px) rotateX(60deg);
             transform-origin: center 100%;
-            animation: gridMove 1s linear infinite;
+            animation: gridMove 0.5s linear infinite; /* 背景加速，增加速度感 */
             z-index: -1;
             opacity: 0.3;
         }
@@ -67,8 +68,8 @@
         /* --- 選單層 --- */
         .menu-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 16, 0.85);
-            backdrop-filter: blur(5px);
+            background: rgba(5, 5, 16, 0.9);
+            backdrop-filter: blur(8px);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 10; pointer-events: auto;
             transition: 0.3s;
@@ -101,7 +102,7 @@
         }
         .lb-title { text-align: center; color: var(--neon-blue); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
         .lb-item { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 1rem; }
-        .lb-item:nth-child(2) { color: #ffd700; font-weight: bold; } /* 標題是 child 1, 第一名是 child 2 */
+        .lb-item:nth-child(2) { color: #ffd700; font-weight: bold; }
         .lb-item:nth-child(3) { color: #c0c0c0; }
         .lb-item:nth-child(4) { color: #cd7f32; }
         .lb-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -149,7 +150,7 @@
 
         // Firebase Config (自動注入)
         const firebaseConfig = {
-            // 如本地開發請填入 Config
+            // Hosting 環境會自動填入，本地測試若需要排行榜請填入您的 Config
         };
         
         let db;
@@ -162,25 +163,28 @@
                 const app = initializeApp(config);
                 db = getFirestore(app);
                 loadLeaderboard();
-            }).catch(err => console.log("Local Mode"));
+            }).catch(err => console.log("Local Dev Mode: Leaderboard may not work without config"));
         }
 
-        // --- 遊戲核心 ---
+        // --- 核心變數 ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         let width, height;
         
-        // 🔥 速度優化參數 🔥
+        // 🔥 物理手感調校 (重點修改區) 🔥
         let score = 0;
-        let gameSpeed = 4;      // 初始速度 (原為 6，改慢)
+        let gameSpeed = 5;      // 初始速度
         let isGameOver = false;
         let isPlaying = false;
         let animationId;
         let isJumpPressed = false;
+        
+        const GRAVITY = 0.8;    // 重力 (原 0.5 -> 0.8) 讓下墜更快，減少滯空感
+        const JUMP_FORCE = -14; // 跳躍力 (原 -11 -> -14) 配合重力調整，起跳更乾脆
 
         const badWords = ['fuck', 'shit', 'bitch', 'ass', '幹', '靠杯', '雞掰', '白痴', '智障', '傻逼', '死', '賤', '王八', '腦殘'];
 
-        // 音效
+        // --- 音效系統 ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -208,27 +212,24 @@
             }
         }
 
-        // --- 物件 ---
+        // --- 遊戲物件 ---
         const player = {
             x: 50, y: 0, width: 40, height: 40,
-            dy: 0, 
-            jumpPower: -11, // 跳躍力道減弱 (原 -12)，更好控制
-            gravity: 0.5,   // 重力減弱 (原 0.6)，下墜變慢
-            grounded: false,
-            color: '#00f3ff',
+            dy: 0, grounded: false, color: '#00f3ff',
             draw() {
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = this.color;
                 ctx.fillStyle = this.color;
                 ctx.fillRect(this.x, this.y, this.width, this.height);
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = '#fff'; // 核心亮點
                 ctx.fillRect(this.x + 10, this.y + 10, 20, 20);
                 ctx.shadowBlur = 0;
             },
             update() {
-                this.dy += this.gravity;
+                this.dy += GRAVITY; // 套用新重力
                 this.y += this.dy;
 
+                // 地面判定
                 if (this.y + this.height > height - 50) {
                     this.y = height - 50 - this.height;
                     this.dy = 0;
@@ -239,7 +240,7 @@
             },
             jump() {
                 if (this.grounded) {
-                    this.dy = this.jumpPower;
+                    this.dy = JUMP_FORCE; // 套用新跳躍力
                     this.grounded = false;
                     playSound('jump');
                     createParticles(this.x + this.width/2, this.y + this.height, 'jump');
@@ -250,7 +251,7 @@
         class Obstacle {
             constructor() {
                 this.width = 30 + Math.random() * 30;
-                this.height = 40 + Math.random() * 30;
+                this.height = 40 + Math.random() * 40;
                 this.x = width;
                 this.y = height - 50 - this.height;
                 this.marked = false;
@@ -259,6 +260,7 @@
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = '#ff3131';
                 ctx.fillStyle = '#ff3131';
+                // 畫出帶斜角的障礙物
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
                 ctx.lineTo(this.x + this.width, this.y);
@@ -278,18 +280,19 @@
             constructor(x, y, type) {
                 this.x = x; this.y = y;
                 this.size = Math.random() * 4 + 2;
-                this.speedX = Math.random() * 4 - 2; 
-                this.speedY = Math.random() * 4 - 2;
+                this.speedX = Math.random() * 6 - 3; 
+                this.speedY = Math.random() * 6 - 3;
                 this.life = 1;
                 this.type = type;
             }
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
-                this.life -= 0.05;
+                this.life -= 0.04; // 粒子消失速度
             }
             draw() {
-                ctx.globalAlpha = Math.max(0, this.life);
+                if(this.life <= 0) return;
+                ctx.globalAlpha = this.life;
                 ctx.fillStyle = this.type === 'jump' ? '#00f3ff' : '#ffaa00';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
@@ -299,7 +302,7 @@
         }
 
         function createParticles(x, y, type) {
-            const count = type === 'crash' ? 20 : 5; 
+            const count = type === 'crash' ? 25 : 8; 
             for(let i=0; i<count; i++) {
                 particles.push(new Particle(x, y, type));
             }
@@ -320,7 +323,7 @@
             obstacles = [];
             particles = [];
             score = 0;
-            gameSpeed = 4; // 這裡也確保重置時速度是慢的
+            gameSpeed = 5; // 重置速度
             isGameOver = false;
             isPlaying = true;
             document.getElementById('menuOverlay').classList.add('hidden');
@@ -334,6 +337,7 @@
             if (!isPlaying) return;
             ctx.clearRect(0, 0, width, height);
 
+            // 地面線
             ctx.strokeStyle = '#00f3ff';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -344,44 +348,49 @@
             player.update();
             player.draw();
 
+            // 生成障礙物
             if (!lastObstacleTime) lastObstacleTime = timestamp;
             const deltaTime = timestamp - lastObstacleTime;
             
-            // 隨機生成間隔
+            // 隨機間隔 (1.2秒 ~ 2秒)
             if (Math.random() < 0.02 && deltaTime > 1200) { 
                 obstacles.push(new Obstacle());
                 lastObstacleTime = timestamp;
             }
 
+            // 更新障礙物
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let ob = obstacles[i];
                 ob.update();
                 ob.draw();
 
-                // 碰撞判定
+                // 🔥 碰撞優化：判定範圍內縮 10px，避免空氣撞牆 🔥
                 if (
-                    player.x < ob.x + ob.width - 5 &&
-                    player.x + player.width > ob.x + 5 &&
-                    player.y < ob.y + ob.height - 5 &&
-                    player.y + player.height > ob.y + 5
+                    player.x < ob.x + ob.width - 10 &&
+                    player.x + player.width > ob.x + 10 &&
+                    player.y < ob.y + ob.height - 10 &&
+                    player.y + player.height > ob.y + 10
                 ) {
                     gameOver();
-                    return;
+                    return; // 立即停止渲染，避免畫面穿幫
                 }
 
+                // 計分
                 if (ob.x + ob.width < player.x && !ob.marked) {
                     score += 10;
                     ob.marked = true;
                     document.getElementById('currentScore').innerText = score;
-                    // 加速邏輯優化：每100分加一點點，且有上限
-                    if(score % 100 === 0 && gameSpeed < 12) gameSpeed += 0.3;
+                    // 加速上限控制
+                    if(score % 100 === 0 && gameSpeed < 10) gameSpeed += 0.4;
                 }
 
+                // 移除
                 if (ob.x + ob.width < 0) {
                     obstacles.splice(i, 1);
                 }
             }
 
+            // 更新粒子
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
                 p.update();
@@ -389,8 +398,8 @@
                 if(p.life <= 0) particles.splice(i, 1);
             }
 
-            // 自然加分
-            if(Math.floor(timestamp / 100) % 2 === 0 && timestamp % 10 === 0) {
+            // 自然時間加分
+            if(Math.floor(timestamp / 100) % 5 === 0 && timestamp % 10 === 0) {
                score++;
                document.getElementById('currentScore').innerText = score;
             }
@@ -403,6 +412,8 @@
             cancelAnimationFrame(animationId);
             playSound('crash');
             createParticles(player.x + 20, player.y + 20, 'crash');
+            
+            // 繪製定格畫面
             particles.forEach(p => p.draw());
 
             const currentBest = parseInt(localStorage.getItem('speedEscapeBest') || 0);
@@ -411,13 +422,14 @@
                 document.getElementById('localBest').innerText = score;
             }
 
+            // 上傳分數
             handleUploadScore();
 
             setTimeout(() => {
                 document.getElementById('menuOverlay').classList.remove('hidden');
-                document.querySelector('#menuOverlay h1').innerText = "遊戲結束";
+                document.querySelector('#menuOverlay h1').innerText = "生存結束";
                 document.getElementById('startBtn').innerText = "再來一局";
-            }, 800);
+            }, 1000);
         }
 
         // --- 排行榜 ---
@@ -430,11 +442,11 @@
         }
 
         async function handleUploadScore() {
-            if(!db || score <= 50) return;
+            // 🔥 取消 50 分限制，1 分也上傳方便測試 🔥
+            if(!db || score <= 0) return;
             
             const nameInput = document.getElementById('playerName');
             let name = nameInput.value.trim() || '匿名玩家';
-            
             if(!cleanName(name)) name = '匿名玩家';
 
             try {
@@ -443,8 +455,9 @@
                     score: score,
                     timestamp: new Date()
                 });
-                loadLeaderboard();
-            } catch (e) { console.error(e); }
+                console.log("上傳成功");
+                loadLeaderboard(); // 上傳後立即刷新
+            } catch (e) { console.error("上傳失敗", e); }
         }
 
         async function loadLeaderboard() {
@@ -470,6 +483,7 @@
                 if(html === titleHtml) html += '<div style="text-align:center; color:#aaa; margin-top:10px;">尚無紀錄</div>';
                 list.innerHTML = html;
             } catch (e) {
+                console.error(e);
                 list.innerHTML = titleHtml + '<div style="text-align:center; color:#aaa;">讀取失敗</div>';
             }
         }
