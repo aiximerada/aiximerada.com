@@ -2,210 +2,77 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>神經反射同步率 - 啊吧啊吧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極限反應測試</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-deep: #050811; --suisei-cyan: #3bc6e4; --alert-red: #ff4444; --success-green: #00c851; --card-bg: rgba(13, 27, 51, 0.85); --text-glow: 0 0 8px rgba(59, 198, 228, 0.8); }
+        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
+        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; user-select: none; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
+        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
         
-        body { 
-            font-family: 'Microsoft JhengHei', 'Consolas', monospace; 
-            background: radial-gradient(circle at center, #1a2c4e 0%, #050811 100%); 
-            color: #ecf0f1; 
-            min-height: 100vh; 
-            display: flex; flex-direction: column; align-items: center; 
-            padding-bottom: 50px; margin: 0; 
-            user-select: none; /* 禁止選取文字 */
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍框 */
-            touch-action: manipulation;
+        #test-area {
+            width: 100%; max-width: 500px; height: 400px;
+            background: rgba(255,255,255,0.1); border-radius: 20px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
+            transition: background 0.2s; border: 2px solid transparent;
         }
-
-        .grid-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(59, 198, 228, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 198, 228, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -2; pointer-events: none; }
-        .container { width: 95%; max-width: 800px; padding: 40px 20px; box-sizing: border-box;}
-        .header-area { margin-bottom: 30px; text-align: center; position: relative; }
-        h1 { color: var(--suisei-cyan); text-shadow: var(--text-glow); font-size: 2.2rem; margin: 0 0 10px 0; letter-spacing: 3px; text-transform: uppercase; }
-        .back-link { position: absolute; left: 0; top: 10px; color: #666; text-decoration: none; font-size: 0.9rem; border: 1px solid #666; padding: 5px 15px; border-radius: 4px; transition: 0.3s; }
-        .back-link:hover { color: var(--suisei-cyan); border-color: var(--suisei-cyan); box-shadow: var(--text-glow); }
-
-        /* 遊戲區域優化 */
-        #gameArea {
-            width: 100%; height: 400px; background: var(--card-bg); border: 2px solid var(--suisei-cyan);
-            border-radius: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; position: relative; overflow: hidden; transition: 0.2s; box-shadow: var(--text-glow);
-            touch-action: none; 
-        }
-
-        #gameArea.wait { background: rgba(255, 68, 68, 0.2); border-color: var(--alert-red); color: var(--alert-red); box-shadow: 0 0 20px var(--alert-red); }
-        #gameArea.go { background: rgba(0, 200, 81, 0.2); border-color: var(--success-green); color: var(--success-green); box-shadow: 0 0 30px var(--success-green); }
-        
-        .status-icon { font-size: 5rem; margin-bottom: 20px; transition: 0.2s; pointer-events: none; }
-        .status-text { font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; text-align: center; pointer-events: none; }
-        .hint-text { font-size: 0.9rem; color: #888; margin-top: 10px; pointer-events: none; opacity: 0.8; }
-        
-        /* 按鈕樣式 */
-        .btn-start { 
-            padding: 15px 40px; font-size: 1.2rem; background: var(--suisei-cyan); border: none; 
-            font-weight: bold; cursor: pointer; 
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); 
-            color: #000; transition: 0.3s; z-index: 10;
-        }
-        .btn-start:hover { background: #fff; box-shadow: var(--text-glow); transform: scale(1.05); }
-        .btn-start:active { transform: scale(0.95); }
-        
-        .result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(5px); z-index: 20; }
-        .result-ms { font-size: 4rem; color: var(--suisei-cyan); font-weight: bold; }
-        .result-rank { font-size: 1.5rem; color: #fff; margin-top: 10px; }
+        .waiting { background: #ce4242 !important; box-shadow: 0 0 20px #ce4242; }
+        .now { background: #4ade80 !important; box-shadow: 0 0 30px #4ade80; color: #000; }
     </style>
 </head>
 <body>
-    <div class="grid-bg"></div>
-    <div class="container">
-        <div class="header-area">
-            <a href="index.html" class="back-link">&lt; 退出系統</a>
-            <h1 data-i18n="reflex.pageTitle">NEURAL SYNCHRONIZATION</h1>
-            <p style="color:#888" data-i18n="reflex.desc"></p>
-        </div>
-
-        <div id="gameArea">
-            <i class="fa-solid fa-power-off status-icon" id="statusIcon"></i>
-            <div class="status-text" id="statusText">準備就緒</div>
-            <div class="hint-text" id="pcHint" style="display:none;">[ 按下空白鍵 Space 開始 ]</div>
-            
-            <button class="btn-start" id="startBtn" onclick="startGame(event)" style="margin-top: 30px;" data-i18n="reflex.btnStart">啟動神經連結</button>
-            
-            <div class="result-overlay" id="resultPanel">
-                <div class="status-text" data-i18n="reflex.resultPrefix">您的同步延遲：</div>
-                <div class="result-ms" id="resultMs">0 ms</div>
-                <div class="result-rank" id="resultRank">-</div>
-                <button class="btn-start" onclick="resetGame(event)" style="margin-top: 30px;">再次嘗試 (Space)</button>
-            </div>
-        </div>
+    <div class="stars-bg"></div>
+    <div class="header">
+        <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
+        <h2>極限反應測試</h2>
     </div>
 
-    <script src="js/content.js"></script>
-    <script src="js/loader.js"></script>
+    <div id="test-area" onclick="handleClick()">
+        <i class="fa-solid fa-bolt" style="font-size: 3rem; margin-bottom: 20px;"></i>
+        <div id="msg">點擊開始測試</div>
+    </div>
 
     <script>
-        const gameArea = document.getElementById('gameArea');
-        const statusText = document.getElementById('statusText');
-        const statusIcon = document.getElementById('statusIcon');
-        const startBtn = document.getElementById('startBtn');
-        const resultPanel = document.getElementById('resultPanel');
-        const pcHint = document.getElementById('pcHint');
+        const area = document.getElementById('test-area');
+        const msg = document.getElementById('msg');
+        let state = 'idle'; // idle, waiting, now, result
+        let startTime;
+        let timer;
 
-        let gameState = 'idle'; // idle, waiting, go, result
-        let startTime = 0;
-        let timeoutId = null;
-        let ignoreInput = false;
-
-        // 偵測是否為電腦版，顯示空白鍵提示
-        if (!('ontouchstart' in window)) {
-            pcHint.style.display = 'block';
-        }
-
-        // 1. 啟動遊戲
-        function startGame(e) {
-            if(e && e.type !== 'keydown') e.stopPropagation(); // 防止點擊事件穿透
-
-            if (gameState !== 'idle') return;
-            
-            gameState = 'waiting';
-            startBtn.style.display = 'none';
-            pcHint.style.display = 'none';
-            gameArea.className = 'wait';
-            statusText.innerText = siteContent.reflex.stateWait;
-            statusIcon.className = 'fa-solid fa-triangle-exclamation status-icon';
-
-            ignoreInput = true;
-            setTimeout(() => { ignoreInput = false; }, 200);
-
-            // 隨機等待 2~5 秒
-            const waitTime = Math.random() * 3000 + 2000;
-            timeoutId = setTimeout(() => {
-                if (gameState === 'waiting') {
-                    gameState = 'go';
-                    gameArea.className = 'go';
-                    statusText.innerText = siteContent.reflex.stateGo;
-                    statusIcon.className = 'fa-solid fa-bolt status-icon fa-beat';
-                    startTime = performance.now();
-                }
-            }, waitTime);
-        }
-
-        // 2. 處理輸入 (整合 滑鼠/觸控/鍵盤)
-        function handleInput(e) {
-            if (ignoreInput || gameState === 'idle' || gameState === 'result') return;
-            if (e) e.preventDefault();
-
-            if (gameState === 'waiting') {
-                // 太早按了
-                clearTimeout(timeoutId);
-                gameOver(null, true);
-            } else if (gameState === 'go') {
-                // 成功
-                const endTime = performance.now();
-                const reactionTime = Math.round(endTime - startTime);
-                gameOver(reactionTime, false);
+        function handleClick() {
+            if(state === 'idle' || state === 'result') {
+                state = 'waiting';
+                area.className = 'waiting';
+                msg.innerText = "等待綠色...";
+                const delay = Math.floor(Math.random() * 2000) + 1500; // 1.5~3.5s
+                timer = setTimeout(() => {
+                    state = 'now';
+                    area.className = 'now';
+                    msg.innerText = "點擊！！！";
+                    startTime = Date.now();
+                }, delay);
+            } else if (state === 'waiting') {
+                clearTimeout(timer);
+                state = 'result';
+                area.className = '';
+                msg.innerText = "太快了！還沒變色。\n點擊重試";
+            } else if (state === 'now') {
+                const reaction = Date.now() - startTime;
+                state = 'result';
+                area.className = '';
+                msg.innerText = `${reaction} ms\n${getRank(reaction)}\n點擊再測一次`;
             }
         }
 
-        // 綁定 指針事件 (滑鼠/觸控)
-        gameArea.addEventListener('pointerdown', handleInput);
-
-        // 綁定 鍵盤事件 (空白鍵)
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.key === ' ') {
-                e.preventDefault(); // 防止捲動頁面
-                if (e.repeat) return; // 防止長按連發
-
-                if (gameState === 'idle') {
-                    startGame(e);
-                } else if (gameState === 'result') {
-                    resetGame(e);
-                } else {
-                    handleInput(e);
-                }
-            }
-        });
-
-        // 3. 遊戲結束
-        function gameOver(ms, tooSoon) {
-            gameState = 'result';
-            gameArea.className = '';
-            
-            setTimeout(() => {
-                resultPanel.style.display = 'flex';
-            }, 50);
-            
-            if (tooSoon) {
-                document.getElementById('resultMs').innerText = "---";
-                document.getElementById('resultRank').innerText = siteContent.reflex.stateTooSoon;
-                document.getElementById('resultRank').style.color = "var(--alert-red)";
-            } else {
-                document.getElementById('resultMs').innerText = ms + " ms";
-                let rank = '', color = '';
-                if (ms < 200) { rank = siteContent.reflex.ranks.s; color = '#ffbb33'; } 
-                else if (ms < 300) { rank = siteContent.reflex.ranks.a; color = '#00c851'; } 
-                else if (ms < 400) { rank = siteContent.reflex.ranks.b; color = '#3bc6e4'; } 
-                else { rank = siteContent.reflex.ranks.c; color = '#ccc'; } 
-                document.getElementById('resultRank').innerText = rank;
-                document.getElementById('resultRank').style.color = color;
-            }
-        }
-
-        // 4. 重置
-        function resetGame(e) {
-            if(e && e.type !== 'keydown') e.stopPropagation();
-            
-            gameState = 'idle';
-            resultPanel.style.display = 'none';
-            startBtn.style.display = 'block';
-            if (!('ontouchstart' in window)) pcHint.style.display = 'block';
-            
-            statusText.innerText = "準備就緒";
-            statusIcon.className = 'fa-solid fa-power-off status-icon';
-            gameArea.className = '';
+        function getRank(ms) {
+            if(ms < 200) return "神之反應！";
+            if(ms < 300) return "職業選手等級";
+            if(ms < 400) return "普通人類";
+            return "剛睡醒嗎？";
         }
     </script>
 </body>

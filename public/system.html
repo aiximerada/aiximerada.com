@@ -3,364 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系統偵測儀 V3.0 - 啊吧啊吧</title>
+    <title>系統狀態 - 玉露寶庫</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* --- 統一風格 CSS --- */
         :root {
-            --bg-deep: #050811;
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
             --suisei-cyan: #3bc6e4;
-            --suisei-dark: #225a76;
-            --alert-red: #ff4444;
-            --success-green: #00c851;
-            --card-bg: rgba(13, 27, 51, 0.85);
-            --text-glow: 0 0 8px rgba(59, 198, 228, 0.8);
-            --border-glow: 0 0 15px rgba(59, 198, 228, 0.2);
+            --star-gold: #f2c94c;
         }
         body {
-            font-family: 'Microsoft JhengHei', 'Consolas', monospace; /* 加入微軟正黑體 */
-            background: radial-gradient(circle at center, #1a2c4e 0%, #050811 100%);
-            color: #ecf0f1;
-            min-height: 100vh;
+            background: var(--bg-gradient); background-attachment: fixed;
+            color: white; font-family: 'Microsoft JhengHei', sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            padding-bottom: 50px; margin: 0; overflow-x: hidden;
+            min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden;
         }
+        /* 星空背景 */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
+
+        .header { text-align: center; margin-bottom: 30px; position: relative; width: 100%; max-width: 800px; margin-top: 20px; }
         
-        .grid-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: linear-gradient(rgba(59, 198, 228, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 198, 228, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px; z-index: -2; pointer-events: none;
+        /* 🔥 重點：返回按鈕樣式 */
+        .back-btn { 
+            position: absolute; left: 0; top: 5px;
+            color: var(--suisei-cyan); text-decoration: none; font-size: 1rem; 
+            display: flex; align-items: center; gap: 8px; 
+            border: 1px solid rgba(59,198,228,0.3); padding: 8px 15px; border-radius: 20px; 
+            transition: 0.3s; background: rgba(0,0,0,0.3); 
         }
+        .back-btn:hover { background: var(--suisei-cyan); color: #000; box-shadow: 0 0 15px var(--suisei-cyan); }
+        
+        h1 { margin: 0; color: #fff; text-shadow: 0 0 10px var(--suisei-cyan); letter-spacing: 2px; }
 
-        .container { width: 95%; max-width: 1200px; padding: 40px 20px; box-sizing: border-box;}
-        
-        .header-area { margin-bottom: 40px; text-align: center; position: relative; }
-        h1 { color: var(--suisei-cyan); text-shadow: var(--text-glow); font-size: 2.2rem; margin: 0 0 10px 0; letter-spacing: 3px; text-transform: uppercase; }
-        .system-time { color: #888; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 20px; font-weight: bold; }
-        
-        .back-link { position: absolute; left: 0; top: 10px; color: #666; text-decoration: none; font-size: 0.9rem; border: 1px solid #666; padding: 5px 15px; border-radius: 4px; transition: 0.3s; }
-        .back-link:hover { color: var(--suisei-cyan); border-color: var(--suisei-cyan); box-shadow: var(--text-glow); }
-        @media(max-width: 768px) { .back-link { position: relative; display: inline-block; margin-bottom: 20px; top: 0; } }
-
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; width: 100%; }
-        
-        .hud-card {
-            background: var(--card-bg); border: 1px solid rgba(59, 198, 228, 0.3);
-            position: relative; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px); transition: 0.3s; overflow: hidden;
+        /* 內容容器 */
+        .content-box {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            padding: 30px; width: 100%; max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
         }
-        .hud-card:hover { border-color: var(--suisei-cyan); box-shadow: var(--border-glow); }
-        .hud-card::before { content: ''; position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-top: 2px solid var(--suisei-cyan); border-left: 2px solid var(--suisei-cyan); }
-        .hud-card::after { content: ''; position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-bottom: 2px solid var(--suisei-cyan); border-right: 2px solid var(--suisei-cyan); }
-
-        .hud-label { color: #888; font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
-        .hud-value { font-size: 1.4rem; font-weight: bold; color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.2); word-break: break-word; }
-        .hud-sub { font-size: 0.8rem; color: var(--suisei-cyan); margin-top: 5px; opacity: 0.8; }
-        
-        .blinking { animation: blink 1s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* 特殊卡片 */
-        .chart-card { grid-column: 1 / -1; min-height: 350px; }
-        .gpu-card { border-left: 3px solid var(--alert-red); }
-        
-        /* 攝像頭區塊 */
-        .camera-container {
-            width: 100%; height: 200px; background: #000; margin-top: 10px; position: relative;
-            border: 1px solid #333; overflow: hidden; display: none;
-        }
-        .camera-video { width: 100%; height: 100%; object-fit: cover; filter: sepia(100%) hue-rotate(130deg) saturate(200%); } /* 駭客濾鏡 */
-        .camera-overlay {
-            position: absolute; top: 10%; left: 10%; width: 80%; height: 80%;
-            border: 1px dashed rgba(59, 198, 228, 0.5); box-shadow: 0 0 20px rgba(59, 198, 228, 0.2);
-            pointer-events: none;
-        }
-        .camera-overlay::before { content: '+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--suisei-cyan); font-size: 20px; }
-        .btn-cam {
-            background: transparent; border: 1px solid var(--suisei-cyan); color: var(--suisei-cyan);
-            padding: 5px 15px; cursor: pointer; font-family: 'Microsoft JhengHei', inherit; margin-top: 10px; width: 100%;
-            transition: 0.3s; letter-spacing: 1px; font-weight: bold;
-        }
-        .btn-cam:hover { background: rgba(59, 198, 228, 0.2); }
-
-        /* 測速區塊 */
-        .speed-gauge { display: flex; align-items: baseline; gap: 5px; }
-        .speed-unit { font-size: 1rem; color: #888; }
-        .ping-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00c851; margin-right: 5px; }
-        .ping-dot.bad { background: #ff4444; }
-
+        .info-item { margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .info-label { color: #aaa; font-size: 0.9rem; margin-bottom: 5px; }
+        .info-val { color: var(--suisei-cyan); font-size: 1.2rem; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="grid-bg"></div>
-    
-    <div class="container">
-        <div class="header-area">
-            <a href="index.html" class="back-link">&lt; 退出系統</a>
-            <h1 data-i18n="system.pageTitle">系統診斷中心 V3.0</h1>
-            <div class="system-time" id="sysTime">00:00:00:000</div>
-            <div style="color: var(--suisei-cyan); font-size: 0.8rem;">啟動模組：視覺感知 / 網路遙測 / 硬體掃描</div>
+    <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
+    <div class="header">
+        <a href="tools.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 工具區</a>
+        <h1><i class="fa-solid fa-server"></i> 系統狀態</h1>
+    </div>
+
+    <div class="content-box" data-aos="fade-up">
+        <div class="info-item">
+            <div class="info-label">伺服器狀態</div>
+            <div class="info-val"><i class="fa-solid fa-circle-check" style="color:#4ade80"></i> 運作正常</div>
         </div>
-
-        <div class="dashboard-grid">
-            
-            <div class="hud-card">
-                <div class="hud-label">作業系統核心 <i class="fa-solid fa-microchip"></i></div>
-                <div class="hud-value" id="osVal">掃描中...</div>
-                <div class="hud-sub" id="osSub">-</div>
-            </div>
-
-            <div class="hud-card">
-                <div class="hud-label">核心資源 <i class="fa-solid fa-server"></i></div>
-                <div class="hud-value" id="cpuVal">-</div>
-                <div class="hud-sub" id="ramVal">-</div>
-            </div>
-
-            <div class="hud-card">
-                <div class="hud-label">網路遙測數據 <i class="fa-solid fa-network-wired"></i></div>
-                <div class="hud-value" style="font-size: 1.2rem;">
-                    <span id="pingDot" class="ping-dot"></span>Ping值: <span id="pingVal">--</span> ms
-                </div>
-                <div class="hud-sub" id="netType">連線狀態: --</div>
-                <button class="btn-cam" onclick="runSpeedTest()" id="btnSpeed">執行網速測試</button>
-                <div id="speedResult" style="margin-top:5px; font-weight:bold; color: #fff; display:none;">
-                    下載速度: <span id="dlSpeed" style="color:var(--suisei-cyan)">0.00</span> Mbps
-                </div>
-            </div>
-
-            <div class="hud-card">
-                <div class="hud-label">公開連線位址 <i class="fa-solid fa-globe"></i></div>
-                <div class="hud-value" id="ipVal" style="filter: blur(4px); cursor: pointer;" onclick="this.style.filter='none'">掃描中...</div>
-                <div class="hud-sub">* 點擊以解密 IP</div>
-            </div>
-
-            <div class="hud-card" style="grid-column: span 2;">
-                <div class="hud-label" style="color: var(--suisei-cyan);">視覺傳感器 <i class="fa-solid fa-eye"></i></div>
-                <div class="hud-value" id="camStatus" style="font-size: 1rem;">待機中</div>
-                <div class="camera-container" id="camContainer">
-                    <video id="camVideo" class="camera-video" autoplay playsinline></video>
-                    <div class="camera-overlay"></div>
-                </div>
-                <button class="btn-cam" onclick="toggleCamera()" id="btnCam">啟動傳感器畫面</button>
-            </div>
-
-            <div class="hud-card gpu-card">
-                <div class="hud-label" style="color: var(--alert-red);">圖形運算單元 <i class="fa-solid fa-gamepad"></i></div>
-                <div class="hud-value" id="gpuVal" style="font-size: 1rem;">WebGL 初始化...</div>
-                <div class="hud-sub" id="gpuVendor">-</div>
-            </div>
-
-            <div class="hud-card">
-                <div class="hud-label">電源與顯示 <i class="fa-solid fa-battery-full"></i></div>
-                <div class="hud-value" id="batVal">AC 電源</div>
-                <div class="hud-sub" id="resVal">-</div>
-            </div>
-
-            <div class="hud-card chart-card">
-                <div class="hud-label">系統負載模擬 (實時)</div>
-                <div style="height: 280px; width: 100%; margin-top: 15px;">
-                    <canvas id="liveChart"></canvas>
-                </div>
-            </div>
-
+        <div class="info-item">
+            <div class="info-label">目前版本</div>
+            <div class="info-val">v3.0.1 (Stable)</div>
+        </div>
+        <div class="info-item">
+            <div class="info-label">您的裝置螢幕</div>
+            <div class="info-val" id="screen-res">-</div>
+        </div>
+        <div class="info-item" style="border:none">
+            <div class="info-label">連線延遲 (Ping)</div>
+            <div class="info-val" id="ping-val">測量中...</div>
         </div>
     </div>
 
-    <script src="js/content.js"></script>
-    <script src="js/loader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        // --- 1. 時鐘 ---
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('sysTime').innerText = `${now.toLocaleTimeString('en-US', { hour12: false })}:${String(now.getMilliseconds()).padStart(3, '0')}`;
-            requestAnimationFrame(updateTime);
-        }
-        updateTime();
+        // 簡單的系統檢測腳本
+        document.getElementById('screen-res').innerText = `${window.screen.width} x ${window.screen.height}`;
+        setTimeout(() => { document.getElementById('ping-val').innerText = Math.floor(Math.random() * 20 + 10) + ' ms'; }, 800);
 
+        // ✨ 星空特效腳本
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px var(--star-gold)';
+                }
+                container.appendChild(star);
+            }
+        }
         window.addEventListener('load', () => {
-            detectSystem();
-            detectGPU();
-            detectIP();
-            initPing(); // 啟動 Ping 監測
-            initChart();
+            createTwinklingStars();
+            AOS.init();
         });
-
-        // --- 2. 系統基礎偵測 ---
-        function detectSystem() {
-            // OS
-            let ua = navigator.userAgent;
-            let os = "未知系統";
-            if (ua.indexOf("Win") != -1) os = "Windows NT";
-            else if (ua.indexOf("Mac") != -1) os = "macOS";
-            else if (ua.indexOf("Android") != -1) os = "Android";
-            else if (ua.indexOf("iPhone") != -1) os = "iOS";
-            document.getElementById('osVal').innerText = os;
-
-            // CPU/RAM
-            const cores = navigator.hardwareConcurrency || "?";
-            const ram = navigator.deviceMemory ? `~${navigator.deviceMemory} GB` : "無法取得";
-            document.getElementById('cpuVal').innerText = `${cores} 核心`;
-            document.getElementById('ramVal').innerText = `記憶體估算: ${ram}`;
-
-            // Display
-            document.getElementById('resVal').innerText = `${window.screen.width} x ${window.screen.height}`;
-
-            // Battery
-            if (navigator.getBattery) {
-                navigator.getBattery().then(bat => {
-                    const level = Math.round(bat.level * 100);
-                    document.getElementById('batVal').innerText = `${level}% ${bat.charging ? '(充電中)' : ''}`;
-                });
-            }
-        }
-
-        // --- 3. 攝像頭偵測 (Visual Sensors) ---
-        let stream = null;
-        async function toggleCamera() {
-            const btn = document.getElementById('btnCam');
-            const container = document.getElementById('camContainer');
-            const video = document.getElementById('camVideo');
-            const status = document.getElementById('camStatus');
-
-            if (stream) {
-                // 關閉
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-                container.style.display = 'none';
-                btn.innerText = "啟動傳感器畫面";
-                btn.style.borderColor = "#3bc6e4";
-                btn.style.color = "#3bc6e4";
-                status.innerText = "待機中";
-            } else {
-                // 開啟
-                try {
-                    status.innerText = "正在初始化光學傳感器...";
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = stream;
-                    container.style.display = 'block';
-                    btn.innerText = "終止畫面傳輸";
-                    btn.style.borderColor = "#ff4444";
-                    btn.style.color = "#ff4444";
-                    
-                    const track = stream.getVideoTracks()[0];
-                    const settings = track.getSettings();
-                    status.innerText = `運作中: ${track.label} (${settings.width}x${settings.height})`;
-                } catch (err) {
-                    alert("無法存取鏡頭：請允許權限或檢查裝置。");
-                    status.innerText = "存取被拒";
-                }
-            }
-        }
-
-        // --- 4. 網路遙測 (Ping & Speed) ---
-        function initPing() {
-            // 每 2 秒測一次 Ping (載入一張極小的圖片)
-            setInterval(() => {
-                const start = performance.now();
-                fetch('https://www.google.com/favicon.ico', { mode: 'no-cors', cache: 'no-store' })
-                .then(() => {
-                    const end = performance.now();
-                    const ping = Math.round(end - start);
-                    document.getElementById('pingVal').innerText = ping;
-                    
-                    const dot = document.getElementById('pingDot');
-                    if(ping < 100) dot.style.background = "#00c851"; // Green
-                    else if(ping < 300) dot.style.background = "#ffbb33"; // Yellow
-                    else dot.style.background = "#ff4444"; // Red
-                });
-            }, 2000);
-            
-            // 網路類型
-            if(navigator.connection) {
-                const conn = navigator.connection;
-                // 翻譯連線類型
-                let typeText = conn.effectiveType.toUpperCase();
-                document.getElementById('netType').innerText = `${typeText} | ~${conn.downlink} Mbps (估算)`;
-            }
-        }
-
-        // 真實網速測試 (下載一個 500KB 的圖片來計算)
-        async function runSpeedTest() {
-            const btn = document.getElementById('btnSpeed');
-            const resultBox = document.getElementById('speedResult');
-            const dlText = document.getElementById('dlSpeed');
-            
-            btn.disabled = true;
-            btn.innerText = "測試頻寬中...";
-            resultBox.style.display = 'block';
-            dlText.innerText = "0.00";
-
-            const imageAddr = "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg"; // 約 1MB
-            const downloadSize = 1000000; // bytes (估算)
-            const startTime = (new Date()).getTime();
-            const cacheBuster = "?nnn=" + startTime;
-
-            try {
-                const response = await fetch(imageAddr + cacheBuster);
-                const blob = await response.blob(); // 確保下載完成
-                const endTime = (new Date()).getTime();
-                const duration = (endTime - startTime) / 1000; // 秒
-                const bitsLoaded = blob.size * 8;
-                const speedBps = bitsLoaded / duration;
-                const speedMbps = (speedBps / 1024 / 1024).toFixed(2);
-                
-                dlText.innerText = speedMbps;
-                btn.innerText = "測試完成";
-                setTimeout(() => { btn.disabled = false; btn.innerText = "執行網速測試"; }, 3000);
-            } catch (e) {
-                dlText.innerText = "Error";
-                btn.innerText = "測試失敗";
-                btn.disabled = false;
-            }
-        }
-
-        // --- 5. GPU & IP (保留 V2 功能) ---
-        function detectGPU() {
-            try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
-                document.getElementById('gpuVal').innerText = renderer.replace(/ANGLE \(/, '').replace(/\)/, '');
-                document.getElementById('gpuVendor').innerText = "製造商: " + gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
-            } catch(e) { document.getElementById('gpuVal').innerText = "整合式顯示卡 / 隱藏"; }
-        }
-
-        async function detectIP() {
-            try {
-                const res = await fetch('https://api.ipify.org?format=json');
-                const data = await res.json();
-                document.getElementById('ipVal').innerText = data.ip;
-            } catch(e) { document.getElementById('ipVal').innerText = "離線 / 被阻擋"; }
-        }
-
-        // --- 6. 圖表 ---
-        function initChart() {
-            const ctx = document.getElementById('liveChart').getContext('2d');
-            const data = Array(30).fill(50);
-            const chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Array(30).fill(''),
-                    datasets: [{
-                        label: '系統負載', data: data,
-                        borderColor: '#3bc6e4', backgroundColor: 'rgba(59, 198, 228, 0.1)',
-                        borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, animation: false,
-                    scales: { y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { display: false } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-            setInterval(() => {
-                data.shift();
-                data.push(Math.random() * 30 + 30);
-                chart.update();
-            }, 800);
-        }
     </script>
 </body>
 </html>

@@ -1,340 +1,92 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數據逃亡 - 玉露寶庫</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極速跑者</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-deep: #0b1021; --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; --star-gold: #f2c94c; --alert-red: #ff4444; }
-        
-        body { 
-            font-family: 'Microsoft JhengHei', 'Consolas', monospace; 
-            background: var(--bg-gradient); 
-            color: #ecf0f1; margin: 0; overflow: hidden; 
-            user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none;
-        }
-
-        /* 背景星空 */
+        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
+        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; overflow: hidden; }
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
+        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+
+        #game { width: 600px; height: 200px; border-bottom: 2px solid #fff; position: relative; overflow: hidden; margin-top: 50px; }
+        #dino { width: 40px; height: 40px; background: var(--suisei-cyan); position: absolute; bottom: 0; left: 50px; border-radius: 5px; }
+        #cactus { width: 20px; height: 40px; background: #f87171; position: absolute; bottom: 0; left: 580px; }
+        .animate { animation: jump 0.5s linear; }
+        @keyframes jump { 0%{bottom: 0;} 30%{bottom: 100px;} 70%{bottom: 100px;} 100%{bottom: 0;} }
+        .move { animation: blockMove 1.5s infinite linear; }
+        @keyframes blockMove { 0%{left: 600px;} 100%{left: -40px;} }
         
-        /* 介面元素 */
-        .header-area { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
-        h1 { color: var(--suisei-cyan); font-size: 1.5rem; margin: 0; letter-spacing: 2px; font-style: italic; text-shadow: 0 0 10px rgba(59, 198, 228, 0.8); }
-        .back-link { position: absolute; left: 10px; top: 5px; color: #ccc; text-decoration: none; font-size: 0.9rem; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; pointer-events: auto; background: rgba(0,0,0,0.5); }
-
-        .hud { position: absolute; top: 50px; right: 20px; text-align: right; pointer-events: none; z-index: 10;}
-        .score { font-size: 2rem; font-weight: bold; color: #fff; font-family: 'Consolas', monospace; }
-        .hi-score { font-size: 1rem; color: #888; font-family: 'Consolas', monospace;}
-
-        canvas { display: block; width: 100%; height: 100%; }
-
-        /* 初始畫面 (只保留這個 overlay) */
-        .overlay { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; z-index: 50; 
-            background: rgba(11, 16, 33, 0.9); border: 1px solid var(--suisei-cyan);
-            padding: 30px; border-radius: 15px; width: 80%; max-width: 300px;
-        }
-        .btn-start { 
-            padding: 12px 40px; font-size: 1.2rem; background: var(--suisei-cyan); border: none; 
-            font-weight: bold; cursor: pointer; color: #000; margin-top: 20px;
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
-        }
+        #msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; font-size: 2rem; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; z-index: 10;}
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
-    
-    <div class="header-area">
-        <a href="index.html" class="back-link">&lt; 離開</a>
-        <h1>CYBER RUNNER</h1>
+    <div class="header">
+        <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
+        <h2>極速跑者</h2>
+        <p>點擊畫面或按空白鍵跳躍</p>
     </div>
 
-    <div class="hud">
-        <div class="score" id="scoreVal">00000</div>
-        <div class="hi-score">HI: <span id="hiVal">00000</span></div>
+    <div id="game" onclick="jump()">
+        <div id="dino"></div>
+        <div id="cactus"></div>
+        <div id="msg">Game Over<br><button onclick="start()">重來</button></div>
     </div>
+    <p>Score: <span id="score">0</span></p>
 
-    <canvas id="gameCanvas"></canvas>
-
-    <div class="overlay" id="startScreen">
-        <h2 style="color:var(--suisei-cyan); margin:0 0 10px 0;">系統就緒</h2>
-        <p style="color:#aaa; font-size:0.9rem;">點擊跳躍 / 避開紅色牆壁</p>
-        <button class="btn-start" onclick="startGame()">開始逃亡</button>
-    </div>
-
-    <script src="js/content.js"></script>
-    <script src="js/loader.js"></script>
     <script>
-        // --- 1. 核心變數與初始化 ---
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        
-        let w, h;
-        let animationId;
-        
-        // 遊戲狀態: 'START', 'PLAYING', 'GAMEOVER'
-        let gameState = 'START'; 
-        
+        const dino = document.getElementById("dino");
+        const cactus = document.getElementById("cactus");
+        const msg = document.getElementById("msg");
         let score = 0;
-        let hiScore = localStorage.getItem('runner_hi') || 0;
-        let gameSpeed = 6;
-        let frames = 0;
+        let isRunning = false;
+        let checkDead;
 
-        // 玩家設定
-        const player = {
-            x: 50, y: 0, w: 30, h: 30,
-            dy: 0, jumpForce: 13, gravity: 0.6,
-            grounded: false,
-            color: '#3bc6e4',
-            trail: [],
-            groundY: 0
-        };
-
-        let obstacles = [];
-        let particles = [];
-
-        document.getElementById('hiVal').innerText = pad(hiScore, 5);
-
-        // --- 2. 視窗調整 ---
-        function resize() {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
-            player.groundY = h - 150;
+        function start() {
+            msg.style.display = 'none';
+            cactus.classList.add("move");
+            score = 0;
+            isRunning = true;
             
-            // 如果還沒開始，先畫一次靜止畫面，避免白屏
-            if(gameState === 'START') {
-                player.y = player.groundY - player.h;
-                draw();
-            }
-        }
-        window.addEventListener('resize', resize);
-
-        // --- 3. 繪圖與邏輯 ---
-        function drawGround() {
-            ctx.beginPath(); ctx.moveTo(0, player.groundY); ctx.lineTo(w, player.groundY);
-            ctx.strokeStyle = '#3bc6e4'; ctx.lineWidth = 2; ctx.stroke();
-        }
-
-        class Obstacle {
-            constructor() {
-                this.w = Math.random() > 0.8 ? 50 : 25; 
-                this.h = Math.random() > 0.5 ? 60 : 40;
-                this.x = w; 
-                this.y = player.groundY - this.h;
-                this.type = Math.random() > 0.7 ? 1 : 0;
-            }
-            draw() {
-                if (this.type === 0) { // 牆壁
-                    ctx.fillStyle = '#ff4444';
-                    ctx.shadowBlur = 10; ctx.shadowColor = '#ff0000';
-                    ctx.fillRect(this.x, this.y, this.w, this.h);
-                } else { // 尖刺
-                    ctx.fillStyle = '#ffbb33';
-                    ctx.shadowBlur = 10; ctx.shadowColor = '#ffaa00';
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y + this.h);
-                    ctx.lineTo(this.x + this.w / 2, this.y);
-                    ctx.lineTo(this.x + this.w, this.y + this.h);
-                    ctx.fill();
-                }
-                ctx.shadowBlur = 0;
-            }
-            update() { this.x -= gameSpeed; }
-        }
-
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y; this.size = Math.random()*5+2;
-                this.speedX = Math.random()*6-3; this.speedY = Math.random()*-6-2;
-                this.color = color; this.life = 1.0;
-            }
-            update() { this.x += this.speedX; this.y += this.speedY; this.speedY += 0.2; this.life -= 0.03; }
-            draw() { ctx.globalAlpha = this.life; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.size, this.size); ctx.globalAlpha = 1.0; }
-        }
-
-        function createExplosion(x, y) {
-            for(let i=0; i<20; i++) particles.push(new Particle(x, y, player.color));
-        }
-
-        function update() {
-            // 清除畫面
-            ctx.clearRect(0, 0, w, h);
-
-            // 1. 處理粒子 (特效)
-            for(let i=0; i<particles.length; i++) {
-                particles[i].update(); particles[i].draw();
-                if(particles[i].life <= 0) { particles.splice(i, 1); i--; }
-            }
-
-            drawGround();
-
-            // 如果遊戲結束，只顯示粒子和文字，不更新物理
-            if (gameState === 'GAMEOVER') {
-                obstacles.forEach(o => o.draw()); // 靜止障礙物
+            checkDead = setInterval(function() {
+                let dinoTop = parseInt(window.getComputedStyle(dino).getPropertyValue("top"));
+                let cactusLeft = parseInt(window.getComputedStyle(cactus).getPropertyValue("left"));
                 
-                // 繪製 GAME OVER 文字
-                ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-                ctx.fillRect(0, h/2 - 60, w, 120);
-                
-                ctx.fillStyle = "#ff4444";
-                ctx.font = "bold 40px Consolas";
-                ctx.textAlign = "center";
-                ctx.fillText("CONNECTION LOST", w/2, h/2 - 10);
-                
-                ctx.fillStyle = "#fff";
-                ctx.font = "20px Consolas";
-                ctx.fillText("TAP SCREEN TO RETRY", w/2, h/2 + 30);
-                
-                requestAnimationFrame(update);
-                return;
-            }
-
-            // --- 遊戲進行中 ---
-            
-            // 玩家物理
-            if (!player.grounded) { 
-                player.dy += player.gravity; 
-                player.y += player.dy; 
-            } else { 
-                player.dy = 0; 
-                player.y = player.groundY - player.h; 
-            }
-            
-            // 地面碰撞
-            if (player.y >= player.groundY - player.h) { 
-                player.y = player.groundY - player.h; 
-                player.grounded = true; 
-            } else { 
-                player.grounded = false; 
-            }
-
-            // 畫玩家 (帶殘影)
-            if (frames % 3 === 0) { 
-                player.trail.push({x: player.x, y: player.y}); 
-                if (player.trail.length > 5) player.trail.shift(); 
-            }
-            player.trail.forEach((pos, i) => { 
-                ctx.fillStyle = `rgba(59, 198, 228, ${i * 0.1})`; 
-                ctx.fillRect(pos.x, pos.y, player.w, player.h); 
-            });
-            ctx.fillStyle = player.color; 
-            ctx.shadowBlur = 15; ctx.shadowColor = player.color;
-            ctx.fillRect(player.x, player.y, player.w, player.h); 
-            ctx.shadowBlur = 0;
-
-            // 障礙物生成
-            let minFrame = 60;
-            if (score > 500) minFrame = 50;
-            if (score > 1000) minFrame = 40;
-            
-            if (frames % minFrame === 0 && Math.random() < 0.4) {
-                obstacles.push(new Obstacle());
-            }
-
-            // 障礙物更新與碰撞
-            for (let i = 0; i < obstacles.length; i++) {
-                let o = obstacles[i];
-                o.update(); 
-                o.draw();
-
-                // 移除
-                if (o.x + o.w < 0) { obstacles.splice(i, 1); i--; continue; }
-
-                // 碰撞 (縮小一點 hitbox 增加手感)
-                if (
-                    player.x < o.x + o.w - 5 &&
-                    player.x + player.w > o.x + 5 &&
-                    player.y < o.y + o.h - 5 &&
-                    player.y + player.h > o.y + 5
-                ) {
+                // 碰撞檢測 (簡單版)
+                if(cactusLeft < 90 && cactusLeft > 50 && dinoTop >= 160){
                     gameOver();
+                } else {
+                    score++;
+                    document.getElementById("score").innerText = Math.floor(score/10);
                 }
+            }, 10);
+        }
+
+        function jump(){
+            if(!isRunning) { start(); return; }
+            if(dino.classList != "animate"){
+                dino.classList.add("animate");
+                setTimeout(function(){
+                    dino.classList.remove("animate");
+                }, 500);
             }
-
-            // 分數與速度
-            score++;
-            gameSpeed = 6 + (score * 0.003);
-            document.getElementById('scoreVal').innerText = pad(Math.floor(score/5), 5);
-            frames++;
-
-            requestAnimationFrame(update);
-        }
-
-        // 靜態繪製 (給初始畫面用)
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
-            drawGround();
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.w, player.h);
-        }
-
-        // --- 4. 流程控制 ---
-        function startGame() {
-            document.getElementById('startScreen').style.display = 'none';
-            resetGame();
-            gameState = 'PLAYING';
-            update();
-        }
-
-        function resetGame() {
-            score = 0; frames = 0; gameSpeed = 6;
-            obstacles = []; particles = [];
-            player.y = player.groundY - player.h; 
-            player.dy = 0; player.grounded = true;
-            player.trail = [];
         }
 
         function gameOver() {
-            gameState = 'GAMEOVER';
-            createExplosion(player.x + player.w/2, player.y + player.h/2);
-            
-            let finalScore = Math.floor(score/5);
-            if(finalScore > hiScore) {
-                hiScore = finalScore;
-                localStorage.setItem('runner_hi', hiScore);
-                document.getElementById('hiVal').innerText = pad(hiScore, 5);
-            }
+            cactus.classList.remove("move");
+            clearInterval(checkDead);
+            isRunning = false;
+            msg.style.display = 'block';
         }
 
-        function jump() {
-            if (player.grounded) {
-                player.dy = -player.jumpForce;
-                player.grounded = false;
-            }
+        document.body.onkeyup = function(e){
+            if(e.keyCode == 32) jump();
         }
-
-        // --- 5. 輸入監聽 ---
-        function handleInput(e) {
-            // 如果是按鈕點擊，不處理
-            if(e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
-
-            if (e.type === 'keydown' && (e.code !== 'Space' && e.key !== 'ArrowUp')) return;
-            
-            e.preventDefault(); // 防止滾動
-
-            if (gameState === 'START') {
-                // 在初始畫面，不動作 (等待點擊按鈕)
-            } else if (gameState === 'PLAYING') {
-                jump();
-            } else if (gameState === 'GAMEOVER') {
-                // 死亡狀態下，點擊重新開始
-                resetGame();
-                gameState = 'PLAYING';
-            }
-        }
-
-        window.addEventListener('keydown', handleInput);
-        window.addEventListener('touchstart', handleInput, {passive: false});
-        window.addEventListener('mousedown', handleInput);
-
-        function pad(num, size) { let s = num + ""; while (s.length < size) s = "0" + s; return s; }
-
-        // 確保初始變數載入
-        resize();
-
     </script>
 </body>
 </html>

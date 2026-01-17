@@ -2,120 +2,96 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>量子記憶矩陣 - 啊吧啊吧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶力大翻牌</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-deep: #050811; --suisei-cyan: #3bc6e4; --alert-red: #ff4444; --card-bg: rgba(13, 27, 51, 0.85); --text-glow: 0 0 8px rgba(59, 198, 228, 0.8); }
-        body { font-family: 'Microsoft JhengHei', 'Consolas', monospace; background: radial-gradient(circle at center, #1a2c4e 0%, #050811 100%); color: #ecf0f1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        .grid-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(59, 198, 228, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 198, 228, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -2; pointer-events: none; }
-        .container { width: 95%; max-width: 600px; padding: 40px 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;}
-        .header-area { margin-bottom: 20px; text-align: center; position: relative; width: 100%; }
-        h1 { color: var(--suisei-cyan); text-shadow: var(--text-glow); font-size: 2rem; margin: 0 0 10px 0; letter-spacing: 2px; }
-        .back-link { position: absolute; left: 0; top: 5px; color: #666; text-decoration: none; font-size: 0.9rem; border: 1px solid #666; padding: 5px 15px; border-radius: 4px; }
-        .game-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; aspect-ratio: 1/1; margin-bottom: 30px; pointer-events: none; }
-        .memory-tile { background: rgba(59, 198, 228, 0.1); border: 2px solid var(--suisei-cyan); border-radius: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 0 10px rgba(59, 198, 228, 0.1); }
-        .memory-tile.active { background: var(--suisei-cyan); box-shadow: 0 0 30px var(--suisei-cyan); transform: scale(0.95); }
-        .memory-tile.error { background: var(--alert-red); border-color: var(--alert-red); box-shadow: 0 0 30px var(--alert-red); }
-        .status-display { font-size: 1.5rem; margin-bottom: 20px; font-weight: bold; min-height: 40px; text-align: center; color: #fff; }
-        .info-bar { display: flex; justify-content: space-between; width: 100%; font-size: 1rem; color: #888; margin-bottom: 10px; }
-        .btn-start { padding: 15px 50px; font-size: 1.2rem; background: var(--suisei-cyan); border: none; font-weight: bold; cursor: pointer; color: #000; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); transition: 0.3s; }
-        .btn-start:active { transform: scale(0.95); }
+        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
+        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
+        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+
+        .game-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 400px; }
+        .card { 
+            aspect-ratio: 1; background: rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; 
+            display: flex; justify-content: center; align-items: center; font-size: 2rem; color: transparent;
+            transform-style: preserve-3d; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .card.flipped, .card.matched { background: var(--suisei-cyan); color: #0b1021; transform: rotateY(180deg); }
+        .card.matched { background: #4ade80; opacity: 0.5; pointer-events: none; }
+        
+        .controls { margin-top: 20px; display: flex; gap: 20px; }
+        .btn { padding: 10px 20px; background: var(--suisei-cyan); border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="grid-bg"></div>
-    <div class="container">
-        <div class="header-area">
-            <a href="index.html" class="back-link">&lt; 離開</a>
-            <h1 data-i18n="memory.pageTitle">QUANTUM MEMORY</h1>
-            <p style="color:#888" data-i18n="memory.desc"></p>
-        </div>
-        <div class="info-bar">
-            <div><span data-i18n="memory.bestScore">最高：</span> <span id="bestLevel">0</span></div>
-            <div id="timeText">時間：0s</div>
-        </div>
-        
-        <div class="status-display" id="statusText">等待啟動...</div>
-        <div class="game-board" id="board">
-            <div class="memory-tile" data-id="0"></div><div class="memory-tile" data-id="1"></div><div class="memory-tile" data-id="2"></div>
-            <div class="memory-tile" data-id="3"></div><div class="memory-tile" data-id="4"></div><div class="memory-tile" data-id="5"></div>
-            <div class="memory-tile" data-id="6"></div><div class="memory-tile" data-id="7"></div><div class="memory-tile" data-id="8"></div>
-        </div>
-        <button class="btn-start" onclick="startGame()" id="btnStart" data-i18n="memory.btnStart">開始記憶同步</button>
+    <div class="stars-bg"></div>
+    <div class="header">
+        <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
+        <h2>記憶力大翻牌</h2>
     </div>
-    <script src="js/content.js"></script>
-    <script src="js/loader.js"></script>
+
+    <div class="game-grid" id="grid"></div>
+    <div class="controls">
+        <span>步數: <span id="moves">0</span></span>
+        <button class="btn" onclick="initGame()">重新開始</button>
+    </div>
+
     <script>
-        const board = document.getElementById('board');
-        const tiles = document.querySelectorAll('.memory-tile');
-        const statusText = document.getElementById('statusText');
-        const btnStart = document.getElementById('btnStart');
-        const bestDisplay = document.getElementById('bestLevel');
-        let sequence = [], playerIndex = 0, level = 1, isPlaying = false, audioCtx = null;
-        bestDisplay.innerText = localStorage.getItem('memory_best') || 0;
-        
-        // 計時器
-        let startTime = 0;
-        let timerInterval = null;
+        const icons = ['fa-ghost', 'fa-dragon', 'fa-robot', 'fa-puzzle-piece', 'fa-dice-d20', 'fa-gamepad', 'fa-rocket', 'fa-user-secret'];
+        let cards = [...icons, ...icons];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
 
-        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        function playTone(index, type='normal') {
-            if (!audioCtx) initAudio();
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            if (type === 'error') { osc.type = 'sawtooth'; osc.frequency.value = 100; gain.gain.value = 0.5; }
-            else { const freqs = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 587.3, 659.3, 784.0]; osc.frequency.value = freqs[index] || 440; gain.gain.value = 0.3; }
-            osc.start(); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3); osc.stop(audioCtx.currentTime + 0.3);
-        }
+        function initGame() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            cards.sort(() => 0.5 - Math.random());
+            flippedCards = []; matchedPairs = 0; moves = 0;
+            document.getElementById('moves').innerText = 0;
 
-        function startTimer() {
-            startTime = Date.now();
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                document.getElementById('timeText').innerText = `時間：${elapsed}s`;
-            }, 1000);
-        }
-
-        function startGame() { 
-            initAudio(); sequence = []; level = 1; playerIndex = 0; isPlaying = true; 
-            btnStart.style.display = 'none'; board.style.pointerEvents = 'none'; 
-            document.getElementById('timeText').innerText = `時間：0s`;
-            startTimer();
-            nextLevel(); 
-        }
-
-        function nextLevel() { playerIndex = 0; statusText.innerText = `${siteContent.memory.levelPrefix} ${level}`; statusText.style.color = "#fff"; sequence.push(Math.floor(Math.random() * 9)); playSequence(); }
-        async function playSequence() {
-            board.style.pointerEvents = 'none'; statusText.innerText = siteContent.memory.msgWatch; await delay(500);
-            for (let i = 0; i < sequence.length; i++) { activateTile(sequence[i]); await delay(Math.max(200, 600 - level * 30)); }
-            statusText.innerText = siteContent.memory.msgRepeat; statusText.style.color = "var(--suisei-cyan)"; board.style.pointerEvents = 'auto';
-        }
-        function activateTile(index) { const tile = tiles[index]; tile.classList.add('active'); playTone(index); setTimeout(() => tile.classList.remove('active'), 300); }
-        
-        tiles.forEach(tile => {
-            tile.addEventListener('pointerdown', (e) => {
-                e.preventDefault(); if (!isPlaying) return;
-                const id = parseInt(tile.getAttribute('data-id'));
-                tile.classList.add('active'); setTimeout(() => tile.classList.remove('active'), 150);
-                if (id === sequence[playerIndex]) {
-                    playTone(id); playerIndex++;
-                    if (playerIndex === sequence.length) { level++; board.style.pointerEvents = 'none'; setTimeout(nextLevel, 800); }
-                } else { gameOver(); }
+            cards.forEach(iconClass => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+                card.onclick = () => flipCard(card, iconClass);
+                grid.appendChild(card);
             });
-        });
-
-        function gameOver() {
-            isPlaying = false; 
-            clearInterval(timerInterval);
-            board.style.pointerEvents = 'none'; playTone(0, 'error');
-            tiles.forEach(t => t.classList.add('error')); setTimeout(() => tiles.forEach(t => t.classList.remove('error')), 500);
-            statusText.innerText = siteContent.memory.msgFail; statusText.style.color = "var(--alert-red)"; btnStart.style.display = 'block'; btnStart.innerText = "重新同步";
-            const best = parseInt(localStorage.getItem('memory_best') || 0);
-            if ((level - 1) > best) { localStorage.setItem('memory_best', level - 1); bestDisplay.innerText = level - 1; }
         }
-        function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        function flipCard(card, icon) {
+            if(card.classList.contains('flipped') || flippedCards.length >= 2) return;
+            
+            card.classList.add('flipped');
+            flippedCards.push({el: card, icon: icon});
+
+            if(flippedCards.length === 2) {
+                moves++;
+                document.getElementById('moves').innerText = moves;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [c1, c2] = flippedCards;
+            if(c1.icon === c2.icon) {
+                c1.el.classList.add('matched');
+                c2.el.classList.add('matched');
+                matchedPairs++;
+                flippedCards = [];
+                if(matchedPairs === icons.length) setTimeout(() => alert("恭喜過關！步數：" + moves), 500);
+            } else {
+                setTimeout(() => {
+                    c1.el.classList.remove('flipped');
+                    c2.el.classList.remove('flipped');
+                    flippedCards = [];
+                }, 1000);
+            }
+        }
+        initGame();
     </script>
 </body>
 </html>

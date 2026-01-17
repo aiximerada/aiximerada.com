@@ -2,270 +2,97 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>防火牆強制突破 - 玉露寶庫</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>防火牆防禦戰</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-deep: #050811; --suisei-cyan: #3bc6e4; --card-bg: rgba(13, 27, 51, 0.85); --text-glow: 0 0 8px rgba(59, 198, 228, 0.8); }
-        body { font-family: 'Microsoft JhengHei', 'Consolas', monospace; background: radial-gradient(circle at center, #1a2c4e 0%, #050811 100%); color: #ecf0f1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; margin: 0; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; overflow: hidden; }
-        .grid-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(59, 198, 228, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 198, 228, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -2; pointer-events: none; }
-        .header-area { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
-        h1 { color: var(--suisei-cyan); text-shadow: var(--text-glow); font-size: 1.5rem; margin: 0; letter-spacing: 2px; }
-        .back-link { position: absolute; left: 10px; top: 5px; color: #666; text-decoration: none; font-size: 0.9rem; border: 1px solid #666; padding: 5px 10px; border-radius: 4px; pointer-events: auto; background: rgba(0,0,0,0.5); }
-        canvas { background: transparent; display: block; width: 100%; height: 100%; }
-        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; width: 90%; }
-        .btn-start { padding: 15px 40px; font-size: 1.2rem; background: var(--suisei-cyan); border: none; font-weight: bold; cursor: pointer; color: #000; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); }
-        .hud { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; box-sizing: border-box; font-size: 1.2rem; font-weight: bold; pointer-events: none; }
-        /* 警告特效 */
-        @keyframes alertFlash { 0% { opacity: 0; } 50% { opacity: 0.5; } 100% { opacity: 0; } }
-        .danger-zone { position: absolute; bottom: 0; width: 100%; height: 100px; background: linear-gradient(to top, rgba(255, 68, 68, 0.3), transparent); pointer-events: none; display: none; animation: alertFlash 1s infinite; z-index: -1; }
+        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; --star-gold: #f2c94c; }
+        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; overflow: hidden; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        .header { text-align: center; margin-bottom: 20px; width: 100%; max-width: 600px; position: relative; margin-top: 20px; }
+        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+        
+        .game-area { width: 100%; max-width: 400px; height: 500px; background: rgba(0,0,0,0.5); border: 2px solid var(--suisei-cyan); border-radius: 15px; position: relative; overflow: hidden; margin-bottom: 20px; cursor: crosshair; }
+        .score-board { font-size: 1.5rem; font-weight: bold; color: var(--suisei-cyan); margin-bottom: 10px; }
+        .virus, .packet { position: absolute; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; border-radius: 50%; transition: top 0.1s linear; cursor: pointer; }
+        .virus { background: rgba(255, 0, 0, 0.2); border: 2px solid red; color: red; }
+        .packet { background: rgba(0, 255, 0, 0.2); border: 2px solid lime; color: lime; }
+        .start-btn { padding: 10px 30px; font-size: 1.2rem; background: var(--suisei-cyan); border: none; border-radius: 30px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="grid-bg"></div>
-    <div class="danger-zone" id="dangerZone"></div>
-    
-    <div class="header-area">
-        <a href="index.html" class="back-link">&lt; 離開</a>
-        <h1 data-i18n="firewall.pageTitle">FIREWALL BREAKER</h1>
+    <div class="stars-bg"></div>
+    <div class="header">
+        <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
+        <h2>防火牆防禦戰</h2>
+        <p style="font-size:0.8rem; color:#aaa;">點擊紅色病毒攔截，放行綠色封包</p>
     </div>
-    <div class="hud">
-        <div id="scoreText">SCORE: 0</div>
-        <div id="timeText" style="color: #fff;">TIME: 0s</div>
-        <div id="livesText">LIVES: 3</div>
-    </div>
-    <canvas id="gameCanvas"></canvas>
-    <div class="overlay" id="overlay">
-        <h2 id="msg" style="color:#fff; margin-bottom:20px;"></h2>
-        <p id="subMsg" style="color:#ccc; margin-bottom:20px; font-size: 0.9rem;"></p>
-        <button class="btn-start" onclick="initGame()" data-i18n="firewall.btnStart">啟動駭入程序</button>
-    </div>
+    <div class="score-board">Score: <span id="score">0</span></div>
+    <div class="game-area" id="game-area">
+        </div>
+    <button class="start-btn" id="start-btn" onclick="startGame()">開始防禦</button>
 
-    <script src="js/content.js"></script>
-    <script src="js/loader.js"></script>
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const overlay = document.getElementById("overlay");
-        const dangerZone = document.getElementById("dangerZone");
+        let score = 0;
+        let isPlaying = false;
+        let gameLoop;
+        let spawnLoop;
+        const gameArea = document.getElementById('game-area');
         
-        let w, h, animationId;
-        
-        // 將 ball 改為 balls 陣列
-        let balls = [];
-        let paddle = { x: 0, y: 0, w: 100, h: 10 };
-        let bricks = [];
-        let score = 0, lives = 3, isRunning = false;
-        
-        let startTime = 0;
-        let timerInterval = null;
-        let lastRowSpawnTime = 0;
-        const spawnInterval = 8000;
-        const brickH = 20;
-        const brickPad = 10;
-        const offTop = 80;
-
-        function resize() { 
-            w = canvas.width = window.innerWidth; 
-            h = canvas.height = window.innerHeight; 
-            paddle.y = h - 60; 
-            paddle.w = Math.min(w * 0.3, 150); 
+        function startGame() {
+            if(isPlaying) return;
+            score = 0; document.getElementById('score').innerText = 0;
+            isPlaying = true; gameArea.innerHTML = '';
+            document.getElementById('start-btn').style.display = 'none';
+            spawnLoop = setInterval(spawnObj, 1000);
+            gameLoop = setInterval(updateGame, 20);
         }
-        window.addEventListener('resize', resize); resize();
 
-        function createBall(isMain = true, startX = null, startY = null) {
-            return {
-                x: startX || w/2,
-                y: startY || h * 0.8,
-                dx: (Math.random() > 0.5 ? 4 : -4) + (Math.random() * 2 - 1),
-                dy: isMain ? -5 : -4 - Math.random() * 2, // 新球稍微亂數一點
-                r: 8,
-                active: true
+        function spawnObj() {
+            const el = document.createElement('div');
+            const isVirus = Math.random() > 0.3; // 70% 是病毒
+            el.className = isVirus ? 'virus' : 'packet';
+            el.innerHTML = isVirus ? '<i class="fa-solid fa-bug"></i>' : '<i class="fa-solid fa-check"></i>';
+            el.style.left = Math.random() * (gameArea.clientWidth - 50) + 'px';
+            el.style.top = '-50px';
+            el.onclick = () => {
+                if(isVirus) {
+                    score += 10;
+                    el.remove();
+                    document.getElementById('score').innerText = score;
+                } else {
+                    gameOver("你誤刪了正常封包！");
+                }
             };
+            gameArea.appendChild(el);
         }
 
-        // 分裂球 (Multiball)
-        function spawnMultiball(x, y) {
-            // 生成兩顆新球
-            balls.push(createBall(false, x, y));
-            balls.push(createBall(false, x, y));
-        }
-
-        function createRow(rowY) {
-            const cols = Math.floor((w - 20) / 60); 
-            const offLeft = (w - (cols * (50 + brickPad))) / 2 + brickPad/2;
-            
-            for(let c=0; c<cols; c++) {
-                bricks.push({ 
-                    x: (c*(50+brickPad))+offLeft, 
-                    y: rowY, 
-                    status: 1 
-                });
-            }
-        }
-
-        function initBricks() {
-            bricks = [];
-            for(let r=0; r<4; r++) createRow((r * (brickH + brickPad)) + offTop);
-        }
-
-        function advanceWall() {
-            const now = Date.now();
-            if (now - lastRowSpawnTime > spawnInterval) {
-                lastRowSpawnTime = now;
-                bricks.forEach(b => { b.y += (brickH + brickPad); });
-                createRow(offTop);
-                let breached = false;
-                bricks.forEach(b => {
-                    if (b.status === 1 && b.y + brickH >= paddle.y) breached = true;
-                });
-                if (breached) gameOver(false, "防火牆已滲透到底層！");
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
-            advanceWall();
-
-            // 繪製磚塊
-            let lowestBrickY = 0;
-            bricks.forEach(b => {
-                if(b.status === 1) {
-                    if (b.y > h * 0.6) ctx.fillStyle = "#ff4444";
-                    else if (b.y > h * 0.4) ctx.fillStyle = "#ffbb33";
-                    else ctx.fillStyle = "#3bc6e4";
-                    ctx.fillRect(b.x, b.y, 50, brickH);
-                    ctx.shadowBlur = 5; ctx.shadowColor = ctx.fillStyle;
-                    if(b.y > lowestBrickY) lowestBrickY = b.y;
+        function updateGame() {
+            const objs = document.querySelectorAll('.virus, .packet');
+            objs.forEach(obj => {
+                let top = parseInt(obj.style.top);
+                obj.style.top = (top + 3) + 'px';
+                if(top > gameArea.clientHeight) {
+                    if(obj.classList.contains('virus')) {
+                        gameOver("病毒入侵成功！");
+                    } else {
+                        score += 5; // 成功放行
+                        document.getElementById('score').innerText = score;
+                    }
+                    obj.remove();
                 }
             });
-            ctx.shadowBlur = 0;
-
-            if (lowestBrickY > h * 0.7) dangerZone.style.display = 'block';
-            else dangerZone.style.display = 'none';
-
-            // 繪製板子
-            ctx.fillStyle = "#3bc6e4"; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
-
-            // --- 處理所有球 ---
-            let activeBallsCount = 0;
-
-            for (let i = balls.length - 1; i >= 0; i--) {
-                let ball = balls[i];
-                if (!ball.active) continue;
-                activeBallsCount++;
-
-                // 繪製球
-                ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); 
-                ctx.fillStyle = "#fff"; ctx.fill(); ctx.closePath();
-
-                // 物理碰撞
-                if(ball.x + ball.dx > w-ball.r || ball.x + ball.dx < ball.r) ball.dx = -ball.dx;
-                if(ball.y + ball.dy < ball.r) ball.dy = -ball.dy;
-
-                // 板子碰撞 (優化：允許球從邊緣切入)
-                if (ball.dy > 0 && 
-                    ball.y + ball.r >= paddle.y && 
-                    ball.y - ball.r <= paddle.y + paddle.h) {
-                    
-                    if (ball.x >= paddle.x - ball.r && ball.x <= paddle.x + paddle.w + ball.r) {
-                        ball.dy = -Math.abs(ball.dy * 1.05); // 反彈加速
-                        ball.y = paddle.y - ball.r - 2; // 抬起
-                        // 根據擊中位置改變角度
-                        let hitPos = (ball.x - (paddle.x + paddle.w/2)) / (paddle.w/2);
-                        ball.dx = hitPos * 6; // 最大水平速度
-                    }
-                }
-
-                // 磚塊碰撞 (Point Collision，更精準穿越縫隙)
-                // 我們檢測球的四個頂點是否進入磚塊，這樣比AABB更能鑽縫
-                let hitBrick = false;
-                for (let j = 0; j < bricks.length; j++) {
-                    let b = bricks[j];
-                    if(b.status === 1) {
-                        // 簡單優化：只檢測球心是否進入磚塊擴充區域
-                        // 這樣球只要有一半接觸到磚塊就算撞到，但也允許球從縫隙擦過
-                        if(ball.x + ball.r > b.x && ball.x - ball.r < b.x + 50 &&
-                           ball.y + ball.r > b.y && ball.y - ball.r < b.y + brickH) {
-                            
-                            ball.dy = -ball.dy;
-                            b.status = 0;
-                            score += 10;
-                            hitBrick = true;
-
-                            // 10% 機率觸發多重球 (每顆球獨立判定)
-                            if (Math.random() < 0.1) {
-                                spawnMultiball(ball.x, ball.y);
-                            }
-                            break; // 一次只撞一塊
-                        }
-                    }
-                }
-                if(hitBrick) updateHUD();
-
-                // 掉落死亡
-                if(ball.y - ball.r > h) {
-                    ball.active = false; // 標記為失效
-                    balls.splice(i, 1); // 移除
-                } else {
-                    ball.x += ball.dx; 
-                    ball.y += ball.dy;
-                }
-            }
-
-            // 全部球都掉了
-            if (balls.length === 0) {
-                lives--; 
-                updateHUD();
-                if(!lives) gameOver(false, "訊號連接中斷");
-                else resetOneBall();
-            }
-            
-            if(isRunning) animationId = requestAnimationFrame(draw);
         }
 
-        function resetOneBall() {
-            balls = [createBall()];
+        function gameOver(msg) {
+            clearInterval(gameLoop); clearInterval(spawnLoop);
+            isPlaying = false;
+            alert(msg + " 得分: " + score);
+            document.getElementById('start-btn').style.display = 'block';
+            gameArea.innerHTML = '';
         }
-        
-        function updateHUD() { 
-            document.getElementById('scoreText').innerText = `SCORE: ${score}`; 
-            document.getElementById('livesText').innerText = `LIVES: ${lives}`; 
-        }
-
-        function startTimer() {
-            startTime = Date.now();
-            lastRowSpawnTime = startTime; 
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                document.getElementById('timeText').innerText = `TIME: ${elapsed}s`;
-            }, 1000);
-        }
-        
-        function initGame() {
-            overlay.style.display = "none"; score = 0; lives = 3; isRunning = true;
-            resize(); initBricks(); resetOneBall(); paddle.x = (w - paddle.w)/2; 
-            updateHUD(); startTimer(); draw();
-        }
-
-        function gameOver(win, reason) {
-            isRunning = false; cancelAnimationFrame(animationId);
-            clearInterval(timerInterval);
-            document.getElementById('msg').innerText = win ? siteContent.firewall.msgWin : siteContent.firewall.msgOver;
-            document.getElementById('subMsg').innerText = reason || "";
-            document.getElementById('msg').style.color = win ? "#00c851" : "#ff4444";
-            overlay.style.display = "block";
-            dangerZone.style.display = 'none';
-        }
-
-        function movePaddle(clientX) {
-            paddle.x = clientX - paddle.w/2;
-            if(paddle.x < 0) paddle.x = 0;
-            if(paddle.x + paddle.w > w) paddle.x = w - paddle.w;
-        }
-        document.addEventListener("mousemove", (e) => movePaddle(e.clientX));
-        document.addEventListener("touchmove", (e) => { e.preventDefault(); movePaddle(e.touches[0].clientX); }, {passive: false});
     </script>
 </body>
 </html>

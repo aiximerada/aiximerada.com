@@ -7,109 +7,48 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* --- 統一風格 CSS --- */
         :root {
-            --bg-deep: #0b1021;
             --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
             --suisei-cyan: #3bc6e4;
-            --suisei-dark: #225a76;
-            --correct: #4ade80;
-            --error: #f87171;
-            --highlight: rgba(59, 198, 228, 0.2);
+            --star-gold: #f2c94c;
         }
         body {
-            background: var(--bg-gradient);
-            background-attachment: fixed;
-            color: white; font-family: 'Microsoft JhengHei', 'Segoe UI', sans-serif;
+            background: var(--bg-gradient); background-attachment: fixed;
+            color: white; font-family: 'Microsoft JhengHei', sans-serif;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; margin: 0; padding: 20px;
-            overflow-x: hidden;
+            min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden;
         }
-
-        /* --- 星空背景 --- */
+        /* 星空背景 */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
         #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
         .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
         @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
-        /* --- 介面佈局 --- */
-        .header { width: 100%; max-width: 800px; position: relative; text-align: center; margin-bottom: 30px; margin-top: 20px; }
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(59,198,228,0.3); padding: 8px 15px; border-radius: 20px; transition: 0.3s; background: rgba(0,0,0,0.3); }
+        /* 頂部導航列 */
+        .header { text-align: center; margin-bottom: 30px; position: relative; width: 100%; max-width: 800px; margin-top: 20px; }
+        
+        /* 🔥 重點：返回按鈕樣式 */
+        .back-btn { 
+            position: absolute; left: 0; top: 5px;
+            color: var(--suisei-cyan); text-decoration: none; font-size: 1rem; 
+            display: flex; align-items: center; gap: 8px; 
+            border: 1px solid rgba(59,198,228,0.3); padding: 8px 15px; border-radius: 20px; 
+            transition: 0.3s; background: rgba(0,0,0,0.3); 
+        }
         .back-btn:hover { background: var(--suisei-cyan); color: #000; box-shadow: 0 0 15px var(--suisei-cyan); }
+        
         h1 { margin: 0; color: #fff; text-shadow: 0 0 10px var(--suisei-cyan); letter-spacing: 2px; }
 
-        .game-container {
+        /* 內容容器 (範例) */
+        .content-box {
             background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
             padding: 30px; width: 100%; max-width: 800px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            display: flex; flex-direction: column; gap: 20px;
+            min-height: 300px; /* 範例高度 */
         }
-
-        /* 頂部數據欄 */
-        .stats-bar {
-            display: flex; justify-content: space-between; background: rgba(0,0,0,0.3);
-            padding: 15px 25px; border-radius: 15px; border: 1px solid rgba(59,198,228,0.2);
-        }
-        .stat-item { text-align: center; }
-        .stat-label { font-size: 0.8rem; color: #aaa; margin-bottom: 5px; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--suisei-cyan); font-family: 'Courier New', monospace; }
-
-        /* 文字顯示區 */
-        .typing-area {
-            font-size: 1.8rem; line-height: 1.6; letter-spacing: 2px;
-            min-height: 150px; background: rgba(0,0,0,0.2);
-            padding: 20px; border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-            position: relative; cursor: text;
-            user-select: none;
-        }
-        .typing-area span { position: relative; transition: 0.1s; border-radius: 4px; }
-        .typing-area span.correct { color: var(--correct); }
-        .typing-area span.incorrect { color: var(--error); background: rgba(248, 113, 113, 0.2); }
-        .typing-area span.active { background: var(--highlight); color: #fff; box-shadow: 0 0 10px var(--highlight); }
-        .typing-area span.active::before {
-            content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 2px;
-            background: var(--suisei-cyan); animation: blink 1s infinite;
-        }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* 隱藏輸入框 */
-        .input-field { position: absolute; opacity: 0; z-index: -999; }
-
-        /* 控制按鈕區 */
-        .controls { display: flex; gap: 15px; justify-content: center; margin-top: 10px; }
-        .btn {
-            background: transparent; border: 1px solid var(--suisei-cyan); color: var(--suisei-cyan);
-            padding: 10px 25px; border-radius: 30px; cursor: pointer; font-size: 1rem;
-            transition: 0.3s; display: flex; align-items: center; gap: 8px;
-        }
-        .btn:hover { background: var(--suisei-cyan); color: #000; box-shadow: 0 0 15px var(--suisei-cyan); transform: translateY(-2px); }
-        .btn.active { background: var(--suisei-cyan); color: #000; }
-
-        /* 結算彈窗 */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100;
-        }
-        .modal-overlay.show { opacity: 1; pointer-events: auto; }
-        .result-box {
-            background: #0b1021; border: 2px solid var(--suisei-cyan);
-            padding: 40px; border-radius: 20px; text-align: center;
-            width: 90%; max-width: 400px; transform: scale(0.8); transition: 0.3s;
-            box-shadow: 0 0 50px rgba(59, 198, 228, 0.3);
-        }
-        .modal-overlay.show .result-box { transform: scale(1); }
-        .score-circle {
-            width: 120px; height: 120px; border-radius: 50%;
-            border: 4px solid var(--suisei-cyan); margin: 0 auto 20px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 0 20px rgba(59, 198, 228, 0.2);
-        }
-        .score-val { font-size: 2.5rem; font-weight: bold; color: #fff; }
-        .score-label { font-size: 0.9rem; color: #aaa; }
     </style>
 </head>
 <body>
@@ -121,212 +60,13 @@
         <h1><i class="fa-solid fa-keyboard"></i> 中英打練習器</h1>
     </div>
 
-    <div class="game-container" data-aos="fade-up">
-        <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-label">時間剩餘</div>
-                <div class="stat-value"><span id="time">60</span>s</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">WPM (速度)</div>
-                <div class="stat-value" id="wpm">0</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">準確率</div>
-                <div class="stat-value" id="accuracy">100%</div>
-            </div>
-        </div>
-
-        <div class="typing-area">
-            <p id="quote-display">點擊下方按鈕開始練習...</p>
-        </div>
-        <input type="text" class="input-field">
-
-        <div class="controls">
-            <button class="btn" onclick="setLanguage('en')" id="btn-en">English</button>
-            <button class="btn" onclick="setLanguage('zh')" id="btn-zh">中文模式</button>
-            <button class="btn" onclick="resetGame()">
-                <i class="fa-solid fa-rotate-right"></i> 重來
-            </button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="result-modal">
-        <div class="result-box">
-            <h2 style="color:var(--suisei-cyan); margin-top:0;">練習完成</h2>
-            <div class="score-circle">
-                <div class="score-val" id="final-wpm">0</div>
-                <div class="score-label">WPM</div>
-            </div>
-            <p>準確率：<span id="final-acc" style="color:var(--correct)">100%</span></p>
-            <p>錯誤字數：<span id="final-mistakes" style="color:var(--error)">0</span></p>
-            <button class="btn" style="width:100%; justify-content:center; margin-top:20px;" onclick="closeModal()">再來一次</button>
-        </div>
+    <div class="content-box" data-aos="fade-up">
+        <p style="text-align:center;">(這裡放入您的打字機功能代碼)</p>
     </div>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        // --- 資料庫 ---
-        const quotes = {
-            en: [
-                "The quick brown fox jumps over the lazy dog.",
-                "Programming is the art of telling another human what one wants the computer to do.",
-                "Stay hungry, stay foolish.",
-                "Life is what happens when you are busy making other plans.",
-                "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-                "In the middle of difficulty lies opportunity.",
-                "Happiness depends upon ourselves."
-            ],
-            zh: [
-                "天行健，君子以自強不息。",
-                "學而時習之，不亦說乎。",
-                "敏捷的棕色狐狸跳過了懶惰的狗。",
-                "千里之行，始於足下。",
-                "失敗為成功之母。",
-                "知之者不如好之者，好之者不如樂之者。",
-                "路遙知馬力，日久見人心。"
-            ]
-        };
-
-        // --- 變數 ---
-        const typingText = document.querySelector(".typing-area p");
-        const inpField = document.querySelector(".input-field");
-        const timeTag = document.querySelector("#time");
-        const mistakeTag = document.querySelector("#mistakes"); // Removed from HTML but logic kept just in case
-        const wpmTag = document.querySelector("#wpm");
-        const accTag = document.querySelector("#accuracy");
-        const modal = document.getElementById("result-modal");
-
-        let timer,
-        maxTime = 60,
-        timeLeft = maxTime,
-        charIndex = 0,
-        mistakes = 0,
-        isTyping = 0,
-        currentLang = 'en';
-
-        // --- 初始化與事件監聽 ---
-        function loadParagraph() {
-            const list = quotes[currentLang];
-            const randIndex = Math.floor(Math.random() * list.length);
-            
-            typingText.innerHTML = "";
-            list[randIndex].split("").forEach(char => {
-                let span = `<span>${char}</span>`;
-                typingText.innerHTML += span;
-            });
-            
-            // 聚焦第一個字
-            typingText.querySelectorAll("span")[0].classList.add("active");
-            
-            // 點擊區域聚焦輸入框
-            document.querySelector(".typing-area").addEventListener("click", () => inpField.focus());
-            document.addEventListener("keydown", () => inpField.focus());
-        }
-
-        function initTyping() {
-            let characters = typingText.querySelectorAll("span");
-            let typedChar = inpField.value.split("")[charIndex];
-
-            if(charIndex < characters.length && timeLeft > 0) {
-                if(!isTyping) {
-                    timer = setInterval(initTimer, 1000);
-                    isTyping = true;
-                }
-
-                // 處理刪除鍵 (若是中文輸入法可能會稍微複雜，這裡做簡單處理)
-                if(typedChar == null) { 
-                    if(charIndex > 0) {
-                        charIndex--;
-                        if(characters[charIndex].classList.contains("incorrect")) {
-                            mistakes--;
-                        }
-                        characters[charIndex].classList.remove("correct", "incorrect");
-                    }
-                } else {
-                    if(characters[charIndex].innerText === typedChar) {
-                        characters[charIndex].classList.add("correct");
-                    } else {
-                        mistakes++;
-                        characters[charIndex].classList.add("incorrect");
-                    }
-                    charIndex++;
-                }
-
-                // 移動游標
-                characters.forEach(span => span.classList.remove("active"));
-                if(characters[charIndex]) characters[charIndex].classList.add("active");
-
-                // 計算數據
-                let wpm = Math.round(((charIndex - mistakes) / 5) / (maxTime - timeLeft) * 60);
-                wpm = wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm;
-                
-                let acc = Math.floor(((charIndex - mistakes) / charIndex) * 100);
-                acc = isNaN(acc) ? 100 : acc;
-
-                wpmTag.innerText = wpm;
-                accTag.innerText = acc + "%";
-
-                // 檢查是否完成
-                if(charIndex === characters.length) {
-                    clearInterval(timer);
-                    showResult(wpm, acc, mistakes);
-                }
-            } else {
-                clearInterval(timer);
-                inpField.value = "";
-                // 時間到
-                let finalWpm = Math.round(((charIndex - mistakes) / 5) / (maxTime - timeLeft) * 60);
-                let finalAcc = Math.floor(((charIndex - mistakes) / charIndex) * 100);
-                if (isNaN(finalAcc)) finalAcc = 0;
-                showResult(finalWpm, finalAcc, mistakes);
-            }
-        }
-
-        function initTimer() {
-            if(timeLeft > 0) {
-                timeLeft--;
-                timeTag.innerText = timeLeft;
-                // 即時更新 WPM
-                let wpm = Math.round(((charIndex - mistakes) / 5) / (maxTime - timeLeft) * 60);
-                wpmTag.innerText = wpm;
-            } else {
-                clearInterval(timer);
-            }
-        }
-
-        function resetGame() {
-            loadParagraph();
-            clearInterval(timer);
-            timeLeft = maxTime;
-            charIndex = mistakes = isTyping = 0;
-            inpField.value = "";
-            timeTag.innerText = timeLeft;
-            wpmTag.innerText = 0;
-            accTag.innerText = "100%";
-            modal.classList.remove("show");
-        }
-
-        function setLanguage(lang) {
-            currentLang = lang;
-            document.getElementById('btn-en').classList.remove('active');
-            document.getElementById('btn-zh').classList.remove('active');
-            document.getElementById(`btn-${lang}`).classList.add('active');
-            resetGame();
-        }
-
-        function showResult(wpm, acc, err) {
-            document.getElementById('final-wpm').innerText = wpm;
-            document.getElementById('final-acc').innerText = acc + "%";
-            document.getElementById('final-mistakes').innerText = err;
-            modal.classList.add("show");
-        }
-
-        function closeModal() {
-            resetGame();
-        }
-
-        // --- 背景星星邏輯 ---
+        // ✨ 星空特效腳本 (所有頁面都要有)
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
@@ -346,13 +86,9 @@
                 container.appendChild(star);
             }
         }
-
-        // --- 啟動 ---
         window.addEventListener('load', () => {
             createTwinklingStars();
-            AOS.init({ duration: 800 });
-            setLanguage('en'); // 預設英文
-            inpField.addEventListener("input", initTyping);
+            AOS.init();
         });
     </script>
 </body>
