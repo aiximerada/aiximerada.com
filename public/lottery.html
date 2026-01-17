@@ -3,59 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>幸運大抽獎</title>
+    <title>幸運抽獎 - 玉露寶庫</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
-        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            --suisei-cyan: #3bc6e4;
+            --star-gold: #f2c94c;
+            --hud-bg: rgba(11, 16, 33, 0.8);
+        }
+        body {
+            background: var(--bg-gradient); background-attachment: fixed;
+            color: white; font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden;
+        }
+
+        /* 背景 */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
-        .container { width: 100%; max-width: 500px; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 20px; text-align: center; }
-        textarea { width: 100%; height: 150px; background: rgba(0,0,0,0.3); border: 1px solid #555; color: #fff; padding: 10px; border-radius: 10px; margin-bottom: 20px; box-sizing: border-box; }
-        .btn { padding: 12px 30px; background: var(--suisei-cyan); border: none; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
-        #result-box { margin-top: 30px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: var(--suisei-cyan); text-shadow: 0 0 10px var(--suisei-cyan); min-height: 80px; }
+        /* 標題 */
+        .header { text-align: center; margin-bottom: 20px; position: relative; width: 100%; max-width: 600px; margin-top: 20px; }
+        .back-btn { 
+            position: absolute; left: 0; top: 5px;
+            color: var(--suisei-cyan); text-decoration: none; font-size: 1rem; 
+            display: flex; align-items: center; gap: 8px; 
+            border: 1px solid rgba(59,198,228,0.3); padding: 8px 15px; border-radius: 20px; 
+            transition: 0.3s; background: rgba(0,0,0,0.3); 
+        }
+        .back-btn:hover { background: var(--suisei-cyan); color: #000; box-shadow: 0 0 15px var(--suisei-cyan); }
+        h1 { margin: 0; color: #fff; text-shadow: 0 0 10px var(--suisei-cyan); letter-spacing: 2px; }
+
+        /* 主面板 */
+        .lottery-box {
+            width: 100%; max-width: 550px;
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 25px;
+            padding: 30px; text-align: center;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+            position: relative; overflow: hidden;
+        }
+
+        /* 螢幕顯示區 (HUD Style) */
+        .display-container {
+            background: var(--hud-bg);
+            border: 2px solid var(--suisei-cyan);
+            border-radius: 15px;
+            height: 120px;
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 25px;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(59, 198, 228, 0.2);
+            overflow: hidden;
+        }
+        .scan-line {
+            position: absolute; width: 100%; height: 2px; background: rgba(59, 198, 228, 0.5);
+            top: 0; animation: scan 2s linear infinite; box-shadow: 0 0 10px var(--suisei-cyan);
+        }
+        @keyframes scan { 0% {top: 0%;} 100% {top: 100%;} }
+        
+        .rolling-text {
+            font-size: 3rem; font-weight: 900; color: #fff;
+            text-shadow: 0 0 15px var(--suisei-cyan), 0 0 30px var(--suisei-cyan);
+            z-index: 2; font-family: 'Courier New', monospace; letter-spacing: 2px;
+        }
+
+        /* 快速工具列 */
+        .tools-bar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center;}
+        .tool-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc;
+            padding: 5px 12px; border-radius: 15px; cursor: pointer; font-size: 0.8rem; transition: 0.2s;
+        }
+        .tool-btn:hover { background: var(--suisei-cyan); color: #000; }
+
+        /* 輸入區 */
+        .input-area textarea {
+            width: 100%; height: 120px;
+            background: rgba(0,0,0,0.3); border: 1px solid #444;
+            color: #eee; padding: 15px; border-radius: 15px;
+            font-size: 1rem; resize: none; outline: none; box-sizing: border-box;
+            transition: 0.3s;
+        }
+        .input-area textarea:focus { border-color: var(--suisei-cyan); box-shadow: 0 0 10px rgba(59, 198, 228, 0.3); }
+
+        /* 抽獎按鈕 */
+        .draw-btn {
+            background: linear-gradient(90deg, var(--suisei-cyan), #2590a8);
+            color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            border: none; padding: 15px 0; width: 100%;
+            font-size: 1.5rem; font-weight: bold; border-radius: 50px;
+            cursor: pointer; margin-top: 25px;
+            transition: 0.3s; box-shadow: 0 5px 20px rgba(59, 198, 228, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .draw-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(59, 198, 228, 0.5); filter: brightness(1.1); }
+        .draw-btn:active { transform: scale(0.98); }
+        .draw-btn:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* 中獎彈窗 */
+        .winner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+            z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.4s;
+        }
+        .winner-overlay.show { opacity: 1; pointer-events: auto; }
+        
+        .winner-card {
+            position: relative;
+            background: radial-gradient(circle, #1a2c4e 0%, #0b1021 100%);
+            border: 3px solid var(--star-gold); padding: 50px 70px; border-radius: 40px;
+            text-align: center; box-shadow: 0 0 80px rgba(242, 201, 76, 0.4);
+            transform: scale(0.5); transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .winner-overlay.show .winner-card { transform: scale(1); }
+
+        .winner-crown { font-size: 4rem; color: var(--star-gold); margin-bottom: 10px; animation: float 2s infinite ease-in-out; }
+        @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+        
+        .congrats-text { color: var(--star-gold); font-size: 1.2rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 15px; }
+        .winner-name { font-size: 4rem; font-weight: 900; color: #fff; margin: 10px 0 30px; text-shadow: 0 0 30px rgba(255,255,255,0.5); line-height: 1.2; }
+        
+        .close-btn {
+            background: transparent; border: 2px solid #fff; color: #fff;
+            padding: 10px 40px; border-radius: 30px; cursor: pointer; transition: 0.3s;
+            font-size: 1.1rem; font-weight: bold;
+        }
+        .close-btn:hover { background: #fff; color: #000; box-shadow: 0 0 20px #fff; }
+
+        /* 手機適配 */
+        @media (max-width: 480px) {
+            .rolling-text { font-size: 2rem; }
+            .winner-name { font-size: 2.5rem; }
+            .winner-card { padding: 30px; width: 85%; }
+        }
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
+    <audio id="sound-roll" src="https://assets.mixkit.co/sfx/preview/mixkit-game-level-music-689.mp3" loop></audio>
+    <audio id="sound-win" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
+
     <div class="header">
         <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
-        <h2>幸運大抽獎</h2>
+        <h1><i class="fa-solid fa-gift"></i> 幸運抽獎系統</h1>
     </div>
 
-    <div class="container">
-        <p>輸入選項 (每行一個)</p>
-        <textarea id="inputs" placeholder="吃火鍋&#10;吃壽司&#10;吃牛排"></textarea>
-        <button class="btn" onclick="draw()">開始抽獎</button>
-        <div id="result-box"></div>
+    <div class="lottery-box" data-aos="zoom-in">
+        <div class="display-container">
+            <div class="scan-line"></div>
+            <div class="rolling-text" id="display-area">READY</div>
+        </div>
+
+        <div class="tools-bar">
+            <button class="tool-btn" onclick="fillRange(1, 50)">1-50號</button>
+            <button class="tool-btn" onclick="fillRange(1, 100)">1-100號</button>
+            <button class="tool-btn" onclick="clearInput()"><i class="fa-solid fa-trash"></i> 清空</button>
+        </div>
+
+        <div class="input-area">
+            <textarea id="names-input" placeholder="在此輸入名單，每行一個名字...&#10;範例：&#10;王小明&#10;李大華&#10;陳雅婷"></textarea>
+        </div>
+
+        <button class="draw-btn" id="start-btn" onclick="startLottery()">
+            <i class="fa-solid fa-play"></i> 開始抽獎
+        </button>
     </div>
 
+    <div class="winner-overlay" id="winner-overlay">
+        <div class="winner-card">
+            <div class="winner-crown"><i class="fa-solid fa-crown"></i></div>
+            <div class="congrats-text">CONGRATULATIONS</div>
+            <div class="winner-name" id="final-winner">???</div>
+            <button class="close-btn" onclick="closeWinner()">太棒了</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        function draw() {
-            const text = document.getElementById('inputs').value;
-            const options = text.split('\n').filter(line => line.trim() !== '');
-            const resultBox = document.getElementById('result-box');
-            
-            if(options.length < 2) {
-                alert("請至少輸入兩個選項！");
+        const displayArea = document.getElementById('display-area');
+        const overlay = document.getElementById('winner-overlay');
+        const winnerText = document.getElementById('final-winner');
+        const startBtn = document.getElementById('start-btn');
+        const namesInput = document.getElementById('names-input');
+        
+        // 音效控制
+        const soundRoll = document.getElementById('sound-roll');
+        const soundWin = document.getElementById('sound-win');
+        soundRoll.volume = 0.5;
+        soundWin.volume = 0.8;
+
+        function startLottery() {
+            const input = namesInput.value;
+            const names = input.split('\n').map(n => n.trim()).filter(n => n !== '');
+
+            if (names.length < 2) {
+                alert("名單太少啦！至少要輸入兩個選項才能抽喔。");
                 return;
             }
 
+            // 鎖定按鈕
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 鎖定命運中...';
+            
+            // 播放滾動音效
+            soundRoll.currentTime = 0;
+            soundRoll.play();
+
+            // 動畫參數
             let count = 0;
+            const totalTime = 2500; // 滾動 2.5 秒
+            const intervalTime = 60; // 每 0.06 秒換一次名字
+
             const interval = setInterval(() => {
-                const rand = Math.floor(Math.random() * options.length);
-                resultBox.innerText = options[rand];
-                count++;
-                if(count > 20) {
-                    clearInterval(interval);
-                    resultBox.style.transform = "scale(1.5)";
-                    setTimeout(() => resultBox.style.transform = "scale(1)", 200);
-                }
-            }, 100);
+                const rand = Math.floor(Math.random() * names.length);
+                displayArea.innerText = names[rand];
+                // 讓文字稍微閃爍大小，增加動感
+                displayArea.style.transform = `scale(${Math.random() * 0.2 + 0.9})`;
+            }, intervalTime);
+
+            // 停止動畫
+            setTimeout(() => {
+                clearInterval(interval);
+                soundRoll.pause();
+                
+                // 決定中獎者
+                const finalWinnerIndex = Math.floor(Math.random() * names.length);
+                const winner = names[finalWinnerIndex];
+                
+                displayArea.style.transform = "scale(1)";
+                displayArea.innerText = winner;
+                
+                // 延遲一點點再彈出，製造停頓感
+                setTimeout(() => showWinnerEffect(winner), 300);
+
+                // 按鈕復原
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> 再抽一次';
+            }, totalTime);
         }
+
+        function showWinnerEffect(name) {
+            winnerText.innerText = name;
+            overlay.classList.add('show');
+            
+            // 播放中獎音效
+            soundWin.currentTime = 0;
+            soundWin.play();
+
+            // 彩帶特效
+            triggerConfetti();
+        }
+
+        function triggerConfetti() {
+            var duration = 3000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5, angle: 60, spread: 55, origin: { x: 0 },
+                    colors: ['#3bc6e4', '#f2c94c', '#ffffff']
+                });
+                confetti({
+                    particleCount: 5, angle: 120, spread: 55, origin: { x: 1 },
+                    colors: ['#3bc6e4', '#f2c94c', '#ffffff']
+                });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function closeWinner() {
+            overlay.classList.remove('show');
+        }
+
+        // --- 快速工具函數 ---
+        function fillRange(start, end) {
+            let arr = [];
+            for(let i=start; i<=end; i++) arr.push(i);
+            namesInput.value = arr.join('\n');
+        }
+
+        function clearInput() {
+            if(confirm("確定要清空名單嗎？")) {
+                namesInput.value = "";
+                displayArea.innerText = "READY";
+            }
+        }
+
+        // --- 星星背景與動畫初始化 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px var(--star-gold)';
+                }
+                container.appendChild(star);
+            }
+        }
+        window.addEventListener('load', () => {
+            createTwinklingStars();
+            AOS.init();
+        });
     </script>
 </body>
 </html>
