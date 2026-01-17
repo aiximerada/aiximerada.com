@@ -48,11 +48,10 @@
             100% { opacity: 0; transform: scale(0.3); }
         }
 
-        /* 標題區 */
-        header { text-align: center; padding: 50px 20px 30px; position: relative; z-index: 1; }
-        h1 { font-size: 2.8rem; margin: 0; text-shadow: 0 0 20px var(--suisei-cyan); }
-        .subtitle { color: rgba(255,255,255,0.6); letter-spacing: 3px; font-size: 0.9rem; margin-top: 10px; }
-
+        /* 標題區 (已移除副標題) */
+        header { text-align: center; padding: 60px 20px 40px; position: relative; z-index: 1; }
+        h1 { font-size: 3rem; margin: 0; text-shadow: 0 0 20px var(--suisei-cyan); min-height: 60px; }
+        
         /* 入口佈局 */
         .portal-wrapper {
             width: 100%; max-width: 1000px; padding: 20px;
@@ -104,7 +103,6 @@
     
     <header>
         <h1><span id="typed-title"></span></h1>
-        <p class="subtitle">AIXIMERADA.COM</p>
     </header>
 
     <main class="portal-wrapper">
@@ -136,7 +134,7 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
     <script>
-        // ✨ 星空特效腳本
+        // ✨ 星空特效
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
@@ -158,11 +156,16 @@
         }
 
         window.addEventListener('load', () => {
-            createTwinklingStars(); // 啟動星星
+            createTwinklingStars();
             AOS.init({ duration: 800, once: true });
+            
+            // 📝 打字特效設定：只打一次中文，不重複，不顯示英文
             new Typed('#typed-title', {
-                strings: ['玉露寶庫', 'Universal Toolkit'],
-                typeSpeed: 80, backSpeed: 50, loop: true, showCursor: false
+                strings: ['玉露寶庫'], // 只剩中文
+                typeSpeed: 100,      // 稍微放慢一點點，更有質感
+                loop: false,         // 禁止重複播放
+                showCursor: false,   // 打完字後隱藏游標
+                onComplete: function(self) { self.cursor.remove(); } // 確保游標完全消失
             });
         });
     </script>
