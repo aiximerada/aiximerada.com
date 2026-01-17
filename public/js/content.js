@@ -27,8 +27,14 @@ var siteContent = {
             desc: "記憶力大考驗！跟隨光線的腳步。",
             url: "sequence.html",
             icon: "fa-solid fa-layer-group"
-        }
-    ],
+        },
+        {
+        title: "星際巡航",
+        desc: "挑戰極限！在深空中避開隕石威脅。",
+        url: "run.html",
+        icon: "fa-solid fa-shuttle-space"
+    },
+     ],
 
     // ========== 🛠️ 工具區 (Tools) ==========
     tools: [
