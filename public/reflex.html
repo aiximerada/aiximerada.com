@@ -2,78 +2,367 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極限反應測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>神經瞬擊 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
-        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; user-select: none; }
+        :root {
+            --bg-dark: #050510;
+            --neon-blue: #00f3ff;
+            --neon-red: #ff3131;
+            --neon-green: #00ff9d;
+            --neon-purple: #bc13fe;
+            --glass: rgba(20, 30, 50, 0.8);
+        }
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow: hidden;
+            user-select: none; touch-action: manipulation;
+        }
+
+        /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
-        
-        #test-area {
-            width: 100%; max-width: 500px; height: 400px;
-            background: rgba(255,255,255,0.1); border-radius: 20px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
-            transition: background 0.2s; border: 2px solid transparent;
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
+
+        /* --- 頂部資訊列 --- */
+        .hud-top {
+            width: 90%; max-width: 600px; margin-top: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10;
         }
-        .waiting { background: #ce4242 !important; box-shadow: 0 0 20px #ce4242; }
-        .now { background: #4ade80 !important; box-shadow: 0 0 30px #4ade80; color: #000; }
+        .back-btn { 
+            color: var(--neon-blue); text-decoration: none; border: 1px solid var(--neon-blue); 
+            padding: 8px 15px; border-radius: 20px; background: rgba(0,0,0,0.5); 
+            display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.3s; font-size: 0.9rem;
+        }
+        .best-score {
+            font-family: 'Courier New', monospace; font-size: 1.1rem; color: var(--neon-purple);
+            text-shadow: 0 0 10px rgba(188, 19, 254, 0.5); font-weight: bold;
+        }
+
+        /* --- 遊戲主區域 --- */
+        .game-wrapper {
+            flex-grow: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            width: 100%; position: relative; gap: 40px;
+        }
+
+        /* 核心掃描儀按鈕 */
+        .scanner-btn {
+            width: 280px; height: 280px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: 0.2s;
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+        }
+
+        /* 掃描線動畫 */
+        .scanner-line {
+            position: absolute; width: 100%; height: 2px; background: var(--neon-blue);
+            top: 0; opacity: 0; pointer-events: none;
+        }
+
+        /* 狀態：閒置 */
+        .scanner-btn.idle { border-color: var(--neon-blue); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1); }
+        .scanner-btn.idle i { font-size: 4rem; color: var(--neon-blue); opacity: 0.8; transition: 0.3s; }
+        .scanner-btn.idle:hover { transform: scale(1.02); box-shadow: 0 0 50px rgba(0, 243, 255, 0.3); }
+        .scanner-btn.idle .scanner-line { opacity: 0.5; animation: scan 2s linear infinite; }
+
+        /* 狀態：等待 (緊張感) */
+        .scanner-btn.waiting { 
+            border-color: var(--neon-red); 
+            background: rgba(255, 49, 49, 0.05);
+            animation: pulse-red 0.8s infinite alternate;
+        }
+        .scanner-btn.waiting i { font-size: 3rem; color: var(--neon-red); }
+        
+        /* 狀態：觸發 (爆發) */
+        .scanner-btn.active { 
+            background: var(--neon-green); 
+            border-color: #fff;
+            box-shadow: 0 0 80px var(--neon-green);
+            transform: scale(1.05);
+        }
+        .scanner-btn.active i { color: #000; font-size: 5rem; transform: scale(1.2); }
+        .scanner-btn.active .main-text { color: #000; font-weight: 900; }
+        .scanner-btn.active .sub-text { color: #333; }
+
+        /* 文字樣式 */
+        .main-text { font-size: 1.8rem; font-weight: bold; margin-top: 15px; letter-spacing: 2px; transition: 0.2s; }
+        .sub-text { font-size: 0.9rem; color: #888; margin-top: 5px; font-family: 'Courier New', monospace; transition: 0.2s; }
+
+        /* --- 歷史紀錄與稱號 --- */
+        .history-panel {
+            position: absolute; bottom: 80px;
+            width: 85%; max-width: 400px;
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; padding: 15px;
+            text-align: center;
+            opacity: 0; transform: translateY(20px); transition: 0.4s; pointer-events: none;
+        }
+        .history-panel.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+        .result-big { font-size: 3.5rem; font-weight: 900; color: #fff; text-shadow: 0 0 20px var(--neon-blue); margin: 5px 0; font-family: 'Courier New', monospace; line-height: 1; }
+        .rank-badge { 
+            display: inline-block; padding: 5px 15px; border-radius: 20px; 
+            font-size: 1rem; font-weight: bold; margin-bottom: 15px;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .history-list {
+            list-style: none; padding: 0; margin: 10px 0 0 0;
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;
+            display: flex; justify-content: center; gap: 10px;
+        }
+        .history-item { font-size: 0.9rem; color: #aaa; font-family: 'Courier New', monospace; }
+        .history-item:first-child { color: var(--neon-green); font-weight: bold; } /* 最新一筆 */
+
+        /* 動畫 Keyframes */
+        @keyframes scan { 0% {top: 0%;} 100% {top: 100%;} }
+        @keyframes pulse-red { from { box-shadow: 0 0 10px rgba(255, 49, 49, 0.2); } to { box-shadow: 0 0 30px rgba(255, 49, 49, 0.6); } }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        .shake { animation: shake 0.3s; }
+
+        .hint { position: absolute; bottom: 30px; color: #555; font-size: 0.8rem; }
     </style>
 </head>
 <body>
+
     <div class="stars-bg"></div>
-    <div class="header">
+    <div id="twinkling-stars-container"></div>
+
+    <div class="hud-top">
         <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 娛樂區</a>
-        <h2>極限反應測試</h2>
+        <div class="best-score">BEST: <span id="best-val">--</span> ms</div>
     </div>
 
-    <div id="test-area" onclick="handleClick()">
-        <i class="fa-solid fa-bolt" style="font-size: 3rem; margin-bottom: 20px;"></i>
-        <div id="msg">點擊開始測試</div>
+    <div class="game-wrapper">
+        <div id="scanner" class="scanner-btn idle">
+            <div class="scanner-line"></div>
+            <i class="fa-solid fa-fingerprint"></i>
+            <div class="main-text">神經連結</div>
+            <div class="sub-text">TAP TO START</div>
+        </div>
+
+        <div id="history-panel" class="history-panel">
+            <div class="rank-badge" id="rank-badge" style="color:var(--neon-blue); border:1px solid currentColor;">普通市民</div>
+            <div class="result-big" id="current-score">0 ms</div>
+            <div class="history-list" id="history-list">
+                </div>
+        </div>
     </div>
+
+    <div class="hint">支援：觸控 / 滑鼠 / 空白鍵</div>
 
     <script>
-        const area = document.getElementById('test-area');
-        const msg = document.getElementById('msg');
-        let state = 'idle'; // idle, waiting, now, result
-        let startTime;
-        let timer;
+        const scanner = document.getElementById('scanner');
+        const icon = scanner.querySelector('i');
+        const mainText = scanner.querySelector('.main-text');
+        const subText = scanner.querySelector('.sub-text');
+        
+        const historyPanel = document.getElementById('history-panel');
+        const currentScoreEl = document.getElementById('current-score');
+        const rankBadge = document.getElementById('rank-badge');
+        const historyListEl = document.getElementById('history-list');
+        const bestValEl = document.getElementById('best-val');
 
-        function handleClick() {
-            if(state === 'idle' || state === 'result') {
+        let state = 'idle'; // idle, waiting, active, early
+        let timer;
+        let startTime;
+        let bestScore = localStorage.getItem('reflexBest') || null;
+        let history = [];
+
+        if(bestScore) bestValEl.innerText = bestScore;
+
+        // 音效系統
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'start') { 
+                // 啟動音 (掃描聲)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'go') { 
+                // 觸發音 (清脆)
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'error') { 
+                // 錯誤音 (低沉)
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function handleInput(e) {
+            if(e) e.preventDefault(); // 防止雙擊縮放
+
+            if (state === 'idle') {
+                // --- 開始 ---
                 state = 'waiting';
-                area.className = 'waiting';
-                msg.innerText = "等待綠色...";
-                const delay = Math.floor(Math.random() * 2000) + 1500; // 1.5~3.5s
+                historyPanel.classList.remove('show');
+                
+                scanner.className = 'scanner-btn waiting';
+                icon.className = 'fa-solid fa-heart-pulse'; // 心跳圖示
+                mainText.innerText = "訊號校準中";
+                subText.innerText = "WAIT FOR GREEN";
+                playSound('start');
+
+                // 隨機延遲 (1.5 ~ 4.5秒)
+                const delay = Math.random() * 3000 + 1500;
+                
                 timer = setTimeout(() => {
-                    state = 'now';
-                    area.className = 'now';
-                    msg.innerText = "點擊！！！";
-                    startTime = Date.now();
+                    if(state === 'waiting') {
+                        state = 'active';
+                        startTime = Date.now();
+                        
+                        scanner.className = 'scanner-btn active';
+                        icon.className = 'fa-solid fa-bolt';
+                        mainText.innerText = "點擊！";
+                        subText.innerText = "NOW!";
+                        playSound('go');
+                    }
                 }, delay);
+
             } else if (state === 'waiting') {
+                // --- 搶跑 (犯規) ---
                 clearTimeout(timer);
-                state = 'result';
-                area.className = '';
-                msg.innerText = "太快了！還沒變色。\n點擊重試";
-            } else if (state === 'now') {
-                const reaction = Date.now() - startTime;
-                state = 'result';
-                area.className = '';
-                msg.innerText = `${reaction} ms\n${getRank(reaction)}\n點擊再測一次`;
+                state = 'early';
+                
+                scanner.className = 'scanner-btn idle shake'; // 震動
+                scanner.style.borderColor = '#ff3131';
+                icon.className = 'fa-solid fa-circle-exclamation';
+                icon.style.color = '#ff3131';
+                mainText.innerText = "搶跑違規";
+                subText.innerText = "TOO SOON";
+                playSound('error');
+                
+                setTimeout(() => {
+                    if(state === 'early') resetToIdle();
+                }, 1500);
+
+            } else if (state === 'active') {
+                // --- 成功 ---
+                const reactionTime = Date.now() - startTime;
+                state = 'idle';
+                
+                scanner.className = 'scanner-btn idle';
+                icon.className = 'fa-solid fa-rotate-right';
+                mainText.innerText = "再次連結";
+                subText.innerText = "TRY AGAIN";
+                
+                processResult(reactionTime);
             }
         }
 
         function getRank(ms) {
-            if(ms < 200) return "神之反應！";
-            if(ms < 300) return "職業選手等級";
-            if(ms < 400) return "普通人類";
-            return "剛睡醒嗎？";
+            if (ms < 150) return { title: "覺醒者 (Newtype)", color: "#bc13fe" }; // 紫
+            if (ms < 200) return { title: "職業選手", color: "#00f3ff" }; // 藍
+            if (ms < 250) return { title: "特種兵", color: "#00ff9d" }; // 綠
+            if (ms < 300) return { title: "普通市民", color: "#fff" }; // 白
+            if (ms < 400) return { title: "剛睡醒？", color: "#aaa" }; // 灰
+            return { title: "網路延遲", color: "#555" };
         }
+
+        function processResult(ms) {
+            // 更新 UI
+            currentScoreEl.innerText = ms + " ms";
+            const rank = getRank(ms);
+            rankBadge.innerText = rank.title;
+            rankBadge.style.color = rank.color;
+            rankBadge.style.boxShadow = `0 0 15px ${rank.color}`;
+            rankBadge.style.borderColor = rank.color;
+
+            // 更新最佳紀錄
+            if (!bestScore || ms < bestScore) {
+                bestScore = ms;
+                localStorage.setItem('reflexBest', bestScore);
+                bestValEl.innerText = bestScore;
+                // 新紀錄特效 (簡單閃爍)
+                bestValEl.style.color = "#fff";
+                setTimeout(() => bestValEl.style.color = "var(--neon-purple)", 500);
+            }
+
+            // 更新歷史紀錄 (只留最近 5 筆)
+            history.unshift(ms);
+            if (history.length > 5) history.pop();
+            renderHistory();
+
+            historyPanel.classList.add('show');
+        }
+
+        function renderHistory() {
+            historyListEl.innerHTML = history.map(t => `<li class="history-item">${t}</li>`).join('');
+        }
+
+        function resetToIdle() {
+            state = 'idle';
+            scanner.className = 'scanner-btn idle';
+            scanner.style.borderColor = '';
+            icon.className = 'fa-solid fa-fingerprint';
+            icon.style.color = '';
+            mainText.innerText = "神經連結";
+            subText.innerText = "TAP TO START";
+        }
+
+        // --- 事件監聽 ---
+        scanner.addEventListener('mousedown', handleInput);
+        scanner.addEventListener('touchstart', handleInput, {passive: false});
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') handleInput();
+        });
+
+        // --- 星空特效 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--neon-blue)';
+                    star.style.boxShadow = '0 0 5px var(--neon-blue)';
+                }
+                container.appendChild(star);
+            }
+        }
+        window.addEventListener('load', createTwinklingStars);
+
     </script>
 </body>
 </html>
