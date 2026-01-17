@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>娛樂專區 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #0b1021; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 40px; position: relative; width: 100%; max-width: 1000px; display: flex; align-items: center; justify-content: center;}
+        .back-btn { position: absolute; left: 0; color: #3bc6e4; text-decoration: none; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; border: 1px solid #3bc6e4; padding: 8px 15px; border-radius: 20px; transition: 0.3s; }
+        .back-btn:hover { background: #3bc6e4; color: #000; }
+        h1 { margin: 0; color: #3bc6e4; }
+        
+        .grid-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+            width: 100%; max-width: 1000px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px;
+            text-decoration: none; color: #fff; text-align: center; transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card:hover { transform: translateY(-5px); border-color: #3bc6e4; background: rgba(59,198,228,0.1); }
+        .card i { font-size: 2.5rem; color: #3bc6e4; margin-bottom: 15px; }
+        .card h3 { margin: 10px 0; }
+        .card p { color: #aaa; font-size: 0.9rem; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 回首頁</a>
+        <h1><i class="fa-solid fa-gamepad"></i> 娛樂專區</h1>
+    </div>
+    <div id="entertainment-grid" class="grid-container">
+        </div>
+
+    <script src="js/content.js"></script>
+    <script src="js/loader.js"></script>
+</body>
+</html>
