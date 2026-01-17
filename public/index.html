@@ -14,8 +14,7 @@
         :root {
             --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
             --suisei-cyan: #3bc6e4;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --star-gold: #f2c94c;
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -25,21 +24,41 @@
             min-height: 100vh;
             margin: 0;
             display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空特效 CSS --- */
+        .stars-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2;
+        }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        #twinkling-stars-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1;
+        }
+        .t-star {
+            position: absolute; background-color: white; border-radius: 50%; opacity: 0;
+            box-shadow: 0 0 4px rgba(255,255,255,0.8);
+            animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.3); }
         }
 
         /* 標題區 */
-        header { text-align: center; padding: 50px 20px 30px; }
+        header { text-align: center; padding: 50px 20px 30px; position: relative; z-index: 1; }
         h1 { font-size: 2.8rem; margin: 0; text-shadow: 0 0 20px var(--suisei-cyan); }
         .subtitle { color: rgba(255,255,255,0.6); letter-spacing: 3px; font-size: 0.9rem; margin-top: 10px; }
 
-        /* --- 入口佈局結構 --- */
+        /* 入口佈局 */
         .portal-wrapper {
             width: 100%; max-width: 1000px; padding: 20px;
             display: flex; flex-direction: column; gap: 30px;
-            flex-grow: 1; justify-content: center;
+            flex-grow: 1; justify-content: center; position: relative; z-index: 1;
         }
-
-        /* 上層：左右入口 */
         .portal-split { display: flex; gap: 30px; width: 100%; min-height: 250px; }
         
         .portal-card {
@@ -48,35 +67,18 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 20px;
-            text-decoration: none;
-            color: #fff;
+            text-decoration: none; color: #fff;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: 0.4s;
-            position: relative; overflow: hidden;
+            transition: 0.4s; position: relative; overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        
-        /* 滑鼠懸停特效 */
-        .portal-card:hover {
-            transform: translateY(-10px);
-            background: rgba(59, 198, 228, 0.15);
-            border-color: var(--suisei-cyan);
-            box-shadow: 0 0 40px rgba(59, 198, 228, 0.4);
-        }
+        .portal-card:hover { transform: translateY(-10px); background: rgba(59, 198, 228, 0.15); border-color: var(--suisei-cyan); box-shadow: 0 0 40px rgba(59, 198, 228, 0.4); }
         .portal-card i { font-size: 4rem; color: var(--suisei-cyan); margin-bottom: 20px; transition: 0.4s; }
         .portal-card:hover i { transform: scale(1.2) rotate(5deg); color: #fff; }
         .portal-title { font-size: 2rem; font-weight: bold; letter-spacing: 2px; }
         .portal-desc { color: rgba(255,255,255,0.6); margin-top: 10px; font-size: 1rem; }
 
-        /* 下層：商城入口 (橫幅) */
-        .shop-portal {
-            background: linear-gradient(135deg, #fff 0%, #e0f7fa 100%);
-            color: #0b1021;
-            min-height: 200px;
-            flex-direction: row;
-            justify-content: space-between;
-            padding: 0 60px;
-        }
+        .shop-portal { background: linear-gradient(135deg, #fff 0%, #e0f7fa 100%); color: #0b1021; min-height: 200px; flex-direction: row; justify-content: space-between; padding: 0 60px; }
         .shop-portal:hover { transform: translateY(-10px); box-shadow: 0 0 50px rgba(255, 255, 255, 0.4); }
         .shop-portal i { color: #0b1021; font-size: 5rem; order: 2; }
         .shop-portal:hover i { color: var(--suisei-cyan); transform: scale(1.1) rotate(-10deg); }
@@ -92,12 +94,14 @@
             .shop-info { order: 2; text-align: center; }
         }
 
-        /* 懸浮按鈕 */
         #admin-fab-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
         .fab-btn { width: 60px; height: 60px; border-radius: 50%; background: var(--suisei-cyan); border: none; color: #fff; font-size: 1.5rem; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
+    <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+    
     <header>
         <h1><span id="typed-title"></span></h1>
         <p class="subtitle">AIXIMERADA.COM</p>
@@ -110,14 +114,12 @@
                 <div class="portal-title">娛樂</div>
                 <div class="portal-desc">Games & Fun</div>
             </a>
-
             <a href="tools.html" class="portal-card" data-aos="fade-left">
                 <i class="fa-solid fa-screwdriver-wrench"></i>
                 <div class="portal-title">工具</div>
                 <div class="portal-desc">Utilities & Tools</div>
             </a>
         </div>
-
         <a href="shop.html" class="portal-card shop-portal" data-aos="fade-up">
             <div class="shop-info">
                 <h2>商城</h2>
@@ -134,10 +136,34 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
     <script>
-        AOS.init({ duration: 800, once: true });
-        new Typed('#typed-title', {
-            strings: ['玉露寶庫', 'Universal Toolkit'],
-            typeSpeed: 80, backSpeed: 50, loop: true, showCursor: false
+        // ✨ 星空特效腳本
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px var(--star-gold)';
+                }
+                container.appendChild(star);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            createTwinklingStars(); // 啟動星星
+            AOS.init({ duration: 800, once: true });
+            new Typed('#typed-title', {
+                strings: ['玉露寶庫', 'Universal Toolkit'],
+                typeSpeed: 80, backSpeed: 50, loop: true, showCursor: false
+            });
         });
     </script>
 </body>

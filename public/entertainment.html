@@ -4,38 +4,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>娛樂專區 - 玉露寶庫</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #0b1021; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .header { text-align: center; margin-bottom: 40px; position: relative; width: 100%; max-width: 1000px; display: flex; align-items: center; justify-content: center;}
-        .back-btn { position: absolute; left: 0; color: #3bc6e4; text-decoration: none; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; border: 1px solid #3bc6e4; padding: 8px 15px; border-radius: 20px; transition: 0.3s; }
-        .back-btn:hover { background: #3bc6e4; color: #000; }
-        h1 { margin: 0; color: #3bc6e4; }
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            --suisei-cyan: #3bc6e4;
+            --star-gold: #f2c94c;
+        }
+        body {
+            background: var(--bg-gradient); background-attachment: fixed;
+            color: white; font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空特效 CSS --- */
+        .stars-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0));
+            background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2;
+        }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        #twinkling-stars-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1;
+        }
+        .t-star {
+            position: absolute; background-color: white; border-radius: 50%; opacity: 0;
+            box-shadow: 0 0 4px rgba(255,255,255,0.8);
+            animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.3); }
+        }
+
+        .header { text-align: center; margin-bottom: 40px; position: relative; width: 100%; max-width: 1000px; display: flex; align-items: center; justify-content: center; margin-top: 20px; z-index: 1;}
+        .back-btn { position: absolute; left: 0; color: #3bc6e4; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(59,198,228,0.3); padding: 8px 15px; border-radius: 20px; transition: 0.3s; background: rgba(0,0,0,0.3); }
+        .back-btn:hover { background: #3bc6e4; color: #000; box-shadow: 0 0 15px var(--suisei-cyan); }
+        h1 { margin: 0; color: #fff; text-shadow: 0 0 10px #3bc6e4; letter-spacing: 2px; }
         
         .grid-container {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
-            width: 100%; max-width: 1000px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px;
+            width: 100%; max-width: 1000px; padding-bottom: 50px; z-index: 1;
         }
         .card {
-            background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px;
+            background: rgba(255,255,255,0.05); padding: 30px 20px; border-radius: 20px;
             text-decoration: none; color: #fff; text-align: center; transition: 0.3s;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;
+            backdrop-filter: blur(5px);
         }
-        .card:hover { transform: translateY(-5px); border-color: #3bc6e4; background: rgba(59,198,228,0.1); }
-        .card i { font-size: 2.5rem; color: #3bc6e4; margin-bottom: 15px; }
-        .card h3 { margin: 10px 0; }
-        .card p { color: #aaa; font-size: 0.9rem; margin: 0; }
+        .card:hover { transform: translateY(-10px); border-color: #3bc6e4; background: rgba(59,198,228,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .icon-box { font-size: 3rem; color: #3bc6e4; margin-bottom: 20px; transition: 0.3s; }
+        .card:hover .icon-box { transform: scale(1.1) rotate(10deg); color: #fff; }
+        .card h3 { margin: 10px 0; font-size: 1.2rem; font-weight: bold; }
+        .card p { color: #aaa; font-size: 0.9rem; margin: 0; line-height: 1.5; }
     </style>
 </head>
 <body>
+    <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
     <div class="header">
-        <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 回首頁</a>
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 首頁</a>
         <h1><i class="fa-solid fa-gamepad"></i> 娛樂專區</h1>
     </div>
-    <div id="entertainment-grid" class="grid-container">
-        </div>
+    
+    <div id="entertainment-grid" class="grid-container"></div>
 
     <script src="js/content.js"></script>
     <script src="js/loader.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // ✨ 星空特效腳本
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px var(--star-gold)';
+                }
+                container.appendChild(star);
+            }
+        }
+        window.addEventListener('load', () => {
+            createTwinklingStars();
+            AOS.init();
+        });
+    </script>
 </body>
 </html>
