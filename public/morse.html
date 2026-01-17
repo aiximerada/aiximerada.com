@@ -3,60 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>摩斯密碼翻譯</title>
+    <title>摩斯密碼終端 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%); --suisei-cyan: #3bc6e4; }
-        body { background: var(--bg-gradient); color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        :root {
+            --bg-dark: #050510;
+            --neon-green: #00ff9d;
+            --neon-cyan: #00f3ff;
+            --glass-panel: rgba(0, 20, 40, 0.6);
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Courier New', 'Microsoft JhengHei', monospace; /* 使用等寬字體更有駭客感 */
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        .header { width: 100%; max-width: 600px; position: relative; text-align: center; margin-bottom: 20px; margin-top: 20px;}
-        .back-btn { position: absolute; left: 0; top: 5px; color: var(--suisei-cyan); text-decoration: none; border: 1px solid rgba(59,198,228,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
-        .container { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
-        textarea { width: 100%; height: 100px; background: rgba(0,0,0,0.3); border: 1px solid #555; color: #fff; padding: 10px; border-radius: 10px; box-sizing: border-box; }
-        .btn-group { display: flex; justify-content: center; gap: 10px; }
-        .btn { padding: 8px 20px; background: var(--suisei-cyan); border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        /* --- 頂部導航 --- */
+        .header { width: 90%; max-width: 800px; margin-top: 20px; margin-bottom: 20px; position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { 
+            color: var(--neon-green); text-decoration: none; border: 1px solid var(--neon-green); 
+            padding: 8px 15px; border-radius: 5px; background: rgba(0,0,0,0.5); 
+            display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.3s;
+        }
+        .back-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px var(--neon-green); }
+        h1 { margin: 0; font-size: 1.5rem; text-shadow: 0 0 10px var(--neon-green); display: flex; align-items: center; gap: 10px; }
+
+        /* --- 主容器 --- */
+        .main-container {
+            width: 90%; max-width: 800px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        /* 翻譯面板 */
+        .translator-box {
+            background: var(--glass-panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.1);
+        }
+
+        .label { color: var(--neon-green); font-size: 0.9rem; margin-bottom: 8px; display: block; letter-spacing: 1px; }
+        
+        textarea {
+            width: 100%; height: 100px;
+            background: rgba(0,0,0,0.5); border: 1px solid #333; color: #fff;
+            padding: 15px; border-radius: 5px; resize: none; outline: none; box-sizing: border-box;
+            font-size: 1.1rem; line-height: 1.6; font-family: 'Courier New', monospace;
+            transition: 0.3s;
+        }
+        textarea:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 255, 157, 0.2); }
+        
+        /* 中間按鈕區 */
+        .controls {
+            display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: transparent; color: var(--neon-green); border: 1px solid var(--neon-green);
+            padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .action-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px var(--neon-green); }
+        
+        .play-btn {
+            background: var(--neon-green); color: #000; border: none;
+            padding: 12px 30px; font-size: 1.1rem;
+        }
+        .play-btn:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+
+        /* 對照表區域 */
+        .reference-table {
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        .ref-title { text-align: center; margin-bottom: 20px; color: #aaa; letter-spacing: 2px; }
+        
+        .grid-az {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px;
+        }
+        .ref-item {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            padding: 8px; border-radius: 5px; text-align: center;
+            transition: 0.2s;
+        }
+        .ref-item:hover { border-color: var(--neon-green); transform: translateY(-3px); }
+        .char { font-weight: bold; font-size: 1.2rem; color: #fff; display: block; margin-bottom: 5px; }
+        .code { font-size: 0.8rem; color: var(--neon-green); letter-spacing: 1px; }
+
+        /* 播放時的高亮 */
+        .playing { border-color: var(--neon-cyan) !important; background: rgba(0, 243, 255, 0.1) !important; }
+
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
     <div class="header">
         <a href="tools.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 工具區</a>
-        <h2>摩斯密碼翻譯</h2>
+        <h1><i class="fa-solid fa-walkie-talkie"></i> 摩斯密碼終端</h1>
     </div>
 
-    <div class="container">
-        <p>文字 (英文/數字)</p>
-        <textarea id="input-text" placeholder="HELLO WORLD"></textarea>
-        
-        <div class="btn-group">
-            <button class="btn" onclick="toMorse()"><i class="fa-solid fa-arrow-down"></i> 轉摩斯</button>
-            <button class="btn" onclick="toText()"><i class="fa-solid fa-arrow-up"></i> 轉文字</button>
+    <div class="main-container">
+        <div class="translator-box">
+            <label><i class="fa-solid fa-font"></i> 一般文字 (英數)</label>
+            <textarea id="text-input" placeholder="HELLO WORLD 2026" oninput="autoToMorse()"></textarea>
+
+            <div class="controls">
+                <button class="action-btn" onclick="clearAll()"><i class="fa-solid fa-eraser"></i> 清空</button>
+                <button class="action-btn play-btn" id="play-btn" onclick="playMorse()">
+                    <i class="fa-solid fa-play"></i> 播放訊號
+                </button>
+                <div style="font-size:0.8rem; color:#aaa; display:flex; align-items:center; gap:5px;">
+                    速度: <input type="range" id="speed-range" min="50" max="200" value="100" style="width:80px;">
+                </div>
+            </div>
+
+            <label><i class="fa-solid fa-wave-square"></i> 摩斯電碼 (.-)</label>
+            <textarea id="morse-input" placeholder=".... . .-.. .-.. --- / .-- --- .-. .-.. -.." oninput="autoToText()"></textarea>
         </div>
 
-        <p>摩斯電碼</p>
-        <textarea id="input-morse" placeholder=".... . .-.. .-.. ---"></textarea>
+        <div class="reference-table">
+            <div class="ref-title">- 訊號對照表 -</div>
+            <div class="grid-az" id="ref-grid">
+                </div>
+        </div>
     </div>
 
     <script>
-        const morseCode = {
+        // 摩斯密碼字典
+        const morseData = {
             'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.', 'G': '--.', 'H': '....',
             'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..', 'M': '--', 'N': '-.', 'O': '---', 'P': '.--.',
             'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
-            'Y': '-.--', 'Z': '--..', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
-            '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----', ' ': '/'
+            'Y': '-.--', 'Z': '--..',
+            '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+            '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
+            '.': '.-.-.-', ',': '--..--', '?': '..--..', '/': '-..-.'
         };
-        const reverseMorse = Object.fromEntries(Object.entries(morseCode).map(([k, v]) => [v, k]));
+        const reverseMorse = Object.fromEntries(Object.entries(morseData).map(([k, v]) => [v, k]));
 
-        function toMorse() {
-            const text = document.getElementById('input-text').value.toUpperCase();
-            document.getElementById('input-morse').value = text.split('').map(c => morseCode[c] || c).join(' ');
+        const textInput = document.getElementById('text-input');
+        const morseInput = document.getElementById('morse-input');
+        const playBtn = document.getElementById('play-btn');
+        const refGrid = document.getElementById('ref-grid');
+        const speedRange = document.getElementById('speed-range');
+
+        // 音頻環境
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isPlaying = false;
+
+        // --- 自動翻譯功能 ---
+        function autoToMorse() {
+            const text = textInput.value.toUpperCase();
+            // 將不認識的字元保留原樣或忽略，這裡簡單處理
+            const morse = text.split('').map(char => {
+                if (char === ' ') return '/'; // 空格用斜線
+                return morseData[char] ? morseData[char] + ' ' : '';
+            }).join('').trim();
+            morseInput.value = morse;
         }
-        function toText() {
-            const morse = document.getElementById('input-morse').value.trim();
-            document.getElementById('input-text').value = morse.split(' ').map(c => reverseMorse[c] || c).join('');
+
+        function autoToText() {
+            const morse = morseInput.value.trim();
+            const text = morse.split(' ').map(code => {
+                if (code === '/') return ' ';
+                return reverseMorse[code] || '';
+            }).join('');
+            textInput.value = text;
         }
+
+        function clearAll() {
+            textInput.value = '';
+            morseInput.value = '';
+        }
+
+        // --- 播放功能 ---
+        async function playMorse() {
+            if (isPlaying) return;
+            const morse = morseInput.value;
+            if (!morse) return;
+
+            // 必須由用戶觸發 resume
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isPlaying = true;
+            playBtn.disabled = true;
+            playBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 發送中...';
+            morseInput.classList.add('playing');
+
+            const unitTime = parseInt(speedRange.value); // 單位時間 ms (點)
+            
+            for (let char of morse) {
+                if (!isPlaying) break; // 簡單的中斷機制預留
+
+                if (char === '.') {
+                    beep(unitTime);
+                    await sleep(unitTime); // 聲響時間
+                } else if (char === '-') {
+                    beep(unitTime * 3);
+                    await sleep(unitTime * 3); // 聲響時間
+                } else if (char === ' ') {
+                    await sleep(unitTime * 3); // 字母間隔
+                } else if (char === '/') {
+                    await sleep(unitTime * 7); // 單字間隔
+                }
+                
+                await sleep(unitTime); // 每個訊號後的小間隔
+            }
+
+            isPlaying = false;
+            playBtn.disabled = false;
+            playBtn.innerHTML = '<i class="fa-solid fa-play"></i> 播放訊號';
+            morseInput.classList.remove('playing');
+        }
+
+        function beep(duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.value = 600; // 頻率
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            
+            // 消除點擊音 (Click sound)
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration / 1000);
+            
+            osc.stop(audioCtx.currentTime + duration / 1000);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // --- 生成對照表 ---
+        function renderTable() {
+            let html = '';
+            for (let [char, code] of Object.entries(morseData)) {
+                html += `
+                    <div class="ref-item" onclick="insertCode('${code}')">
+                        <span class="char">${char}</span>
+                        <span class="code">${code}</span>
+                    </div>
+                `;
+            }
+            refGrid.innerHTML = html;
+        }
+
+        // 點擊對照表可直接輸入
+        window.insertCode = function(code) {
+            morseInput.value += code + ' ';
+            autoToText();
+        }
+
+        // --- 星空特效 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--neon-green)';
+                    star.style.boxShadow = '0 0 5px var(--neon-green)';
+                }
+                container.appendChild(star);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            renderTable();
+            createTwinklingStars();
+        });
     </script>
 </body>
 </html>
