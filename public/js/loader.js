@@ -1,46 +1,49 @@
 // js/loader.js
-// 負責讀取 siteContent 並產生卡片
+// 負責把資料 (content.js) 搬到畫面上
+
+console.log("【Loader 啟動】正在準備載入卡片...");
 
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. 嘗試抓取容器 (相容 class 和 id)
-    const grid = document.querySelector('.grid-container') || document.getElementById('grid');
+    console.log("【Loader】網頁架構讀取完畢，開始尋找容器...");
+
+    // 1. 抓取容器
+    const grid = document.querySelector('.grid-container');
     
-    // 2. 檢查資料是否存在
+    // 2. 檢查是否有抓到
     if (!grid) {
-        console.error("錯誤：找不到 .grid-container 容器，無法產生卡片");
+        console.error("【嚴重錯誤】找不到 .grid-container！請檢查 index.html");
         return;
     }
+
+    // 3. 檢查資料是否存在
     if (typeof siteContent === 'undefined') {
-        console.error("錯誤：找不到 siteContent 資料，請檢查 content.js");
+        console.error("【嚴重錯誤】找不到 siteContent！請確認 content.js 有正確載入");
+        grid.innerHTML = '<p style="color:white;">系統資料讀取失敗</p>';
         return;
     }
 
-    // 3. 清空容器 (避免重複)
+    // 4. 清空容器並開始產生
     grid.innerHTML = '';
+    let count = 0;
 
-    // 4. 產生卡片
-    // 遍歷 siteContent 裡面的每一個類別 (例如 binary, soap...)
     Object.keys(siteContent).forEach(key => {
-        // 略過 common 設定檔
-        if (key === 'common') return;
+        if (key === 'common') return; // 跳過設定檔
 
         const item = siteContent[key];
         
-        // 建立卡片連結
+        // 建立卡片
         const card = document.createElement('a');
         card.className = 'card';
         card.href = item.url || '#';
-        
-        // 如果有 AOS 動畫庫，加入動畫屬性
-        card.setAttribute('data-aos', 'fade-up');
+        card.setAttribute('data-aos', 'fade-up'); // 加入動畫屬性
 
-        // 特殊卡片樣式 (例如 YouTube)
+        // 特殊樣式
         if (item.type === 'youtube') {
             card.classList.add('youtube-card');
-            card.target = "_blank"; // 在新分頁開啟
+            card.target = "_blank";
         }
 
-        // 卡片內部 HTML
+        // 卡片內容
         card.innerHTML = `
             <div class="icon-box">
                 <i class="${item.icon || 'fa-solid fa-gamepad'}"></i>
@@ -49,9 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
             <p>${item.desc}</p>
         `;
 
-        // 放入容器
         grid.appendChild(card);
+        count++;
     });
 
-    console.log("卡片載入完成！");
+    console.log(`【Loader 成功】已產生 ${count} 張卡片！`);
 });
