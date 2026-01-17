@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>極光序列 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #050510;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff9d;
+            --star-gold: #f2c94c;
+            --glass-panel: rgba(20, 30, 50, 0.6);
+        }
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow: hidden;
+            user-select: none; touch-action: manipulation;
+        }
+
+        /* --- ✨ 星空背景 (保持不變) --- */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
+
+        /* --- HUD 儀表板 (頂部) --- */
+        .hud-container {
+            width: 90%; max-width: 500px; margin-top: 20px;
+            background: var(--glass-panel);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
+            padding: 15px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 243, 255, 0.05);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        .back-btn {
+            color: #fff; text-decoration: none; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 5px; opacity: 0.7; transition: 0.3s;
+        }
+        .back-btn:hover { opacity: 1; color: var(--neon-cyan); }
+
+        .stats-group { display: flex; gap: 30px; text-align: center; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 0.7rem; color: #888; letter-spacing: 1px; margin-bottom: 2px; }
+        .stat-val { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: 900; color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 243, 255, 0.5); }
+
+        /* --- 遊戲主區域 --- */
+        .game-wrapper {
+            flex-grow: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            width: 100%; padding-bottom: 50px;
+            position: relative;
+        }
+
+        /* 遊戲盤面 */
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 90vw; max-width: 380px;
+            aspect-ratio: 1;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transition: 0.3s;
+            position: relative;
+        }
+        
+        /* 狀態邊框特效 */
+        .grid-board.correct { border-color: var(--neon-green); box-shadow: 0 0 30px rgba(0, 255, 157, 0.3); }
+        .grid-board.wrong { border-color: var(--neon-pink); animation: shake 0.4s; }
+        .grid-board.locked { pointer-events: none; opacity: 1; }
+
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-10px);} 75% {transform: translateX(10px);} }
+
+        /* 按鍵樣式 */
+        .pad {
+            background: rgba(30, 40, 60, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            cursor: pointer;
+            transition: 0.1s;
+            position: relative;
+        }
+        
+        /* 亮起特效 */
+        .pad.active {
+            background: currentColor;
+            box-shadow: 0 0 30px currentColor, inset 0 0 20px rgba(255,255,255,0.8);
+            border-color: #fff;
+            transform: scale(0.96);
+            z-index: 2;
+        }
+
+        /* 狀態文字 */
+        .status-msg {
+            margin-bottom: 30px;
+            font-size: 1.5rem; font-weight: bold; letter-spacing: 3px;
+            text-align: center; height: 40px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            transition: 0.3s;
+            color: #aaa;
+        }
+        .status-msg.active { color: #fff; text-shadow: 0 0 15px var(--neon-cyan); transform: scale(1.1); }
+        .status-msg.error { color: var(--neon-pink); text-shadow: 0 0 15px var(--neon-pink); }
+
+        /* --- 彈窗 (重點修改區) --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            /* 修改：背景改為半透明，讓星空透出來 */
+            background: rgba(5, 5, 16, 0.4); 
+            backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; transition: 0.4s; opacity: 0; pointer-events: none;
+        }
+        .overlay.show { opacity: 1; pointer-events: auto; }
+
+        .result-card {
+            /* 修改：卡片背景改為半透明漸層 */
+            background: linear-gradient(135deg, rgba(26, 44, 78, 0.85) 0%, rgba(11, 16, 33, 0.9) 100%);
+            border: 1px solid var(--neon-cyan);
+            padding: 40px; border-radius: 30px; text-align: center;
+            width: 85%; max-width: 400px;
+            box-shadow: 0 0 80px rgba(0, 243, 255, 0.15);
+            transform: scale(0.8); transition: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .overlay.show .result-card { transform: scale(1); }
+
+        .rank-badge {
+            background: var(--neon-pink); color: #fff; padding: 5px 20px; 
+            border-radius: 20px; font-size: 1rem; font-weight: bold;
+            display: inline-block; margin-bottom: 15px; box-shadow: 0 0 15px var(--neon-pink);
+        }
+        .score-val { font-size: 4rem; font-weight: 900; color: #fff; line-height: 1; margin: 10px 0; text-shadow: 0 0 30px rgba(255,255,255,0.3); }
+        .btn {
+            background: var(--neon-cyan); color: #0b1021; border: none; padding: 15px 0; width: 100%;
+            font-size: 1.2rem; border-radius: 50px; cursor: pointer; font-weight: 900;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4); margin-top: 20px; transition: 0.2s;
+        }
+        .btn:hover { background: #fff; transform: scale(1.02); }
+    </style>
+</head>
+<body>
+
+    <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
+    <div class="hud-container">
+        <a href="entertainment.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 離開</a>
+        <div class="stats-group">
+            <div class="stat-box">
+                <div class="stat-label">LEVEL</div>
+                <div class="stat-val" id="level-display">1</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">TIME</div>
+                <div class="stat-val" id="time-display">0</div>
+            </div>
+        </div>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="game-wrapper">
+        <div class="status-msg" id="status-text">準備開始</div>
+        <div class="grid-board locked" id="board">
+            </div>
+    </div>
+
+    <div class="overlay show" id="menu-overlay">
+        <div class="result-card" id="start-card">
+            <h1 style="margin:0; text-shadow:0 0 20px var(--neon-cyan); margin-bottom: 20px;">極光序列</h1>
+            <div style="text-align:center; color:#ccc; margin-bottom:30px; font-size:1rem; line-height:2; padding:0 10px;">
+                <i class="fa-solid fa-eye" style="color:var(--neon-cyan)"></i> 觀察亮起的順序<br>
+                <i class="fa-solid fa-fingerprint" style="color:var(--neon-cyan)"></i> 憑記憶重複點擊<br>
+                <i class="fa-solid fa-bolt" style="color:var(--neon-cyan)"></i> 速度會越來越快
+            </div>
+            <button class="btn" onclick="startGame()">開始挑戰</button>
+        </div>
+
+        <div class="result-card" id="end-card" style="display:none;">
+            </div>
+    </div>
+
+    <script>
+        // --- 音效系統 ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const freqs = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99]; 
+        const colors = ['#ff0055', '#ff5500', '#ffaa00', '#aaff00', '#00ffaa', '#00aaff', '#0055ff', '#aa00ff', '#ff00aa'];
+
+        function playTone(index) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freqs[index], audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        function playErrorSound() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        // --- 遊戲邏輯 ---
+        const board = document.getElementById('board');
+        const levelDisplay = document.getElementById('level-display');
+        const timeDisplay = document.getElementById('time-display');
+        const statusText = document.getElementById('status-text');
+        const overlay = document.getElementById('menu-overlay');
+        const startCard = document.getElementById('start-card');
+        const endCard = document.getElementById('end-card');
+
+        let sequence = [];
+        let playerStep = 0;
+        let level = 1;
+        let time = 0;
+        let timerInterval;
+        let isPlaying = false;
+
+        function initBoard() {
+            board.innerHTML = '';
+            for(let i=0; i<9; i++) {
+                let pad = document.createElement('div');
+                pad.className = 'pad';
+                pad.style.color = colors[i];
+                const trigger = (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    handleInput(i, pad);
+                };
+                pad.addEventListener('touchstart', trigger, {passive: false});
+                pad.addEventListener('mousedown', trigger);
+                board.appendChild(pad);
+            }
+        }
+
+        function startGame() {
+            sequence = [];
+            level = 1;
+            time = 0;
+            isPlaying = true;
+            
+            levelDisplay.innerText = level;
+            timeDisplay.innerText = 0;
+            overlay.classList.remove('show');
+            startCard.style.display = 'none';
+            endCard.style.display = 'none';
+            
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => { time++; timeDisplay.innerText = time; }, 1000);
+
+            setTimeout(nextLevel, 500);
+        }
+
+        function nextLevel() {
+            playerStep = 0;
+            updateStatus("觀察序列...", "");
+            levelDisplay.innerText = level;
+            sequence.push(Math.floor(Math.random() * 9));
+            board.classList.add('locked');
+            
+            let speed = 600;
+            if(level > 5) speed = 500;
+            if(level > 10) speed = 400;
+
+            let i = 0;
+            const interval = setInterval(() => {
+                flashPad(sequence[i]);
+                i++;
+                if(i >= sequence.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        board.classList.remove('locked');
+                        updateStatus("輪到你了", "active");
+                    }, speed);
+                }
+            }, speed);
+        }
+
+        function updateStatus(text, type) {
+            statusText.innerText = text;
+            statusText.className = `status-msg ${type}`;
+        }
+
+        function flashPad(index) {
+            const pads = document.querySelectorAll('.pad');
+            const pad = pads[index];
+            playTone(index);
+            pad.classList.add('active');
+            setTimeout(() => { pad.classList.remove('active'); }, 300);
+        }
+
+        function handleInput(index, pad) {
+            if(board.classList.contains('locked') || !isPlaying) return;
+
+            playTone(index);
+            pad.classList.add('active');
+            setTimeout(() => pad.classList.remove('active'), 150);
+
+            if(index === sequence[playerStep]) {
+                playerStep++;
+                if(playerStep === sequence.length) {
+                    level++;
+                    board.classList.add('locked');
+                    board.classList.add('correct');
+                    updateStatus("正確！", "active");
+                    
+                    setTimeout(() => {
+                        board.classList.remove('correct');
+                        nextLevel();
+                    }, 800);
+                }
+            } else {
+                gameOver();
+            }
+        }
+
+        function getRank(lv) {
+            if(lv < 3) return "金魚腦袋";
+            if(lv < 6) return "普通人類";
+            if(lv < 10) return "記憶力超群";
+            if(lv < 15) return "大腦超載者";
+            return "極光之神";
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            playErrorSound();
+            board.classList.add('locked');
+            board.classList.add('wrong');
+            updateStatus("同步失敗", "error");
+            
+            setTimeout(() => {
+                board.classList.remove('wrong');
+                const rank = getRank(level);
+                endCard.innerHTML = `
+                    <div class="rank-badge">${rank}</div>
+                    <div style="color:#aaa; font-size:0.9rem; margin-bottom:5px;">最終關卡</div>
+                    <div class="score-val">${level}</div>
+                    <div style="font-size:1.1rem; color:#fff; margin-bottom:30px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+                        <i class="fa-regular fa-clock"></i> 堅持時間: <span style="color:var(--neon-cyan)">${time}s</span>
+                    </div>
+                    <button class="btn" onclick="startGame()">再次挑戰</button>
+                `;
+                
+                overlay.classList.add('show');
+                endCard.style.display = 'block';
+            }, 1000);
+        }
+
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px #f2c94c';
+                }
+                container.appendChild(star);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            initBoard();
+            createTwinklingStars();
+        });
+    </script>
+</body>
+</html>
