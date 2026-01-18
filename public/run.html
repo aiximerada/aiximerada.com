@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>星際巡航：高壓突圍 - 玉露寶庫</title>
+    <title>星際巡航：地面疾行 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -21,54 +21,78 @@
         }
 
         /* --- ✨ 視差星空背景 --- */
-        .stars-1 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(1px 1px at 25px 35px, #fff, transparent); background-size: 150px 150px; animation: spaceMove 40s linear infinite; z-index: -3; opacity: 0.4; }
-        .stars-2 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(2px 2px at 50px 80px, var(--neon-cyan), transparent); background-size: 250px 250px; animation: spaceMove 20s linear infinite; z-index: -2; opacity: 0.3; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%); z-index: -5; }
+        .stars-1 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent); background-size: 100px 100px; animation: spaceMove 60s linear infinite; z-index: -4; opacity: 0.5; }
+        .stars-2 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(2px 2px at 50px 80px, var(--neon-cyan), transparent); background-size: 200px 200px; animation: spaceMove 30s linear infinite; z-index: -3; opacity: 0.3; }
+        .nebula { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wMSIgbnVtT2N0YXZlcz0iNSIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9"100%" filter="url(%23n)" opacity="0.1"/ >'); background-size: cover; animation: spaceMove 120s linear infinite; z-index: -4; mix-blend-mode: screen; filter: sepia(100%) hue-rotate(190deg) saturate(300%); }
         @keyframes spaceMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
         /* --- HUD儀表板 --- */
         .hud {
-            position: absolute; top: 20px; width: 90%; max-width: 800px;
+            position: absolute; top: 20px; width: 92%; max-width: 800px;
             display: flex; justify-content: space-between; align-items: center; z-index: 10;
         }
-        .score-box { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; }
-        .best-label { font-size: 1rem; color: var(--star-gold); margin-right: 20px; }
+        .score-box { 
+            font-family: 'Microsoft JhengHei', sans-serif; font-size: 1.2rem; font-weight: bold; 
+            background: rgba(0, 0, 0, 0.5); padding: 8px 20px; border-radius: 30px;
+            border: 1px solid rgba(0, 243, 255, 0.3); backdrop-filter: blur(5px);
+        }
+        .best-label { font-size: 0.95rem; color: var(--star-gold); margin-right: 15px; }
+        .label-text { font-size: 0.8rem; opacity: 0.8; margin-right: 5px; font-weight: normal; }
+        #score-val { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+        .shield-icon { color: var(--neon-cyan); margin-left: 10px; display: none; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.5; transform: scale(0.9); } }
 
-        canvas { display: block; background: linear-gradient(to bottom, rgba(5,5,16,0) 60%, rgba(0, 243, 255, 0.08) 100%); border-bottom: 3px solid var(--neon-cyan); cursor: pointer; }
+        canvas { display: block; background: transparent; cursor: pointer; }
 
         /* --- 彈窗介面 --- */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 16, 0.85); backdrop-filter: blur(12px);
+            background: rgba(5, 5, 16, 0.4); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-            transition: 0.3s; opacity: 0; pointer-events: none;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; pointer-events: none;
         }
         .overlay.show { opacity: 1; pointer-events: auto; }
 
         .result-card {
-            background: linear-gradient(135deg, rgba(26, 44, 78, 0.9) 0%, rgba(11, 16, 33, 0.95) 100%);
-            border: 2px solid var(--neon-cyan); padding: 40px; border-radius: 30px; text-align: center;
-            width: 85%; max-width: 420px; box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            background: rgba(16, 24, 48, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.5); padding: 45px; border-radius: 30px; text-align: center;
+            width: 85%; max-width: 420px; 
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.15), inset 0 0 30px rgba(0, 243, 255, 0.05);
+            transform: scale(0.9); transition: 0.4s; position: relative; overflow: hidden;
         }
-        .rank-badge { display: inline-block; padding: 6px 25px; background: var(--neon-pink); border-radius: 20px; font-weight: bold; margin-bottom: 15px; box-shadow: 0 0 15px var(--neon-pink); font-size: 1.1rem; }
-        .final-time { font-size: 4rem; font-weight: 900; margin: 10px 0; font-family: 'Courier New', monospace; color: #fff; text-shadow: 0 0 20px var(--neon-cyan); }
+        .overlay.show .result-card { transform: scale(1); }
+
+        .rank-badge { display: inline-block; padding: 6px 25px; background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple)); border-radius: 20px; font-weight: bold; margin-bottom: 15px; box-shadow: 0 0 20px var(--neon-pink); font-size: 1.1rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); }
+        .final-time { font-size: 4rem; font-weight: 900; margin: 10px 0; font-family: 'Courier New', monospace; color: #fff; text-shadow: 0 0 30px var(--neon-cyan); letter-spacing: -2px; }
         
-        .btn-group { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; width: 100%; }
+        .btn-group { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; width: 100%; position: relative; z-index: 2; }
         .btn {
-            background: var(--neon-cyan); color: #0b1021; border: none; padding: 16px 0; border-radius: 50px;
-            font-size: 1.2rem; font-weight: 900; cursor: pointer; transition: 0.2s; text-decoration: none; text-align: center;
+            background: linear-gradient(90deg, var(--neon-cyan), #00aaff); color: #000; border: none; padding: 16px 0; border-radius: 50px;
+            font-size: 1.2rem; font-weight: 900; cursor: pointer; transition: 0.1s; text-decoration: none; text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 243, 255, 0.3); outline: none; user-select: none;
         }
-        .btn:hover { background: #fff; transform: translateY(-2px); }
-        .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+        .btn:active, .btn.pressed { transform: scale(0.95); background: #fff; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2); box-shadow: none; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
+
+        p { color: rgba(255, 255, 255, 0.7); letter-spacing: 2px; font-size: 0.9rem; }
+        .hint { margin-top: 20px; font-size: 0.8rem; color: #666; }
     </style>
 </head>
 <body>
+    <div class="stars-bg"></div>
+    <div class="nebula"></div>
     <div class="stars-1"></div>
     <div class="stars-2"></div>
 
     <div class="hud">
         <div class="score-box">
-            <span class="best-label">BEST: <span id="best-val">0.00s</span></span>
-            TIME: <span id="score-val">0.00s</span>
+            <span class="best-label"><span class="label-text">最高:</span><span id="best-val">0.00秒</span></span>
+            <span class="label-text">存活:</span><span id="score-val">0.00秒</span>
+            <span id="shield-indicator" class="shield-icon"><i class="fa-solid fa-shield-halved"></i> 護盾啟動</span>
         </div>
     </div>
 
@@ -76,19 +100,21 @@
 
     <div id="overlay" class="overlay show">
         <div class="result-card" id="start-card">
-            <h1 style="color:var(--neon-cyan); font-size: 2.2rem; margin-bottom: 10px;">星際巡航</h1>
-            <p style="color:#aaa; letter-spacing: 2px; margin-bottom: 30px;">HIGH-PRESSURE MODE</p>
+            <div style="font-size: 3.5rem; color: #fff; margin-bottom: 15px; text-shadow: 0 0 30px var(--neon-cyan);"><i class="fa-solid fa-road"></i></div>
+            <h1 style="color:var(--neon-cyan); font-size: 2.2rem; margin-bottom: 5px;">星際巡航</h1>
+            <p>地面疾行模式 (DINO RUN STYLE)</p>
             <div class="btn-group">
-                <button class="btn" onclick="initGame()">啟動引擎</button>
+                <button class="btn" id="start-btn" onclick="initGame()">啟動引擎</button>
                 <a href="entertainment.html" class="btn btn-secondary">返回基地</a>
             </div>
+            <div class="hint">按空白鍵 / 點擊螢幕 跳躍</div>
         </div>
         <div class="result-card" id="end-card" style="display:none;">
-            <div id="rank-badge" class="rank-badge">稱號</div>
+            <div id="rank-badge" class="rank-badge">評等中</div>
             <div style="color:#aaa; font-size: 0.9rem;">任務存活時間</div>
-            <div class="final-time" id="final-time">0.00s</div>
+            <div class="final-time" id="final-time">0.00秒</div>
             <div class="btn-group">
-                <button class="btn" onclick="initGame()">再次出擊</button>
+                <button class="btn" id="restart-btn" onclick="initGame()">再次出擊</button>
                 <a href="entertainment.html" class="btn btn-secondary">返回基地</a>
             </div>
         </div>
@@ -99,219 +125,364 @@
         const ctx = canvas.getContext('2d');
         const scoreVal = document.getElementById('score-val');
         const bestVal = document.getElementById('best-val');
+        const shieldIndicator = document.getElementById('shield-indicator');
         const overlay = document.getElementById('overlay');
         const startCard = document.getElementById('start-card');
         const endCard = document.getElementById('end-card');
         const rankBadge = document.getElementById('rank-badge');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
 
         let gameWidth, gameHeight;
         let isPlaying = false;
+        let isCrashed = false; 
         let startTime;
         let currentTime = 0;
         let bestTime = parseFloat(localStorage.getItem('starship_best_time') || 0);
-        bestVal.innerText = bestTime.toFixed(2) + "s";
+        bestVal.innerText = bestTime.toFixed(2) + "秒";
 
-        // --- 🔥 難度平衡參數 (已上調) 🔥 ---
-        const INITIAL_SPEED = 10;    // 初始速度從 7 -> 10
-        const MAX_SPEED = 18;        // 最大速度上限調高
-        const INITIAL_SPAWN_RATE = 80; // 生成間隔從 120 -> 80 (變快)
-        const MIN_SPAWN_RATE = 35;   // 最快間隔縮短
+        // --- 物理參數 (地面模式) ---
+        const INITIAL_SPEED = 9;
+        const MAX_SPEED = 22;
+        const GRAVITY = 1.8;          // 重力更強，讓下墜更快 (手感更脆)
+        const JUMP_STRENGTH = -23;    // 跳躍高度
         
         let gameSpeed = INITIAL_SPEED;
-        const GRAVITY = 0.8;         // 下墜稍微加快，更俐落
-        const JUMP_STRENGTH = -14;   // 跳躍力配合重力調整
-        const GROUND_Y = 50;
-
+        let gridOffset = 0;
         const starColors = ['#00f3ff', '#ff00ff', '#f2c94c', '#00ff9d'];
 
         let player = {
-            x: 60, y: 0, width: 60, height: 30, dy: 0,
+            x: 80, y: 0, width: 50, height: 25, dy: 0, rotation: 0, hasShield: false,
+            isOnGround: true, // 新增：是否在地面
             draw() {
+                if(isCrashed) return;
                 ctx.save();
-                ctx.translate(this.x + this.width/2, this.y + this.height/2);
-                ctx.rotate(Math.min(Math.max(this.dy * 0.03, -0.3), 0.3));
-                ctx.translate(-(this.x + this.width/2), -(this.y + this.height/2));
+                ctx.translate(this.x, this.y);
+                
+                // 地面模式不需要大幅度傾斜
+                let targetRot = this.isOnGround ? 0 : Math.min(Math.max(this.dy * 0.04, -0.4), 0.4);
+                this.rotation += (targetRot - this.rotation) * 0.2;
+                ctx.rotate(this.rotation);
 
-                // 噴射火焰
-                ctx.fillStyle = Math.random() > 0.5 ? '#00f3ff' : '#fff';
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y + 10);
-                ctx.lineTo(this.x - 25, this.y + 15);
-                ctx.lineTo(this.x, this.y + 20);
-                ctx.fill();
+                // 護盾
+                if(this.hasShield) {
+                    ctx.beginPath(); ctx.arc(0, 5, 40, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(0, 243, 255, 0.2)'; ctx.fill();
+                    ctx.strokeStyle = 'rgba(0, 243, 255, 0.6)'; ctx.lineWidth = 2; ctx.stroke();
+                }
 
-                // 戰機機身
-                ctx.fillStyle = '#fff';
-                ctx.shadowBlur = 15; ctx.shadowColor = '#00f3ff';
-                ctx.beginPath();
-                ctx.moveTo(this.x + this.width, this.y + 15); // 頭
-                ctx.lineTo(this.x, this.y + 30); // 底
-                ctx.lineTo(this.x + 15, this.y + 15); // 中
-                ctx.lineTo(this.x, this.y); // 頂
-                ctx.closePath();
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                // 尾焰
+                ctx.shadowBlur = 20; ctx.shadowColor = '#00f3ff'; ctx.fillStyle = '#00f3ff';
+                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-35 - Math.random()*20, 5); ctx.lineTo(-15, 10); ctx.fill();
+
+                // 機身
+                ctx.shadowBlur = 10; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.moveTo(25, 5); ctx.lineTo(-10, 15); ctx.lineTo(-5, 5); ctx.lineTo(-10, -5); ctx.closePath(); ctx.fill();
+                
+                // 座艙
+                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(15, 2); ctx.lineTo(5, 5); ctx.fill();
+                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(10, 5); ctx.stroke();
                 ctx.restore();
             },
-            jump() { if(this.y >= gameHeight - GROUND_Y - this.height - 5) this.dy = JUMP_STRENGTH; }
+            jump() { 
+                // 只有在地面時才能跳 (Dino 規則)
+                if(this.isOnGround) {
+                    this.dy = JUMP_STRENGTH;
+                    this.isOnGround = false;
+                    createParticles(this.x, this.y + 10, '#fff', 5, 2, 'circle'); 
+                }
+            }
         };
 
         let obstacles = [];
+        let items = [];
         let particles = [];
+        let shockwaves = [];
         let frameCount = 0;
 
         function resize() {
             gameWidth = canvas.width = window.innerWidth;
-            gameHeight = canvas.height = Math.min(window.innerHeight * 0.7, 450);
-            player.y = gameHeight - GROUND_Y - player.height;
+            gameHeight = canvas.height = window.innerHeight;
+            // 重新計算地面位置
+            const horizonY = gameHeight * 0.85;
+            if(!isPlaying && !isCrashed) player.y = horizonY - player.height/2;
         }
 
         function initGame() {
-            obstacles = [];
-            particles = [];
-            gameSpeed = INITIAL_SPEED;
-            frameCount = 0;
-            currentTime = 0;
+            obstacles = []; particles = []; shockwaves = []; items = [];
+            gameSpeed = INITIAL_SPEED; 
+            frameCount = 0; currentTime = 0;
+            player.dy = 0; player.rotation = 0; player.hasShield = false; player.isOnGround = true;
+            
+            // 確保初始位置正確
+            const horizonY = gameHeight * 0.85;
+            player.y = horizonY - player.height/2;
+            
+            shieldIndicator.style.display = 'none';
+            isCrashed = false; isPlaying = true; 
             startTime = Date.now();
-            isPlaying = true;
+            
             overlay.classList.remove('show');
-            startCard.style.display = 'none';
-            endCard.style.display = 'none';
-            requestAnimationFrame(update);
+            setTimeout(() => { startCard.style.display = 'none'; endCard.style.display = 'none'; }, 400);
         }
 
-        function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
-            let rot = Math.PI / 2 * 3;
-            let step = Math.PI / spikes;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy - outerRadius);
+        function drawStar(cx, cy, spikes, outerRadius, innerRadius, color, rotOffset) {
+            let rot = Math.PI/2*3 + rotOffset; let step = Math.PI/spikes;
+            ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
             for (let i = 0; i < spikes; i++) {
-                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
-                rot += step;
-                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
-                rot += step;
+                ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius); rot += step;
+                ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius); rot += step;
             }
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.shadowBlur = 15; ctx.shadowColor = color;
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            ctx.closePath(); ctx.fillStyle = color; ctx.shadowBlur = 20; ctx.shadowColor = color; 
+            ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, innerRadius * 0.5, 0, Math.PI*2); ctx.fill();
         }
 
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y; this.color = color;
-                this.size = Math.random() * 4 + 2;
-                this.speedX = (Math.random() - 0.5) * 12;
-                this.speedY = (Math.random() - 0.5) * 12;
-                this.life = 1.0;
+        function drawItem(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            // 漂浮動畫
+            let floatY = Math.sin(frameCount * 0.1) * 5;
+            ctx.translate(0, floatY);
+            
+            ctx.shadowBlur = 20; ctx.shadowColor = '#00f3ff';
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.3)';
+            ctx.beginPath(); ctx.arc(0, 0, item.size, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, item.size*0.6, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('S', 0, 1);
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            let horizonY = gameHeight * 0.85;
+            ctx.save();
+            let grad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
+            grad.addColorStop(0, 'rgba(0, 243, 255, 0.05)'); grad.addColorStop(1, 'rgba(0, 243, 255, 0.2)');
+            ctx.fillStyle = grad; ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
+
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)'; ctx.lineWidth = 1;
+            gridOffset = (gridOffset - gameSpeed) % 100;
+            for(let x = gridOffset; x < gameWidth; x += 100) {
+                let topX = (x - gameWidth/2) * 0.2 + gameWidth/2;
+                ctx.moveTo(topX, horizonY); ctx.lineTo(x, gameHeight);
             }
-            update() { this.x += this.speedX; this.y += this.speedY; this.life -= 0.02; }
-            draw() {
-                ctx.fillStyle = this.color; ctx.globalAlpha = this.life;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
-                ctx.globalAlpha = 1.0;
+            ctx.stroke();
+            
+            ctx.shadowBlur = 10; ctx.shadowColor = '#00f3ff'; ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(gameWidth, horizonY); ctx.stroke();
+            ctx.restore();
+            return horizonY;
+        }
+
+        function createParticles(x, y, color, count, speedMult, type = 'circle') {
+            for(let k=0; k<count; k++) {
+                particles.push({
+                    x: x, y: y, color: color,
+                    size: Math.random() * 4 + 2,
+                    vx: (Math.random() - 0.5) * 15 * speedMult,
+                    vy: (Math.random() - 0.5) * 15 * speedMult,
+                    life: 1.0, decay: 0.01 + Math.random() * 0.02, type: type
+                });
             }
         }
 
         function update() {
             ctx.clearRect(0, 0, gameWidth, gameHeight);
-            
-            // 地平線
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, gameHeight - GROUND_Y);
-            ctx.lineTo(gameWidth, gameHeight - GROUND_Y);
-            ctx.stroke();
+            const groundY = drawGrid();
+            const groundLimit = groundY - player.height/2;
 
             if(isPlaying) {
                 currentTime = (Date.now() - startTime) / 1000;
-                scoreVal.innerText = currentTime.toFixed(2) + "s";
+                scoreVal.innerText = currentTime.toFixed(2) + "秒";
+                
+                if (gameSpeed < MAX_SPEED) gameSpeed += 0.003;
+                
+                // 尾焰粒子
+                particles.push({
+                    x: player.x - 10, y: player.y + 5 + (Math.random()-0.5)*5,
+                    color: Math.random()>0.5 ? '#00f3ff':'#88ffff', size: Math.random() * 4,
+                    vx: -gameSpeed * 0.8, vy: (Math.random()-0.5)*2, life: 0.6, decay: 0.05, type: 'circle'
+                });
 
-                // 動難難度計算
-                if (gameSpeed < MAX_SPEED) gameSpeed += 0.002;
-                let currentSpawnRate = Math.max(MIN_SPAWN_RATE, INITIAL_SPAWN_RATE - Math.floor(currentTime * 2));
+                // 物理計算 (地面跳躍模式)
+                if (!player.isOnGround) {
+                    player.dy += GRAVITY;
+                    player.y += player.dy;
+                }
 
-                player.dy += GRAVITY;
-                player.y += player.dy;
-                const groundLimit = gameHeight - GROUND_Y - player.height;
-                if(player.y > groundLimit) { player.y = groundLimit; player.dy = 0; }
+                // 地板判定
+                if(player.y >= groundLimit) { 
+                    player.y = groundLimit; 
+                    player.dy = 0; 
+                    player.isOnGround = true;
+                    // 貼地滑行火花
+                    if(frameCount % 5 === 0) createParticles(player.x, player.y+10, '#00f3ff', 2, 0.5);
+                } else {
+                    player.isOnGround = false;
+                }
+                
                 player.draw();
 
-                // 生成障礙物
-                if(frameCount % currentSpawnRate === 0) {
-                    let size = Math.random() * 20 + 20;
-                    obstacles.push({
-                        x: gameWidth + size,
-                        y: gameHeight - GROUND_Y - size - (Math.random() > 0.82 ? 75 : 0), 
-                        size: size,
-                        color: starColors[Math.floor(Math.random() * starColors.length)],
-                        rotation: 0
+                // 生成障礙物 (只生成在地面)
+                let spawnRate = Math.max(30, 80 - Math.floor(currentTime * 1.5));
+                if(frameCount % spawnRate === 0) {
+                    // 最短間距檢查，避免產生無法跳過的障礙
+                    let lastObs = obstacles[obstacles.length - 1];
+                    let minGap = 250 + (gameSpeed * 10);
+                    if (!lastObs || (gameWidth - lastObs.x > minGap)) {
+                        let size = Math.random() * 20 + 25; // 大小變化
+                        obstacles.push({
+                            x: gameWidth + size,
+                            y: groundLimit - size + 10, // 固定在地面
+                            size: size,
+                            color: starColors[Math.floor(Math.random() * starColors.length)],
+                            rotation: 0, rotSpeed: (Math.random() + 0.5) * 0.1
+                        });
+                    }
+                }
+
+                // 生成道具 (空中或地面)
+                if(frameCount % 700 === 0 && !player.hasShield) {
+                    items.push({
+                        x: gameWidth + 50,
+                        y: groundLimit - 100, // 稍微高一點，需要跳起來吃
+                        size: 20, type: 'shield'
                     });
                 }
 
-                for(let i = obstacles.length - 1; i >= 0; i--) {
-                    let obs = obstacles[i];
-                    obs.x -= gameSpeed;
-                    obs.rotation += 0.06;
-                    
-                    ctx.save();
-                    ctx.translate(obs.x, obs.y);
-                    ctx.rotate(obs.rotation);
-                    drawStar(0, 0, 5, obs.size, obs.size/2, obs.color);
-                    ctx.restore();
-
-                    // 碰撞判定
-                    let dx = (player.x + player.width/2) - obs.x;
-                    let dy = (player.y + player.height/2) - obs.y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < obs.size * 0.7 + player.width/3) {
-                        for(let k=0; k<40; k++) particles.push(new Particle(obs.x, obs.y, obs.color));
-                        gameOver();
-                    }
-                    if(obs.x + obs.size < 0) obstacles.splice(i, 1);
-                }
                 frameCount++;
-            } else {
-                particles.forEach((p, idx) => {
-                    p.update(); p.draw();
-                    if(p.life <= 0) particles.splice(idx, 1);
-                });
+            } else if(isCrashed) {
+                gameSpeed *= 0.95;
             }
+
+            // 更新障礙物
+            for(let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed; obs.rotation += obs.rotSpeed;
+                ctx.save(); ctx.translate(obs.x, obs.y);
+                drawStar(0, 0, 5, obs.size, obs.size*0.4, obs.color, obs.rotation);
+                ctx.restore();
+
+                if(isPlaying) {
+                    let hitDist = obs.size * 0.6 + player.width * 0.3;
+                    let dx = player.x - obs.x; let dy = player.y - obs.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < hitDist) {
+                        if(player.hasShield) {
+                            player.hasShield = false;
+                            shieldIndicator.style.display = 'none';
+                            createParticles(player.x, player.y, '#00f3ff', 30, 2, 'circle');
+                            shockwaves.push({x: player.x, y: player.y, radius: 10, alpha: 1, color: '#00f3ff', width: 5});
+                            obstacles.splice(i, 1); 
+                        } else {
+                            handleCrash(obs);
+                        }
+                    }
+                }
+                if(obs.x + obs.size < -50) obstacles.splice(i, 1);
+            }
+
+            // 更新道具
+            for(let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.x -= gameSpeed;
+                drawItem(item);
+                if(isPlaying) {
+                    let dx = player.x - item.x; let dy = player.y - item.y;
+                    if(Math.sqrt(dx*dx + dy*dy) < item.size + player.width/2) {
+                        if(item.type === 'shield') {
+                            player.hasShield = true;
+                            shieldIndicator.style.display = 'inline-block';
+                            createParticles(player.x, player.y, '#fff', 20, 1, 'circle');
+                        }
+                        items.splice(i, 1);
+                    }
+                }
+                if(item.x < -50) items.splice(i, 1);
+            }
+
+            updateEffects();
             requestAnimationFrame(update);
         }
 
+        function handleCrash(obs) {
+            isPlaying = false; isCrashed = true;
+            createParticles(player.x, player.y, '#fff', 30, 1.5, 'triangle'); 
+            createParticles(player.x, player.y, '#00f3ff', 20, 1.5, 'circle');
+            createParticles(obs.x, obs.y, obs.color, 20, 1, 'circle'); 
+            shockwaves.push({x: player.x, y: player.y, radius: 10, alpha: 1, color: '#fff', width: 8});
+            gameOver();
+        }
+
+        function updateEffects() {
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= p.decay;
+                if(p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.save(); ctx.translate(p.x, p.y); ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+                if(p.type === 'triangle') {
+                    ctx.rotate(p.life * 10); ctx.beginPath();
+                    ctx.moveTo(0, -p.size); ctx.lineTo(p.size, p.size); ctx.lineTo(-p.size, p.size); ctx.fill();
+                } else {
+                    ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1.0;
+            for(let i = shockwaves.length - 1; i >= 0; i--) {
+                let sw = shockwaves[i]; sw.radius += 10; sw.alpha -= 0.05;
+                if(sw.alpha <= 0) { shockwaves.splice(i, 1); continue; }
+                ctx.strokeStyle = sw.color; ctx.lineWidth = sw.width; ctx.globalAlpha = sw.alpha;
+                ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1.0;
+            }
+        }
+
         function getRank(s) {
-            if(s < 10) return { t: "星際塵埃", c: "#aaa" };
-            if(s < 25) return { t: "超光速新兵", c: "#fff" };
-            if(s < 50) return { t: "時空護航者", c: "#00ff9d" };
-            if(s < 80) return { t: "獵戶座王牌", c: "#f2c94c" };
-            return { t: "銀河傳奇", c: "#bc13fe" };
+            if(s < 10) return { t: "星際塵埃", c: "linear-gradient(45deg, #777, #aaa)" };
+            if(s < 25) return { t: "超光速新兵", c: "linear-gradient(45deg, #00f3ff, #0077ff)" };
+            if(s < 45) return { t: "時空護航者", c: "linear-gradient(45deg, #00ff9d, #00cc55)" };
+            if(s < 70) return { t: "獵戶座王牌", c: "linear-gradient(45deg, #f2c94c, #f2994a)" };
+            return { t: "銀河傳奇", c: "linear-gradient(45deg, #ff00ff, #bc13fe)" };
         }
 
         function gameOver() {
-            isPlaying = false;
             if(currentTime > bestTime) {
-                bestTime = currentTime;
-                localStorage.setItem('starship_best_time', bestTime);
-                bestVal.innerText = bestTime.toFixed(2) + "s";
+                bestTime = currentTime; localStorage.setItem('starship_best_time', bestTime);
+                bestVal.innerText = bestTime.toFixed(2) + "秒";
             }
-            document.getElementById('final-time').innerText = currentTime.toFixed(2) + "s";
+            document.getElementById('final-time').innerText = currentTime.toFixed(2) + "秒";
             const r = getRank(currentTime);
-            rankBadge.innerText = r.t;
-            rankBadge.style.background = r.c;
-            rankBadge.style.boxShadow = `0 0 15px ${r.c}`;
-            
-            setTimeout(() => {
-                overlay.classList.add('show');
-                endCard.style.display = 'block';
-            }, 800);
+            rankBadge.innerText = r.t; rankBadge.style.background = r.c; 
+            setTimeout(() => { overlay.classList.add('show'); endCard.style.display = 'block'; }, 1000);
         }
 
-        window.addEventListener('keydown', (e) => { if(e.code === 'Space') player.jump(); });
-        window.addEventListener('touchstart', (e) => { e.preventDefault(); player.jump(); }, {passive: false});
+        function jumpAction(e) {
+            if (e && e.preventDefault) e.preventDefault(); 
+            let activeBtn = startCard.style.display !== 'none' ? startBtn : restartBtn;
+            if(activeBtn) { activeBtn.classList.add('pressed'); setTimeout(() => activeBtn.classList.remove('pressed'), 100); }
+
+            if(isPlaying) {
+                player.jump(); // 改回 jump
+            } else if (overlay.classList.contains('show')) {
+                if(startCard.style.display !== 'none' || (endCard.style.display !== 'none' && !isCrashed)) {
+                     initGame();
+                } else if (endCard.style.display !== 'none' && isCrashed) {
+                    initGame();
+                }
+            }
+        }
+
+        window.addEventListener('keydown', (e) => { 
+            if(e.code === 'Space' || e.key === ' ' || e.keyCode === 32 || e.code === 'Enter' || e.code === 'ArrowUp') {
+                jumpAction(e);
+            }
+        });
+        window.addEventListener('touchstart', (e) => { jumpAction(e); }, {passive: false});
+        window.addEventListener('mousedown', (e) => { if(e.button === 0) jumpAction(e); });
+        
         window.addEventListener('resize', resize);
+        requestAnimationFrame(update);
         resize();
     </script>
 </body>
