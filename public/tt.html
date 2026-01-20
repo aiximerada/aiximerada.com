@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未來科技電子書 - 鮮豔版</title>
+    <style>
+        /* --- 定義全新鮮豔科技配色 --- */
+        :root {
+            --primary-bg: #0a0e1a; /* 更深邃的靛藍黑底色 */
+            --panel-bg: rgba(20, 25, 45, 0.9); /* 帶藍紫調的半透明面板 */
+            
+            /* 核心亮色：電光青 */
+            --accent-cyan: #00ffea;
+            /* 輔助亮色：霓虹粉紫 (用於對比點綴) */
+            --accent-pink: #ff00ab;
+            
+            --text-main: #ffffff;
+            --text-dim: #a0c5e8; /* 偏藍的淺灰色 */
+            
+            /* 強烈的發光特效 */
+            --glow-cyan: 0 0 20px rgba(0, 255, 234, 0.5), 0 0 40px rgba(0, 255, 234, 0.2);
+            --glow-pink: 0 0 20px rgba(255, 0, 171, 0.5);
+            
+            --border-tech: 1px solid rgba(0, 255, 234, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* 優化：發光的數位網格背景 */
+            background-image: 
+                linear-gradient(rgba(0, 255, 234, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 234, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- 裝飾性星空 (顏色調整) --- */
+        .stars {
+            position: absolute; width: 100%; height: 100%; pointer-events: none; z-index: -1;
+            background-image: radial-gradient(2px 2px at 50px 100px, #fff, transparent),
+                              radial-gradient(2px 2px at 150px 250px, #fff, transparent),
+                              /* 將大星星改為青色 */
+                              radial-gradient(2px 2px at 300px 50px, var(--accent-cyan), transparent);
+            background-size: 400px 400px;
+            animation: moveSpace 60s linear infinite;
+            opacity: 0.6;
+        }
+        @keyframes moveSpace { from { background-position: 0 0; } to { background-position: 100px 100px; } }
+
+        /* --- 電子書主體框架 --- */
+        .ebook-frame {
+            width: 95%; max-width: 1100px; height: 85vh;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px); /* 更強的毛玻璃 */
+            border: var(--border-tech);
+            border-radius: 12px;
+            /* 強烈的青色邊框發光 */
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), var(--glow-cyan);
+            display: flex; flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 頂部裝飾線條 (改為漸層光束) */
+        .top-line-deco {
+            position: absolute; top: 0; left: 0; height: 4px;
+            /* 青色到粉紫色的漸層 */
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink));
+            width: 0%; transition: width 0.5s ease;
+            z-index: 20;
+            box-shadow: 0 2px 15px var(--accent-cyan);
+        }
+
+        /* --- Header --- */
+        .header {
+            padding: 15px 30px;
+            border-bottom: var(--border-tech);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 255, 234, 0.05); /* 微微的青色背景 */
+        }
+
+        .course-badge {
+            font-size: 0.75rem; color: var(--primary-bg); 
+            background: var(--accent-cyan); /* 青色底 */
+            padding: 5px 10px; border-radius: 4px; font-weight: 800; margin-right: 10px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 255, 234, 0.4);
+        }
+
+        .topic-title {
+            font-size: 1.1rem; letter-spacing: 1px; color: var(--text-main);
+            text-shadow: 0 0 8px rgba(0, 255, 234, 0.6); /* 文字發光 */
+        }
+
+        .system-time {
+            font-family: 'Courier New', monospace; font-size: 0.9rem; color: var(--accent-cyan);
+            opacity: 0.8;
+        }
+
+        /* --- 內容顯示區 --- */
+        .viewport {
+            flex: 1; position: relative; overflow: hidden;
+        }
+
+        .page {
+            width: 100%; height: 100%; padding: 40px;
+            display: none;
+            gap: 40px;
+            opacity: 0; transform: scale(0.98) translateY(10px); /*稍微增加縮放動畫*/
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .page.active {
+            display: flex; opacity: 1; transform: scale(1) translateY(0);
+        }
+
+        /* 左側圖片區 (全息投影感) */
+        .visual-area {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+        }
+        
+        .hologram-box {
+            width: 100%; aspect-ratio: 16/9;
+            /* 改為青色虛線 */
+            border: 2px dashed rgba(0, 255, 234, 0.5);
+            /* 更鮮豔的內部漸層 */
+            background: linear-gradient(135deg, rgba(0, 255, 234, 0.1), rgba(255, 0, 171, 0.1));
+            display: flex; justify-content: center; align-items: center;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0, 255, 234, 0.2);
+        }
+        
+        .hologram-box::after {
+            /* 使用粉紫色作為對比 */
+            content: "DATA_STREAM // LIVE"; position: absolute; bottom: 10px; right: 10px;
+            font-size: 0.7rem; color: var(--accent-pink); font-family: monospace; font-weight: bold;
+            text-shadow: 0 0 5px var(--accent-pink);
+        }
+
+        /* 右側文字區 */
+        .text-area {
+            flex: 1; display: flex; flex-direction: column; justify-content: center;
+        }
+
+        h2 {
+            font-size: 2.2rem; margin-bottom: 25px; color: var(--text-main);
+            /* 青色左邊條與文字發光 */
+            border-left: 5px solid var(--accent-cyan); padding-left: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 234, 0.3);
+        }
+
+        p {
+            line-height: 1.8; color: var(--text-dim); margin-bottom: 25px; font-size: 1.1rem;
+            text-align: justify;
+        }
+
+        /* 強調文字：青色並發光 */
+        .highlight { 
+            color: var(--accent-cyan); 
+            font-weight: bold; 
+            text-shadow: 0 0 8px rgba(0, 255, 234, 0.4);
+        }
+
+        /* --- 底部控制列 --- */
+        .controls {
+            padding: 20px 30px;
+            border-top: var(--border-tech);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 255, 234, 0.05);
+        }
+
+        .page-indicator {
+            font-family: monospace; color: var(--accent-cyan); font-size: 1.2rem;
+            text-shadow: 0 0 5px rgba(0, 255, 234, 0.5);
+        }
+
+        .btn-group { display: flex; gap: 15px; }
+
+        /* 按鈕樣式大改 */
+        button {
+            background: transparent; 
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan); 
+            padding: 12px 28px;
+            cursor: pointer; font-family: inherit; font-weight: 800;
+            transition: all 0.3s ease; letter-spacing: 2px;
+            display: flex; align-items: center; gap: 10px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 0 5px rgba(0, 255, 234, 0.3);
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-cyan); color: var(--primary-bg);
+            /* 強烈的懸停發光 */
+            box-shadow: var(--glow-cyan);
+            text-shadow: none;
+            border-color: transparent;
+        }
+
+        button:disabled {
+            border-color: rgba(160, 197, 232, 0.3); color: rgba(160, 197, 232, 0.5); 
+            cursor: not-allowed; box-shadow: none; text-shadow: none;
+        }
+
+        /* --- RWD --- */
+        @media (max-width: 768px) {
+            .page.active { flex-direction: column; padding: 25px; overflow-y: auto; }
+            .hologram-box { max-height: 220px; }
+            h2 { font-size: 1.8rem; }
+            .header { padding: 15px 20px; }
+            .topic-title { font-size: 0.9rem; }
+            button { padding: 10px 20px; font-size: 0.9rem; }
+            .ebook-frame { height: 95vh; width: 98%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <div class="ebook-frame">
+        <div class="top-line-deco" id="progressBar"></div>
+
+        <header class="header">
+            <div>
+                <span class="course-badge">CYBER.EDU</span>
+                <span class="topic-title" id="courseTopic">系統初始化...</span>
+            </div>
+            <div class="system-time">STATUS: ONLINE</div>
+        </header>
+
+        <main class="viewport">
+            
+            <article class="page active" data-topic="模組 01：流體視覺層級">
+                <div class="visual-area">
+                    <div class="hologram-box">
+                        <span style="color:var(--accent-cyan); font-weight:bold; letter-spacing:1px;">[全息圖表 1.0 - 網格系統]</span>
+                    </div>
+                </div>
+                <div class="text-area">
+                    <h2>響應式基礎架構</h2>
+                    <p>電子書排版的核心在於<span class="highlight">流動性 (Fluidity)</span>。在設計時，我們不應將畫布視為固定的紙張，而是一個可伸縮的數位容器。</p>
+                    <p>本章節將探討如何利用 CSS Grid 與 Flexbox 來達成各種裝置上的完美顯示比例，打破物理邊界的限制。</p>
+                </div>
+            </article>
+
+            <article class="page" data-topic="模組 02：高對比色彩學">
+                <div class="visual-area">
+                    <div class="hologram-box">
+                        <span style="color:var(--accent-cyan); font-weight:bold; letter-spacing:1px;">[全息圖表 2.0 - 光譜分析]</span>
+                    </div>
+                </div>
+                <div class="text-area">
+                    <h2>霓虹模式應用</h2>
+                    <p>在未來的介面中，我們使用深色基底來減少視覺疲勞，並利用高飽和度的光色進行引導。</p>
+                    <p>使用 <span class="highlight">電光青 (Electric Cyan)</span> 與 <span class="highlight" style="color: var(--accent-pink); text-shadow: 0 0 8px var(--accent-pink);">霓虹粉 (Neon Pink)</span> 的碰撞，模擬能量流動的視覺效果，強勢引導使用者的注意力。</p>
+                </div>
+            </article>
+
+            <article class="page" data-topic="模組 03：自適應終端適配">
+                <div class="visual-area">
+                    <div class="hologram-box">
+                        <span style="color:var(--accent-cyan); font-weight:bold; letter-spacing:1px;">[全息圖表 3.0 - 斷點偵測]</span>
+                    </div>
+                </div>
+                <div class="text-area">
+                    <h2>行動優先策略</h2>
+                    <p>當系統偵測到終端寬度小於 768px 時，介面將自動重組為<span class="highlight">單欄垂直數據流</span>。</p>
+                    <p>這確保了在手持裝置閱讀時，圖像數據位於文本上方，且字體級距自動調整至最佳閱讀參數，無需手動縮放。</p>
+                </div>
+            </article>
+
+        </main>
+
+        <footer class="controls">
+            <div class="page-indicator">
+                <span id="currentPage">01</span> / <span id="totalPages">03</span>
+            </div>
+            <div class="btn-group">
+                <button id="prevBtn" onclick="changePage(-1)">
+                    <span>&#8592;</span> BACK
+                </button>
+                <button id="nextBtn" onclick="changePage(1)">
+                    NEXT <span>&#8594;</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // (JavaScript 邏輯保持不變，僅配合新樣式運作)
+        let currentIndex = 0;
+        const pages = document.querySelectorAll('.page');
+        const totalPages = pages.length;
+        
+        const topicLabel = document.getElementById('courseTopic');
+        const currentLabel = document.getElementById('currentPage');
+        const totalLabel = document.getElementById('totalPages');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+
+        totalLabel.textContent = totalPages.toString().padStart(2, '0');
+        updateUI();
+
+        function changePage(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < totalPages) {
+                currentIndex = newIndex;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            pages.forEach((page, index) => {
+                if (index === currentIndex) {
+                    page.classList.add('active');
+                    topicLabel.textContent = page.getAttribute('data-topic');
+                } else {
+                    page.classList.remove('active');
+                }
+            });
+
+            currentLabel.textContent = (currentIndex + 1).toString().padStart(2, '0');
+            prevBtn.disabled = (currentIndex === 0);
+            nextBtn.disabled = (currentIndex === totalPages - 1);
+
+            const progress = ((currentIndex + 1) / totalPages) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+    </script>
+</body>
+</html>
