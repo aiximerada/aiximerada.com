@@ -12,6 +12,7 @@
             --neon-pink: #ff00ff;
             --neon-green: #00ff9d;
             --neon-gold: #f2c94c;
+            --neon-purple: #bc13fe; /* 新增紫色主題 */
             --glass-panel: rgba(20, 30, 50, 0.6);
             --text-gray: #aaa;
         }
@@ -114,6 +115,7 @@
         .theme-pink { --theme-color: var(--neon-pink); --theme-color-glow: rgba(255, 0, 255, 0.4); }
         .theme-gold { --theme-color: var(--neon-gold); --theme-color-glow: rgba(242, 201, 76, 0.4); }
         .theme-green { --theme-color: var(--neon-green); --theme-color-glow: rgba(0, 255, 157, 0.4); }
+        .theme-purple { --theme-color: var(--neon-purple); --theme-color-glow: rgba(188, 19, 254, 0.4); }
 
         @media (max-width: 768px) {
             .header { flex-direction: column; gap: 20px; align-items: flex-start; }
@@ -139,6 +141,13 @@
             <div class="game-icon"><i class="fa-solid fa-jet-fighter-up"></i></div>
             <div class="game-title">星際巡航 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
             <div class="game-desc">駕駛戰機穿越光年，在高壓的星際航道中閃避障礙、啟動護盾，挑戰極限存活時間。</div>
+            <div class="play-btn">START GAME</div>
+        </a>
+
+        <a href="dice.html" class="game-card theme-purple">
+            <div class="game-icon"><i class="fa-solid fa-dice-d20"></i></div>
+            <div class="game-title">星際共鳴 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
+            <div class="game-desc">鎖定雙頻率，捕捉唯一的星核引力波。直覺與運氣的終極共鳴測試。</div>
             <div class="play-btn">START GAME</div>
         </a>
 
@@ -170,7 +179,6 @@
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
-            // 清空舊星星
             container.innerHTML = '';
             
             for (let i = 0; i < 60; i++) {
@@ -183,7 +191,6 @@
                 star.style.animationDuration = `${Math.random() * 4 + 2}s`;
                 star.style.animationDelay = `${Math.random() * 5}s`;
                 
-                // 隨機賦予星星顏色，增加層次感
                 if(Math.random() > 0.8) {
                     star.style.backgroundColor = 'var(--neon-cyan)';
                     star.style.boxShadow = '0 0 5px var(--neon-cyan)';
@@ -191,11 +198,9 @@
                      star.style.backgroundColor = 'var(--neon-pink)';
                      star.style.boxShadow = '0 0 5px var(--neon-pink)';
                 }
-
                 container.appendChild(star);
             }
         }
-        
         window.addEventListener('load', createTwinklingStars);
     </script>
 </body>

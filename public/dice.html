@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>星際共鳴 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #050510;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-gold: #ffd700;
+            --glass-surface: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-dark); color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            overflow: hidden; user-select: none;
+        }
+
+        /* --- ✨ 背景特效 --- */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.3; animation: spaceMove 100s linear infinite; z-index: -2; }
+        @keyframes spaceMove { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        .nebula { position: fixed; width: 100%; height: 100%; background: radial-gradient(circle at 50% 60%, rgba(0, 243, 255, 0.08), transparent 60%); z-index: -1; }
+
+        /* --- 頂部標題 --- */
+        .header { margin-top: 40px; text-align: center; z-index: 10; position: relative; }
+        h1 { 
+            font-size: 2.8rem; font-weight: 900; letter-spacing: 6px; margin: 0; 
+            background: linear-gradient(180deg, #fff, var(--neon-cyan)); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+            filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.6));
+        }
+        .subtitle { 
+            color: rgba(255,255,255,0.6); font-size: 0.85rem; letter-spacing: 3px; 
+            margin-top: 5px; text-transform: uppercase; 
+        }
+
+        /* --- 核心控制台 --- */
+        .game-main {
+            width: 85%; max-width: 400px; margin-top: 30px;
+            background: var(--glass-surface); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 40px;
+            padding: 40px 30px; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,255,255,0.02);
+            position: relative; overflow: hidden;
+        }
+        /* 裝飾光條 */
+        .game-main::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        }
+
+        /* --- 反應爐 (骰子容器) --- */
+        .core-container {
+            width: 160px; height: 160px; position: relative;
+            display: flex; justify-content: center; align-items: center;
+            margin-bottom: 30px;
+        }
+        /* 多層旋轉軌道 */
+        .orbit {
+            position: absolute; border-radius: 50%; border: 1px solid rgba(0, 243, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+        }
+        .orbit-1 { width: 100%; height: 100%; border-top: 2px solid var(--neon-cyan); animation: spin 4s linear infinite; }
+        .orbit-2 { width: 80%; height: 80%; border-bottom: 2px solid var(--neon-cyan); animation: spin 3s linear infinite reverse; }
+        .orbit-3 { width: 120%; height: 120%; border: 1px dashed rgba(255,255,255,0.1); animation: spin 10s linear infinite; }
+        
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 骰子本體 */
+        .dice {
+            width: 70px; height: 70px; background: #fff; border-radius: 18px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 3rem; color: #050510; font-weight: 900;
+            box-shadow: 0 0 50px var(--neon-cyan), inset 0 0 10px rgba(0,0,0,0.2);
+            z-index: 2; position: relative;
+        }
+        .dice::after { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 18px; box-shadow: inset 0 0 10px #fff; opacity: 0.5; }
+
+        /* 滾動時的動態模糊 */
+        .dice.rolling { 
+            animation: blurShake 0.1s infinite; 
+            background: var(--neon-cyan); color: #fff; 
+            filter: blur(1px);
+        }
+        @keyframes blurShake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, -1px); } }
+
+        /* --- 號碼網格 --- */
+        .grid-header { width: 100%; display: flex; justify-content: space-between; color: var(--neon-cyan); font-size: 0.8rem; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 25px; }
+        .num-btn {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; font-size: 1.5rem; font-weight: bold; padding: 15px;
+            border-radius: 12px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden;
+        }
+        .num-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+        .num-btn.selected {
+            background: rgba(255, 0, 255, 0.2); border-color: var(--neon-pink);
+            color: #fff; box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+            transform: scale(0.98);
+        }
+        /* 選中時的掃描線 */
+        .num-btn.selected::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, transparent 0%, rgba(255,0,255,0.2) 50%, transparent 100%);
+            animation: scan 1s linear infinite;
+        }
+        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+
+        /* --- 啟動按鈕 --- */
+        .action-btn {
+            width: 100%; background: linear-gradient(90deg, #00c6ff, #0072ff); 
+            color: #fff; border: none; padding: 18px; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 900; letter-spacing: 2px;
+            cursor: pointer; transition: 0.3s; box-shadow: 0 5px 20px rgba(0, 114, 255, 0.3);
+        }
+        .action-btn:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; filter: grayscale(1); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 30px rgba(0, 114, 255, 0.5); }
+        
+        .status-bar { margin-top: 15px; font-size: 0.85rem; color: #666; min-height: 20px; transition: 0.3s; }
+
+        .back-link { margin-top: 30px; color: rgba(255,255,255,0.4); text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
+        .back-link:hover { color: #fff; }
+
+        /* --- 🏆 勝利特效系統 --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); 
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; transition: opacity 0.5s;
+        }
+        .overlay.show { display: flex; opacity: 1; }
+
+        /* 放射光芒背景 */
+        .god-rays {
+            position: absolute; width: 200vw; height: 200vw;
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 215, 0, 0.1) 20deg, transparent 40deg, rgba(255, 215, 0, 0.1) 60deg, transparent 80deg);
+            animation: rotateRay 20s linear infinite;
+            z-index: -1; pointer-events: none;
+        }
+        @keyframes rotateRay { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        /* 勝利卡片 */
+        .win-card {
+            background: rgba(20, 20, 30, 0.8);
+            border: 2px solid var(--neon-gold); padding: 50px 40px; border-radius: 30px;
+            text-align: center; transform: scale(0.5); opacity: 0;
+            transition: 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 80px rgba(255, 215, 0, 0.2);
+            position: relative; overflow: hidden;
+        }
+        .overlay.show .win-card { transform: scale(1); opacity: 1; }
+
+        .rank-tag {
+            background: var(--neon-gold); color: #000; padding: 5px 20px; border-radius: 50px;
+            font-weight: 900; font-size: 0.8rem; letter-spacing: 2px; display: inline-block; margin-bottom: 20px;
+        }
+        .win-number { 
+            font-size: 6rem; line-height: 1; font-weight: 900; color: #fff; 
+            text-shadow: 0 0 30px var(--neon-gold); margin: 10px 0;
+            animation: pulseText 1.5s infinite alternate;
+        }
+        @keyframes pulseText { from { text-shadow: 0 0 30px var(--neon-gold); } to { text-shadow: 0 0 60px var(--neon-gold), 0 0 10px #fff; } }
+
+        .win-msg { font-size: 1.5rem; color: #fff; margin-bottom: 5px; font-weight: bold; }
+        .win-sub { font-size: 0.9rem; color: #aaa; margin-bottom: 30px; }
+
+        .retry-btn {
+            background: #fff; color: #000; border: none; padding: 15px 50px;
+            border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            transition: 0.3s; box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+        .retry-btn:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(255,255,255,0.8); }
+
+        /* 粒子畫布 */
+        #confetti-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+    </style>
+</head>
+<body>
+
+    <div class="stars-bg"></div>
+    <div class="nebula"></div>
+
+    <div class="header">
+        <h1>星際共鳴</h1>
+        <div class="subtitle">QUANTUM RESONANCE CORE</div>
+    </div>
+
+    <div class="game-main">
+        <div class="core-container">
+            <div class="orbit orbit-1"></div>
+            <div class="orbit orbit-2"></div>
+            <div class="orbit orbit-3"></div>
+            <div class="dice" id="dice">?</div>
+        </div>
+
+        <div class="grid-header">
+            <span><i class="fa-solid fa-satellite-dish"></i> 選擇共鳴頻率</span>
+            <span id="select-count">0/2</span>
+        </div>
+        
+        <div class="grid" id="grid">
+            <button class="num-btn" onclick="select(1)">1</button>
+            <button class="num-btn" onclick="select(2)">2</button>
+            <button class="num-btn" onclick="select(3)">3</button>
+            <button class="num-btn" onclick="select(4)">4</button>
+            <button class="num-btn" onclick="select(5)">5</button>
+            <button class="num-btn" onclick="select(6)">6</button>
+        </div>
+
+        <button class="action-btn" id="start-btn" disabled onclick="startRoll()">等待鎖定訊號...</button>
+        <div class="status-bar" id="status-text">系統待機中</div>
+    </div>
+
+    <a href="entertainment.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> 返回娛樂區</a>
+
+    <div class="overlay" id="overlay">
+        <div class="god-rays"></div>
+        <canvas id="confetti-canvas"></canvas> <div class="win-card">
+            <div class="rank-tag">SYSTEM SYNCED</div>
+            <div class="win-number" id="win-number">6</div>
+            <div class="win-msg">共鳴確認</div>
+            <div class="win-sub">星核能量已成功捕獲</div>
+            <button class="retry-btn" onclick="resetGame()">再次感應</button>
+        </div>
+    </div>
+
+    <script>
+        let selection = [];
+        const dice = document.getElementById('dice');
+        const startBtn = document.getElementById('start-btn');
+        const statusText = document.getElementById('status-text');
+        const overlay = document.getElementById('overlay');
+        const countDisplay = document.getElementById('select-count');
+        const btns = document.querySelectorAll('.num-btn');
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const ctx = confettiCanvas.getContext('2d');
+
+        function select(num) {
+            const btn = btns[num-1];
+            
+            if(selection.includes(num)) {
+                selection = selection.filter(n => n !== num);
+                btn.classList.remove('selected');
+            } else {
+                if(selection.length < 2) {
+                    selection.push(num);
+                    btn.classList.add('selected');
+                }
+            }
+
+            countDisplay.innerText = `${selection.length}/2`;
+
+            if(selection.length === 2) {
+                startBtn.disabled = false;
+                startBtn.style.background = 'linear-gradient(90deg, #f2c94c, #f2994a)';
+                startBtn.style.color = '#000';
+                startBtn.innerText = "啟動反應爐";
+                statusText.innerText = "能量充填完畢，準備發射";
+                statusText.style.color = "var(--neon-gold)";
+            } else {
+                startBtn.disabled = true;
+                startBtn.style.background = 'linear-gradient(90deg, #00c6ff, #0072ff)';
+                startBtn.style.color = '#fff';
+                startBtn.innerText = "等待鎖定訊號...";
+                statusText.innerText = "請選擇 2 個號碼以建立連結";
+                statusText.style.color = "#888";
+            }
+        }
+
+        function startRoll() {
+            startBtn.disabled = true;
+            dice.classList.add('rolling');
+            dice.innerText = "";
+            statusText.innerText = "核心運轉中...";
+            statusText.style.color = "var(--neon-cyan)";
+            
+            let count = 0;
+            // 快速變換數字的動畫
+            const interval = setInterval(() => {
+                dice.innerText = Math.floor(Math.random() * 6) + 1;
+                count++;
+                if(count > 25) {
+                    clearInterval(interval);
+                    finalize();
+                }
+            }, 50);
+        }
+
+        function finalize() {
+            dice.classList.remove('rolling');
+            const result = Math.floor(Math.random() * 6) + 1;
+            dice.innerText = result;
+
+            if(selection.includes(result)) {
+                // 中獎
+                statusText.innerText = "同步成功！";
+                document.getElementById('win-number').innerText = result;
+                
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                    startConfetti(); // 啟動粒子特效
+                }, 500);
+            } else {
+                // 失敗
+                statusText.innerText = "訊號遺失，請重新校準";
+                statusText.style.color = "var(--neon-pink)";
+                dice.style.boxShadow = "0 0 60px var(--neon-pink)";
+                dice.style.color = "var(--neon-pink)";
+                dice.style.background = "#300";
+                
+                setTimeout(() => {
+                    startBtn.innerText = "重置系統";
+                    startBtn.disabled = false;
+                    startBtn.style.background = "#444";
+                    startBtn.style.color = "#fff";
+                    startBtn.onclick = resetGame; // 變更按鈕功能為重置
+                }, 500);
+            }
+        }
+
+        function resetGame() {
+            overlay.classList.remove('show');
+            selection = [];
+            btns.forEach(b => b.classList.remove('selected'));
+            countDisplay.innerText = "0/2";
+            
+            dice.innerText = "?";
+            dice.style.color = "#050510";
+            dice.style.background = "#fff";
+            dice.style.boxShadow = "0 0 50px var(--neon-cyan)";
+            
+            startBtn.innerText = "等待鎖定訊號...";
+            startBtn.disabled = true;
+            startBtn.style.background = 'linear-gradient(90deg, #00c6ff, #0072ff)';
+            startBtn.style.color = '#fff';
+            startBtn.onclick = startRoll; // 恢復按鈕功能
+            
+            statusText.innerText = "系統重置完成";
+            statusText.style.color = "#888";
+            
+            stopConfetti();
+        }
+
+        // --- 簡易粒子系統 (Confetti) ---
+        let particles = [];
+        let animationId;
+
+        function startConfetti() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+            particles = [];
+            
+            // 產生 100 個粒子
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20,
+                    size: Math.random() * 8 + 4,
+                    color: `hsl(${Math.random() * 50 + 40}, 100%, 50%)`, // 金黃色系
+                    life: 1.0,
+                    decay: 0.01 + Math.random() * 0.02
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            for(let i=0; i<particles.length; i++) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // 重力
+                p.life -= p.decay;
+                
+                if(p.life > 0) {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                }
+            }
+            
+            if(particles.some(p => p.life > 0)) {
+                animationId = requestAnimationFrame(animateConfetti);
+            }
+        }
+
+        function stopConfetti() {
+            cancelAnimationFrame(animationId);
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+        
+        window.addEventListener('resize', () => {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
