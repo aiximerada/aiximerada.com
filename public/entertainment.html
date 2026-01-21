@@ -3,223 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速圖片壓縮 - 玉露寶庫</title>
+    <title>娛樂區 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg-dark: #050510;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff00ff;
             --neon-green: #00ff9d;
-            --glass-panel: rgba(20, 30, 50, 0.8);
-            --duck-yellow: #ffde00;
+            --neon-gold: #f2c94c;
+            --glass-panel: rgba(20, 30, 50, 0.6);
+            --text-gray: #aaa;
         }
+        
         body {
-            background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', 'Courier New', monospace;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden;
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
         }
 
         /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
         @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
+        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
 
         /* --- 頂部導航 --- */
-        .header { width: 90%; max-width: 900px; margin-top: 20px; margin-bottom: 20px; position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; }
-        .back-btn { color: var(--neon-green); text-decoration: none; border: 1px solid var(--neon-green); padding: 8px 15px; border-radius: 20px; background: rgba(0,0,0,0.5); display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.3s; }
-        .back-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px var(--neon-green); }
-        h1 { margin: 0; font-size: 1.5rem; text-shadow: 0 0 10px var(--neon-green); display: flex; align-items: center; gap: 10px; }
+        .header {
+            width: 90%; max-width: 1200px; margin-top: 40px; margin-bottom: 40px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: relative; z-index: 10;
+        }
+        .header-title {
+            font-size: 2rem; font-weight: 900; letter-spacing: 2px;
+            background: linear-gradient(90deg, #fff, var(--neon-cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .back-btn { 
+            color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,0.3); 
+            padding: 10px 25px; border-radius: 50px; background: rgba(0,0,0,0.3); 
+            display: flex; align-items: center; gap: 10px; font-weight: bold; transition: 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        .back-btn:hover { background: var(--neon-cyan); color: #000; border-color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
 
-        /* --- 主面板 --- */
-        .tool-container {
-            width: 90%; max-width: 900px; background: var(--glass-panel); backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 255, 157, 0.3); border-radius: 25px; padding: 30px;
-            box-shadow: 0 0 50px rgba(0, 255, 157, 0.1); display: flex; flex-direction: column; gap: 20px;
+        /* --- 遊戲列表網格 --- */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            width: 90%; max-width: 1200px;
+            padding-bottom: 50px;
+            z-index: 5;
         }
 
-        /* 上傳區 */
-        .upload-box {
-            border: 3px dashed rgba(0, 255, 157, 0.5); border-radius: 20px; padding: 40px 20px; text-align: center;
-            cursor: pointer; transition: 0.3s; position: relative; background: rgba(0,0,0,0.2);
+        /* --- 遊戲卡片樣式 --- */
+        .game-card {
+            background: var(--glass-panel);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-decoration: none;
+            color: #fff;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            display: flex; flex-direction: column; align-items: flex-start;
+            backdrop-filter: blur(10px);
         }
-        .upload-box:hover, .upload-box.dragging { border-color: var(--neon-green); background: rgba(0, 255, 157, 0.1); box-shadow: 0 0 20px rgba(0, 255, 157, 0.2); }
-        .upload-box i { font-size: 3rem; color: var(--neon-green); margin-bottom: 15px; }
-        .upload-box p { margin: 5px 0; color: #aaa; }
-        #imageInput { display: none; }
 
-        /* 控制區 */
-        .controls-area { display: none; flex-direction: column; gap: 15px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .control-group label { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 15px; color: var(--neon-green); font-size: 1.1rem; }
+        .game-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+            opacity: 0; transition: 0.4s;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--theme-color);
+            box-shadow: 0 10px 30px -10px var(--theme-color-glow);
+        }
+        .game-card:hover::before { opacity: 1; }
+
+        .game-icon {
+            font-size: 3rem; margin-bottom: 20px;
+            color: var(--theme-color);
+            text-shadow: 0 0 20px var(--theme-color-glow);
+            transition: 0.4s;
+        }
+        .game-card:hover .game-icon { transform: scale(1.1) rotate(-5deg); }
+
+        .game-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .game-desc { color: var(--text-gray); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; flex-grow: 1; }
         
-        /* 🦆 全新可愛鴨鴨滑桿樣式 (優化版) */
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; margin: 15px 0; }
-        input[type=range]:focus { outline: none; }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 12px; cursor: pointer; background: rgba(255, 255, 255, 0.15); border-radius: 10px; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+        .play-btn {
+            background: transparent; color: var(--theme-color); border: 1px solid var(--theme-color);
+            padding: 8px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;
+            transition: 0.3s; margin-top: auto;
         }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 50px; width: 50px; /* 加大尺寸 */
-            border-radius: 50%; background-color: transparent;
-            /* 新版經典橡皮鴨 SVG */
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23FFD700' d='M74.9,34.3c-2.8-6.7-9.4-11.4-17.1-11.4c-3.5,0-6.7,1-9.6,2.7c-3.2-8.1-10.9-14.1-20.2-14.8 C12.3,9.5,0,22.8,0,38.7c0,6.9,2.4,13.3,6.5,18.4C3.5,61.8,1.7,67.2,1.7,73.1c0,14.8,13.6,25.2,38.3,25.2c21.4,0,43.6-7.5,49.6-23.3 c0.9-2.3,1.4-4.8,1.4-7.3c0-3.4-0.9-6.6-2.6-9.4C92.6,56,96.6,49.7,98.2,42.8C89.9,43.7,81.9,40.5,74.9,34.3z'/%3E%3Ccircle fill='%23000000' cx='75' cy='35' r='4'/%3E%3Cpath fill='%23FF8C00' d='M98.9,33.6c0.9-2.7,0.6-5.4-1.5-7.3c-2.2-2-6.3-2.9-12.1-2.7c-2,3.5-4.6,6.7-7.8,9.3 c3.5,3.1,7.6,5.2,12.1,5.9C93.9,39.6,97.5,37.7,98.9,33.6z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: center; background-size: contain;
-            cursor: pointer;
-            margin-top: -20px; /* 垂直置中校正 (50px高 - 12px軌道) / 2 * -1 */
-            transition: transform 0.2s;
-            filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.5)); /* 更立體的陰影 */
-        }
-        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1) rotate(-10deg); }
+        .game-card:hover .play-btn { background: var(--theme-color); color: #000; box-shadow: 0 0 15px var(--theme-color-glow); }
 
-        /* --- 圖片列表區 --- */
-        .file-list { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-        .file-card {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px;
-            display: flex; align-items: center; gap: 20px; transition: 0.3s;
+        /* --- 各遊戲主題色定義 --- */
+        .theme-cyan { --theme-color: var(--neon-cyan); --theme-color-glow: rgba(0, 243, 255, 0.4); }
+        .theme-pink { --theme-color: var(--neon-pink); --theme-color-glow: rgba(255, 0, 255, 0.4); }
+        .theme-gold { --theme-color: var(--neon-gold); --theme-color-glow: rgba(242, 201, 76, 0.4); }
+        .theme-green { --theme-color: var(--neon-green); --theme-color-glow: rgba(0, 255, 157, 0.4); }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 20px; align-items: flex-start; }
+            .header-title { font-size: 1.8rem; }
         }
-        .file-card:hover { border-color: var(--neon-green); background: rgba(0,0,0,0.6); }
-        .thumb { width: 80px; height: 80px; border-radius: 10px; overflow: hidden; background: #222; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-        .thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .info { flex-grow: 1; }
-        .file-name { font-weight: bold; margin-bottom: 5px; color: #fff; }
-        .size-compare { font-size: 0.9rem; color: #aaa; font-family: 'Courier New', monospace; }
-        .saving-tag { color: var(--neon-green); font-weight: bold; margin-left: 10px; }
-        .actions { display: flex; flex-direction: column; gap: 5px; min-width: 100px; text-align: right; }
-        .mini-btn {
-            background: var(--neon-green); color: #000; border: none; padding: 5px 15px; border-radius: 20px;
-            font-size: 0.8rem; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: 0.2s;
-        }
-        .mini-btn:hover { background: #fff; }
-        .download-all-btn {
-            width: 100%; background: linear-gradient(90deg, var(--neon-green), #00aaff); color: #000; border: none;
-            padding: 15px; border-radius: 50px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); margin-top: 20px; transition: 0.3s; display: none;
-            align-items: center; justify-content: center; gap: 10px;
-        }
-        .download-all-btn:hover { transform: translateY(-3px); box-shadow: 0 0 30px rgba(0, 255, 157, 0.6); background: #fff; }
-        @media (max-width: 600px) { .file-card { flex-direction: column; text-align: center; } .info, .actions { width: 100%; text-align: center; } }
     </style>
 </head>
 <body>
+
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
 
     <div class="header">
-        <a href="tools.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 工具區</a>
-        <h1><i class="fa-solid fa-compress"></i> 極速圖片壓縮</h1>
+        <div class="header-title">
+            <i class="fa-solid fa-gamepad"></i> 娛樂區
+        </div>
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-house"></i> 返回首頁</a>
     </div>
 
-    <div class="tool-container">
-        <label class="upload-box" id="drop-zone" for="imageInput">
-            <i class="fa-solid fa-images"></i>
-            <p style="font-size: 1.2rem; font-weight: bold; color: #fff;">批量處理</p>
-            <p>點擊 或 拖放多張圖片至此 (JPG, PNG, WebP)</p>
-            <input type="file" id="imageInput" multiple accept="image/png, image/jpeg, image/webp">
-        </label>
+    <div class="games-grid">
+        
+        <a href="run.html" class="game-card theme-green">
+            <div class="game-icon"><i class="fa-solid fa-jet-fighter-up"></i></div>
+            <div class="game-title">星際巡航 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
+            <div class="game-desc">駕駛戰機穿越光年，在高壓的星際航道中閃避障礙、啟動護盾，挑戰極限存活時間。</div>
+            <div class="play-btn">START GAME</div>
+        </a>
 
-        <div class="controls-area" id="controlsArea">
-            <div class="control-group">
-                <label for="qualityRange">
-                    <span><i class="fa-solid fa-feather"></i> 鴨鴨壓縮力道</span>
-                    <span id="qualityVal">80%</span>
-                </label>
-                <input type="range" id="qualityRange" min="10" max="95" value="80" step="5">
-                <div style="font-size: 0.8rem; color: #888; margin-top: 5px; text-align:center;">拖動鴨鴨來調整所有圖片的品質</div>
-            </div>
-        </div>
+        <a href="reflex.html" class="game-card theme-gold">
+            <div class="game-icon"><i class="fa-solid fa-bolt"></i></div>
+            <div class="game-title">神經瞬擊 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
+            <div class="game-desc">當信號變綠時，你能多快按下按鈕？毫秒級的極限挑戰，測試你的神經反射速度。</div>
+            <div class="play-btn">START GAME</div>
+        </a>
 
-        <div class="file-list" id="fileList"></div>
+        <a href="sequence.html" class="game-card theme-cyan">
+            <div class="game-icon"><i class="fa-solid fa-layer-group"></i></div>
+            <div class="game-title">極光序列 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
+            <div class="game-desc">記住光線亮起的順序並完美重現。隨著關卡提升，速度越來越快，挑戰你的瞬間記憶力。</div>
+            <div class="play-btn">START GAME</div>
+        </a>
 
-        <button id="downloadAllBtn" class="download-all-btn" onclick="downloadAllFiles()">
-            <i class="fa-solid fa-file-zipper"></i> 下載全部 (ZIP)
-        </button>
+        <a href="lottery.html" class="game-card theme-pink">
+            <div class="game-icon"><i class="fa-solid fa-ticket"></i></div>
+            <div class="game-title">幸運大抽獎 <i class="fa-solid fa-arrow-right" style="font-size: 1rem; opacity: 0.5;"></i></div>
+            <div class="game-desc">今天吃什麼？誰去倒垃圾？自訂選項轉盤，讓命運之神來幫你解決選擇困難症。</div>
+            <div class="play-btn">START GAME</div>
+        </a>
+
     </div>
 
     <script>
-        const dropZone = document.getElementById('drop-zone');
-        const imageInput = document.getElementById('imageInput');
-        const controlsArea = document.getElementById('controlsArea');
-        const fileList = document.getElementById('fileList');
-        const qualityRange = document.getElementById('qualityRange');
-        const qualityVal = document.getElementById('qualityVal');
-        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        // --- 星空背景特效 ---
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            // 清空舊星星
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                
+                // 隨機賦予星星顏色，增加層次感
+                if(Math.random() > 0.8) {
+                    star.style.backgroundColor = 'var(--neon-cyan)';
+                    star.style.boxShadow = '0 0 5px var(--neon-cyan)';
+                } else if (Math.random() > 0.9) {
+                     star.style.backgroundColor = 'var(--neon-pink)';
+                     star.style.boxShadow = '0 0 5px var(--neon-pink)';
+                }
 
-        let processedFiles = [];
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
-        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-        ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.add('dragging'), false));
-        ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragging'), false));
-        dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false);
-        imageInput.addEventListener('change', (e) => handleFiles(e.target.files));
-
-        function handleFiles(files) {
-            if (files.length === 0) return;
-            fileList.innerHTML = ''; processedFiles = []; controlsArea.style.display = 'flex';
-            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            Array.from(files).forEach(file => {
-                if (validTypes.includes(file.type)) createFileCard(file);
-            });
-            updateAllImages();
+                container.appendChild(star);
+            }
         }
-
-        function createFileCard(file) {
-            const card = document.createElement('div'); card.className = 'file-card';
-            card.innerHTML = `<div class="thumb"><i class="fa-solid fa-spinner fa-spin"></i></div><div class="info"><div class="file-name">${file.name}</div><div class="size-compare">原始: ${formatBytes(file.size)} <i class="fa-solid fa-arrow-right"></i> 處理中...</div></div><div class="actions"></div>`;
-            fileList.appendChild(card);
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image(); img.src = e.target.result;
-                img.onload = () => {
-                    card.querySelector('.thumb').innerHTML = `<img src="${e.target.result}">`;
-                    card.originalImage = img; card.originalFile = file;
-                    compressSingleImage(card, qualityRange.value);
-                };
-            };
-            reader.readAsDataURL(file);
-        }
-
-        qualityRange.addEventListener('input', function() { qualityVal.innerText = this.value + '%'; });
-        qualityRange.addEventListener('change', updateAllImages);
-
-        function updateAllImages() {
-            const cards = document.querySelectorAll('.file-card');
-            processedFiles = [];
-            cards.forEach(card => { if(card.originalImage) compressSingleImage(card, qualityRange.value); });
-        }
-
-        function compressSingleImage(card, qualityPercent) {
-            const img = card.originalImage; const file = card.originalFile; const quality = qualityPercent / 100;
-            const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0);
-            canvas.toBlob((blob) => {
-                if(!blob) return;
-                const savings = Math.round(((file.size - blob.size) / file.size) * 100);
-                card.querySelector('.size-compare').innerHTML = `原始: ${formatBytes(file.size)} <i class="fa-solid fa-arrow-right" style="color:#888"></i> <span style="color:#fff">${formatBytes(blob.size)}</span> <span class="saving-tag">-${savings}%</span>`;
-                const url = URL.createObjectURL(blob);
-                const newFileName = `${file.name.split('.').slice(0, -1).join('.')}_min.jpg`;
-                card.querySelector('.actions').innerHTML = `<a href="${url}" download="${newFileName}" class="mini-btn"><i class="fa-solid fa-download"></i> 下載</a>`;
-                processedFiles.push({ name: newFileName, blob: blob });
-                if(processedFiles.length > 1) downloadAllBtn.style.display = 'flex';
-            }, 'image/jpeg', quality);
-        }
-
-        function downloadAllFiles() {
-            if(processedFiles.length === 0) return;
-            const zip = new JSZip(); const folder = zip.folder("images_compressed");
-            processedFiles.forEach(file => folder.file(file.name, file.blob));
-            downloadAllBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 打包中...`;
-            zip.generateAsync({type:"blob"}).then(function(content) {
-                const link = document.createElement('a'); link.href = URL.createObjectURL(content); link.download = "duck_compressed_images.zip"; link.click();
-                downloadAllBtn.innerHTML = `<i class="fa-solid fa-file-zipper"></i> 下載全部 (ZIP)`;
-            });
-        }
-
-        function formatBytes(bytes, decimals = 1) {
-            if (bytes === 0) return '0 B'; const k = 1024; const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['B', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
-    </style>
+        
+        window.addEventListener('load', createTwinklingStars);
+    </script>
 </body>
 </html>
