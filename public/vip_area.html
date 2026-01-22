@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員核心區 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #2c1a4e 100%);
+            --suisei-cyan: #3bc6e4;
+            --neon-gold: #f2c94c;
+        }
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: var(--bg-gradient);
+            color: #fff;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; opacity: 0; transition: opacity 0.5s;
+        }
+        .header { text-align: center; margin-top: 50px; }
+        h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin-bottom: 10px; }
+        .logout-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 8px 15px; border-radius: 20px; cursor: pointer;
+            transition: 0.3s;
+        }
+        .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
+
+        .secret-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px; width: 90%; max-width: 1000px; margin-top: 40px;
+        }
+
+        .secret-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(242, 201, 76, 0.3);
+            padding: 30px; border-radius: 20px;
+            text-decoration: none; color: #fff;
+            transition: 0.3s; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .secret-card:hover { transform: translateY(-5px); background: rgba(242, 201, 76, 0.1); box-shadow: 0 0 30px rgba(242, 201, 76, 0.2); }
+        .secret-card i { font-size: 3rem; color: var(--neon-gold); margin-bottom: 15px; }
+        .secret-card h3 { margin: 0 0 10px 0; }
+        .secret-card p { color: #aaa; font-size: 0.9rem; margin: 0; }
+        .tag { position: absolute; top: 10px; right: 10px; background: #ff4757; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
+
+    <div class="header">
+        <h1><i class="fa-solid fa-crown"></i> 會員核心專區</h1>
+        <p>歡迎回來，<span id="user-email">指揮官</span>。這裡是隱藏的實驗場。</p>
+    </div>
+
+    <div class="secret-grid">
+        
+        <a href="ebook.html" class="secret-card">
+            <span class="tag" style="background: var(--suisei-cyan); color:#000;">BETA</span>
+            <i class="fa-solid fa-book-open-reader"></i>
+            <h3>電子書測試</h3>
+            <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
+        </a>
+
+        <a href="#" class="secret-card" onclick="alert('連結 Firestore 資料庫中...')">
+            <i class="fa-solid fa-database"></i>
+            <h3>資料庫後台</h3>
+            <p>查看系統數據與紀錄。</p>
+        </a>
+
+        <a href="index.html" class="secret-card" style="border-color: rgba(255,255,255,0.2);">
+            <i class="fa-solid fa-house" style="color: #fff;"></i>
+            <h3>返回表層</h3>
+            <p>回到一般使用者的首頁。</p>
+        </a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // 🔥 Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // 監聽登入狀態
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.body.style.opacity = "1";
+                document.getElementById('user-email').innerText = user.email.split('@')[0];
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        window.handleLogout = function() {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => { console.error(error); });
+        }
+    </script>
+</body>
+</html>

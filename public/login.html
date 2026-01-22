@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統登入 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            --suisei-cyan: #3bc6e4;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: var(--bg-gradient);
+            color: #fff;
+            height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0; overflow: hidden;
+        }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
+
+        .login-card {
+            background: var(--glass); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 40px; border-radius: 20px; width: 300px; text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        .login-card h2 { margin-bottom: 30px; color: var(--suisei-cyan); text-shadow: 0 0 10px rgba(59, 198, 228, 0.5); }
+        
+        .input-group { margin-bottom: 20px; position: relative; }
+        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
+        .input-group input {
+            width: 100%; padding: 12px 12px 12px 40px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50px; color: #fff; outline: none; box-sizing: border-box; transition: 0.3s;
+        }
+        .input-group input:focus { border-color: var(--suisei-cyan); box-shadow: 0 0 10px rgba(59, 198, 228, 0.3); }
+
+        .login-btn {
+            width: 100%; padding: 12px; border-radius: 50px; border: none;
+            background: linear-gradient(90deg, var(--suisei-cyan), #0072ff);
+            color: #fff; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .login-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 198, 228, 0.6); }
+        .login-btn:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        .back-link { display: block; margin-top: 20px; color: #888; text-decoration: none; font-size: 0.9rem; }
+        .back-link:hover { color: #fff; }
+        .error-msg { color: #ff4757; font-size: 0.85rem; margin-top: 10px; min-height: 20px; }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+
+    <div class="login-card">
+        <h2><i class="fa-solid fa-user-astronaut"></i> 雲端驗證</h2>
+        <div class="input-group">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" id="email" placeholder="管理員信箱">
+        </div>
+        <div class="input-group">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="password" placeholder="通行密鑰">
+        </div>
+        <button class="login-btn" id="loginBtn" onclick="handleLogin()">登入系統</button>
+        <div class="error-msg" id="errorMsg"></div>
+        <a href="index.html" class="back-link">返回首頁</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // 🔥 設定區 (已填入您的資訊)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // 暴露給 HTML 按鈕呼叫
+        window.handleLogin = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('errorMsg');
+
+            if(!email || !password) {
+                errorMsg.innerText = "請輸入完整的帳號密碼";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 驗證中...';
+            errorMsg.innerText = "";
+
+            try {
+                // 向 Firebase 發送登入請求
+                await signInWithEmailAndPassword(auth, email, password);
+                
+                // 登入成功
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 驗證通過';
+                btn.style.background = '#00ff9d';
+                setTimeout(() => {
+                    window.location.href = 'vip_area.html';
+                }, 1000);
+
+            } catch (error) {
+                // 登入失敗處理
+                console.error(error);
+                btn.disabled = false;
+                btn.innerHTML = '登入系統';
+                
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    errorMsg.innerText = "帳號或密碼錯誤";
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMsg.innerText = "嘗試次數過多，請稍後再試";
+                } else {
+                    errorMsg.innerText = "登入失敗: " + error.message;
+                }
+            }
+        }
+        
+        document.addEventListener('keydown', (e) => { if(e.key === 'Enter') handleLogin(); });
+    </script>
+</body>
+</html>
