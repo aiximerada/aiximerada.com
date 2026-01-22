@@ -213,6 +213,9 @@
         let timerInterval;
         let isPlaying = false;
         
+        // 🔒 新增：輸入鎖，防止多點觸控或連點
+        let isInputLocked = false;
+        
         let highScore = localStorage.getItem('aurora_best_level') || 0;
         bestDisplay.innerText = highScore;
 
@@ -242,7 +245,7 @@
         }
 
         function startGame() {
-            sequence = []; level = 1; time = 0; isPlaying = true;
+            sequence = []; level = 1; time = 0; isPlaying = true; isInputLocked = false;
             levelDisplay.innerText = level;
             timeDisplay.innerText = 0;
             overlay.classList.remove('show');
@@ -272,6 +275,7 @@
                         board.classList.remove('locked');
                         statusText.innerText = "輪到你了";
                         statusText.classList.add('active');
+                        isInputLocked = false; // 確保解鎖
                     }, 500);
                 }
             }, speed);
@@ -286,16 +290,29 @@
         }
 
         function handleInput(index, pad) {
-            if(board.classList.contains('locked') || !isPlaying) return;
+            // 🛡️ 核心修改：如果已鎖定，或是盤面鎖定，或遊戲未開始，直接忽略
+            if(board.classList.contains('locked') || !isPlaying || isInputLocked) return;
+
+            // 1. 立即上鎖
+            isInputLocked = true;
+
             playTone(index);
             pad.classList.add('active');
-            setTimeout(() => pad.classList.remove('active'), 150);
+            
+            // 2. 設定冷卻時間後解鎖 (200ms)
+            setTimeout(() => { 
+                pad.classList.remove('active'); 
+                // 只有在遊戲還沒結束或跳關的情況下才解鎖
+                if (!board.classList.contains('locked')) {
+                    isInputLocked = false;
+                }
+            }, 200);
 
             if(index === sequence[playerStep]) {
                 playerStep++;
                 if(playerStep === sequence.length) {
                     level++;
-                    board.classList.add('locked');
+                    board.classList.add('locked'); // 鎖住盤面，避免這時候還能點
                     board.classList.add('correct');
                     setTimeout(() => {
                         board.classList.remove('correct');
