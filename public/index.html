@@ -15,6 +15,7 @@
             --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
             --suisei-cyan: #3bc6e4;
             --star-gold: #f2c94c;
+            --neon-green: #00ff9d;
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -27,7 +28,7 @@
             overflow-x: hidden;
         }
 
-        /* --- ✨ 星空特效 CSS --- */
+        /* --- ✨ 星空特效 --- */
         .stars-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
             background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0));
@@ -48,11 +49,9 @@
             100% { opacity: 0; transform: scale(0.3); }
         }
 
-        /* 標題區 */
         header { text-align: center; padding: 60px 20px 40px; position: relative; z-index: 1; }
         h1 { font-size: 3rem; margin: 0; text-shadow: 0 0 20px var(--suisei-cyan); min-height: 60px; }
         
-        /* 入口佈局 */
         .portal-wrapper {
             width: 100%; max-width: 1000px; padding: 20px;
             display: flex; flex-direction: column; gap: 30px;
@@ -102,6 +101,13 @@
             transition: 0.3s;
         }
         .fab-btn:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--suisei-cyan); }
+        
+        /* 已登入狀態的按鈕樣式 */
+        .fab-btn.logged-in {
+            background: var(--neon-green);
+            color: #0b1021;
+        }
+        .fab-btn.logged-in:hover { box-shadow: 0 0 20px var(--neon-green); }
     </style>
 </head>
 <body>
@@ -135,15 +141,62 @@
     </main>
 
     <div id="admin-fab-container">
-        <button class="fab-btn" onclick="window.location.href='login.html'" title="會員登入">
+        <button id="authBtn" class="fab-btn" onclick="checkAuthRedirect()" title="會員系統">
             <i class="fa-solid fa-right-to-bracket"></i>
         </button>
     </div>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
-    <script>
-        // ✨ 星空特效
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // 🔥 Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        const authBtn = document.getElementById('authBtn');
+        let isUserLoggedIn = false;
+
+        // 偵測是否已登入
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // 狀態：已登入
+                isUserLoggedIn = true;
+                authBtn.innerHTML = '<i class="fa-solid fa-crown"></i>'; // 換成皇冠圖示
+                authBtn.classList.add('logged-in'); // 變綠色
+                authBtn.title = "進入會員專區";
+            } else {
+                // 狀態：未登入
+                isUserLoggedIn = false;
+                authBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i>';
+                authBtn.classList.remove('logged-in');
+                authBtn.title = "會員登入";
+            }
+        });
+
+        // 按鈕點擊行為
+        window.checkAuthRedirect = function() {
+            if (isUserLoggedIn) {
+                window.location.href = 'vip_area.html'; // 已登入 -> 去會員區
+            } else {
+                window.location.href = 'login.html';    // 未登入 -> 去登入頁
+            }
+        }
+
+        // --- 其他原本的 JS 特效 ---
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
@@ -168,7 +221,6 @@
             createTwinklingStars();
             AOS.init({ duration: 800, once: true });
             
-            // 📝 打字特效
             new Typed('#typed-title', {
                 strings: ['玉露寶庫'], 
                 typeSpeed: 100,      

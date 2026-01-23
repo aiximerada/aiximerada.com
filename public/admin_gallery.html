@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>圖庫指揮中心 - 玉露寶庫</title>
+    <title>我的雲端圖庫 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg-dark: #050510; --neon-cyan: #00f3ff; --neon-green: #00ff9d; --neon-red: #ff4757; --neon-gold: #f2c94c; }
@@ -12,7 +12,7 @@
             margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; 
         }
         
-        /* --- ✨ 背景特效 (同步首頁) --- */
+        /* --- ✨ 背景特效 --- */
         .stars-bg { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
             background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); 
@@ -33,7 +33,7 @@
             100% { opacity: 0; transform: scale(0.3); } 
         }
 
-        /* --- 頂部控制列 --- */
+        /* --- 介面樣式 --- */
         .header { 
             background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
             padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);
@@ -43,16 +43,13 @@
         .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         h1 { margin: 0; color: var(--neon-cyan); font-size: 1.5rem; display: flex; align-items: center; gap: 10px; }
         
-        /* 批量操作區 */
         .batch-panel { 
-            display: none; /* 預設隱藏 */
-            padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+            display: none; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
             flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;
         }
         .header.select-mode .batch-panel { display: flex; animation: slideDown 0.3s; }
         @keyframes slideDown { from {opacity:0; transform:translateY(-10px);} to {opacity:1; transform:translateY(0);} }
 
-        /* 按鈕樣式 */
         .tool-btn {
             background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 50px; 
             cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 0.9rem; white-space: nowrap;
@@ -64,14 +61,12 @@
         .btn-download-comp { background: rgba(0, 243, 255, 0.2); border-color: var(--neon-cyan); color: var(--neon-cyan); }
         .btn-delete { background: rgba(255, 71, 87, 0.2); border-color: var(--neon-red); color: var(--neon-red); }
         
-        /* 全域壓縮滑桿 */
         .global-quality-wrapper {
             display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 50px; border: 1px solid #444;
         }
         input[type=range] { width: 100px; height: 4px; background: #555; outline: none; -webkit-appearance: none; border-radius: 2px; cursor: pointer; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--neon-cyan); border-radius: 50%; cursor: pointer; }
 
-        /* 網格佈局 */
         .gallery-grid { 
             display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; 
             padding-bottom: 50px;
@@ -81,8 +76,6 @@
             background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden;
             transition: 0.2s; position: relative; display: flex; flex-direction: column; backdrop-filter: blur(5px);
         }
-        
-        /* ✅ 選取狀態樣式 */
         .img-card.selected {
             border: 2px solid var(--neon-gold);
             box-shadow: 0 0 15px rgba(242, 201, 76, 0.4);
@@ -105,10 +98,8 @@
         .user-tag { color: var(--neon-cyan); display: block; margin-bottom: 3px; font-weight: bold; }
         .filename { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: #fff; }
 
-        /* 處理進度遮罩 (單張卡片用) */
         .processing-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; color: var(--neon-cyan); font-weight: bold; font-size: 0.9rem; z-index: 30; }
         
-        /* 總進度條彈窗 (底部) */
         .batch-progress-overlay {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #111; border: 1px solid var(--neon-cyan); padding: 15px 25px;
@@ -126,7 +117,7 @@
 
     <div class="header" id="header">
         <div class="header-top">
-            <h1><i class="fa-solid fa-layer-group"></i> 影像指揮中心</h1>
+            <h1><i class="fa-solid fa-cloud-arrow-down"></i> 我的雲端圖庫</h1>
             <div style="display:flex; gap:10px;">
                 <button class="tool-btn btn-select-mode" id="btnSelectMode" onclick="toggleSelectMode()">
                     <i class="fa-solid fa-check-double"></i> 選取模式
@@ -175,11 +166,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, getDocs, doc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥🔥🔥 請確認這裡填入您的 Firebase Config 🔥🔥🔥
+        // 🔥 設定區
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -189,20 +180,14 @@
             appId: "1:256466567852:web:233b74668908ffcb9b9509",
             measurementId: "G-YPCY41EKWX"
         };
-        // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const storage = getStorage(app);
         const auth = getAuth(app);
+        let currentUser = null;
 
-        // 狀態變數
-        let isSelectMode = false;
-        let selectedItems = new Set(); 
-        let allDocsData = {}; // 暫存資料
-        let docIdsList = [];  // 方便全選用
-
-        // ✨ 啟動星空背景
+        // 星空特效
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
@@ -221,20 +206,37 @@
         window.addEventListener('load', createTwinklingStars);
 
         onAuthStateChanged(auth, (user) => {
-            if (user) loadGallery();
-            else window.location.href = 'login.html';
+            if (user) {
+                currentUser = user;
+                loadGallery();
+            } else {
+                window.location.href = 'login.html';
+            }
         });
+
+        // 狀態變數
+        let isSelectMode = false;
+        let selectedItems = new Set(); 
+        let allDocsData = {}; 
+        let docIdsList = []; 
 
         async function loadGallery() {
             const galleryDiv = document.getElementById('gallery');
-            galleryDiv.innerHTML = '<p style="color:#aaa;">讀取中...</p>';
+            galleryDiv.innerHTML = '<p style="color:#aaa;">正在讀取您的專屬圖庫...</p>';
 
             try {
-                const q = query(collection(db, "gallery"), orderBy("timestamp", "desc"));
+                // 🛑 修正：加入 where 條件，只查詢當前使用者的圖片
+                // 注意：第一次執行此查詢時，Firebase Console 可能會要求建立索引 (Index)。請看瀏覽器 Console 的錯誤連結。
+                const q = query(
+                    collection(db, "gallery"), 
+                    where("uploadedBy", "==", currentUser.email), // 隔離關鍵
+                    orderBy("timestamp", "desc")
+                );
+                
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    galleryDiv.innerHTML = '<p>目前沒有圖片。</p>';
+                    galleryDiv.innerHTML = '<p>您尚未上傳任何圖片。</p>';
                     return;
                 }
 
@@ -247,7 +249,7 @@
                     allDocsData[docId] = data;
                     docIdsList.push(docId);
 
-                    const uniqueId = `img-${docId}`; // 使用 DocID 作為唯一識別
+                    const uniqueId = `img-${docId}`; 
                     
                     const card = document.createElement('div');
                     card.className = 'img-card';
@@ -260,7 +262,7 @@
                             <img src="${data.imageUrl}" class="img-thumb" loading="lazy">
                         </div>
                         <div class="img-info">
-                            <span class="user-tag">${data.uploadedBy.split('@')[0]}</span>
+                            <span class="user-tag">我的圖片</span>
                             <span class="filename">${data.fileName}</span>
                         </div>
                     `;
@@ -269,12 +271,16 @@
 
             } catch (error) {
                 console.error("Error:", error);
-                galleryDiv.innerHTML = `<p style="color:red">讀取失敗：${error.message}</p>`;
+                // 提示使用者建立索引
+                if (error.message.includes("requires an index")) {
+                    galleryDiv.innerHTML = `<p style="color:var(--neon-gold)">⚠️ 首次使用需建立資料庫索引。<br>請按 F12 打開 Console 點擊連結建立。</p>`;
+                } else {
+                    galleryDiv.innerHTML = `<p style="color:red">讀取失敗：${error.message}</p>`;
+                }
             }
         }
 
-        // --- 🎮 批量操作邏輯 ---
-
+        // --- 批量操作 ---
         window.toggleSelectMode = function() {
             isSelectMode = !isSelectMode;
             const header = document.getElementById('header');
@@ -291,13 +297,12 @@
                 btn.innerHTML = '<i class="fa-solid fa-check-double"></i> 選取模式';
                 header.classList.remove('select-mode');
                 gallery.classList.remove('select-mode');
-                deselectAll(); // 退出時清空選取
+                deselectAll(); 
             }
         }
 
         window.handleCardClick = function(docId) {
             if (!isSelectMode) return; 
-
             const card = document.getElementById(`card-${docId}`);
             if (selectedItems.has(docId)) {
                 selectedItems.delete(docId);
@@ -327,41 +332,30 @@
             document.getElementById('selectCount').innerText = selectedItems.size;
         }
 
-        // --- 🚀 優化版批量下載邏輯 ---
-
-        // 1. 批量下載原圖 (優化版：並行處理)
+        // --- 優化版下載與壓縮 ---
         window.batchDownloadOriginal = async function() {
             if(selectedItems.size === 0) return alert('請先選取圖片');
-            
             showProgress(true, `準備並行下載 ${selectedItems.size} 張原圖...`);
-            
             const items = Array.from(selectedItems);
-            // ⚡ 並行觸發
+            
             const downloadPromises = items.map(async (docId, index) => {
                 const data = allDocsData[docId];
-                // 為了避免瀏覽器一次擋掉太多彈窗，我們加入微小的隨機延遲
                 await new Promise(r => setTimeout(r, index * 300)); 
                 updateProgress(`下載請求: ${data.fileName}`);
                 await triggerDownload(data.imageUrl, data.fileName);
             });
-
             await Promise.all(downloadPromises);
             showProgress(false);
         }
 
-        // 2. 批量壓縮下載 (優化版：分批並行運算)
         window.batchCompressAndDownload = async function() {
             if(selectedItems.size === 0) return alert('請先選取圖片');
-            
             const qualityVal = document.getElementById('globalQuality').value;
             const quality = qualityVal / 100;
 
             showProgress(true, `正在並行壓縮處理...`);
-
             const items = Array.from(selectedItems);
             
-            // ⚡ 並行壓縮
-            // 這裡我們限制並發數為 3 (Chunking)，避免把瀏覽器記憶體撐爆
             const concurrencyLimit = 3;
             const chunks = [];
             for (let i = 0; i < items.length; i += concurrencyLimit) {
@@ -372,48 +366,56 @@
                 const promises = chunk.map(async (docId) => {
                     const data = allDocsData[docId];
                     const mask = document.getElementById(`mask-img-${docId}`);
-                    // 為了 ID 對應，這裡要小心 HTML 中的 ID 命名
-                    // 注意：loadGallery 裡面的 uniqueId 是 `img-${docId}`，所以遮罩是 `mask-img-${docId}`
                     if(mask) mask.style.display = 'flex';
-                    
                     try {
                         await processAndDownload(data.imageUrl, data.fileName, quality);
                     } catch(e) { console.error(e); }
-                    
                     if(mask) mask.style.display = 'none';
                 });
                 await Promise.all(promises);
                 updateProgress(`已處理一組... 剩餘任務`);
             }
-            
             showProgress(false);
         }
 
-        // 核心：壓縮並下載單張圖
+        // 🛑 修正：壓縮並下載的 Blob 處理
         async function processAndDownload(url, fileName, quality) {
             try {
-                const response = await fetch(url);
+                // 1. Fetch 圖片 (使用 CORS 模式)
+                const response = await fetch(url, { mode: 'cors' });
                 const blob = await response.blob();
+                
+                // 2. 轉為 Bitmap
                 const imgBitmap = await createImageBitmap(blob);
                 
+                // 3. 繪製 Canvas
                 const canvas = document.createElement('canvas');
                 canvas.width = imgBitmap.width;
                 canvas.height = imgBitmap.height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imgBitmap, 0, 0);
 
+                // 4. 輸出 Blob 並下載
                 return new Promise((resolve) => {
                     canvas.toBlob((compressedBlob) => {
+                        if (!compressedBlob) {
+                            console.error("Blob creation failed");
+                            resolve();
+                            return;
+                        }
                         const nameParts = fileName.split('.');
                         nameParts.pop();
                         const newName = nameParts.join('.') + `_min_${Math.round(quality*100)}.jpg`;
                         
+                        // 建立臨時連結觸發下載
+                        const downloadUrl = URL.createObjectURL(compressedBlob);
                         const link = document.createElement("a");
-                        link.href = URL.createObjectURL(compressedBlob);
+                        link.href = downloadUrl;
                         link.download = newName;
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
+                        URL.revokeObjectURL(downloadUrl); // 釋放記憶體
                         resolve();
                     }, 'image/jpeg', quality);
                 });
@@ -422,23 +424,24 @@
             }
         }
 
-        // 輔助：觸發下載
         async function triggerDownload(url, fileName) {
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { mode: 'cors' });
                 const blob = await response.blob();
+                const downloadUrl = URL.createObjectURL(blob);
                 const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
+                link.href = downloadUrl;
                 link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                URL.revokeObjectURL(downloadUrl);
             } catch (err) {
+                // 如果 fetch 失敗 (CORS)，嘗試直接開新視窗
                 window.open(url, '_blank');
             }
         }
 
-        // 3. 批量刪除
         window.deleteSelectedItems = async function() {
             if(selectedItems.size === 0) return alert('請先選取圖片');
             if(!confirm(`確定要刪除這 ${selectedItems.size} 張圖片嗎？`)) return;
@@ -449,20 +452,15 @@
             for(let i=0; i<items.length; i++) {
                 const docId = items[i];
                 const data = allDocsData[docId];
-                
                 try {
                     if (data.imageUrl) {
                         const fileRef = ref(storage, data.imageUrl);
                         await deleteObject(fileRef).catch(e => console.log(e));
                     }
                     await deleteDoc(doc(db, "gallery", docId));
-                    
-                    // 移除畫面
                     const card = document.getElementById(`card-${docId}`);
                     if(card) card.remove();
-                } catch(e) {
-                    console.error(e);
-                }
+                } catch(e) { console.error(e); }
             }
             selectedItems.clear();
             updateSelectUI();
@@ -470,7 +468,6 @@
             alert('刪除完成');
         }
 
-        // UI 顯示進度
         function showProgress(show, text) {
             const el = document.getElementById('batchProgress');
             const txt = document.getElementById('batchStatusText');
@@ -482,7 +479,6 @@
             const txt = document.getElementById('batchStatusText');
             txt.innerText = text;
         }
-
     </script>
 </body>
 </html>
