@@ -1,354 +1,57 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理員圖庫 (Pro) - 玉露寶庫</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root { --bg-dark: #050510; --neon-cyan: #00f3ff; --neon-green: #00ff9d; --neon-red: #ff4757; }
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; margin: 0; padding: 20px; }
-        
-        /* 頂部導航 */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        h1 { margin: 0; color: var(--neon-cyan); font-size: 1.5rem; }
-        
-        /* 工具列 */
-        .toolbar { display: flex; gap: 10px; }
-        .tool-btn {
-            background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px; font-weight: bold;
-        }
-        .tool-btn:hover { background: #333; border-color: #666; }
-        
-        /* 刪除模式按鈕特效 */
-        .btn-select-mode.active { background: var(--neon-cyan); color: #000; border-color: var(--neon-cyan); }
-        .btn-delete { background: var(--neon-red); color: #fff; border-color: var(--neon-red); display: none; }
-        .btn-delete:hover { background: #ff6b81; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4); }
-
-        /* 網格佈局 */
-        .gallery-grid { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; 
-        }
-        
-        /* 圖片卡片 */
-        .img-card {
-            background: #111; border: 1px solid #333; border-radius: 12px; overflow: hidden;
-            transition: 0.2s; position: relative; display: flex; flex-direction: column;
-        }
-        
-        /* ⚠️ 選中狀態 (刪除模式) */
-        .img-card.selected {
-            border: 2px solid var(--neon-red);
-            box-shadow: 0 0 15px rgba(255, 71, 87, 0.3);
-            transform: scale(0.95);
-        }
-        .img-card.selected::after {
-            content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900;
-            position: absolute; top: 10px; right: 10px;
-            background: var(--neon-red); color: #fff; width: 30px; height: 30px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        .img-wrapper { width: 100%; height: 180px; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
-        .img-thumb { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        
-        /* 刪除模式下，禁止圖片放大特效，改成點擊手型 */
-        .gallery-grid.select-mode .img-card { cursor: pointer; }
-        .gallery-grid:not(.select-mode) .img-card:hover .img-thumb { transform: scale(1.1); }
-        
-        .img-info { padding: 12px; font-size: 0.8rem; color: #aaa; border-bottom: 1px solid #222; pointer-events: none; /* 防止點擊文字 */ }
-        .user-tag { color: var(--neon-cyan); display: block; margin-bottom: 3px; font-weight: bold; }
-        .filename { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-bottom: 5px; color: #fff; }
-
-        /* 控制面板 */
-        .controls { padding: 12px; background: rgba(255,255,255,0.03); transition: 0.3s; }
-        
-        /* 當進入選取模式時，隱藏控制面板，避免誤觸 */
-        .gallery-grid.select-mode .controls { opacity: 0.2; pointer-events: none; filter: blur(2px); }
-
-        .quality-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.8rem; }
-        .quality-val { color: var(--neon-green); font-weight: bold; }
-        input[type=range] { width: 100%; height: 5px; background: #333; outline: none; -webkit-appearance: none; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; background: var(--neon-cyan); border-radius: 50%; cursor: pointer; }
-        .btn-group { display: flex; gap: 8px; }
-        .action-btn { flex: 1; padding: 8px 0; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-orig { background: transparent; border: 1px solid #555; color: #aaa; }
-        .btn-orig:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
-        .btn-comp { background: linear-gradient(90deg, #0072ff, var(--neon-cyan)); color: #000; border: none; }
-        .btn-comp:hover { filter: brightness(1.2); }
-        .processing-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; color: var(--neon-cyan); font-weight: bold; font-size: 0.9rem; z-index: 10; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1><i class="fa-solid fa-sliders"></i> 雲端圖庫管理 Pro</h1>
-        
-        <div class="toolbar">
-            <button class="tool-btn btn-select-mode" id="btnSelectMode" onclick="toggleSelectMode()">
-                <i class="fa-solid fa-check-double"></i> 選取模式
-            </button>
-            <button class="tool-btn btn-delete" id="btnDelete" onclick="deleteSelectedItems()">
-                <i class="fa-solid fa-trash-can"></i> 刪除 (<span id="selectCount">0</span>)
-            </button>
-            <a href="vip_area.html" class="tool-btn" style="text-decoration:none; background:#333;">
-                <i class="fa-solid fa-arrow-left"></i> 離開
-            </a>
-        </div>
-    </div>
-
-    <div class="gallery-grid" id="gallery">
-        <p style="color:#aaa;">正在連接資料庫...</p>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-        // 🔥 設定區 (請確認這是您正確的 Config)
-        const firebaseConfig = {
-            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
-            authDomain: "yulubox.firebaseapp.com",
-            projectId: "yulubox",
-            storageBucket: "yulubox.firebasestorage.app",
-            messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        const auth = getAuth(app);
-
-        // 狀態變數
-        let isSelectMode = false;
-        let selectedItems = new Set(); // 儲存被選中的 Doc ID
-        let allDocsData = {}; // 暫存資料，以便刪除時查找 Storage URL
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) loadGallery();
-            else window.location.href = 'login.html';
-        });
-
-        async function loadGallery() {
-            const galleryDiv = document.getElementById('gallery');
-            galleryDiv.innerHTML = '<p style="color:#aaa;">讀取中...</p>';
-
-            try {
-                const q = query(collection(db, "gallery"), orderBy("timestamp", "desc"));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    galleryDiv.innerHTML = '<p>目前沒有圖片。</p>';
-                    return;
-                }
-
-                galleryDiv.innerHTML = ''; 
-
-                querySnapshot.forEach((doc, index) => {
-                    const data = doc.data();
-                    const docId = doc.id;
-                    allDocsData[docId] = data; // 存起來，刪除時要用
-
-                    const dateStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : '剛剛';
-                    const uniqueId = `img-${index}`;
-                    
-                    const card = document.createElement('div');
-                    card.className = 'img-card';
-                    card.id = `card-${docId}`; // 綁定 ID 方便操作
-                    
-                    // 綁定點擊事件 (處理選取)
-                    card.onclick = () => handleCardClick(docId);
-
-                    card.innerHTML = `
-                        <div class="img-wrapper" id="wrapper-${uniqueId}">
-                            <div class="processing-mask" id="mask-${uniqueId}"><i class="fa-solid fa-circle-notch fa-spin"></i> 處理中...</div>
-                            <img src="${data.imageUrl}" class="img-thumb" loading="lazy">
-                        </div>
-                        <div class="img-info">
-                            <span class="user-tag"><i class="fa-solid fa-user"></i> ${data.uploadedBy.split('@')[0]}</span>
-                            <span class="filename" title="${data.fileName}">${data.fileName}</span>
-                            <span style="font-size:0.7rem; color:#666;">${dateStr}</span>
-                        </div>
-                        
-                        <div class="controls">
-                            <div class="quality-group">
-                                <span>壓縮強度</span>
-                                <span class="quality-val" id="val-${uniqueId}">80%</span>
-                            </div>
-                            <input type="range" min="10" max="100" value="80" 
-                                oninput="updateQualityDisplay('${uniqueId}', this.value); event.stopPropagation();" 
-                                onclick="event.stopPropagation()"
-                                id="range-${uniqueId}">
-                            
-                            <div class="btn-group">
-                                <button class="action-btn btn-orig" onclick="downloadOriginal('${data.imageUrl}', '${data.fileName}'); event.stopPropagation();">
-                                    <i class="fa-regular fa-image"></i> 原圖
-                                </button>
-                                <button class="action-btn btn-comp" onclick="downloadCompressed('${uniqueId}', '${data.imageUrl}', '${data.fileName}'); event.stopPropagation();">
-                                    <i class="fa-solid fa-compress"></i> 壓縮
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    galleryDiv.appendChild(card);
-                });
-
-            } catch (error) {
-                console.error("Error:", error);
-                galleryDiv.innerHTML = `<p style="color:red">讀取失敗：${error.message}</p>`;
-            }
-        }
-
-        // --- 🗑️ 批量刪除邏輯 ---
-
-        window.toggleSelectMode = function() {
-            isSelectMode = !isSelectMode;
-            const grid = document.getElementById('gallery');
-            const btn = document.getElementById('btnSelectMode');
-            const delBtn = document.getElementById('btnDelete');
-
-            if(isSelectMode) {
-                btn.classList.add('active');
-                btn.innerHTML = '<i class="fa-solid fa-times"></i> 退出模式';
-                grid.classList.add('select-mode');
-                delBtn.style.display = 'flex';
-            } else {
-                btn.classList.remove('active');
-                btn.innerHTML = '<i class="fa-solid fa-check-double"></i> 選取模式';
-                grid.classList.remove('select-mode');
-                delBtn.style.display = 'none';
-                
-                // 清除選取
-                selectedItems.clear();
-                updateSelectUI();
-                document.querySelectorAll('.img-card.selected').forEach(el => el.classList.remove('selected'));
-            }
-        }
-
-        window.handleCardClick = function(docId) {
-            if (!isSelectMode) return; // 如果不是選取模式，什麼都不做 (讓按鈕功能正常)
-
-            const card = document.getElementById(`card-${docId}`);
-            if (selectedItems.has(docId)) {
-                selectedItems.delete(docId);
-                card.classList.remove('selected');
-            } else {
-                selectedItems.add(docId);
-                card.classList.add('selected');
-            }
-            updateSelectUI();
-        }
-
-        function updateSelectUI() {
-            document.getElementById('selectCount').innerText = selectedItems.size;
-        }
-
-        window.deleteSelectedItems = async function() {
-            if (selectedItems.size === 0) return alert('請先選取要刪除的圖片！');
-            if (!confirm(`⚠️ 警告：即將永久刪除 ${selectedItems.size} 張圖片，此動作無法復原。\n\n確定要執行嗎？`)) return;
-
-            const btn = document.getElementById('btnDelete');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 刪除中...';
-            btn.disabled = true;
-
-            let successCount = 0;
-            const itemsToDelete = Array.from(selectedItems); // 轉成陣列方便跑迴圈
-
-            for (const docId of itemsToDelete) {
-                const card = document.getElementById(`card-${docId}`);
-                const data = allDocsData[docId];
-
-                try {
-                    // 1. 刪除 Storage 中的實體檔案
-                    // 我們透過 imageUrl 來建立 reference (這是最準確的方法)
-                    if (data.imageUrl) {
-                        const fileRef = ref(storage, data.imageUrl);
-                        await deleteObject(fileRef).catch(err => console.warn("Storage 刪除略過 (可能檔案已不存在):", err));
-                    }
-
-                    // 2. 刪除 Firestore 中的紀錄
-                    await deleteDoc(doc(db, "gallery", docId));
-
-                    // 3. 移除畫面元素
-                    card.style.opacity = '0';
-                    setTimeout(() => card.remove(), 300);
-                    successCount++;
-                } catch (error) {
-                    console.error("刪除失敗:", docId, error);
-                    alert(`刪除部分失敗：${error.message}`);
-                }
-            }
-
-            // 重置狀態
-            selectedItems.clear();
-            updateSelectUI();
-            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> 刪除 (0)';
-            btn.disabled = false;
+// 1. 批量下載原圖 (優化版：並行處理)
+        window.batchDownloadOriginal = async function() {
+            if(selectedItems.size === 0) return alert('請先選取圖片');
             
-            // 退出選取模式
-            toggleSelectMode();
-            alert(`清理完成！共刪除 ${successCount} 張圖片。`);
+            showProgress(true, `準備並行下載 ${selectedItems.size} 張原圖...`);
+            
+            const items = Array.from(selectedItems);
+            // ⚡ 並行觸發
+            const downloadPromises = items.map(async (docId, index) => {
+                const data = allDocsData[docId];
+                // 為了避免瀏覽器一次擋掉太多彈窗，我們加入微小的隨機延遲
+                await new Promise(r => setTimeout(r, index * 300)); 
+                updateProgress(`下載請求: ${data.fileName}`);
+                await triggerDownload(data.imageUrl, data.fileName);
+            });
+
+            await Promise.all(downloadPromises);
+            showProgress(false);
         }
 
-        // --- 既有的下載邏輯 (加了 event.stopPropagation 防止觸發選取) ---
-        
-        window.updateQualityDisplay = function(id, val) {
-            document.getElementById(`val-${id}`).innerText = val + '%';
-        }
-
-        window.downloadOriginal = async function(url, fileName) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                saveBlob(blob, fileName);
-            } catch (err) {
-                window.open(url, '_blank');
-            }
-        }
-
-        window.downloadCompressed = async function(id, url, fileName) {
-            const qualityVal = document.getElementById(`range-${id}`).value;
+        // 2. 批量壓縮下載 (優化版：並行運算)
+        window.batchCompressAndDownload = async function() {
+            if(selectedItems.size === 0) return alert('請先選取圖片');
+            
+            const qualityVal = document.getElementById('globalQuality').value;
             const quality = qualityVal / 100;
-            const mask = document.getElementById(`mask-${id}`);
-            mask.style.display = "flex";
 
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const imgBitmap = await createImageBitmap(blob);
-                const canvas = document.createElement('canvas');
-                canvas.width = imgBitmap.width;
-                canvas.height = imgBitmap.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imgBitmap, 0, 0);
+            showProgress(true, `正在並行壓縮處理...`);
 
-                canvas.toBlob((compressedBlob) => {
-                    const nameParts = fileName.split('.');
-                    nameParts.pop();
-                    const newName = nameParts.join('.') + `_min_${qualityVal}.jpg`;
-                    saveBlob(compressedBlob, newName);
-                    mask.style.display = "none";
-                }, 'image/jpeg', quality);
-
-            } catch (err) {
-                console.error(err);
-                alert("壓縮失敗，可能是跨域問題。");
-                mask.style.display = "none";
+            const items = Array.from(selectedItems);
+            
+            // ⚡ 並行壓縮
+            // 這裡我們限制並發數為 3，避免把瀏覽器記憶體撐爆
+            const concurrencyLimit = 3;
+            const chunks = [];
+            for (let i = 0; i < items.length; i += concurrencyLimit) {
+                chunks.push(items.slice(i, i + concurrencyLimit));
             }
-        }
 
-        function saveBlob(blob, fileName) {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            for (const chunk of chunks) {
+                const promises = chunk.map(async (docId) => {
+                    const data = allDocsData[docId];
+                    const mask = document.getElementById(`mask-img-${docId}`);
+                    if(mask) mask.style.display = 'flex';
+                    
+                    try {
+                        await processAndDownload(data.imageUrl, data.fileName, quality);
+                    } catch(e) { console.error(e); }
+                    
+                    if(mask) mask.style.display = 'none';
+                });
+                await Promise.all(promises);
+                updateProgress(`已處理一組... 剩餘任務`);
+            }
+            
+            showProgress(false);
         }
-    </script>
-</body>
-</html>
