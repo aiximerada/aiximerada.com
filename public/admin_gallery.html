@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的雲端圖庫 - 玉露寶庫</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg-dark: #050510; --neon-cyan: #00f3ff; --neon-green: #00ff9d; --neon-red: #ff4757; --neon-gold: #f2c94c; }
@@ -142,11 +143,11 @@
                     <span id="qVal" style="font-size:0.8rem; color:var(--neon-cyan); width:35px;">80%</span>
                 </div>
 
-                <button class="tool-btn btn-download-orig" onclick="batchDownloadOriginal()">
-                    <i class="fa-solid fa-download"></i> 原圖
+                <button class="tool-btn btn-download-orig" onclick="batchDownloadOriginalZip()">
+                    <i class="fa-solid fa-file-zipper"></i> 原圖打包
                 </button>
-                <button class="tool-btn btn-download-comp" onclick="batchCompressAndDownload()">
-                    <i class="fa-solid fa-compress"></i> 壓縮下載
+                <button class="tool-btn btn-download-comp" onclick="batchCompressAndDownloadZip()">
+                    <i class="fa-solid fa-compress"></i> 壓縮打包
                 </button>
                 <button class="tool-btn btn-delete" onclick="deleteSelectedItems()">
                     <i class="fa-solid fa-trash-can"></i> 刪除
@@ -225,11 +226,10 @@
             galleryDiv.innerHTML = '<p style="color:#aaa;">正在讀取您的專屬圖庫...</p>';
 
             try {
-                // 🛑 修正：加入 where 條件，只查詢當前使用者的圖片
-                // 注意：第一次執行此查詢時，Firebase Console 可能會要求建立索引 (Index)。請看瀏覽器 Console 的錯誤連結。
+                // 只查詢當前使用者的圖片
                 const q = query(
                     collection(db, "gallery"), 
-                    where("uploadedBy", "==", currentUser.email), // 隔離關鍵
+                    where("uploadedBy", "==", currentUser.email), 
                     orderBy("timestamp", "desc")
                 );
                 
@@ -271,7 +271,6 @@
 
             } catch (error) {
                 console.error("Error:", error);
-                // 提示使用者建立索引
                 if (error.message.includes("requires an index")) {
                     galleryDiv.innerHTML = `<p style="color:var(--neon-gold)">⚠️ 首次使用需建立資料庫索引。<br>請按 F12 打開 Console 點擊連結建立。</p>`;
                 } else {
@@ -332,30 +331,64 @@
             document.getElementById('selectCount').innerText = selectedItems.size;
         }
 
-        // --- 優化版下載與壓縮 ---
-        window.batchDownloadOriginal = async function() {
+        // --- 🚀 原圖打包下載 (Zip) ---
+        window.batchDownloadOriginalZip = async function() {
             if(selectedItems.size === 0) return alert('請先選取圖片');
-            showProgress(true, `準備並行下載 ${selectedItems.size} 張原圖...`);
-            const items = Array.from(selectedItems);
             
-            const downloadPromises = items.map(async (docId, index) => {
+            showProgress(true, `準備打包 ${selectedItems.size} 張原圖...`);
+            
+            const zip = new JSZip();
+            const items = Array.from(selectedItems);
+            let processed = 0;
+
+            const promises = items.map(async (docId) => {
                 const data = allDocsData[docId];
-                await new Promise(r => setTimeout(r, index * 300)); 
-                updateProgress(`下載請求: ${data.fileName}`);
-                await triggerDownload(data.imageUrl, data.fileName);
+                try {
+                    // Fetch 圖片轉為 Blob
+                    const response = await fetch(data.imageUrl, { mode: 'cors' });
+                    const blob = await response.blob();
+                    
+                    // 加入 Zip (解決檔名重複問題)
+                    // 如果檔名相同，JSZip 會自動處理，但我們加上 timestamp 保險
+                    const safeName = data.fileName; 
+                    zip.file(safeName, blob);
+                } catch(e) {
+                    console.error("下載失敗:", data.fileName, e);
+                } finally {
+                    processed++;
+                    updateProgress(`抓取中... ${processed}/${items.length}`);
+                }
             });
-            await Promise.all(downloadPromises);
-            showProgress(false);
+
+            await Promise.all(promises);
+
+            updateProgress("正在生成壓縮檔 (Zip)...");
+            
+            // 產生 Zip 並下載
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(content);
+                link.download = "original_images.zip"; // 下載檔名
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showProgress(false);
+            });
         }
 
-        window.batchCompressAndDownload = async function() {
+        // --- 🚀 壓縮打包下載 (Zip) ---
+        window.batchCompressAndDownloadZip = async function() {
             if(selectedItems.size === 0) return alert('請先選取圖片');
             const qualityVal = document.getElementById('globalQuality').value;
             const quality = qualityVal / 100;
 
-            showProgress(true, `正在並行壓縮處理...`);
-            const items = Array.from(selectedItems);
+            showProgress(true, `正在壓縮並打包...`);
             
+            const zip = new JSZip();
+            const items = Array.from(selectedItems);
+            let processed = 0;
+            
+            // 限制並發數 (避免當機)
             const concurrencyLimit = 3;
             const chunks = [];
             for (let i = 0; i < items.length; i += concurrencyLimit) {
@@ -367,78 +400,58 @@
                     const data = allDocsData[docId];
                     const mask = document.getElementById(`mask-img-${docId}`);
                     if(mask) mask.style.display = 'flex';
+                    
                     try {
-                        await processAndDownload(data.imageUrl, data.fileName, quality);
+                        const blob = await getCompressedBlob(data.imageUrl, quality);
+                        if(blob) {
+                            // 修改檔名
+                            const nameParts = data.fileName.split('.');
+                            nameParts.pop();
+                            const newName = nameParts.join('.') + `_min_${Math.round(quality*100)}.jpg`;
+                            zip.file(newName, blob);
+                        }
                     } catch(e) { console.error(e); }
+                    
                     if(mask) mask.style.display = 'none';
+                    processed++;
+                    updateProgress(`處理中... ${processed}/${items.length}`);
                 });
                 await Promise.all(promises);
-                updateProgress(`已處理一組... 剩餘任務`);
             }
-            showProgress(false);
+            
+            updateProgress("正在生成壓縮檔 (Zip)...");
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(content);
+                link.download = `compressed_images_${qualityVal}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showProgress(false);
+            });
         }
 
-        // 🛑 修正：壓縮並下載的 Blob 處理
-        async function processAndDownload(url, fileName, quality) {
+        // 輔助：產生壓縮後的 Blob
+        async function getCompressedBlob(url, quality) {
             try {
-                // 1. Fetch 圖片 (使用 CORS 模式)
                 const response = await fetch(url, { mode: 'cors' });
                 const blob = await response.blob();
-                
-                // 2. 轉為 Bitmap
                 const imgBitmap = await createImageBitmap(blob);
                 
-                // 3. 繪製 Canvas
                 const canvas = document.createElement('canvas');
                 canvas.width = imgBitmap.width;
                 canvas.height = imgBitmap.height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imgBitmap, 0, 0);
 
-                // 4. 輸出 Blob 並下載
                 return new Promise((resolve) => {
                     canvas.toBlob((compressedBlob) => {
-                        if (!compressedBlob) {
-                            console.error("Blob creation failed");
-                            resolve();
-                            return;
-                        }
-                        const nameParts = fileName.split('.');
-                        nameParts.pop();
-                        const newName = nameParts.join('.') + `_min_${Math.round(quality*100)}.jpg`;
-                        
-                        // 建立臨時連結觸發下載
-                        const downloadUrl = URL.createObjectURL(compressedBlob);
-                        const link = document.createElement("a");
-                        link.href = downloadUrl;
-                        link.download = newName;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(downloadUrl); // 釋放記憶體
-                        resolve();
+                        resolve(compressedBlob);
                     }, 'image/jpeg', quality);
                 });
             } catch (err) {
                 console.error("Compress fail", err);
-            }
-        }
-
-        async function triggerDownload(url, fileName) {
-            try {
-                const response = await fetch(url, { mode: 'cors' });
-                const blob = await response.blob();
-                const downloadUrl = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = downloadUrl;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(downloadUrl);
-            } catch (err) {
-                // 如果 fetch 失敗 (CORS)，嘗試直接開新視窗
-                window.open(url, '_blank');
+                return null;
             }
         }
 
