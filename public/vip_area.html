@@ -11,7 +11,7 @@
             --suisei-cyan: #3bc6e4;
             --neon-gold: #f2c94c;
             --neon-pink: #ff4757;
-            --glass: rgba(255, 255, 255, 0.05);
+            --neon-green: #00ff9d;
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -20,53 +20,59 @@
             min-height: 100vh;
             display: flex; flex-direction: column; align-items: center;
             margin: 0; 
-            opacity: 0; transition: opacity 0.5s; /* 預設隱藏，驗證通過才顯示 */
+            opacity: 0; transition: opacity 0.5s;
         }
-
-        /* 背景特效 */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
 
         .header { text-align: center; margin-top: 60px; margin-bottom: 40px; }
         h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin-bottom: 10px; }
-        .user-badge { background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 50px; font-size: 0.9rem; color: var(--suisei-cyan); border: 1px solid var(--suisei-cyan); }
+        
+        /* 角色標籤樣式 */
+        .role-badge { 
+            padding: 5px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; letter-spacing: 1px;
+            text-transform: uppercase; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.3);
+        }
+        .role-admin { color: var(--neon-pink); border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
+        .role-merchant { color: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 255, 157, 0.3); }
+        .role-member { color: var(--suisei-cyan); border-color: var(--suisei-cyan); }
 
-        /* 登出按鈕 */
         .logout-btn {
             position: absolute; top: 20px; right: 20px;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #fff; padding: 8px 15px; border-radius: 20px; cursor: pointer;
-            transition: 0.3s; display: flex; align-items: center; gap: 5px;
+            transition: 0.3s;
         }
         .logout-btn:hover { background: var(--neon-pink); border-color: var(--neon-pink); }
 
-        /* 卡片網格 */
         .secret-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 25px; width: 90%; max-width: 1000px; padding-bottom: 50px;
         }
 
+        /* 預設隱藏所有卡片，等 JS 判斷權限後再打開 */
         .secret-card {
+            display: none; /* ⚠️ 關鍵：預設隱藏 */
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 30px; border-radius: 20px;
             text-decoration: none; color: #fff;
             transition: 0.3s; position: relative; overflow: hidden;
-            display: flex; flex-direction: column; align-items: center; text-align: center;
+            flex-direction: column; align-items: center; text-align: center;
             backdrop-filter: blur(5px);
         }
-        .secret-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.1); border-color: var(--card-color); box-shadow: 0 0 30px var(--card-glow); }
+        /* 顯示狀態的 class */
+        .secret-card.show { display: flex; animation: fadeIn 0.5s ease-up; }
         
-        .secret-card i { font-size: 3rem; margin-bottom: 15px; color: var(--card-color); transition: 0.3s; }
-        .secret-card:hover i { transform: scale(1.1) rotate(5deg); }
-        
-        .secret-card h3 { margin: 0 0 10px 0; font-size: 1.3rem; }
-        .secret-card p { color: #aaa; font-size: 0.9rem; margin: 0; line-height: 1.5; }
-        
-        .tag { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; padding: 3px 10px; border-radius: 10px; font-weight: bold; color: #000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 各卡片主題色 */
+        .secret-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.1); border-color: var(--card-color); box-shadow: 0 0 30px var(--card-glow); }
+        .secret-card i { font-size: 3rem; margin-bottom: 15px; color: var(--card-color); transition: 0.3s; }
+        .tag { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; padding: 3px 10px; border-radius: 10px; font-weight: bold; color: #000; }
+
+        /* 主題色定義 */
         .theme-upload { --card-color: var(--neon-gold); --card-glow: rgba(242, 201, 76, 0.3); }
         .theme-gallery { --card-color: var(--suisei-cyan); --card-glow: rgba(59, 198, 228, 0.3); }
+        .theme-shop { --card-color: var(--neon-green); --card-glow: rgba(0, 255, 157, 0.3); }
         .theme-lab { --card-color: var(--neon-pink); --card-glow: rgba(255, 71, 87, 0.3); }
         .theme-home { --card-color: #fff; --card-glow: rgba(255,255,255,0.2); }
 
@@ -74,42 +80,49 @@
 </head>
 <body>
     <div class="stars-bg"></div>
-
-    <button class="logout-btn" onclick="handleLogout()">
-        <i class="fa-solid fa-right-from-bracket"></i> 登出系統
-    </button>
+    <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
 
     <div class="header">
         <h1><i class="fa-solid fa-crown"></i> 會員核心專區</h1>
-        <p>歡迎回來，<span class="user-badge" id="user-email">載入中...</span></p>
+        <p>
+            歡迎，<span id="user-email">載入中...</span>
+            <span id="role-display" class="role-badge" style="display:none">LOADING</span>
+        </p>
     </div>
 
     <div class="secret-grid">
         
-        <a href="upload_zone.html" class="secret-card theme-upload">
+        <a href="upload_zone.html" class="secret-card theme-upload group-member">
             <span class="tag" style="background: var(--neon-gold);">HOT</span>
             <i class="fa-solid fa-cloud-arrow-up"></i>
-            <h3>批量傳送門</h3>
-            <p>支援多檔選取與佇列傳輸，將圖片存入星際資料庫。</p>
+            <h3>圖片上傳</h3>
+            <p>批量上傳您的圖片至雲端。</p>
         </a>
 
-        <a href="admin_gallery.html" class="secret-card theme-gallery">
+        <a href="admin_gallery.html" class="secret-card theme-gallery group-member">
             <i class="fa-solid fa-images"></i>
-            <h3>雲端圖庫</h3>
-            <p>檢視所有上傳紀錄，並支援原圖下載與管理。</p>
+            <h3>圖片庫</h3>
+            <p>瀏覽與下載雲端圖片資源。</p>
         </a>
 
-        <a href="ebook.html" class="secret-card theme-lab">
-            <span class="tag" style="background: var(--neon-pink); color: #fff;">BETA</span>
-            <i class="fa-solid fa-book-open-reader"></i>
-            <h3>全息閱讀器</h3>
-            <p>沉浸式電子書測試，支援章節切換與字體調整。</p>
+        <a href="shop_admin.html" class="secret-card theme-shop group-merchant">
+            <span class="tag" style="background: var(--neon-green);">STORE</span>
+            <i class="fa-solid fa-store"></i>
+            <h3>商店後台</h3>
+            <p>管理商品上架與訂單數據。</p>
         </a>
 
-        <a href="index.html" class="secret-card theme-home">
+        <a href="ebook.html" class="secret-card theme-lab group-admin">
+            <span class="tag" style="background: var(--neon-pink); color: #fff;">DEV</span>
+            <i class="fa-solid fa-flask"></i>
+            <h3>實驗室 (電子書)</h3>
+            <p>機密測試項目，僅限管理員存取。</p>
+        </a>
+
+        <a href="index.html" class="secret-card theme-home show">
             <i class="fa-solid fa-house-chimney"></i>
-            <h3>返回表層</h3>
-            <p>登出並返回玉露寶庫的一般使用者首頁。</p>
+            <h3>返回首頁</h3>
+            <p>回到一般使用者介面。</p>
         </a>
 
     </div>
@@ -117,8 +130,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥🔥🔥 請確認這裡已填入您的 Config 🔥🔥🔥
+        // 🔥 設定區
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -128,33 +142,78 @@
             appId: "1:256466567852:web:233b74668908ffcb9b9509",
             measurementId: "G-YPCY41EKWX"
         };
-        // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // 🔒 安全驗證：監聽使用者狀態
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // 已登入：顯示畫面並更新 Email
                 document.body.style.opacity = "1";
-                // 只顯示 @ 前面的名稱，看起來比較像暱稱
-                const nickname = user.email.split('@')[0];
-                document.getElementById('user-email').innerHTML = `<i class="fa-solid fa-user-astronaut"></i> ${nickname}`;
+                document.getElementById('user-email').innerText = user.email.split('@')[0];
+                
+                // 🔍 查詢並設定權限
+                await checkUserRole(user);
             } else {
-                // 未登入：強制踢回登入頁
                 window.location.href = "login.html";
             }
         });
 
-        // 登出功能
+        async function checkUserRole(user) {
+            const userRef = doc(db, "users", user.uid);
+            let role = "member"; // 預設身分
+
+            try {
+                const docSnap = await getDoc(userRef);
+
+                if (docSnap.exists()) {
+                    // 如果資料庫有紀錄，讀取身分
+                    role = docSnap.data().role || "member";
+                } else {
+                    // 如果是新用戶，自動建立一筆「普通會員」紀錄
+                    await setDoc(userRef, { 
+                        email: user.email, 
+                        role: "member",
+                        createdAt: new Date()
+                    });
+                }
+            } catch (error) {
+                console.error("讀取權限失敗:", error);
+            }
+
+            updateUIByRole(role);
+        }
+
+        function updateUIByRole(role) {
+            const badge = document.getElementById('role-display');
+            badge.style.display = "inline-block";
+            
+            // 顯示身分標籤
+            let roleName = "普通會員";
+            if (role === 'admin') roleName = "管理員 (最高權限)";
+            if (role === 'merchant') roleName = "特約商家";
+            
+            badge.innerText = roleName;
+            badge.className = `role-badge role-${role}`; // 套用顏色
+
+            // 🔓 解鎖卡片邏輯 (層級疊加)
+            // 1. 顯示普通會員功能 (所有人都有)
+            document.querySelectorAll('.group-member').forEach(el => el.classList.add('show'));
+
+            // 2. 顯示商家功能 (商家 & 管理員都有)
+            if (role === 'merchant' || role === 'admin') {
+                document.querySelectorAll('.group-merchant').forEach(el => el.classList.add('show'));
+            }
+
+            // 3. 顯示管理員功能 (只有管理員有)
+            if (role === 'admin') {
+                document.querySelectorAll('.group-admin').forEach(el => el.classList.add('show'));
+            }
+        }
+
         window.handleLogout = function() {
-            if(confirm('確定要登出系統嗎？')) {
-                signOut(auth).then(() => {
-                    window.location.href = 'index.html';
-                }).catch((error) => {
-                    alert('登出失敗：' + error.message);
-                });
+            if(confirm('確定要登出嗎？')) {
+                signOut(auth).then(() => window.location.href = 'index.html');
             }
         }
     </script>
