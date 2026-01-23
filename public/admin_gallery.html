@@ -13,7 +13,6 @@
             margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; 
         }
         
-        /* --- ✨ 背景特效 --- */
         .stars-bg { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
             background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); 
@@ -34,7 +33,6 @@
             100% { opacity: 0; transform: scale(0.3); } 
         }
 
-        /* --- 介面樣式 --- */
         .header { 
             background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
             padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);
@@ -109,7 +107,6 @@
         }
         .mini-loader { width: 20px; height: 20px; border: 2px solid #333; border-top-color: var(--neon-cyan); border-radius: 50%; animation: spin 1s infinite linear; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
     </style>
 </head>
 <body>
@@ -171,7 +168,7 @@
         import { getStorage, ref, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥 設定區
+        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -188,7 +185,6 @@
         const auth = getAuth(app);
         let currentUser = null;
 
-        // 星空特效
         function createTwinklingStars() {
             const container = document.getElementById('twinkling-stars-container');
             if(!container) return;
@@ -215,7 +211,6 @@
             }
         });
 
-        // 狀態變數
         let isSelectMode = false;
         let selectedItems = new Set(); 
         let allDocsData = {}; 
@@ -226,7 +221,6 @@
             galleryDiv.innerHTML = '<p style="color:#aaa;">正在讀取您的專屬圖庫...</p>';
 
             try {
-                // 只查詢當前使用者的圖片
                 const q = query(
                     collection(db, "gallery"), 
                     where("uploadedBy", "==", currentUser.email), 
@@ -279,7 +273,6 @@
             }
         }
 
-        // --- 批量操作 ---
         window.toggleSelectMode = function() {
             isSelectMode = !isSelectMode;
             const header = document.getElementById('header');
@@ -340,20 +333,20 @@
             const zip = new JSZip();
             const items = Array.from(selectedItems);
             let processed = 0;
+            let successCount = 0;
 
             const promises = items.map(async (docId) => {
                 const data = allDocsData[docId];
                 try {
-                    // Fetch 圖片轉為 Blob
                     const response = await fetch(data.imageUrl, { mode: 'cors' });
+                    if (!response.ok) throw new Error('Network response was not ok');
                     const blob = await response.blob();
                     
-                    // 加入 Zip (解決檔名重複問題)
-                    // 如果檔名相同，JSZip 會自動處理，但我們加上 timestamp 保險
                     const safeName = data.fileName; 
                     zip.file(safeName, blob);
+                    successCount++;
                 } catch(e) {
-                    console.error("下載失敗:", data.fileName, e);
+                    console.error("下載失敗 (可能是 CORS 設定未完成):", data.fileName, e);
                 } finally {
                     processed++;
                     updateProgress(`抓取中... ${processed}/${items.length}`);
@@ -362,13 +355,18 @@
 
             await Promise.all(promises);
 
-            updateProgress("正在生成壓縮檔 (Zip)...");
+            if (successCount === 0) {
+                showProgress(false);
+                alert("❌ 打包失敗！所有圖片都無法下載。\n請檢查 Google Cloud Console 的 CORS 設定。\n(請參考之前的 CORS 設定教學)");
+                return;
+            }
+
+            updateProgress("正在生成 ZIP 檔...");
             
-            // 產生 Zip 並下載
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(content);
-                link.download = "original_images.zip"; // 下載檔名
+                link.download = "original_images.zip";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -387,8 +385,8 @@
             const zip = new JSZip();
             const items = Array.from(selectedItems);
             let processed = 0;
+            let successCount = 0;
             
-            // 限制並發數 (避免當機)
             const concurrencyLimit = 3;
             const chunks = [];
             for (let i = 0; i < items.length; i += concurrencyLimit) {
@@ -404,11 +402,11 @@
                     try {
                         const blob = await getCompressedBlob(data.imageUrl, quality);
                         if(blob) {
-                            // 修改檔名
                             const nameParts = data.fileName.split('.');
                             nameParts.pop();
                             const newName = nameParts.join('.') + `_min_${Math.round(quality*100)}.jpg`;
                             zip.file(newName, blob);
+                            successCount++;
                         }
                     } catch(e) { console.error(e); }
                     
@@ -419,7 +417,13 @@
                 await Promise.all(promises);
             }
             
-            updateProgress("正在生成壓縮檔 (Zip)...");
+            if (successCount === 0) {
+                showProgress(false);
+                alert("❌ 壓縮失敗！無法讀取圖片資料。\n這通常是因為 CORS 權限未開啟。\n請使用 gsutil 設定 CORS。");
+                return;
+            }
+
+            updateProgress("正在生成 ZIP 檔...");
             zip.generateAsync({type:"blob"}).then(function(content) {
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(content);
@@ -431,10 +435,10 @@
             });
         }
 
-        // 輔助：產生壓縮後的 Blob
         async function getCompressedBlob(url, quality) {
             try {
                 const response = await fetch(url, { mode: 'cors' });
+                if (!response.ok) throw new Error('CORS or Network Error');
                 const blob = await response.blob();
                 const imgBitmap = await createImageBitmap(blob);
                 
