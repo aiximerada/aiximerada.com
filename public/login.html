@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系統登入 - 玉露寶庫</title>
+    <title>會員登入 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
             --suisei-cyan: #3bc6e4;
+            --neon-gold: #f2c94c;
             --glass: rgba(255, 255, 255, 0.05);
         }
         body {
@@ -19,61 +20,105 @@
             display: flex; align-items: center; justify-content: center;
             margin: 0; overflow: hidden;
         }
+
+        /* 星空背景 */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
 
         .login-card {
             background: var(--glass); backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 40px; border-radius: 20px; width: 300px; text-align: center;
+            padding: 40px; border-radius: 20px; width: 320px; text-align: center;
             box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            animation: fadeIn 0.8s ease-out;
         }
-        .login-card h2 { margin-bottom: 30px; color: var(--suisei-cyan); text-shadow: 0 0 10px rgba(59, 198, 228, 0.5); }
-        
-        .input-group { margin-bottom: 20px; position: relative; }
-        .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; }
-        .input-group input {
-            width: 100%; padding: 12px 12px 12px 40px;
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50px; color: #fff; outline: none; box-sizing: border-box; transition: 0.3s;
-        }
-        .input-group input:focus { border-color: var(--suisei-cyan); box-shadow: 0 0 10px rgba(59, 198, 228, 0.3); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .login-btn {
-            width: 100%; padding: 12px; border-radius: 50px; border: none;
-            background: linear-gradient(90deg, var(--suisei-cyan), #0072ff);
-            color: #fff; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px;
+        .login-card h2 { 
+            margin-bottom: 30px; color: var(--suisei-cyan); 
+            text-shadow: 0 0 10px rgba(59, 198, 228, 0.5); 
+            font-size: 1.8rem; letter-spacing: 2px;
         }
-        .login-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 198, 228, 0.6); }
-        .login-btn:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; }
         
-        .back-link { display: block; margin-top: 20px; color: #888; text-decoration: none; font-size: 0.9rem; }
+        /* 輸入框樣式 */
+        .input-group { margin-bottom: 20px; position: relative; text-align: left; }
+        .input-label { font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block; margin-left: 5px; }
+        
+        .input-wrapper { position: relative; }
+        .input-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; transition: 0.3s; }
+        
+        .input-wrapper input {
+            width: 100%; padding: 12px 12px 12px 45px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50px; color: #fff; outline: none; box-sizing: border-box; transition: 0.3s; font-size: 1rem;
+        }
+        .input-wrapper input:focus { border-color: var(--suisei-cyan); box-shadow: 0 0 10px rgba(59, 198, 228, 0.2); }
+        .input-wrapper input:focus + i { color: var(--suisei-cyan); }
+
+        /* 按鈕樣式 */
+        .btn-login {
+            width: 100%; padding: 12px; background: linear-gradient(90deg, var(--suisei-cyan), #0072ff);
+            border: none; border-radius: 50px; color: #fff; font-weight: bold; font-size: 1.1rem;
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-login:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(59, 198, 228, 0.4); }
+        .btn-login:disabled { background: #555; cursor: not-allowed; transform: none; }
+
+        /* 記住我 Checkbox */
+        .options-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; font-size: 0.9rem; color: #ccc;
+            padding: 0 5px;
+        }
+        .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .checkbox-container input { accent-color: var(--suisei-cyan); width: 16px; height: 16px; cursor: pointer; }
+
+        .back-link { margin-top: 20px; display: block; color: #888; text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
         .back-link:hover { color: #fff; }
-        .error-msg { color: #ff4757; font-size: 0.85rem; margin-top: 10px; min-height: 20px; }
+
+        /* 錯誤訊息 */
+        .error-msg { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
     </style>
 </head>
 <body>
     <div class="stars-bg"></div>
 
     <div class="login-card">
-        <h2><i class="fa-solid fa-user-astronaut"></i> 雲端驗證</h2>
+        <h2><i class="fa-solid fa-user-astronaut"></i> 會員登入</h2>
+        
         <div class="input-group">
-            <i class="fa-solid fa-envelope"></i>
-            <input type="email" id="email" placeholder="管理員信箱">
+            <label class="input-label">帳號 (Email)</label>
+            <div class="input-wrapper">
+                <input type="email" id="email" placeholder="name@example.com">
+                <i class="fa-solid fa-envelope"></i>
+            </div>
         </div>
+
         <div class="input-group">
-            <i class="fa-solid fa-lock"></i>
-            <input type="password" id="password" placeholder="通行密鑰">
+            <label class="input-label">密碼</label>
+            <div class="input-wrapper">
+                <input type="password" id="password" placeholder="輸入密碼">
+                <i class="fa-solid fa-lock"></i>
+            </div>
         </div>
-        <button class="login-btn" id="loginBtn" onclick="handleLogin()">登入系統</button>
+
+        <div class="options-row">
+            <label class="checkbox-container">
+                <input type="checkbox" id="rememberMe"> 
+                <span>記住我</span>
+            </label>
+            </div>
+
+        <button class="btn-login" id="loginBtn" onclick="handleLogin()">登入</button>
         <div class="error-msg" id="errorMsg"></div>
+
         <a href="index.html" class="back-link">返回首頁</a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥 設定區 (已填入您的資訊)
+        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -84,54 +129,84 @@
             measurementId: "G-YPCY41EKWX"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // 暴露給 HTML 按鈕呼叫
-        window.handleLogin = async function() {
+        // 🧠 頁面載入時：檢查是否有「記住我」的資料
+        window.addEventListener('load', () => {
+            const savedEmail = localStorage.getItem('yulubox_remember_email');
+            if (savedEmail) {
+                document.getElementById('email').value = savedEmail;
+                document.getElementById('rememberMe').checked = true;
+            }
+        });
+
+        // 監聽登入狀態：如果已登入，直接跳轉
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = 'vip_area.html';
+            }
+        });
+
+        window.handleLogin = function() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            const errorDiv = document.getElementById('errorMsg');
             const btn = document.getElementById('loginBtn');
-            const errorMsg = document.getElementById('errorMsg');
 
             if(!email || !password) {
-                errorMsg.innerText = "請輸入完整的帳號密碼";
+                errorDiv.innerText = "請輸入帳號與密碼";
                 return;
             }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 驗證中...';
-            errorMsg.innerText = "";
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
+            errorDiv.innerText = "";
 
-            try {
-                // 向 Firebase 發送登入請求
-                await signInWithEmailAndPassword(auth, email, password);
-                
-                // 登入成功
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> 驗證通過';
-                btn.style.background = '#00ff9d';
-                setTimeout(() => {
-                    window.location.href = 'vip_area.html';
-                }, 1000);
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // ✅ 登入成功
+                    
+                    // 處理「記住我」邏輯
+                    if (rememberMe) {
+                        localStorage.setItem('yulubox_remember_email', email);
+                    } else {
+                        localStorage.removeItem('yulubox_remember_email');
+                    }
 
-            } catch (error) {
-                // 登入失敗處理
-                console.error(error);
-                btn.disabled = false;
-                btn.innerHTML = '登入系統';
-                
-                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-                    errorMsg.innerText = "帳號或密碼錯誤";
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMsg.innerText = "嘗試次數過多，請稍後再試";
-                } else {
-                    errorMsg.innerText = "登入失敗: " + error.message;
-                }
-            }
+                    // 頁面跳轉 (onAuthStateChanged 會處理，這裡不用寫)
+                })
+                .catch((error) => {
+                    // ❌ 登入失敗
+                    btn.disabled = false;
+                    btn.innerText = "登入";
+                    console.error(error);
+
+                    switch(error.code) {
+                        case 'auth/invalid-email':
+                            errorDiv.innerText = "Email 格式錯誤";
+                            break;
+                        case 'auth/user-not-found':
+                        case 'auth/invalid-credential':
+                            errorDiv.innerText = "帳號或密碼錯誤";
+                            break;
+                        case 'auth/wrong-password':
+                            errorDiv.innerText = "密碼錯誤";
+                            break;
+                        case 'auth/too-many-requests':
+                            errorDiv.innerText = "嘗試次數過多，請稍後再試";
+                            break;
+                        default:
+                            errorDiv.innerText = "登入失敗：" + error.message;
+                    }
+                });
         }
         
-        document.addEventListener('keydown', (e) => { if(e.key === 'Enter') handleLogin(); });
+        // 支援按 Enter 登入
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') handleLogin();
+        });
     </script>
 </body>
 </html>
