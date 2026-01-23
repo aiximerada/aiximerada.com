@@ -6,21 +6,56 @@
     <title>批量傳送門 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-dark: #050510; --neon-cyan: #00f3ff; --neon-green: #00ff9d; --glass: rgba(255, 255, 255, 0.05); }
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; opacity: 0; transition: opacity 0.5s; }
-        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
+        :root { 
+            --bg-dark: #050510; 
+            --neon-cyan: #00f3ff; 
+            --neon-green: #00ff9d; 
+            --neon-red: #ff4757;
+            --glass: rgba(255, 255, 255, 0.05); 
+            --star-gold: #f2c94c;
+        }
+        body { 
+            background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; 
+            opacity: 0; transition: opacity 0.5s; 
+        }
+
+        /* --- ✨ 修正：與首頁一致的星空背景 --- */
+        .stars-bg { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; 
+            background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); 
+            background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; 
+        }
+        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
         
-        .container { width: 90%; max-width: 600px; margin-top: 50px; background: var(--glass); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 50px; }
+        #twinkling-stars-container { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; 
+        }
+        .t-star { 
+            position: absolute; background-color: white; border-radius: 50%; opacity: 0; 
+            box-shadow: 0 0 4px rgba(255,255,255,0.8); 
+            animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; 
+        }
+        @keyframes twinkle { 
+            0% { opacity: 0; transform: scale(0.3); } 
+            50% { opacity: 1; transform: scale(1); } 
+            100% { opacity: 0; transform: scale(0.3); } 
+        }
+
+        .container { 
+            width: 90%; max-width: 600px; margin-top: 50px; background: var(--glass); 
+            backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 50px; 
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
         h1 { margin-bottom: 30px; text-shadow: 0 0 10px var(--neon-cyan); }
         
-        /* 上傳區塊 */
         .upload-area { 
             border: 2px dashed #555; padding: 40px; border-radius: 15px; cursor: pointer; transition: 0.3s; position: relative;
         }
         .upload-area:hover { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); }
         .upload-area input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         
-        /* 檔案列表 */
         .file-list { margin-top: 20px; text-align: left; max-height: 300px; overflow-y: auto; }
         .file-item { 
             background: rgba(0,0,0,0.3); padding: 10px 15px; margin-bottom: 8px; border-radius: 8px; 
@@ -29,19 +64,24 @@
         }
         .file-item.success { border-left-color: var(--neon-green); background: rgba(0, 255, 157, 0.1); }
         .file-item.uploading { border-left-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.1); }
-        .file-item.fail { border-left-color: #ff4757; }
+        .file-item.fail { border-left-color: var(--neon-red); }
+        .file-item.cancelled { border-left-color: #888; color: #888; }
 
-        .status-icon { font-size: 1.1rem; }
-
-        .btn { 
-            background: var(--neon-cyan); color: #000; border: none; padding: 12px 30px; 
-            border-radius: 50px; font-weight: bold; margin-top: 20px; cursor: pointer; 
-            font-size: 1rem; transition: 0.3s; width: 100%;
-        }
-        .btn:disabled { background: #555; cursor: not-allowed; }
-        .btn:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 0 15px var(--neon-cyan); }
+        .btn-group { display: flex; gap: 15px; margin-top: 20px; }
         
-        /* 總進度條 */
+        .btn { 
+            flex: 1; border: none; padding: 12px; border-radius: 50px; font-weight: bold; 
+            cursor: pointer; font-size: 1rem; transition: 0.3s; 
+        }
+        .btn-start { background: var(--neon-cyan); color: #000; }
+        .btn-start:disabled { background: #555; cursor: not-allowed; }
+        .btn-start:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 0 15px var(--neon-cyan); }
+
+        .btn-stop { 
+            background: var(--neon-red); color: #fff; display: none; /* 預設隱藏 */
+        }
+        .btn-stop:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--neon-red); }
+        
         .progress-container { margin-top: 20px; display: none; }
         .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 5px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--neon-cyan); width: 0%; transition: 0.3s; }
@@ -50,6 +90,8 @@
 </head>
 <body>
     <div class="stars-bg"></div>
+    <div id="twinkling-stars-container"></div>
+
     <div class="container">
         <h1><i class="fa-solid fa-layer-group"></i> 批量傳送門</h1>
         <p style="color:#aaa; font-size:0.9rem;">支援多檔選取 (Ctrl/Shift)，建立您的星際圖庫</p>
@@ -65,10 +107,13 @@
             <div class="progress-text" id="progressText">準備傳輸...</div>
         </div>
         
-        <div class="file-list" id="fileList">
-            </div>
+        <div class="file-list" id="fileList"></div>
         
-        <button class="btn" id="uploadBtn" onclick="startBatchUpload()" disabled>開始批量上傳</button>
+        <div class="btn-group">
+            <button class="btn btn-start" id="uploadBtn" onclick="startBatchUpload()" disabled>開始批量上傳</button>
+            <button class="btn btn-stop" id="stopBtn" onclick="stopUpload()">🛑 終止上傳</button>
+        </div>
+
         <a href="vip_area.html" style="display:block; margin-top:20px; color:#888; text-decoration:none;">返回會員區</a>
     </div>
 
@@ -95,11 +140,11 @@
         const auth = getAuth(app);
         let currentUser = null;
 
-        // 🔒 安全驗證：沒登入就踢出去
+        // 登入驗證
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                document.body.style.opacity = "1"; // 驗證通過才顯示畫面
+                document.body.style.opacity = "1";
             } else {
                 window.location.href = 'login.html';
             }
@@ -108,11 +153,38 @@
         const fileInput = document.getElementById('fileInput');
         const fileListDiv = document.getElementById('fileList');
         const uploadBtn = document.getElementById('uploadBtn');
+        const stopBtn = document.getElementById('stopBtn');
         let selectedFiles = [];
+        
+        // 🚨 終止控制變數
+        let isUploading = false;
+        let stopRequested = false;
+        let currentUploadTask = null; // 當前正在傳輸的任務
 
-        // 監聽檔案選擇
+        // ✨ 建立閃爍星空 (與首頁一致)
+        function createTwinklingStars() {
+            const container = document.getElementById('twinkling-stars-container');
+            if(!container) return;
+            for (let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 't-star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                if (Math.random() > 0.7) {
+                    star.style.backgroundColor = 'var(--star-gold)';
+                    star.style.boxShadow = '0 0 5px var(--star-gold)';
+                }
+                container.appendChild(star);
+            }
+        }
+        window.addEventListener('load', createTwinklingStars);
+
         fileInput.addEventListener('change', function(e) {
-            selectedFiles = Array.from(e.target.files); // 轉為陣列
+            selectedFiles = Array.from(e.target.files);
             renderFileList();
             if(selectedFiles.length > 0) uploadBtn.disabled = false;
         });
@@ -123,7 +195,6 @@
                 const item = document.createElement('div');
                 item.className = 'file-item';
                 item.id = `file-${index}`;
-                // 限制檔名顯示長度
                 const displayName = file.name.length > 20 ? file.name.substring(0,20)+'...' : file.name;
                 item.innerHTML = `
                     <span>${displayName} <small style="color:#888">(${(file.size/1024).toFixed(1)} KB)</small></span>
@@ -133,34 +204,66 @@
             });
         }
 
-        // 🚀 核心：批量上傳邏輯
+        // 🛑 終止上傳功能
+        window.stopUpload = function() {
+            if (!isUploading) return;
+            
+            if(confirm('確定要終止剩餘的上傳任務嗎？')) {
+                stopRequested = true;
+                // 如果當前有正在傳的檔案，直接取消它
+                if (currentUploadTask) {
+                    currentUploadTask.cancel();
+                }
+                stopBtn.disabled = true;
+                stopBtn.innerText = "正在停止...";
+            }
+        }
+
+        // 🚀 批量上傳核心
         window.startBatchUpload = async function() {
             if(selectedFiles.length === 0) return;
 
-            uploadBtn.disabled = true;
+            // 初始化狀態
+            isUploading = true;
+            stopRequested = false;
+            uploadBtn.style.display = 'none'; // 隱藏開始按鈕
+            stopBtn.style.display = 'block';  // 顯示停止按鈕
+            stopBtn.disabled = false;
+            stopBtn.innerText = "🛑 終止上傳";
+            
             document.getElementById('progressContainer').style.display = 'block';
             let completedCount = 0;
 
-            // 逐一處理每個檔案
             for (let i = 0; i < selectedFiles.length; i++) {
+                // 🛑 檢查是否被終止
+                if (stopRequested) {
+                    const itemEl = document.getElementById(`file-${i}`);
+                    if (!itemEl.classList.contains('success') && !itemEl.classList.contains('fail')) {
+                        itemEl.classList.add('cancelled');
+                        itemEl.querySelector('.status').innerText = '已取消';
+                    }
+                    continue; // 跳過剩餘檔案
+                }
+
                 const file = selectedFiles[i];
                 const itemEl = document.getElementById(`file-${i}`);
                 const statusSpan = itemEl.querySelector('.status');
                 
-                // 1. 更新狀態：上傳中
                 itemEl.classList.add('uploading');
                 statusSpan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 上傳中...';
 
                 try {
-                    // 2. 上傳 Storage (檔名加上時間戳記避免重複)
                     const fileName = `user_uploads/${Date.now()}_${i}_${file.name}`;
                     const storageRef = ref(storage, fileName);
                     
+                    // 賦值給全域變數，以便可以被 cancel()
+                    currentUploadTask = uploadBytesResumable(storageRef, file);
+                    
                     // 等待上傳完成
-                    const uploadTask = await uploadBytesResumable(storageRef, file);
-                    const downloadURL = await getDownloadURL(uploadTask.ref);
+                    await currentUploadTask;
 
-                    // 3. 寫入 Firestore 資料庫
+                    // 取得網址並寫入資料庫
+                    const downloadURL = await getDownloadURL(storageRef);
                     await addDoc(collection(db, "gallery"), {
                         imageUrl: downloadURL,
                         fileName: file.name,
@@ -168,32 +271,47 @@
                         timestamp: serverTimestamp()
                     });
 
-                    // 4. 更新狀態：成功
                     itemEl.classList.remove('uploading');
                     itemEl.classList.add('success');
                     statusSpan.innerHTML = '<i class="fa-solid fa-check"></i> 完成';
 
                 } catch (error) {
-                    console.error(error);
                     itemEl.classList.remove('uploading');
-                    itemEl.classList.add('fail');
-                    statusSpan.innerHTML = '<i class="fa-solid fa-xmark"></i> 失敗';
+                    if (error.code === 'storage/canceled') {
+                        itemEl.classList.add('cancelled');
+                        statusSpan.innerText = '已取消';
+                    } else {
+                        console.error(error);
+                        itemEl.classList.add('fail');
+                        statusSpan.innerHTML = '<i class="fa-solid fa-xmark"></i> 失敗';
+                    }
                 }
 
-                // 5. 更新總進度條
+                // 清空當前任務變數
+                currentUploadTask = null;
+
+                // 更新進度條
                 completedCount++;
                 const percent = (completedCount / selectedFiles.length) * 100;
                 document.getElementById('totalProgress').style.width = percent + '%';
-                document.getElementById('progressText').innerText = `進度：${completedCount} / ${selectedFiles.length}`;
+                document.getElementById('progressText').innerText = stopRequested ? 
+                    '上傳已終止' : `進度：${completedCount} / ${selectedFiles.length}`;
             }
 
-            alert('佇列處理完畢！');
-            setTimeout(() => {
-                // 上傳完後清空列表或重整，這裡選擇保留畫面讓使用者看結果
+            // 結束處理
+            isUploading = false;
+            stopBtn.style.display = 'none';
+            uploadBtn.style.display = 'block';
+            uploadBtn.disabled = false;
+            
+            if (!stopRequested) {
                 uploadBtn.innerText = "上傳完成 (點擊重整)";
-                uploadBtn.disabled = false;
                 uploadBtn.onclick = () => window.location.reload();
-            }, 500);
+                alert('佇列處理完畢！');
+            } else {
+                uploadBtn.innerText = "已終止 (點擊重整)";
+                uploadBtn.onclick = () => window.location.reload();
+            }
         }
     </script>
 </body>
