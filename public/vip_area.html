@@ -7,21 +7,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
-            --suisei-cyan: #3bc6e4;
+            --neon-blue: #00f3ff;
             --neon-gold: #f2c94c;
             --neon-pink: #ff00ff;
             --neon-green: #28a745;
-            --glass: rgba(255, 255, 255, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
-            background: var(--bg-gradient);
+            /* 🌌 深空星際背景 (與氣象站統一) */
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
             color: #fff;
             min-height: 100vh;
             display: flex; flex-direction: column; align-items: center;
             margin: 0; opacity: 0; transition: opacity 0.5s;
             padding-bottom: 50px;
+            background-attachment: fixed;
         }
         
         /* Logout 按鈕 */
@@ -30,6 +32,7 @@
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #fff; padding: 8px 15px; border-radius: 20px; cursor: pointer;
             transition: 0.3s; z-index: 20; display: flex; align-items: center; gap: 5px;
+            backdrop-filter: blur(5px);
         }
         .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
@@ -41,8 +44,8 @@
             color: #aaa; font-size: 1.1rem; letter-spacing: 1px; 
             display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--suisei-cyan); }
-        .user-id { color: var(--suisei-cyan); font-weight: bold; text-transform: uppercase; }
+        .user-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
+        .user-id { color: var(--neon-blue); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px var(--neon-blue); }
 
         /* --- 功能網格 --- */
         .secret-grid {
@@ -52,20 +55,21 @@
         }
 
         .secret-card {
-            background: var(--glass);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 30px; border-radius: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 30px; border-radius: 25px;
             text-decoration: none; color: #fff;
-            transition: 0.3s; position: relative; overflow: hidden;
+            transition: 0.4s ease; position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; text-align: center;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px); /* 強力毛玻璃 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .secret-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .secret-card i { font-size: 3rem; margin-bottom: 15px; transition: 0.3s; }
-        .secret-card:hover i { transform: scale(1.1); }
+        .secret-card:hover { transform: translateY(-8px) scale(1.02); background: rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.3); }
+        .secret-card i { font-size: 3rem; margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 5px currentColor); }
+        .secret-card:hover i { transform: scale(1.1) rotate(5deg); }
         
         .secret-card h3 { margin: 0 0 10px 0; font-size: 1.3rem; letter-spacing: 1px; }
-        .secret-card p { color: #aaa; font-size: 0.9rem; margin: 0; line-height: 1.5; }
+        .secret-card p { color: rgba(255,255,255,0.7); font-size: 0.95rem; margin: 0; line-height: 1.6; }
         
         /* 標籤 Tag */
         .tag { 
@@ -74,10 +78,10 @@
             font-weight: bold; color: #000; box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* 背景特效 */
+        /* 背景光暈特效 */
         .bg-glow {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 600px; height: 600px; background: radial-gradient(circle, rgba(59, 198, 228, 0.1), transparent 70%);
+            width: 80vw; height: 80vh; background: radial-gradient(circle, rgba(0, 243, 255, 0.08), transparent 60%);
             z-index: 0; pointer-events: none;
         }
     </style>
@@ -106,6 +110,12 @@
             <p>修改頭像、暱稱與個人化配色。</p>
         </a>
 
+        <a href="weather.html" class="secret-card" style="border-color: var(--neon-blue);">
+            <i class="fa-solid fa-temperature-high" style="color: var(--neon-blue);"></i>
+            <h3>氣象指揮站</h3>
+            <p>即時風速分析與空拍機飛行判定。</p>
+        </a>
+
         <a href="parking_map.html" class="secret-card" style="border-color: var(--neon-green);">
             <span class="tag" style="background: var(--neon-green);">NEW</span>
             <i class="fa-solid fa-motorcycle" style="color: var(--neon-green);"></i>
@@ -120,8 +130,8 @@
             <p>多人即時協作，圖層與權限控管。</p>
         </a>
 
-        <a href="ebook.html" class="secret-card" style="border-color: var(--suisei-cyan);">
-            <i class="fa-solid fa-book-open-reader" style="color: var(--suisei-cyan);"></i>
+        <a href="ebook.html" class="secret-card" style="border-color: var(--neon-blue);">
+            <i class="fa-solid fa-book-open-reader" style="color: var(--neon-blue);"></i>
             <h3>電子書測試</h3>
             <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
         </a>
@@ -170,25 +180,27 @@
             if (user) {
                 document.body.style.opacity = "1";
                 
-                // 顯示基本資料
                 const name = user.displayName || user.email.split('@')[0];
                 document.getElementById('current-user').innerText = name;
 
-                // 顯示頭像 (如果有)
                 if (user.photoURL) {
                     const avatar = document.getElementById('header-avatar');
                     avatar.src = user.photoURL;
                     avatar.style.display = 'block';
                 }
 
-                // 讀取個人化顏色設定 (Theme Color)
+                // 讀取個人化顏色設定
                 try {
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         if (data.themeColor) {
-                            // 動態改變歡迎文字的顏色
-                            document.querySelector('.user-id').style.color = data.themeColor;
+                            const userIdEl = document.querySelector('.user-id');
+                            const userAvatarEl = document.querySelector('.user-avatar');
+                            userIdEl.style.color = data.themeColor;
+                            userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
+                            userAvatarEl.style.borderColor = data.themeColor;
+                            userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
                             document.querySelector('.header h1').style.textShadow = `0 0 20px ${data.themeColor}`;
                         }
                     }
