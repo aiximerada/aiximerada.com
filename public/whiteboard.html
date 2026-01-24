@@ -2,60 +2,67 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>協作白板 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
+        /* 🔴 防止手機下拉重新整理與橡皮筋效果 */
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #fff; font-family: sans-serif;
+            position: fixed; /* 鎖死頁面 */
+            touch-action: none; /* 禁止瀏覽器預設觸控行為 */
+        }
 
-        /* --- 1. 畫布層 (最底層) --- */
         #canvas-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 1; /* 底層 */
-            background: #ffffff;
+            z-index: 1; background: #ffffff;
         }
 
-        /* --- 2. UI 層 (最上層，覆蓋全螢幕) --- */
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; /* 上層 */
-            pointer-events: none; /* 關鍵：讓滑鼠穿透空白區域，直達畫布 */
+            z-index: 100; pointer-events: none;
         }
 
-        /* --- 3. UI 元件 (恢復點擊能力) --- */
-        .interactive {
-            pointer-events: auto; /* 讓這些按鈕可以被點擊 */
-        }
+        .interactive { pointer-events: auto; }
 
-        /* 樣式設定 */
         .top-bar {
-            height: 50px; background: rgba(30,30,30,0.9); color: #fff;
+            height: 50px; background: rgba(30,30,30,0.95); color: #fff;
             display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
-            border-bottom: 1px solid #555;
+            border-bottom: 1px solid #555; box-sizing: border-box;
         }
 
         .toolbar {
             position: absolute; top: 60px; left: 15px;
-            background: rgba(30,30,30,0.9); padding: 8px; border-radius: 8px;
-            display: flex; flex-direction: column; gap: 8px;
+            background: rgba(30,30,30,0.95); padding: 8px; border-radius: 8px;
+            display: flex; flex-direction: column; gap: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            max-height: calc(100vh - 80px); overflow-y: auto; /* 防止手機高度不夠 */
         }
 
         .tool-btn {
-            width: 40px; height: 40px; border-radius: 6px; border: 1px solid #555;
+            width: 42px; height: 42px; border-radius: 8px; border: 1px solid #555;
             background: #222; color: #fff; font-size: 1.2rem; cursor: pointer;
             display: flex; justify-content: center; align-items: center;
         }
         .tool-btn.active { background: #ff00ff; color: #000; border-color: #ff00ff; }
         
-        .color-wrap { width: 40px; height: 40px; border-radius: 6px; overflow: hidden; position: relative; border: 1px solid #555; }
+        .color-wrap { width: 42px; height: 42px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #555; }
         .color-picker { width: 150%; height: 150%; padding: 0; margin: -5px; border: none; cursor: pointer; }
 
         .host-panel {
             position: absolute; top: 60px; right: 15px;
-            background: rgba(30,30,30,0.9); padding: 10px; border-radius: 8px; color: #fff;
-            display: none; border: 1px solid #ff00ff;
+            background: rgba(30,30,30,0.95); padding: 12px; border-radius: 8px; color: #fff;
+            display: none; flex-direction: column; gap: 12px; border: 1px solid #ff00ff;
+            min-width: 140px;
+        }
+        
+        /* 紅色解散按鈕 */
+        .btn-destroy {
+            background: #ff4757; color: white; border: none; padding: 8px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
         }
 
         .page-ctrl {
@@ -69,6 +76,13 @@
             background: rgba(0,0,0,0.8); color: #fff; padding: 20px; border-radius: 10px;
             border: 2px solid red; font-weight: bold; display: none; pointer-events: none;
         }
+
+        /* 壓縮提示 */
+        #compress-toast {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: #00ff9d; padding: 15px 25px; border-radius: 10px;
+            display: none; z-index: 2000; font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -78,13 +92,12 @@
     </div>
 
     <div id="ui-layer">
-        
         <div class="top-bar interactive">
-            <div>
-                <a href="whiteboard_lobby.html" style="color:#aaa; text-decoration:none; margin-right:10px;"><i class="fa-solid fa-arrow-left"></i></a>
-                房號: <span id="roomCode" style="font-family:monospace; font-weight:bold; color:#ff00ff;">...</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a href="javascript:leaveRoom()" style="color:#aaa; text-decoration:none;"><i class="fa-solid fa-arrow-left"></i></a>
+                <span id="roomCode" style="font-family:monospace; font-weight:bold; color:#ff00ff; background:#222; padding:2px 6px; border-radius:4px;">...</span>
             </div>
-            <div id="debug-status" style="font-size:0.8rem; color:#00ff9d;">初始化...</div>
+            <div id="debug-status" style="font-size:0.8rem; color:#00ff9d;">連線中...</div>
         </div>
 
         <div class="toolbar interactive" id="toolbar">
@@ -92,17 +105,24 @@
             <button class="tool-btn" id="btn-draw" onclick="setMode('draw')"><i class="fa-solid fa-pencil"></i></button>
             <div class="color-wrap"><input type="color" class="color-picker" id="colorPicker" value="#000000" oninput="setColor(this.value)"></div>
             <button class="tool-btn" onclick="addText()"><i class="fa-solid fa-font"></i></button>
-            <label class="tool-btn"><i class="fa-solid fa-image"></i><input type="file" id="imgLoader" accept="image/*" style="display:none"></label>
-            <div style="height:1px; background:#555; margin:5px 0;"></div>
+            <label class="tool-btn">
+                <i class="fa-solid fa-image"></i>
+                <input type="file" id="imgLoader" accept="image/*" style="display:none">
+            </label>
+            <div style="height:1px; background:#555; margin:2px 0;"></div>
             <button class="tool-btn" onclick="deleteObj()"><i class="fa-solid fa-trash"></i></button>
             <button class="tool-btn" onclick="clearCanvas()"><i class="fa-solid fa-eraser"></i></button>
         </div>
 
         <div class="host-panel interactive" id="hostPanel">
-            <div style="margin-bottom:5px; color:#ff00ff; font-weight:bold;">房主設定</div>
-            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <div style="color:#ff00ff; font-weight:bold; font-size:0.9rem;"><i class="fa-solid fa-crown"></i> 房主權限</div>
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.9rem;">
                 <input type="checkbox" id="permToggle" onchange="togglePerm()"> 允許訪客編輯
             </label>
+            <div style="height:1px; background:#555;"></div>
+            <button class="btn-destroy" onclick="closeRoom()">
+                <i class="fa-solid fa-skull"></i> 解散房間
+            </button>
         </div>
 
         <div class="page-ctrl interactive">
@@ -114,16 +134,17 @@
         <div class="lock-msg interactive" id="lockMsg">
             <i class="fa-solid fa-lock"></i> 畫布已鎖定
         </div>
-
+        
+        <div id="compress-toast"><i class="fa-solid fa-compress"></i> 圖片壓縮中...</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Config (保留您的設定)
+        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -139,29 +160,27 @@
         const storage = getStorage(app);
         const auth = getAuth(app);
 
-        // --- 變數 ---
         const urlParams = new URLSearchParams(window.location.search);
         const roomId = urlParams.get('room');
         const userRole = urlParams.get('role');
         let currentPage = 1;
         let isReceiving = false;
         let canEdit = false;
-
-        document.getElementById('roomCode').innerText = roomId;
-
-        // --- Fabric Canvas ---
-        const canvas = new fabric.Canvas('c', {
-            isDrawingMode: false,
-            selection: true
-        });
-
-        function resize() {
+        
+        // 🔴 手機尺寸適配
+        const canvas = new fabric.Canvas('c', { isDrawingMode: false, selection: true });
+        
+        function resizeCanvas() {
+            // 使用 window.innerWidth/Height 確保填滿，不受網址列影響
             canvas.setWidth(window.innerWidth);
             canvas.setHeight(window.innerHeight);
             canvas.renderAll();
         }
-        window.addEventListener('resize', resize);
-        resize();
+        window.addEventListener('resize', resizeCanvas);
+        // 初始執行一次
+        resizeCanvas(); 
+
+        document.getElementById('roomCode').innerText = roomId;
 
         // --- Firebase ---
         const roomRef = doc(db, "rooms", roomId);
@@ -169,44 +188,173 @@
         onAuthStateChanged(auth, (user) => {
             if (!user) { window.location.href = 'login.html'; return; }
 
-            // 房主初始化
             if (userRole === 'host') {
                 canEdit = true;
-                document.getElementById('hostPanel').style.display = 'block';
-                updateStatus("房主模式 (可編輯)");
+                document.getElementById('hostPanel').style.display = 'flex';
+                updateStatus("房主 (在線)");
+                
+                // 🔴 監聽房主關閉分頁 (嘗試觸發銷毀)
+                window.addEventListener('beforeunload', (e) => {
+                    // 瀏覽器通常不允許在這裡做太複雜的 async 操作，但我們盡力
+                    // 建議還是用按鈕手動解散比較安全
+                    e.preventDefault();
+                    e.returnValue = '確定要關閉房間嗎？所有資料將遺失。';
+                });
             } else {
-                updateStatus("訪客模式 (等待權限...)");
-                setLock(true); // 訪客預設鎖定
+                updateStatus("訪客 (連線中)");
+                setLock(true);
             }
 
+            // 監聽房間 (包含自動被踢出的邏輯)
             onSnapshot(roomRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+                // 🔴 關鍵：如果文件不存在，代表房間已解散
+                if (!docSnap.exists()) {
+                    alert("房主已解散房間，連線終止。");
+                    window.location.href = 'whiteboard_lobby.html';
+                    return;
+                }
 
-                    // 權限同步
-                    if (userRole !== 'host') {
-                        canEdit = data.guestsCanEdit;
-                        setLock(!canEdit);
-                        updateStatus(canEdit ? "訪客 (可編輯)" : "訪客 (已鎖定)");
-                    } else {
-                        document.getElementById('permToggle').checked = data.guestsCanEdit;
-                    }
+                const data = docSnap.data();
 
-                    // 畫布同步
-                    if (data.activePage && data.activePage !== currentPage) {
-                        currentPage = data.activePage;
-                        document.getElementById('pageDisplay').innerText = `P.${currentPage}`;
-                        loadJson(data.pages?.[currentPage]);
-                    } else {
-                        const pageData = data.pages?.[currentPage];
-                        if (pageData && pageData !== JSON.stringify(canvas.toJSON())) {
-                            loadJson(pageData);
-                        }
+                if (userRole !== 'host') {
+                    canEdit = data.guestsCanEdit;
+                    setLock(!canEdit);
+                    updateStatus(canEdit ? "訪客 (可編輯)" : "訪客 (已鎖定)");
+                } else {
+                    document.getElementById('permToggle').checked = data.guestsCanEdit;
+                }
+
+                if (data.activePage && data.activePage !== currentPage) {
+                    currentPage = data.activePage;
+                    document.getElementById('pageDisplay').innerText = `P.${currentPage}`;
+                    loadJson(data.pages?.[currentPage]);
+                } else {
+                    const pageData = data.pages?.[currentPage];
+                    if (pageData && pageData !== JSON.stringify(canvas.toJSON())) {
+                        loadJson(pageData);
                     }
                 }
             });
         });
 
+        // --- 🔴 解散房間邏輯 (核心功能) ---
+        window.closeRoom = async function() {
+            if(!confirm("⚠️ 警告：確定要解散房間嗎？\n\n1. 所有畫布內容將被刪除\n2. 所有上傳的圖片將被刪除\n3. 所有訪客將被強制踢出\n\n此動作無法復原！")) return;
+
+            updateStatus("正在銷毀資料庫...");
+            
+            try {
+                // 1. 刪除 Storage 中的所有圖片
+                const folderRef = ref(storage, `whiteboard/${roomId}`);
+                // listAll 找出資料夾下所有檔案
+                const listResult = await listAll(folderRef);
+                const deletePromises = listResult.items.map((itemRef) => deleteObject(itemRef));
+                await Promise.all(deletePromises);
+
+                // 2. 刪除 Firestore 房間文件 (這會觸發訪客端的 onSnapshot -> 跳轉)
+                await deleteDoc(roomRef);
+
+                alert("房間已安全解散。");
+                window.location.href = 'whiteboard_lobby.html';
+
+            } catch(e) {
+                console.error(e);
+                alert("解散過程中發生錯誤，請手動檢查資料庫。");
+                window.location.href = 'whiteboard_lobby.html';
+            }
+        }
+
+        // --- 訪客/房主手動離開 ---
+        window.leaveRoom = function() {
+            if(userRole === 'host') {
+                closeRoom(); // 房主離開 = 解散
+            } else {
+                if(confirm("確定離開房間？")) window.location.href = 'whiteboard_lobby.html';
+            }
+        }
+
+        // --- 圖片壓縮與上傳 ---
+        document.getElementById('imgLoader').addEventListener('change', async (e) => {
+            if(!canEdit) return;
+            const file = e.target.files[0];
+            if(!file) return;
+
+            // 顯示提示
+            document.getElementById('compress-toast').style.display = 'block';
+            
+            try {
+                // 🔴 1. 執行壓縮
+                const compressedBlob = await compressImage(file);
+                
+                // 2. 上傳壓縮後的 Blob
+                updateStatus("上傳中...");
+                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_compressed.jpg`);
+                await uploadBytes(storageRef, compressedBlob);
+                const url = await getDownloadURL(storageRef);
+
+                // 3. 放到畫布
+                fabric.Image.fromURL(url, (img) => {
+                    // 根據螢幕大小調整圖片初始尺寸
+                    const scale = Math.min(200 / img.width, 200 / img.height);
+                    img.scale(scale > 1 ? 1 : scale); // 如果圖很小就不放大
+                    
+                    canvas.add(img);
+                    canvas.centerObject(img);
+                    save();
+                    setMode('select');
+                    updateStatus("圖片已新增");
+                    
+                    // 隱藏提示
+                    document.getElementById('compress-toast').style.display = 'none';
+                }, { crossOrigin: 'anonymous' });
+
+            } catch(err) {
+                alert("圖片處理失敗");
+                console.error(err);
+                document.getElementById('compress-toast').style.display = 'none';
+            }
+        });
+
+        // 🔴 壓縮函式 (Canvas 繪製法)
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const maxWidth = 1280; // 限制最大寬度
+                const quality = 0.7;   // 壓縮品質 70%
+                
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+
+                        // 計算等比縮放
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        const cvs = document.createElement('canvas');
+                        cvs.width = width;
+                        cvs.height = height;
+                        const ctx = cvs.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // 轉成 Blob (JPEG 格式)
+                        cvs.toBlob((blob) => {
+                            if(blob) resolve(blob);
+                            else reject(new Error("Canvas to Blob failed"));
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        }
+
+        // --- 基本畫板功能 (保持不變) ---
         function loadJson(json) {
             if (!json) { canvas.clear(); return; }
             isReceiving = true;
@@ -218,19 +366,15 @@
 
         const save = () => {
             if (isReceiving || !canEdit) return;
-            document.getElementById('debug-status').innerText = "儲存中...";
+            updateStatus("同步中...");
             const json = JSON.stringify(canvas.toJSON());
-            updateDoc(roomRef, { [`pages.${currentPage}`]: json })
-                .then(() => updateStatus("已同步"))
-                .catch(e => console.error(e));
+            updateDoc(roomRef, { [`pages.${currentPage}`]: json }).catch(console.error);
         };
 
         canvas.on('object:added', save);
         canvas.on('object:modified', save);
         canvas.on('object:removed', save);
         canvas.on('path:created', save);
-
-        // --- 全域功能 ---
 
         window.setMode = (mode) => {
             if (!canEdit) return;
@@ -241,11 +385,9 @@
                 canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
                 canvas.freeDrawingBrush.width = 5;
                 canvas.freeDrawingBrush.color = document.getElementById('colorPicker').value;
-                updateStatus("模式: 畫筆");
             } else {
                 document.getElementById('btn-select').classList.add('active');
                 canvas.isDrawingMode = false;
-                updateStatus("模式: 選擇");
             }
         };
 
@@ -285,50 +427,25 @@
         };
 
         window.clearCanvas = () => {
-            if (!canEdit && !confirm("清空？")) return;
+            if (!canEdit && !confirm("確定清空畫布？")) return;
             canvas.clear();
             save();
         };
 
-        window.togglePerm = () => {
-            updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
-        };
-
+        window.togglePerm = () => updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
         window.changePage = (d) => {
             if(!canEdit && userRole !== 'host') return;
             if(currentPage + d < 1) return;
             updateDoc(roomRef, { activePage: currentPage + d });
         };
 
-        // 圖片上傳
-        document.getElementById('imgLoader').addEventListener('change', async (e) => {
-            if(!canEdit) return;
-            const file = e.target.files[0];
-            if(!file) return;
-            updateStatus("圖片上傳中...");
-            try {
-                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_${file.name}`);
-                await uploadBytes(storageRef, file);
-                const url = await getDownloadURL(storageRef);
-                fabric.Image.fromURL(url, (img) => {
-                    img.scaleToWidth(200);
-                    canvas.add(img);
-                    save();
-                    updateStatus("圖片已新增");
-                    setMode('select');
-                }, { crossOrigin: 'anonymous' });
-            } catch(err) { alert("上傳失敗"); }
-        });
-
-        // 輔助函式
         function setLock(locked) {
             const overlay = document.getElementById('lockMsg');
             const toolbar = document.getElementById('toolbar');
-            
             if (locked) {
                 overlay.style.display = 'block';
                 toolbar.style.opacity = 0.5;
-                toolbar.style.pointerEvents = 'none'; // 禁止點擊工具列
+                toolbar.style.pointerEvents = 'none';
                 canvas.isDrawingMode = false;
                 canvas.selection = false;
                 canvas.discardActiveObject();
@@ -336,19 +453,13 @@
             } else {
                 overlay.style.display = 'none';
                 toolbar.style.opacity = 1;
-                toolbar.style.pointerEvents = 'auto'; // 恢復點擊
+                toolbar.style.pointerEvents = 'auto';
                 canvas.selection = true;
             }
         }
 
-        function updateStatus(msg) {
-            document.getElementById('debug-status').innerText = msg;
-        }
-
-        // 快捷鍵刪除
-        window.addEventListener('keydown', (e) => {
-            if((e.key === 'Delete' || e.key === 'Backspace') && canEdit) deleteObj();
-        });
+        function updateStatus(msg) { document.getElementById('debug-status').innerText = msg; }
+        window.copyCode = () => { navigator.clipboard.writeText(roomId); alert("已複製"); }
 
     </script>
 </body>
