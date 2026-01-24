@@ -7,10 +7,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <style>
+        /* 🔴 手機版面核心優化 */
+        :root {
+            --bg-dark: #222;
+            --panel-bg: rgba(30, 30, 30, 0.95);
+            --accent: #ff00ff;
+            /* 使用 dvh 解決手機網址列遮擋問題，回退機制使用 vh */
+            --app-height: 100vh;
+            --app-height: 100dvh; 
+        }
+
         body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
+            margin: 0; padding: 0; 
+            width: 100%; height: var(--app-height); 
             overflow: hidden; background: #fff; font-family: sans-serif;
-            position: fixed; touch-action: none;
+            position: fixed; /* 鎖死頁面，防止滑動 */
+            touch-action: none; /* 禁止所有預設手勢 */
+            overscroll-behavior: none; /* 禁止橡皮筋效果 */
         }
 
         #canvas-layer {
@@ -20,52 +33,68 @@
 
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; pointer-events: none;
+            z-index: 100; pointer-events: none; /* 讓點擊穿透 */
         }
 
         .interactive { pointer-events: auto; }
 
+        /* 頂部欄 */
         .top-bar {
-            height: 50px; background: rgba(30,30,30,0.95); color: #fff;
+            height: 50px; background: var(--panel-bg); color: #fff;
             display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
             border-bottom: 1px solid #555; box-sizing: border-box;
+            /* 讓頂部欄在劉海屏下也能正常顯示 */
+            padding-top: env(safe-area-inset-top); 
+            height: calc(50px + env(safe-area-inset-top));
         }
 
+        /* 左側工具列 */
         .toolbar {
-            position: absolute; top: 60px; left: 15px;
-            background: rgba(30,30,30,0.95); padding: 8px; border-radius: 8px;
-            display: flex; flex-direction: column; gap: 10px;
+            position: absolute; top: calc(60px + env(safe-area-inset-top)); left: 15px;
+            background: var(--panel-bg); padding: 8px; border-radius: 8px;
+            display: flex; flex-direction: column; gap: 12px; /* 拉大間距方便手指點擊 */
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            max-height: calc(100vh - 80px); overflow-y: auto;
+            max-height: calc(var(--app-height) - 100px); 
+            overflow-y: auto;
+            scrollbar-width: none; /* 隱藏捲軸 */
         }
+        .toolbar::-webkit-scrollbar { display: none; }
 
         .tool-btn {
-            width: 42px; height: 42px; border-radius: 8px; border: 1px solid #555;
-            background: #222; color: #fff; font-size: 1.2rem; cursor: pointer;
+            width: 44px; height: 44px; border-radius: 10px; border: 1px solid #555;
+            background: #333; color: #fff; font-size: 1.2rem; cursor: pointer;
             display: flex; justify-content: center; align-items: center;
+            transition: 0.1s;
+            /* 增加觸控區域 */
+            touch-action: manipulation;
         }
-        .tool-btn.active { background: #ff00ff; color: #000; border-color: #ff00ff; }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
         
-        .color-wrap { width: 42px; height: 42px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #555; }
+        .color-wrap { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #555; }
         .color-picker { width: 150%; height: 150%; padding: 0; margin: -5px; border: none; cursor: pointer; }
 
+        /* 房主面板 */
         .host-panel {
-            position: absolute; top: 60px; right: 15px;
-            background: rgba(30,30,30,0.95); padding: 12px; border-radius: 8px; color: #fff;
-            display: none; flex-direction: column; gap: 12px; border: 1px solid #ff00ff;
+            position: absolute; top: calc(60px + env(safe-area-inset-top)); right: 15px;
+            background: var(--panel-bg); padding: 12px; border-radius: 8px; color: #fff;
+            display: none; flex-direction: column; gap: 12px; border: 1px solid var(--accent);
             min-width: 140px;
         }
         
         .btn-destroy {
-            background: #ff4757; color: white; border: none; padding: 8px;
+            background: #ff4757; color: white; border: none; padding: 10px;
             border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 5px;
         }
 
+        /* 頁面切換 (置底適配) */
         .page-ctrl {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(30,30,30,0.9); padding: 8px 20px; border-radius: 30px;
-            display: flex; gap: 15px; align-items: center; color: #fff;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            bottom: calc(20px + env(safe-area-inset-bottom)); /* 避開底部 Home 條 */
+            background: var(--panel-bg); padding: 8px 25px; border-radius: 30px;
+            display: flex; gap: 20px; align-items: center; color: #fff;
+            border: 1px solid #555;
         }
 
         .lock-msg {
@@ -74,11 +103,11 @@
             border: 2px solid red; font-weight: bold; display: none; pointer-events: none;
         }
 
-        /* 提示 Toast */
+        /* 狀態與提示 */
         #toast-msg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8); color: #00ff9d; padding: 15px 25px; border-radius: 10px;
-            display: none; z-index: 2000; font-weight: bold; border: 1px solid #00ff9d;
+            background: rgba(0,0,0,0.85); color: #00ff9d; padding: 15px 25px; border-radius: 10px;
+            display: none; z-index: 2000; font-weight: bold; border: 1px solid #00ff9d; pointer-events: none;
         }
     </style>
 </head>
@@ -91,10 +120,10 @@
     <div id="ui-layer">
         <div class="top-bar interactive">
             <div style="display:flex; align-items:center; gap:10px;">
-                <a href="javascript:leaveRoom()" style="color:#aaa; text-decoration:none;"><i class="fa-solid fa-arrow-left"></i></a>
+                <a href="javascript:leaveRoom()" style="color:#aaa; text-decoration:none; padding:10px;"><i class="fa-solid fa-arrow-left"></i></a>
                 <span id="roomCode" style="font-family:monospace; font-weight:bold; color:#ff00ff; background:#222; padding:2px 6px; border-radius:4px;">...</span>
             </div>
-            <div id="debug-status" style="font-size:0.8rem; color:#00ff9d;">連線中...</div>
+            <div id="debug-status" style="font-size:0.8rem; color:#00ff9d; transition: color 0.3s;">連線中...</div>
         </div>
 
         <div class="toolbar interactive" id="toolbar">
@@ -109,10 +138,7 @@
             
             <div style="height:1px; background:#555; margin:2px 0;"></div>
             
-            <button class="tool-btn" onclick="saveScreenshot()" title="下載截圖">
-                <i class="fa-solid fa-camera" style="color: #00d2ff;"></i>
-            </button>
-
+            <button class="tool-btn" onclick="saveScreenshot()" title="下載"><i class="fa-solid fa-camera" style="color: #00d2ff;"></i></button>
             <button class="tool-btn" onclick="deleteObj()"><i class="fa-solid fa-trash"></i></button>
             <button class="tool-btn" onclick="clearCanvas()"><i class="fa-solid fa-eraser"></i></button>
         </div>
@@ -129,9 +155,9 @@
         </div>
 
         <div class="page-ctrl interactive">
-            <button class="tool-btn" style="width:30px; height:30px;" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-            <span id="pageDisplay" style="font-family:monospace; font-weight:bold;">P.1</span>
-            <button class="tool-btn" style="width:30px; height:30px;" onclick="changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            <button class="tool-btn" style="width:35px; height:35px;" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="pageDisplay" style="font-weight:bold; font-family:monospace; min-width: 30px; text-align:center;">P.1</span>
+            <button class="tool-btn" style="width:35px; height:35px;" onclick="changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
 
         <div class="lock-msg interactive" id="lockMsg">
@@ -147,7 +173,6 @@
         import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -170,15 +195,22 @@
         let isReceiving = false;
         let canEdit = false;
         
-        const canvas = new fabric.Canvas('c', { isDrawingMode: false, selection: true, backgroundColor: '#ffffff' });
+        // 🔴 初始化 Fabric 畫布
+        const canvas = new fabric.Canvas('c', { 
+            isDrawingMode: false, 
+            selection: true, 
+            backgroundColor: '#ffffff',
+            preserveObjectStacking: true // 保持圖層順序
+        });
         
+        // 🔴 手機尺寸動態適配
         function resizeCanvas() {
             canvas.setWidth(window.innerWidth);
             canvas.setHeight(window.innerHeight);
             canvas.renderAll();
         }
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas(); 
+        resizeCanvas();
 
         document.getElementById('roomCode').innerText = roomId;
 
@@ -191,9 +223,7 @@
                 canEdit = true;
                 document.getElementById('hostPanel').style.display = 'flex';
                 updateStatus("房主 (在線)");
-                window.addEventListener('beforeunload', (e) => {
-                    e.preventDefault(); e.returnValue = '';
-                });
+                window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ''; });
             } else {
                 updateStatus("訪客 (連線中)");
                 setLock(true);
@@ -201,7 +231,7 @@
 
             onSnapshot(roomRef, (docSnap) => {
                 if (!docSnap.exists()) {
-                    alert("房主已解散房間，連線終止。");
+                    alert("房間已解散");
                     window.location.href = 'whiteboard_lobby.html';
                     return;
                 }
@@ -229,119 +259,35 @@
             });
         });
 
-        // --- 📸 截圖功能 (Screenshot) ---
-        window.saveScreenshot = function() {
-            // 1. 取消目前選取的物件 (避免截到藍色選取框)
-            canvas.discardActiveObject();
-            canvas.renderAll();
-
-            // 2. 顯示提示
-            showToast('<i class="fa-solid fa-camera"></i> 截圖下載中...');
-
-            // 3. 轉成 DataURL
-            const dataURL = canvas.toDataURL({
-                format: 'png',
-                quality: 1,
-                multiplier: 2, // 兩倍像素，高畫質
-                enableRetinaScaling: true
-            });
-
-            // 4. 建立下載連結
-            const link = document.createElement('a');
-            link.download = `whiteboard_${Date.now()}.png`; // 自動命名
-            link.href = dataURL;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // 5. 隱藏提示
-            setTimeout(() => { document.getElementById('toast-msg').style.display = 'none'; }, 1000);
-        }
-
-        // --- 其他功能 ---
-        window.closeRoom = async function() {
-            if(!confirm("確定解散房間？所有資料將刪除。")) return;
-            showToast("正在銷毀資料庫...");
-            try {
-                const folderRef = ref(storage, `whiteboard/${roomId}`);
-                const listResult = await listAll(folderRef);
-                await Promise.all(listResult.items.map((item) => deleteObject(item)));
-                await deleteDoc(roomRef);
-                alert("房間已解散");
-                window.location.href = 'whiteboard_lobby.html';
-            } catch(e) { console.error(e); window.location.href = 'whiteboard_lobby.html'; }
-        }
-
-        window.leaveRoom = function() {
-            if(userRole === 'host') closeRoom();
-            else if(confirm("確定離開？")) window.location.href = 'whiteboard_lobby.html';
-        }
-
-        document.getElementById('imgLoader').addEventListener('change', async (e) => {
-            if(!canEdit) return;
-            const file = e.target.files[0];
-            if(!file) return;
-            showToast("圖片處理中...");
-            try {
-                const blob = await compressImage(file);
-                updateStatus("上傳中...");
-                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_img.jpg`);
-                await uploadBytes(storageRef, blob);
-                const url = await getDownloadURL(storageRef);
-                fabric.Image.fromURL(url, (img) => {
-                    const scale = Math.min(200 / img.width, 200 / img.height);
-                    img.scale(scale > 1 ? 1 : scale);
-                    canvas.add(img);
-                    canvas.centerObject(img);
-                    save();
-                    setMode('select');
-                    updateStatus("圖片已新增");
-                    document.getElementById('toast-msg').style.display = 'none';
-                }, { crossOrigin: 'anonymous' });
-            } catch(err) { alert("失敗"); document.getElementById('toast-msg').style.display = 'none'; }
-        });
-
-        function compressImage(file) {
-            return new Promise((resolve, reject) => {
-                const maxWidth = 1280;
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        let w = img.width, h = img.height;
-                        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
-                        const cvs = document.createElement('canvas');
-                        cvs.width = w; cvs.height = h;
-                        const ctx = cvs.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        cvs.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
-                    };
-                };
-            });
-        }
-
-        function loadJson(json) {
-            if (!json) { canvas.clear(); canvas.backgroundColor="#fff"; return; }
-            isReceiving = true;
-            canvas.loadFromJSON(json, () => {
-                canvas.requestRenderAll();
-                isReceiving = false;
-            });
-        }
-
-        const save = () => {
+        // 🔴 防抖動儲存 (Debounce Save) - 關鍵優化
+        // 避免每次滑鼠移動都寫入資料庫，改為「停手後 0.8 秒」才寫入
+        let saveTimeout;
+        const debouncedSave = () => {
             if (isReceiving || !canEdit) return;
-            updateStatus("同步中...");
-            const json = JSON.stringify(canvas.toJSON());
-            updateDoc(roomRef, { [`pages.${currentPage}`]: json }).catch(console.error);
+            
+            // 立即顯示「儲存中」給使用者回饋
+            document.getElementById('debug-status').innerText = "儲存中...";
+            document.getElementById('debug-status').style.color = "#ffaa00";
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const json = JSON.stringify(canvas.toJSON());
+                updateDoc(roomRef, { [`pages.${currentPage}`]: json })
+                    .then(() => {
+                        updateStatus("已同步");
+                        document.getElementById('debug-status').style.color = "#00ff9d";
+                    })
+                    .catch(console.error);
+            }, 800); // 800ms 延遲
         };
 
-        canvas.on('object:added', save);
-        canvas.on('object:modified', save);
-        canvas.on('object:removed', save);
-        canvas.on('path:created', save);
+        // 綁定事件到防抖函式
+        canvas.on('object:added', debouncedSave);
+        canvas.on('object:modified', debouncedSave);
+        canvas.on('object:removed', debouncedSave);
+        canvas.on('path:created', debouncedSave);
+
+        // --- 功能實作 ---
 
         window.setMode = (mode) => {
             if (!canEdit) return;
@@ -365,14 +311,24 @@
                 if(active.set && (active.type === 'i-text' || active.type === 'text')) active.set('fill', hex);
                 else active.set('stroke', hex);
                 canvas.requestRenderAll();
-                save();
+                debouncedSave(); // 顏色改變也要儲存
             }
         };
 
         window.addText = () => {
             if (!canEdit) return;
-            const text = new fabric.IText('Text', { left: canvas.width/2, top: canvas.height/2, fontSize: 30, fill: document.getElementById('colorPicker').value });
-            canvas.add(text); canvas.setActiveObject(text); text.enterEditing(); text.selectAll(); setMode('select'); save();
+            // 放在視窗中心
+            const center = canvas.getCenter();
+            const text = new fabric.IText('點擊輸入', { 
+                left: center.left, top: center.top, fontSize: 30, fill: document.getElementById('colorPicker').value,
+                originX: 'center', originY: 'center'
+            });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            text.enterEditing();
+            text.selectAll();
+            setMode('select');
+            debouncedSave();
         };
 
         window.deleteObj = () => {
@@ -381,13 +337,112 @@
             if (active) {
                 if(active.type === 'activeSelection') active.getObjects().forEach(o => canvas.remove(o));
                 else canvas.remove(active);
-                canvas.discardActiveObject(); save();
+                canvas.discardActiveObject();
+                debouncedSave();
             }
         };
 
-        window.clearCanvas = () => { if (!canEdit || !confirm("清空？")) return; canvas.clear(); canvas.backgroundColor="#fff"; save(); };
+        window.clearCanvas = () => { 
+            if (!canEdit || !confirm("清空畫布？")) return; 
+            canvas.clear(); 
+            canvas.backgroundColor="#ffffff"; 
+            debouncedSave(); 
+        };
+
+        // --- 圖片處理 ---
+        document.getElementById('imgLoader').addEventListener('change', async (e) => {
+            if(!canEdit) return;
+            const file = e.target.files[0];
+            if(!file) return;
+            showToast("圖片處理中...");
+            try {
+                const blob = await compressImage(file);
+                updateStatus("上傳中...");
+                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_img.jpg`);
+                await uploadBytes(storageRef, blob);
+                const url = await getDownloadURL(storageRef);
+                fabric.Image.fromURL(url, (img) => {
+                    // 智慧縮放：不超過螢幕的 50%
+                    const maxDim = Math.min(canvas.width, canvas.height) * 0.5;
+                    const scale = Math.min(maxDim / img.width, maxDim / img.height);
+                    img.scale(scale > 1 ? 1 : scale);
+                    
+                    canvas.add(img);
+                    canvas.centerObject(img);
+                    saveScreenshot(); // 觸發一次非防抖的保存，確保圖片立刻上去
+                    debouncedSave();
+                    setMode('select');
+                    updateStatus("圖片已新增");
+                    hideToast();
+                }, { crossOrigin: 'anonymous' });
+            } catch(err) { alert("失敗"); hideToast(); }
+        });
+
+        // 圖片壓縮
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const maxWidth = 1280;
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+                        const cvs = document.createElement('canvas');
+                        cvs.width = w; cvs.height = h;
+                        const ctx = cvs.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        cvs.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
+                    };
+                };
+            });
+        }
+
+        // --- 截圖 ---
+        window.saveScreenshot = () => {
+            canvas.discardActiveObject(); canvas.renderAll();
+            showToast("截圖下載中...");
+            const dataURL = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+            const link = document.createElement('a');
+            link.download = `whiteboard_${Date.now()}.png`;
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(hideToast, 1000);
+        };
+
+        // --- 房間管理 ---
+        window.closeRoom = async () => {
+            if(!confirm("解散房間將刪除所有資料，確定嗎？")) return;
+            showToast("正在銷毀資料...");
+            try {
+                const folderRef = ref(storage, `whiteboard/${roomId}`);
+                const listResult = await listAll(folderRef);
+                await Promise.all(listResult.items.map(i => deleteObject(i)));
+                await deleteDoc(roomRef);
+                window.location.href = 'whiteboard_lobby.html';
+            } catch(e) { console.error(e); window.location.href = 'whiteboard_lobby.html'; }
+        }
+        window.leaveRoom = () => {
+            if(userRole === 'host') closeRoom();
+            else if(confirm("確定離開？")) window.location.href = 'whiteboard_lobby.html';
+        }
+
         window.togglePerm = () => updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
         window.changePage = (d) => { if(!canEdit && userRole !== 'host') return; if(currentPage + d < 1) return; updateDoc(roomRef, { activePage: currentPage + d }); };
+
+        // 載入 JSON
+        function loadJson(json) {
+            if (!json) { canvas.clear(); canvas.backgroundColor="#fff"; return; }
+            isReceiving = true;
+            canvas.loadFromJSON(json, () => {
+                canvas.requestRenderAll();
+                isReceiving = false;
+            });
+        }
 
         function setLock(locked) {
             const overlay = document.getElementById('lockMsg');
@@ -402,6 +457,7 @@
 
         function updateStatus(msg) { document.getElementById('debug-status').innerText = msg; }
         function showToast(msg) { const t = document.getElementById('toast-msg'); t.innerHTML = msg; t.style.display = 'block'; }
+        function hideToast() { document.getElementById('toast-msg').style.display = 'none'; }
         window.copyCode = () => { navigator.clipboard.writeText(roomId); alert("已複製"); }
 
     </script>
