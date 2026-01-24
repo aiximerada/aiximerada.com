@@ -25,28 +25,24 @@
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
         .interactive { pointer-events: auto; }
 
-        /* 頂部欄佈局調整 */
+        /* 頂部欄 */
         .top-bar {
             height: 60px; background: var(--panel-bg); color: #fff;
-            display: grid; grid-template-columns: 50px 1fr 50px; /* 左中右佈局 */
+            display: grid; grid-template-columns: 50px 1fr 50px;
             align-items: center; padding: 0 10px;
             border-bottom: 1px solid #555; box-sizing: border-box;
             padding-top: env(safe-area-inset-top); 
             height: calc(60px + env(safe-area-inset-top));
+            transition: transform 0.3s;
         }
 
-        /* 🔴 顯眼的邀請碼按鈕 */
+        /* 邀請碼按鈕 */
         .room-badge {
-            justify-self: center; /* 置中 */
-            background: var(--accent); color: #000;
+            justify-self: center; background: var(--accent); color: #000;
             padding: 8px 20px; border-radius: 50px;
             font-family: 'Courier New', monospace; font-weight: 900; font-size: 1.2rem;
             cursor: pointer; display: flex; align-items: center; gap: 10px;
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
-            transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .room-badge:hover {
-            transform: scale(1.05); background: #fff; box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4); transition: 0.2s;
         }
         .room-badge:active { transform: scale(0.95); }
 
@@ -57,8 +53,12 @@
             display: flex; flex-direction: column; gap: 12px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             max-height: calc(var(--app-height) - 120px); overflow-y: auto; scrollbar-width: none;
+            transition: opacity 0.3s, transform 0.3s; /* 增加過渡動畫 */
         }
-        .toolbar::-webkit-scrollbar { display: none; }
+        /* 當隱藏時，不只透明度變0，還移出畫面以免擋到手指 */
+        .toolbar.hidden {
+            opacity: 0; transform: translateX(-20px); pointer-events: none;
+        }
 
         .tool-btn {
             width: 44px; height: 44px; border-radius: 10px; border: 1px solid #555;
@@ -66,16 +66,22 @@
             display: flex; justify-content: center; align-items: center; transition: 0.1s;
         }
         .tool-btn.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
-        
         .color-wrap { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; position: relative; border: 1px solid #555; }
         .color-picker { width: 150%; height: 150%; padding: 0; margin: -5px; border: none; cursor: pointer; }
 
-        /* 房主面板 */
+        /* 房主面板 (成員列表) */
         .host-panel {
             position: absolute; top: calc(70px + env(safe-area-inset-top)); right: 15px;
             background: var(--panel-bg); padding: 12px; border-radius: 8px; color: #fff;
-            display: none; flex-direction: column; gap: 12px; border: 1px solid var(--accent); min-width: 140px;
+            display: none; flex-direction: column; gap: 10px; border: 1px solid var(--accent); 
+            min-width: 180px; max-height: 400px; overflow-y: auto;
         }
+        .member-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .member-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; font-size: 0.9rem;
+        }
+        .member-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
         .btn-destroy {
             background: #ff4757; color: white; border: none; padding: 10px;
@@ -83,20 +89,26 @@
             display: flex; align-items: center; justify-content: center; gap: 5px;
         }
 
+        /* 底部切換頁 */
         .page-ctrl {
             position: absolute; left: 50%; transform: translateX(-50%);
             bottom: calc(20px + env(safe-area-inset-bottom));
             background: var(--panel-bg); padding: 8px 25px; border-radius: 30px;
             display: flex; gap: 20px; align-items: center; color: #fff; border: 1px solid #555;
+            transition: opacity 0.3s;
         }
+        /* 觀看模式下，頁面控制器稍微變透明一點以免擋視線 */
+        .page-ctrl.view-only { opacity: 0.8; }
 
-        .lock-msg {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8); color: #fff; padding: 20px; border-radius: 10px;
-            border: 2px solid red; font-weight: bold; display: none; pointer-events: none;
+        /* 狀態提示 (取代原本的鎖定遮罩) */
+        .status-badge {
+            position: absolute; top: calc(75px + env(safe-area-inset-top)); right: 15px;
+            background: rgba(0,0,0,0.6); color: #fff; padding: 5px 12px; border-radius: 20px;
+            font-size: 0.8rem; border: 1px solid #aaa; pointer-events: none;
+            display: none; /* 預設隱藏 */
         }
+        .status-badge.readonly { display: block; border-color: #ff4757; color: #ff4757; background: rgba(0,0,0,0.8); }
 
-        /* 狀態提示 */
         #toast-msg {
             position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.9); color: #00ff9d; padding: 12px 25px; border-radius: 50px;
@@ -104,6 +116,12 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
         #debug-status { font-size: 0.8rem; color: #aaa; text-align: right; }
+        
+        /* Checkbox 樣式 */
+        .tgl-btn { width: 40px; height: 20px; background: #555; border-radius: 20px; position: relative; cursor: pointer; transition:0.3s;}
+        .tgl-btn::after { content:''; position: absolute; top:2px; left:2px; width:16px; height:16px; background:#fff; border-radius:50%; transition:0.3s; }
+        input:checked + .tgl-btn { background: #00ff9d; }
+        input:checked + .tgl-btn::after { left: 22px; }
     </style>
 </head>
 <body>
@@ -115,12 +133,9 @@
     <div id="ui-layer">
         <div class="top-bar interactive">
             <a href="javascript:leaveRoom()" style="color:#aaa; text-decoration:none; font-size:1.2rem;"><i class="fa-solid fa-arrow-left"></i></a>
-            
             <div class="room-badge" onclick="copyCode()" title="點擊複製邀請碼">
-                <span id="roomCode">...</span>
-                <i class="fa-regular fa-copy"></i>
+                <span id="roomCode">...</span> <i class="fa-regular fa-copy"></i>
             </div>
-
             <div id="debug-status">連線中...</div>
         </div>
 
@@ -140,30 +155,34 @@
         </div>
 
         <div class="host-panel interactive" id="hostPanel">
-            <div style="color:#ff00ff; font-weight:bold; font-size:0.9rem;"><i class="fa-solid fa-crown"></i> 房主權限</div>
-            <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.9rem;">
-                <input type="checkbox" id="permToggle" onchange="togglePerm()"> 允許訪客編輯
-            </label>
-            <div style="height:1px; background:#555;"></div>
+            <div style="color:#ff00ff; font-weight:bold; font-size:0.9rem; margin-bottom:10px;">
+                <i class="fa-solid fa-users-gear"></i> 成員權限管理
+            </div>
+            <div class="member-list" id="memberList">
+                </div>
+            <div style="height:1px; background:#555; margin:5px 0;"></div>
             <button class="btn-destroy" onclick="closeRoom()">
                 <i class="fa-solid fa-skull"></i> 解散房間
             </button>
         </div>
 
-        <div class="page-ctrl interactive">
+        <div class="page-ctrl interactive" id="pageCtrl">
             <button class="tool-btn" style="width:35px; height:35px;" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
             <span id="pageDisplay" style="font-weight:bold; font-family:monospace; min-width: 30px; text-align:center;">P.1</span>
             <button class="tool-btn" style="width:35px; height:35px;" onclick="changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
 
-        <div class="lock-msg interactive" id="lockMsg"><i class="fa-solid fa-lock"></i> 畫布已鎖定</div>
+        <div class="status-badge" id="viewModeBadge">
+            <i class="fa-solid fa-eye"></i> 僅供瀏覽
+        </div>
+
         <div id="toast-msg"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -187,7 +206,9 @@
         let currentPage = 1;
         let isReceiving = false;
         let canEdit = false;
-        
+        let myUid = null;
+        let myName = "Guest";
+
         const canvas = new fabric.Canvas('c', { isDrawingMode: false, selection: true, backgroundColor: '#ffffff', preserveObjectStacking: true });
         
         function resizeCanvas() {
@@ -196,39 +217,60 @@
             canvas.renderAll();
         }
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas(); 
+        resizeCanvas();
 
         document.getElementById('roomCode').innerText = roomId;
-
         const roomRef = doc(db, "rooms", roomId);
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = 'login.html'; return; }
+            
+            myUid = user.uid;
+            myName = user.email.split('@')[0]; // 用 Email 前綴當名字
 
+            // 1. 初始化使用者狀態
             if (userRole === 'host') {
                 canEdit = true;
                 document.getElementById('hostPanel').style.display = 'flex';
                 updateStatus("房主 (在線)");
-                window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ''; });
+                setViewMode(false); // 房主永遠是編輯模式
+                
+                // 房主也把自己寫入 participants 方便統一管理
+                updateParticipant(true); 
             } else {
                 updateStatus("訪客 (連線中)");
-                setLock(true);
+                // 訪客預設為 false，等待資料庫確認
+                updateParticipant(false);
             }
 
+            // 2. 監聽房間數據
             onSnapshot(roomRef, (docSnap) => {
                 if (!docSnap.exists()) {
                     alert("房間已解散");
                     window.location.href = 'whiteboard_lobby.html';
                     return;
                 }
+
                 const data = docSnap.data();
-                if (userRole !== 'host') {
-                    canEdit = data.guestsCanEdit;
-                    setLock(!canEdit);
-                    updateStatus(canEdit ? "訪客 (可編輯)" : "訪客 (已鎖定)");
+                
+                // --- 權限邏輯更新 ---
+                const participants = data.participants || {};
+                
+                if (userRole === 'host') {
+                    // 房主：渲染成員列表
+                    renderMemberList(participants);
                 } else {
-                    document.getElementById('permToggle').checked = data.guestsCanEdit;
+                    // 訪客：檢查自己的權限
+                    const myData = participants[myUid];
+                    if (myData) {
+                        canEdit = myData.canEdit;
+                        // 根據權限切換介面
+                        setViewMode(!canEdit);
+                        updateStatus(canEdit ? "可編輯" : "瀏覽模式");
+                    }
                 }
+                // ------------------
+
                 if (data.activePage && data.activePage !== currentPage) {
                     currentPage = data.activePage;
                     document.getElementById('pageDisplay').innerText = `P.${currentPage}`;
@@ -242,7 +284,87 @@
             });
         });
 
-        // 🔴 防抖動儲存
+        // 更新自己的狀態到 participants
+        function updateParticipant(isEditor) {
+            // 使用 setDoc with merge，更新特定欄位
+            // 注意：這裡使用 updateDoc 的點語法來更新 Map 中的特定 Key
+            const updatePayload = {};
+            updatePayload[`participants.${myUid}`] = {
+                name: myName,
+                role: userRole,
+                canEdit: isEditor
+            };
+            updateDoc(roomRef, updatePayload).catch(err => {
+                // 如果房間剛建立還沒有 participants 欄位，可能需要 setDoc merge
+                setDoc(roomRef, { participants: { [myUid]: { name: myName, role: userRole, canEdit: isEditor } } }, { merge: true });
+            });
+        }
+
+        // 房主功能：渲染成員列表
+        function renderMemberList(participants) {
+            const listDiv = document.getElementById('memberList');
+            listDiv.innerHTML = '';
+            
+            Object.keys(participants).forEach(uid => {
+                const p = participants[uid];
+                // 房主不需要開關自己的權限 (避免誤鎖自己)
+                if (p.role === 'host') return;
+
+                const item = document.createElement('div');
+                item.className = 'member-item';
+                item.innerHTML = `
+                    <div class="member-name"><i class="fa-solid fa-user"></i> ${p.name}</div>
+                    <label>
+                        <input type="checkbox" style="display:none;" ${p.canEdit ? 'checked' : ''} 
+                               onchange="toggleUserPerm('${uid}', this.checked)">
+                        <div class="tgl-btn"></div>
+                    </label>
+                `;
+                listDiv.appendChild(item);
+            });
+            
+            if(listDiv.innerHTML === '') {
+                listDiv.innerHTML = '<div style="color:#aaa; font-size:0.8rem; text-align:center;">暫無訪客</div>';
+            }
+        }
+
+        // 房主功能：切換某人的權限 (需掛載到 window)
+        window.toggleUserPerm = (targetUid, newStatus) => {
+            const updatePayload = {};
+            updatePayload[`participants.${targetUid}.canEdit`] = newStatus;
+            updateDoc(roomRef, updatePayload);
+        };
+
+        // --- 介面切換邏輯 (核心) ---
+        function setViewMode(isReadOnly) {
+            const toolbar = document.getElementById('toolbar');
+            const badge = document.getElementById('viewModeBadge');
+            const pageCtrl = document.getElementById('pageCtrl');
+
+            if (isReadOnly) {
+                // 瀏覽模式：隱藏工具列，顯示標籤
+                toolbar.classList.add('hidden');
+                badge.classList.add('readonly');
+                pageCtrl.classList.add('view-only');
+                
+                // 強制關閉繪圖
+                canvas.isDrawingMode = false;
+                canvas.selection = false;
+                canvas.discardActiveObject();
+                canvas.forEachObject(o => o.selectable = false); // 讓物件不可選
+                canvas.requestRenderAll();
+            } else {
+                // 編輯模式：顯示工具列，隱藏標籤
+                toolbar.classList.remove('hidden');
+                badge.classList.remove('readonly');
+                pageCtrl.classList.remove('view-only');
+                
+                canvas.selection = true;
+                canvas.forEachObject(o => o.selectable = true);
+            }
+        }
+
+        // --- 同步與繪圖邏輯 (保持優化) ---
         let saveTimeout;
         const debouncedSave = () => {
             if (isReceiving || !canEdit) return;
@@ -265,7 +387,6 @@
         canvas.on('object:removed', debouncedSave);
         canvas.on('path:created', debouncedSave);
 
-        // --- 功能 ---
         window.setMode = (mode) => {
             if (!canEdit) return;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
@@ -295,9 +416,7 @@
         window.addText = () => {
             if (!canEdit) return;
             const center = canvas.getCenter();
-            const text = new fabric.IText('點擊輸入', { 
-                left: center.left, top: center.top, fontSize: 30, fill: document.getElementById('colorPicker').value, originX: 'center', originY: 'center'
-            });
+            const text = new fabric.IText('Text', { left: center.left, top: center.top, fontSize: 30, fill: document.getElementById('colorPicker').value, originX:'center', originY:'center' });
             canvas.add(text); canvas.setActiveObject(text); text.enterEditing(); text.selectAll(); setMode('select'); debouncedSave();
         };
 
@@ -312,7 +431,7 @@
         };
 
         window.clearCanvas = () => { 
-            if (!canEdit || !confirm("清空畫布？")) return; 
+            if (!canEdit || !confirm("清空？")) return; 
             canvas.clear(); canvas.backgroundColor="#ffffff"; debouncedSave(); 
         };
 
@@ -331,27 +450,25 @@
                     const maxDim = Math.min(canvas.width, canvas.height) * 0.5;
                     const scale = Math.min(maxDim / img.width, maxDim / img.height);
                     img.scale(scale > 1 ? 1 : scale);
-                    canvas.add(img); canvas.centerObject(img); saveScreenshot(); debouncedSave(); setMode('select'); updateStatus("圖片已新增"); hideToast();
+                    canvas.add(img); canvas.centerObject(img); saveScreenshot(); debouncedSave(); setMode('select'); updateStatus("完成"); hideToast();
                 }, { crossOrigin: 'anonymous' });
             } catch(err) { alert("失敗"); hideToast(); }
         });
 
         function compressImage(file) {
-            return new Promise((resolve, reject) => {
-                const maxWidth = 1280;
+            return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = (e) => {
                     const img = new Image();
                     img.src = e.target.result;
                     img.onload = () => {
-                        let w = img.width, h = img.height;
-                        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
                         const cvs = document.createElement('canvas');
-                        cvs.width = w; cvs.height = h;
-                        const ctx = cvs.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        cvs.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
+                        let w = img.width, h = img.height;
+                        if(w>1280){ h=Math.round((h*1280)/w); w=1280; }
+                        cvs.width=w; cvs.height=h;
+                        cvs.getContext('2d').drawImage(img,0,0,w,h);
+                        cvs.toBlob(resolve,'image/jpeg',0.7);
                     };
                 };
             });
@@ -362,63 +479,44 @@
             showToast("截圖下載中...");
             const dataURL = canvas.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
             const link = document.createElement('a');
-            link.download = `whiteboard_${Date.now()}.png`;
-            link.href = dataURL;
+            link.download = `board_${Date.now()}.png`; link.href = dataURL;
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
             setTimeout(hideToast, 1000);
         };
 
         window.closeRoom = async () => {
-            if(!confirm("解散房間將刪除所有資料，確定嗎？")) return;
-            showToast("正在銷毀資料...");
+            if(!confirm("確定解散？")) return;
+            showToast("銷毀中...");
             try {
-                const folderRef = ref(storage, `whiteboard/${roomId}`);
-                const listResult = await listAll(folderRef);
-                await Promise.all(listResult.items.map(i => deleteObject(i)));
+                const list = await listAll(ref(storage, `whiteboard/${roomId}`));
+                await Promise.all(list.items.map(i => deleteObject(i)));
                 await deleteDoc(roomRef);
                 window.location.href = 'whiteboard_lobby.html';
-            } catch(e) { console.error(e); window.location.href = 'whiteboard_lobby.html'; }
+            } catch(e) { window.location.href = 'whiteboard_lobby.html'; }
         }
         window.leaveRoom = () => {
             if(userRole === 'host') closeRoom();
-            else if(confirm("確定離開？")) window.location.href = 'whiteboard_lobby.html';
+            else if(confirm("離開？")) window.location.href = 'whiteboard_lobby.html';
         }
-
-        window.togglePerm = () => updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
         window.changePage = (d) => { if(!canEdit && userRole !== 'host') return; if(currentPage + d < 1) return; updateDoc(roomRef, { activePage: currentPage + d }); };
 
         function loadJson(json) {
             if (!json) { canvas.clear(); canvas.backgroundColor="#fff"; return; }
             isReceiving = true;
             canvas.loadFromJSON(json, () => {
+                // 如果是唯讀模式，載入後要再次鎖定物件
+                if(!canEdit && userRole !== 'host') {
+                    canvas.forEachObject(o => o.selectable = false);
+                }
                 canvas.requestRenderAll();
                 isReceiving = false;
             });
         }
 
-        function setLock(locked) {
-            const overlay = document.getElementById('lockMsg');
-            const toolbar = document.getElementById('toolbar');
-            if (locked) {
-                overlay.style.display = 'block'; toolbar.style.opacity = 0.5; toolbar.style.pointerEvents = 'none';
-                canvas.isDrawingMode = false; canvas.selection = false; canvas.discardActiveObject(); canvas.renderAll();
-            } else {
-                overlay.style.display = 'none'; toolbar.style.opacity = 1; toolbar.style.pointerEvents = 'auto'; canvas.selection = true;
-            }
-        }
-
         function updateStatus(msg) { document.getElementById('debug-status').innerText = msg; }
         function showToast(msg) { const t = document.getElementById('toast-msg'); t.innerHTML = msg; t.style.display = 'block'; }
         function hideToast() { document.getElementById('toast-msg').style.display = 'none'; }
-        
-        // 🔴 一鍵複製功能 (修改為彈出 Toast)
-        window.copyCode = () => {
-            const code = document.getElementById('roomCode').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                showToast(`邀請碼 ${code} 已複製！`);
-                setTimeout(hideToast, 2000);
-            });
-        }
+        window.copyCode = () => { navigator.clipboard.writeText(roomId); showToast("邀請碼已複製"); setTimeout(hideToast,1500); }
 
     </script>
 </body>
