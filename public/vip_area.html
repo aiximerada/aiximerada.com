@@ -11,7 +11,6 @@
             --suisei-cyan: #3bc6e4;
             --neon-gold: #f2c94c;
             --neon-pink: #ff00ff;
-            --glass-card: rgba(255, 255, 255, 0.05);
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -32,52 +31,11 @@
         }
         .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
-        .header { text-align: center; margin-top: 40px; margin-bottom: 30px; }
-        h1 { font-size: 2rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0; }
-        
-        /* --- 💳 VIP 卡片設計 --- */
-        .vip-card-container {
-            perspective: 1000px;
-            margin-bottom: 40px;
-            width: 90%; max-width: 420px;
-        }
-        .vip-card {
-            width: 100%; aspect-ratio: 1.58/1; /* 信用卡比例 */
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
-            backdrop-filter: blur(20px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(255,255,255,0.05);
-            padding: 25px; box-sizing: border-box;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; overflow: hidden;
-            transition: transform 0.5s;
-        }
-        .vip-card:hover { transform: rotateY(5deg) rotateX(5deg); }
-        
-        /* 全息光澤特效 */
-        .vip-card::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg); animation: shine 6s infinite; pointer-events: none;
-        }
-        @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 20% { transform: translateX(100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
-
-        .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-        .card-logo { font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; color: var(--suisei-cyan); display: flex; align-items: center; gap: 10px; }
-        .card-rank { background: var(--neon-gold); color: #000; padding: 2px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; }
-        
-        .card-chip { margin-top: 15px; display: flex; align-items: center; gap: 15px; }
-        .chip-icon { font-size: 2.5rem; color: #ddd; text-shadow: 1px 1px 2px #000; }
-        .wifi-icon { font-size: 1.5rem; transform: rotate(90deg); opacity: 0.7; }
-
-        .card-bottom { margin-top: auto; }
-        .card-number { font-family: 'Courier New', monospace; font-size: 1.4rem; letter-spacing: 3px; margin-bottom: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        
-        .card-info { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.9rem; color: #ccc; }
-        .info-group { display: flex; flex-direction: column; }
-        .info-label { font-size: 0.6rem; color: #888; margin-bottom: 2px; }
-        .info-value { color: #fff; font-weight: bold; letter-spacing: 1px; }
+        /* 標題區 (調整回原本樣式) */
+        .header { text-align: center; margin-top: 60px; margin-bottom: 40px; }
+        h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0 0 10px 0; }
+        .user-greeting { color: #aaa; font-size: 1rem; letter-spacing: 1px; }
+        .user-id { color: var(--suisei-cyan); font-weight: bold; }
 
         /* --- 功能網格 --- */
         .secret-grid {
@@ -105,33 +63,7 @@
 
     <div class="header">
         <h1>會員核心專區</h1>
-        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">ACCESS GRANTED</p>
-    </div>
-
-    <div class="vip-card-container">
-        <div class="vip-card">
-            <div class="card-top">
-                <div class="card-logo"><i class="fa-solid fa-gem"></i> JADE PASS</div>
-                <div class="card-rank">COMMANDER</div>
-            </div>
-            <div class="card-chip">
-                <i class="fa-brands fa-cc-visa chip-icon"></i>
-                <i class="fa-solid fa-wifi wifi-icon"></i>
-            </div>
-            <div class="card-bottom">
-                <div class="card-number" id="card-uid">LOADING...</div>
-                <div class="card-info">
-                    <div class="info-group">
-                        <span class="info-label">CODENAME</span>
-                        <span class="info-value" id="card-name">---</span>
-                    </div>
-                    <div class="info-group" style="text-align: right;">
-                        <span class="info-label">SINCE</span>
-                        <span class="info-value" id="card-date">--/--</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="user-greeting">歡迎回來，<span id="current-user" class="user-id">指揮官</span></div>
     </div>
 
     <div class="secret-grid">
@@ -173,7 +105,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥 Config (請確保這裡的 Config 是您之前複製的那一份)
+        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -187,29 +119,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // 監聽登入並填充卡片資料
+        // 監聽登入
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.body.style.opacity = "1";
-                
-                // 1. 填充代號 (取 Email @ 前面的部分)
-                const codename = user.email.split('@')[0].toUpperCase();
-                document.getElementById('card-name').innerText = codename;
-
-                // 2. 填充 UID (模擬信用卡號格式，取前16碼，每4碼加空格)
-                const uidRaw = user.uid.toUpperCase();
-                let formattedUid = "";
-                for(let i=0; i<16; i++) {
-                    if(i > 0 && i % 4 === 0) formattedUid += " ";
-                    formattedUid += uidRaw[i] || "0";
-                }
-                document.getElementById('card-uid').innerText = formattedUid;
-
-                // 3. 填充日期
-                const creationDate = new Date(user.metadata.creationTime);
-                const dateStr = `${(creationDate.getMonth()+1).toString().padStart(2,'0')}/${creationDate.getFullYear().toString().slice(-2)}`;
-                document.getElementById('card-date').innerText = dateStr;
-
+                // 簡單顯示使用者名稱 (Email 前綴)
+                const name = user.email.split('@')[0];
+                document.getElementById('current-user').innerText = name.toUpperCase();
             } else {
                 window.location.href = "login.html";
             }

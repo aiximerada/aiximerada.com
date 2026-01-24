@@ -7,12 +7,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <style>
-        /* 🔴 防止手機下拉重新整理與橡皮筋效果 */
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             overflow: hidden; background: #fff; font-family: sans-serif;
-            position: fixed; /* 鎖死頁面 */
-            touch-action: none; /* 禁止瀏覽器預設觸控行為 */
+            position: fixed; touch-action: none;
         }
 
         #canvas-layer {
@@ -38,7 +36,7 @@
             background: rgba(30,30,30,0.95); padding: 8px; border-radius: 8px;
             display: flex; flex-direction: column; gap: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            max-height: calc(100vh - 80px); overflow-y: auto; /* 防止手機高度不夠 */
+            max-height: calc(100vh - 80px); overflow-y: auto;
         }
 
         .tool-btn {
@@ -58,7 +56,6 @@
             min-width: 140px;
         }
         
-        /* 紅色解散按鈕 */
         .btn-destroy {
             background: #ff4757; color: white; border: none; padding: 8px;
             border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;
@@ -77,11 +74,11 @@
             border: 2px solid red; font-weight: bold; display: none; pointer-events: none;
         }
 
-        /* 壓縮提示 */
-        #compress-toast {
+        /* 提示 Toast */
+        #toast-msg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: #00ff9d; padding: 15px 25px; border-radius: 10px;
-            display: none; z-index: 2000; font-weight: bold;
+            display: none; z-index: 2000; font-weight: bold; border: 1px solid #00ff9d;
         }
     </style>
 </head>
@@ -109,7 +106,13 @@
                 <i class="fa-solid fa-image"></i>
                 <input type="file" id="imgLoader" accept="image/*" style="display:none">
             </label>
+            
             <div style="height:1px; background:#555; margin:2px 0;"></div>
+            
+            <button class="tool-btn" onclick="saveScreenshot()" title="下載截圖">
+                <i class="fa-solid fa-camera" style="color: #00d2ff;"></i>
+            </button>
+
             <button class="tool-btn" onclick="deleteObj()"><i class="fa-solid fa-trash"></i></button>
             <button class="tool-btn" onclick="clearCanvas()"><i class="fa-solid fa-eraser"></i></button>
         </div>
@@ -135,7 +138,7 @@
             <i class="fa-solid fa-lock"></i> 畫布已鎖定
         </div>
         
-        <div id="compress-toast"><i class="fa-solid fa-compress"></i> 圖片壓縮中...</div>
+        <div id="toast-msg"><i class="fa-solid fa-spinner fa-spin"></i> 處理中...</div>
     </div>
 
     <script type="module">
@@ -167,22 +170,18 @@
         let isReceiving = false;
         let canEdit = false;
         
-        // 🔴 手機尺寸適配
-        const canvas = new fabric.Canvas('c', { isDrawingMode: false, selection: true });
+        const canvas = new fabric.Canvas('c', { isDrawingMode: false, selection: true, backgroundColor: '#ffffff' });
         
         function resizeCanvas() {
-            // 使用 window.innerWidth/Height 確保填滿，不受網址列影響
             canvas.setWidth(window.innerWidth);
             canvas.setHeight(window.innerHeight);
             canvas.renderAll();
         }
         window.addEventListener('resize', resizeCanvas);
-        // 初始執行一次
         resizeCanvas(); 
 
         document.getElementById('roomCode').innerText = roomId;
 
-        // --- Firebase ---
         const roomRef = doc(db, "rooms", roomId);
 
         onAuthStateChanged(auth, (user) => {
@@ -192,22 +191,15 @@
                 canEdit = true;
                 document.getElementById('hostPanel').style.display = 'flex';
                 updateStatus("房主 (在線)");
-                
-                // 🔴 監聽房主關閉分頁 (嘗試觸發銷毀)
                 window.addEventListener('beforeunload', (e) => {
-                    // 瀏覽器通常不允許在這裡做太複雜的 async 操作，但我們盡力
-                    // 建議還是用按鈕手動解散比較安全
-                    e.preventDefault();
-                    e.returnValue = '確定要關閉房間嗎？所有資料將遺失。';
+                    e.preventDefault(); e.returnValue = '';
                 });
             } else {
                 updateStatus("訪客 (連線中)");
                 setLock(true);
             }
 
-            // 監聽房間 (包含自動被踢出的邏輯)
             onSnapshot(roomRef, (docSnap) => {
-                // 🔴 關鍵：如果文件不存在，代表房間已解散
                 if (!docSnap.exists()) {
                     alert("房主已解散房間，連線終止。");
                     window.location.href = 'whiteboard_lobby.html';
@@ -237,126 +229,101 @@
             });
         });
 
-        // --- 🔴 解散房間邏輯 (核心功能) ---
+        // --- 📸 截圖功能 (Screenshot) ---
+        window.saveScreenshot = function() {
+            // 1. 取消目前選取的物件 (避免截到藍色選取框)
+            canvas.discardActiveObject();
+            canvas.renderAll();
+
+            // 2. 顯示提示
+            showToast('<i class="fa-solid fa-camera"></i> 截圖下載中...');
+
+            // 3. 轉成 DataURL
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 2, // 兩倍像素，高畫質
+                enableRetinaScaling: true
+            });
+
+            // 4. 建立下載連結
+            const link = document.createElement('a');
+            link.download = `whiteboard_${Date.now()}.png`; // 自動命名
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 5. 隱藏提示
+            setTimeout(() => { document.getElementById('toast-msg').style.display = 'none'; }, 1000);
+        }
+
+        // --- 其他功能 ---
         window.closeRoom = async function() {
-            if(!confirm("⚠️ 警告：確定要解散房間嗎？\n\n1. 所有畫布內容將被刪除\n2. 所有上傳的圖片將被刪除\n3. 所有訪客將被強制踢出\n\n此動作無法復原！")) return;
-
-            updateStatus("正在銷毀資料庫...");
-            
+            if(!confirm("確定解散房間？所有資料將刪除。")) return;
+            showToast("正在銷毀資料庫...");
             try {
-                // 1. 刪除 Storage 中的所有圖片
                 const folderRef = ref(storage, `whiteboard/${roomId}`);
-                // listAll 找出資料夾下所有檔案
                 const listResult = await listAll(folderRef);
-                const deletePromises = listResult.items.map((itemRef) => deleteObject(itemRef));
-                await Promise.all(deletePromises);
-
-                // 2. 刪除 Firestore 房間文件 (這會觸發訪客端的 onSnapshot -> 跳轉)
+                await Promise.all(listResult.items.map((item) => deleteObject(item)));
                 await deleteDoc(roomRef);
-
-                alert("房間已安全解散。");
+                alert("房間已解散");
                 window.location.href = 'whiteboard_lobby.html';
-
-            } catch(e) {
-                console.error(e);
-                alert("解散過程中發生錯誤，請手動檢查資料庫。");
-                window.location.href = 'whiteboard_lobby.html';
-            }
+            } catch(e) { console.error(e); window.location.href = 'whiteboard_lobby.html'; }
         }
 
-        // --- 訪客/房主手動離開 ---
         window.leaveRoom = function() {
-            if(userRole === 'host') {
-                closeRoom(); // 房主離開 = 解散
-            } else {
-                if(confirm("確定離開房間？")) window.location.href = 'whiteboard_lobby.html';
-            }
+            if(userRole === 'host') closeRoom();
+            else if(confirm("確定離開？")) window.location.href = 'whiteboard_lobby.html';
         }
 
-        // --- 圖片壓縮與上傳 ---
         document.getElementById('imgLoader').addEventListener('change', async (e) => {
             if(!canEdit) return;
             const file = e.target.files[0];
             if(!file) return;
-
-            // 顯示提示
-            document.getElementById('compress-toast').style.display = 'block';
-            
+            showToast("圖片處理中...");
             try {
-                // 🔴 1. 執行壓縮
-                const compressedBlob = await compressImage(file);
-                
-                // 2. 上傳壓縮後的 Blob
+                const blob = await compressImage(file);
                 updateStatus("上傳中...");
-                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_compressed.jpg`);
-                await uploadBytes(storageRef, compressedBlob);
+                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_img.jpg`);
+                await uploadBytes(storageRef, blob);
                 const url = await getDownloadURL(storageRef);
-
-                // 3. 放到畫布
                 fabric.Image.fromURL(url, (img) => {
-                    // 根據螢幕大小調整圖片初始尺寸
                     const scale = Math.min(200 / img.width, 200 / img.height);
-                    img.scale(scale > 1 ? 1 : scale); // 如果圖很小就不放大
-                    
+                    img.scale(scale > 1 ? 1 : scale);
                     canvas.add(img);
                     canvas.centerObject(img);
                     save();
                     setMode('select');
                     updateStatus("圖片已新增");
-                    
-                    // 隱藏提示
-                    document.getElementById('compress-toast').style.display = 'none';
+                    document.getElementById('toast-msg').style.display = 'none';
                 }, { crossOrigin: 'anonymous' });
-
-            } catch(err) {
-                alert("圖片處理失敗");
-                console.error(err);
-                document.getElementById('compress-toast').style.display = 'none';
-            }
+            } catch(err) { alert("失敗"); document.getElementById('toast-msg').style.display = 'none'; }
         });
 
-        // 🔴 壓縮函式 (Canvas 繪製法)
         function compressImage(file) {
             return new Promise((resolve, reject) => {
-                const maxWidth = 1280; // 限制最大寬度
-                const quality = 0.7;   // 壓縮品質 70%
-                
+                const maxWidth = 1280;
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = (event) => {
+                reader.onload = (e) => {
                     const img = new Image();
-                    img.src = event.target.result;
+                    img.src = e.target.result;
                     img.onload = () => {
-                        let width = img.width;
-                        let height = img.height;
-
-                        // 計算等比縮放
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
-                        }
-
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
                         const cvs = document.createElement('canvas');
-                        cvs.width = width;
-                        cvs.height = height;
+                        cvs.width = w; cvs.height = h;
                         const ctx = cvs.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        // 轉成 Blob (JPEG 格式)
-                        cvs.toBlob((blob) => {
-                            if(blob) resolve(blob);
-                            else reject(new Error("Canvas to Blob failed"));
-                        }, 'image/jpeg', quality);
+                        ctx.drawImage(img, 0, 0, w, h);
+                        cvs.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
                     };
-                    img.onerror = (err) => reject(err);
                 };
-                reader.onerror = (err) => reject(err);
             });
         }
 
-        // --- 基本畫板功能 (保持不變) ---
         function loadJson(json) {
-            if (!json) { canvas.clear(); return; }
+            if (!json) { canvas.clear(); canvas.backgroundColor="#fff"; return; }
             isReceiving = true;
             canvas.loadFromJSON(json, () => {
                 canvas.requestRenderAll();
@@ -404,15 +371,8 @@
 
         window.addText = () => {
             if (!canEdit) return;
-            const text = new fabric.IText('Text', { 
-                left: canvas.width/2, top: canvas.height/2, fontSize: 30, fill: document.getElementById('colorPicker').value 
-            });
-            canvas.add(text);
-            canvas.setActiveObject(text);
-            text.enterEditing();
-            text.selectAll();
-            setMode('select');
-            save();
+            const text = new fabric.IText('Text', { left: canvas.width/2, top: canvas.height/2, fontSize: 30, fill: document.getElementById('colorPicker').value });
+            canvas.add(text); canvas.setActiveObject(text); text.enterEditing(); text.selectAll(); setMode('select'); save();
         };
 
         window.deleteObj = () => {
@@ -421,44 +381,27 @@
             if (active) {
                 if(active.type === 'activeSelection') active.getObjects().forEach(o => canvas.remove(o));
                 else canvas.remove(active);
-                canvas.discardActiveObject();
-                save();
+                canvas.discardActiveObject(); save();
             }
         };
 
-        window.clearCanvas = () => {
-            if (!canEdit && !confirm("確定清空畫布？")) return;
-            canvas.clear();
-            save();
-        };
-
+        window.clearCanvas = () => { if (!canEdit || !confirm("清空？")) return; canvas.clear(); canvas.backgroundColor="#fff"; save(); };
         window.togglePerm = () => updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
-        window.changePage = (d) => {
-            if(!canEdit && userRole !== 'host') return;
-            if(currentPage + d < 1) return;
-            updateDoc(roomRef, { activePage: currentPage + d });
-        };
+        window.changePage = (d) => { if(!canEdit && userRole !== 'host') return; if(currentPage + d < 1) return; updateDoc(roomRef, { activePage: currentPage + d }); };
 
         function setLock(locked) {
             const overlay = document.getElementById('lockMsg');
             const toolbar = document.getElementById('toolbar');
             if (locked) {
-                overlay.style.display = 'block';
-                toolbar.style.opacity = 0.5;
-                toolbar.style.pointerEvents = 'none';
-                canvas.isDrawingMode = false;
-                canvas.selection = false;
-                canvas.discardActiveObject();
-                canvas.renderAll();
+                overlay.style.display = 'block'; toolbar.style.opacity = 0.5; toolbar.style.pointerEvents = 'none';
+                canvas.isDrawingMode = false; canvas.selection = false; canvas.discardActiveObject(); canvas.renderAll();
             } else {
-                overlay.style.display = 'none';
-                toolbar.style.opacity = 1;
-                toolbar.style.pointerEvents = 'auto';
-                canvas.selection = true;
+                overlay.style.display = 'none'; toolbar.style.opacity = 1; toolbar.style.pointerEvents = 'auto'; canvas.selection = true;
             }
         }
 
         function updateStatus(msg) { document.getElementById('debug-status').innerText = msg; }
+        function showToast(msg) { const t = document.getElementById('toast-msg'); t.innerHTML = msg; t.style.display = 'block'; }
         window.copyCode = () => { navigator.clipboard.writeText(roomId); alert("已複製"); }
 
     </script>
