@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>協作白板 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: sans-serif; }
+
+        /* --- 1. 畫布層 (最底層) --- */
+        #canvas-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; /* 底層 */
+            background: #ffffff;
+        }
+
+        /* --- 2. UI 層 (最上層，覆蓋全螢幕) --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 100; /* 上層 */
+            pointer-events: none; /* 關鍵：讓滑鼠穿透空白區域，直達畫布 */
+        }
+
+        /* --- 3. UI 元件 (恢復點擊能力) --- */
+        .interactive {
+            pointer-events: auto; /* 讓這些按鈕可以被點擊 */
+        }
+
+        /* 樣式設定 */
+        .top-bar {
+            height: 50px; background: rgba(30,30,30,0.9); color: #fff;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 15px;
+            border-bottom: 1px solid #555;
+        }
+
+        .toolbar {
+            position: absolute; top: 60px; left: 15px;
+            background: rgba(30,30,30,0.9); padding: 8px; border-radius: 8px;
+            display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .tool-btn {
+            width: 40px; height: 40px; border-radius: 6px; border: 1px solid #555;
+            background: #222; color: #fff; font-size: 1.2rem; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .tool-btn.active { background: #ff00ff; color: #000; border-color: #ff00ff; }
+        
+        .color-wrap { width: 40px; height: 40px; border-radius: 6px; overflow: hidden; position: relative; border: 1px solid #555; }
+        .color-picker { width: 150%; height: 150%; padding: 0; margin: -5px; border: none; cursor: pointer; }
+
+        .host-panel {
+            position: absolute; top: 60px; right: 15px;
+            background: rgba(30,30,30,0.9); padding: 10px; border-radius: 8px; color: #fff;
+            display: none; border: 1px solid #ff00ff;
+        }
+
+        .page-ctrl {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(30,30,30,0.9); padding: 8px 20px; border-radius: 30px;
+            display: flex; gap: 15px; align-items: center; color: #fff;
+        }
+
+        .lock-msg {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: #fff; padding: 20px; border-radius: 10px;
+            border: 2px solid red; font-weight: bold; display: none; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-layer">
+        <canvas id="c"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        
+        <div class="top-bar interactive">
+            <div>
+                <a href="whiteboard_lobby.html" style="color:#aaa; text-decoration:none; margin-right:10px;"><i class="fa-solid fa-arrow-left"></i></a>
+                房號: <span id="roomCode" style="font-family:monospace; font-weight:bold; color:#ff00ff;">...</span>
+            </div>
+            <div id="debug-status" style="font-size:0.8rem; color:#00ff9d;">初始化...</div>
+        </div>
+
+        <div class="toolbar interactive" id="toolbar">
+            <button class="tool-btn active" id="btn-select" onclick="setMode('select')"><i class="fa-solid fa-arrow-pointer"></i></button>
+            <button class="tool-btn" id="btn-draw" onclick="setMode('draw')"><i class="fa-solid fa-pencil"></i></button>
+            <div class="color-wrap"><input type="color" class="color-picker" id="colorPicker" value="#000000" oninput="setColor(this.value)"></div>
+            <button class="tool-btn" onclick="addText()"><i class="fa-solid fa-font"></i></button>
+            <label class="tool-btn"><i class="fa-solid fa-image"></i><input type="file" id="imgLoader" accept="image/*" style="display:none"></label>
+            <div style="height:1px; background:#555; margin:5px 0;"></div>
+            <button class="tool-btn" onclick="deleteObj()"><i class="fa-solid fa-trash"></i></button>
+            <button class="tool-btn" onclick="clearCanvas()"><i class="fa-solid fa-eraser"></i></button>
+        </div>
+
+        <div class="host-panel interactive" id="hostPanel">
+            <div style="margin-bottom:5px; color:#ff00ff; font-weight:bold;">房主設定</div>
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="permToggle" onchange="togglePerm()"> 允許訪客編輯
+            </label>
+        </div>
+
+        <div class="page-ctrl interactive">
+            <button class="tool-btn" style="width:30px; height:30px;" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="pageDisplay" style="font-family:monospace; font-weight:bold;">P.1</span>
+            <button class="tool-btn" style="width:30px; height:30px;" onclick="changePage(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+        <div class="lock-msg interactive" id="lockMsg">
+            <i class="fa-solid fa-lock"></i> 畫布已鎖定
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // 🔥 Config (保留您的設定)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        const auth = getAuth(app);
+
+        // --- 變數 ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+        const userRole = urlParams.get('role');
+        let currentPage = 1;
+        let isReceiving = false;
+        let canEdit = false;
+
+        document.getElementById('roomCode').innerText = roomId;
+
+        // --- Fabric Canvas ---
+        const canvas = new fabric.Canvas('c', {
+            isDrawingMode: false,
+            selection: true
+        });
+
+        function resize() {
+            canvas.setWidth(window.innerWidth);
+            canvas.setHeight(window.innerHeight);
+            canvas.renderAll();
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Firebase ---
+        const roomRef = doc(db, "rooms", roomId);
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) { window.location.href = 'login.html'; return; }
+
+            // 房主初始化
+            if (userRole === 'host') {
+                canEdit = true;
+                document.getElementById('hostPanel').style.display = 'block';
+                updateStatus("房主模式 (可編輯)");
+            } else {
+                updateStatus("訪客模式 (等待權限...)");
+                setLock(true); // 訪客預設鎖定
+            }
+
+            onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+
+                    // 權限同步
+                    if (userRole !== 'host') {
+                        canEdit = data.guestsCanEdit;
+                        setLock(!canEdit);
+                        updateStatus(canEdit ? "訪客 (可編輯)" : "訪客 (已鎖定)");
+                    } else {
+                        document.getElementById('permToggle').checked = data.guestsCanEdit;
+                    }
+
+                    // 畫布同步
+                    if (data.activePage && data.activePage !== currentPage) {
+                        currentPage = data.activePage;
+                        document.getElementById('pageDisplay').innerText = `P.${currentPage}`;
+                        loadJson(data.pages?.[currentPage]);
+                    } else {
+                        const pageData = data.pages?.[currentPage];
+                        if (pageData && pageData !== JSON.stringify(canvas.toJSON())) {
+                            loadJson(pageData);
+                        }
+                    }
+                }
+            });
+        });
+
+        function loadJson(json) {
+            if (!json) { canvas.clear(); return; }
+            isReceiving = true;
+            canvas.loadFromJSON(json, () => {
+                canvas.requestRenderAll();
+                isReceiving = false;
+            });
+        }
+
+        const save = () => {
+            if (isReceiving || !canEdit) return;
+            document.getElementById('debug-status').innerText = "儲存中...";
+            const json = JSON.stringify(canvas.toJSON());
+            updateDoc(roomRef, { [`pages.${currentPage}`]: json })
+                .then(() => updateStatus("已同步"))
+                .catch(e => console.error(e));
+        };
+
+        canvas.on('object:added', save);
+        canvas.on('object:modified', save);
+        canvas.on('object:removed', save);
+        canvas.on('path:created', save);
+
+        // --- 全域功能 ---
+
+        window.setMode = (mode) => {
+            if (!canEdit) return;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'draw') {
+                document.getElementById('btn-draw').classList.add('active');
+                canvas.isDrawingMode = true;
+                canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+                canvas.freeDrawingBrush.width = 5;
+                canvas.freeDrawingBrush.color = document.getElementById('colorPicker').value;
+                updateStatus("模式: 畫筆");
+            } else {
+                document.getElementById('btn-select').classList.add('active');
+                canvas.isDrawingMode = false;
+                updateStatus("模式: 選擇");
+            }
+        };
+
+        window.setColor = (hex) => {
+            if(canvas.freeDrawingBrush) canvas.freeDrawingBrush.color = hex;
+            const active = canvas.getActiveObject();
+            if(active) {
+                if(active.set && (active.type === 'i-text' || active.type === 'text')) active.set('fill', hex);
+                else active.set('stroke', hex);
+                canvas.requestRenderAll();
+                save();
+            }
+        };
+
+        window.addText = () => {
+            if (!canEdit) return;
+            const text = new fabric.IText('Text', { 
+                left: canvas.width/2, top: canvas.height/2, fontSize: 30, fill: document.getElementById('colorPicker').value 
+            });
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            text.enterEditing();
+            text.selectAll();
+            setMode('select');
+            save();
+        };
+
+        window.deleteObj = () => {
+            if (!canEdit) return;
+            const active = canvas.getActiveObject();
+            if (active) {
+                if(active.type === 'activeSelection') active.getObjects().forEach(o => canvas.remove(o));
+                else canvas.remove(active);
+                canvas.discardActiveObject();
+                save();
+            }
+        };
+
+        window.clearCanvas = () => {
+            if (!canEdit && !confirm("清空？")) return;
+            canvas.clear();
+            save();
+        };
+
+        window.togglePerm = () => {
+            updateDoc(roomRef, { guestsCanEdit: document.getElementById('permToggle').checked });
+        };
+
+        window.changePage = (d) => {
+            if(!canEdit && userRole !== 'host') return;
+            if(currentPage + d < 1) return;
+            updateDoc(roomRef, { activePage: currentPage + d });
+        };
+
+        // 圖片上傳
+        document.getElementById('imgLoader').addEventListener('change', async (e) => {
+            if(!canEdit) return;
+            const file = e.target.files[0];
+            if(!file) return;
+            updateStatus("圖片上傳中...");
+            try {
+                const storageRef = ref(storage, `whiteboard/${roomId}/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, file);
+                const url = await getDownloadURL(storageRef);
+                fabric.Image.fromURL(url, (img) => {
+                    img.scaleToWidth(200);
+                    canvas.add(img);
+                    save();
+                    updateStatus("圖片已新增");
+                    setMode('select');
+                }, { crossOrigin: 'anonymous' });
+            } catch(err) { alert("上傳失敗"); }
+        });
+
+        // 輔助函式
+        function setLock(locked) {
+            const overlay = document.getElementById('lockMsg');
+            const toolbar = document.getElementById('toolbar');
+            
+            if (locked) {
+                overlay.style.display = 'block';
+                toolbar.style.opacity = 0.5;
+                toolbar.style.pointerEvents = 'none'; // 禁止點擊工具列
+                canvas.isDrawingMode = false;
+                canvas.selection = false;
+                canvas.discardActiveObject();
+                canvas.renderAll();
+            } else {
+                overlay.style.display = 'none';
+                toolbar.style.opacity = 1;
+                toolbar.style.pointerEvents = 'auto'; // 恢復點擊
+                canvas.selection = true;
+            }
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('debug-status').innerText = msg;
+        }
+
+        // 快捷鍵刪除
+        window.addEventListener('keydown', (e) => {
+            if((e.key === 'Delete' || e.key === 'Backspace') && canEdit) deleteObj();
+        });
+
+    </script>
+</body>
+</html>

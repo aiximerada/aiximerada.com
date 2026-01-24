@@ -10,150 +10,170 @@
             --bg-gradient: linear-gradient(135deg, #0b1021 0%, #2c1a4e 100%);
             --suisei-cyan: #3bc6e4;
             --neon-gold: #f2c94c;
-            --neon-pink: #ff4757;
-            --neon-green: #00ff9d;
+            --neon-pink: #ff00ff;
+            --glass-card: rgba(255, 255, 255, 0.05);
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
             background: var(--bg-gradient);
             color: #fff;
             min-height: 100vh;
-            margin: 0; 
-            /* 移除 opacity 設定，改用 Loading 遮罩控制 */
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; opacity: 0; transition: opacity 0.5s;
+            padding-bottom: 50px;
         }
-        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
-
-        /* --- ⏳ 全螢幕載入遮罩 (防誤觸核心) --- */
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b1021; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease-out;
-        }
-        .loader {
-            width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: var(--suisei-cyan); border-radius: 50%;
-            animation: spin 1s infinite linear; margin-bottom: 20px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: var(--suisei-cyan); letter-spacing: 2px; font-weight: bold; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-
-        /* --- 主內容區 (預設隱藏) --- */
-        #main-content { display: none; flex-direction: column; align-items: center; width: 100%; opacity: 0; transition: opacity 0.5s; }
-        #main-content.visible { opacity: 1; }
-
-        .header { text-align: center; margin-top: 60px; margin-bottom: 40px; }
-        h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin-bottom: 10px; }
         
-        .role-badge { 
-            padding: 5px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; letter-spacing: 1px;
-            text-transform: uppercase; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.3);
-        }
-        .role-admin { color: var(--neon-pink); border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
-        .role-merchant { color: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 255, 157, 0.3); }
-        .role-member { color: var(--suisei-cyan); border-color: var(--suisei-cyan); }
-
+        /* Logout 按鈕 */
         .logout-btn {
             position: absolute; top: 20px; right: 20px;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #fff; padding: 8px 15px; border-radius: 20px; cursor: pointer;
-            transition: 0.3s;
+            transition: 0.3s; z-index: 20;
         }
-        .logout-btn:hover { background: var(--neon-pink); border-color: var(--neon-pink); }
+        .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
+        .header { text-align: center; margin-top: 40px; margin-bottom: 30px; }
+        h1 { font-size: 2rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0; }
+        
+        /* --- 💳 VIP 卡片設計 --- */
+        .vip-card-container {
+            perspective: 1000px;
+            margin-bottom: 40px;
+            width: 90%; max-width: 420px;
+        }
+        .vip-card {
+            width: 100%; aspect-ratio: 1.58/1; /* 信用卡比例 */
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(255,255,255,0.05);
+            padding: 25px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+            transition: transform 0.5s;
+        }
+        .vip-card:hover { transform: rotateY(5deg) rotateX(5deg); }
+        
+        /* 全息光澤特效 */
+        .vip-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg); animation: shine 6s infinite; pointer-events: none;
+        }
+        @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 20% { transform: translateX(100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card-logo { font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; color: var(--suisei-cyan); display: flex; align-items: center; gap: 10px; }
+        .card-rank { background: var(--neon-gold); color: #000; padding: 2px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; }
+        
+        .card-chip { margin-top: 15px; display: flex; align-items: center; gap: 15px; }
+        .chip-icon { font-size: 2.5rem; color: #ddd; text-shadow: 1px 1px 2px #000; }
+        .wifi-icon { font-size: 1.5rem; transform: rotate(90deg); opacity: 0.7; }
+
+        .card-bottom { margin-top: auto; }
+        .card-number { font-family: 'Courier New', monospace; font-size: 1.4rem; letter-spacing: 3px; margin-bottom: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        .card-info { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.9rem; color: #ccc; }
+        .info-group { display: flex; flex-direction: column; }
+        .info-label { font-size: 0.6rem; color: #888; margin-bottom: 2px; }
+        .info-value { color: #fff; font-weight: bold; letter-spacing: 1px; }
+
+        /* --- 功能網格 --- */
         .secret-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px; width: 90%; max-width: 1000px; padding-bottom: 50px;
+            gap: 25px; width: 90%; max-width: 1000px;
         }
 
         .secret-card {
-            display: none; /* 預設隱藏，權限判定後開啟 */
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
             padding: 30px; border-radius: 20px;
             text-decoration: none; color: #fff;
             transition: 0.3s; position: relative; overflow: hidden;
-            flex-direction: column; align-items: center; text-align: center;
-            backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
         }
-        .secret-card.show { display: flex; animation: fadeIn 0.5s ease-up; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .secret-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.1); border-color: var(--card-color); box-shadow: 0 0 30px var(--card-glow); }
-        .secret-card i { font-size: 3rem; margin-bottom: 15px; color: var(--card-color); transition: 0.3s; }
-        .tag { position: absolute; top: 12px; right: 12px; font-size: 0.7rem; padding: 3px 10px; border-radius: 10px; font-weight: bold; color: #000; }
-
-        .theme-upload { --card-color: var(--neon-gold); --card-glow: rgba(242, 201, 76, 0.3); }
-        .theme-gallery { --card-color: var(--suisei-cyan); --card-glow: rgba(59, 198, 228, 0.3); }
-        .theme-shop { --card-color: var(--neon-green); --card-glow: rgba(0, 255, 157, 0.3); }
-        .theme-lab { --card-color: var(--neon-pink); --card-glow: rgba(255, 71, 87, 0.3); }
-        .theme-home { --card-color: #fff; --card-glow: rgba(255,255,255,0.2); }
+        .secret-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.05); }
+        .secret-card i { font-size: 3rem; margin-bottom: 15px; }
+        .secret-card h3 { margin: 0 0 10px 0; }
+        .secret-card p { color: #aaa; font-size: 0.9rem; margin: 0; }
+        .tag { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: #000; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">
-        <div class="loader"></div>
-        <div class="loading-text">身分識別中...</div>
+    <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
+
+    <div class="header">
+        <h1>會員核心專區</h1>
+        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">ACCESS GRANTED</p>
     </div>
 
-    <div class="stars-bg"></div>
-
-    <div id="main-content">
-        <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
-
-        <div class="header">
-            <h1><i class="fa-solid fa-crown"></i> 會員核心專區</h1>
-            <p>
-                歡迎，<span id="user-email">...</span>
-                <span id="role-display" class="role-badge" style="display:none">LOADING</span>
-            </p>
+    <div class="vip-card-container">
+        <div class="vip-card">
+            <div class="card-top">
+                <div class="card-logo"><i class="fa-solid fa-gem"></i> JADE PASS</div>
+                <div class="card-rank">COMMANDER</div>
+            </div>
+            <div class="card-chip">
+                <i class="fa-brands fa-cc-visa chip-icon"></i>
+                <i class="fa-solid fa-wifi wifi-icon"></i>
+            </div>
+            <div class="card-bottom">
+                <div class="card-number" id="card-uid">LOADING...</div>
+                <div class="card-info">
+                    <div class="info-group">
+                        <span class="info-label">CODENAME</span>
+                        <span class="info-value" id="card-name">---</span>
+                    </div>
+                    <div class="info-group" style="text-align: right;">
+                        <span class="info-label">SINCE</span>
+                        <span class="info-value" id="card-date">--/--</span>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
 
-        <div class="secret-grid">
-            
-            <a href="upload_zone.html" class="secret-card theme-upload group-member">
-                <span class="tag" style="background: var(--neon-gold);">HOT</span>
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-                <h3>圖片上傳</h3>
-                <p>批量上傳您的圖片至雲端。</p>
-            </a>
+    <div class="secret-grid">
+        
+        <a href="whiteboard_lobby.html" class="secret-card" style="border-color: var(--neon-pink);">
+            <span class="tag" style="background: var(--neon-pink);">LIVE</span>
+            <i class="fa-solid fa-pen-to-square" style="color: var(--neon-pink);"></i>
+            <h3>星際白板</h3>
+            <p>多人即時協作，支援圖層與權限控管。</p>
+        </a>
 
-            <a href="admin_gallery.html" class="secret-card theme-gallery group-member">
-                <i class="fa-solid fa-images"></i>
-                <h3>圖片庫</h3>
-                <p>瀏覽與下載雲端圖片資源。</p>
-            </a>
+        <a href="ebook.html" class="secret-card" style="border-color: var(--suisei-cyan);">
+            <span class="tag" style="background: var(--suisei-cyan);">BETA</span>
+            <i class="fa-solid fa-book-open-reader" style="color: var(--suisei-cyan);"></i>
+            <h3>電子書測試</h3>
+            <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
+        </a>
 
-            <a href="shop_admin.html" class="secret-card theme-shop group-merchant">
-                <span class="tag" style="background: var(--neon-green);">STORE</span>
-                <i class="fa-solid fa-store"></i>
-                <h3>商店後台</h3>
-                <p>管理商品上架與訂單數據。</p>
-            </a>
+        <a href="upload_zone.html" class="secret-card" style="border-color: #fff;">
+            <i class="fa-solid fa-cloud-arrow-up" style="color: #fff;"></i>
+            <h3>上傳專區</h3>
+            <p>傳送圖片至星際資料庫。</p>
+        </a>
 
-            <a href="ebook.html" class="secret-card theme-lab group-admin">
-                <span class="tag" style="background: var(--neon-pink); color: #fff;">DEV</span>
-                <i class="fa-solid fa-flask"></i>
-                <h3>實驗室 (電子書)</h3>
-                <p>機密測試項目，僅限管理員存取。</p>
-            </a>
+        <a href="admin_gallery.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <i class="fa-solid fa-images" style="color: var(--neon-gold);"></i>
+            <h3>圖庫後台</h3>
+            <p>檢視與下載所有上傳內容。</p>
+        </a>
 
-            <a href="index.html" class="secret-card theme-home show">
-                <i class="fa-solid fa-house-chimney"></i>
-                <h3>返回首頁</h3>
-                <p>保持登入狀態並回到首頁。</p>
-            </a>
-
-        </div>
+        <a href="index.html" class="secret-card" style="border-color: rgba(255,255,255,0.2);">
+            <i class="fa-solid fa-house" style="color: #888;"></i>
+            <h3>返回表層</h3>
+            <p>回到一般使用者的首頁。</p>
+        </a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 Config
+        // 🔥 Config (請確保這裡的 Config 是您之前複製的那一份)
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -166,78 +186,39 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
 
-        // 監聽登入狀態
-        onAuthStateChanged(auth, async (user) => {
+        // 監聽登入並填充卡片資料
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                // 1. 設定 Email
-                document.getElementById('user-email').innerText = user.email.split('@')[0];
+                document.body.style.opacity = "1";
                 
-                // 2. 查詢權限 (這需要一點時間)
-                await checkUserRole(user);
+                // 1. 填充代號 (取 Email @ 前面的部分)
+                const codename = user.email.split('@')[0].toUpperCase();
+                document.getElementById('card-name').innerText = codename;
 
-                // 3. 所有工作完成，移除 Loading 遮罩，顯示內容
-                finishLoading();
+                // 2. 填充 UID (模擬信用卡號格式，取前16碼，每4碼加空格)
+                const uidRaw = user.uid.toUpperCase();
+                let formattedUid = "";
+                for(let i=0; i<16; i++) {
+                    if(i > 0 && i % 4 === 0) formattedUid += " ";
+                    formattedUid += uidRaw[i] || "0";
+                }
+                document.getElementById('card-uid').innerText = formattedUid;
+
+                // 3. 填充日期
+                const creationDate = new Date(user.metadata.creationTime);
+                const dateStr = `${(creationDate.getMonth()+1).toString().padStart(2,'0')}/${creationDate.getFullYear().toString().slice(-2)}`;
+                document.getElementById('card-date').innerText = dateStr;
+
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        function finishLoading() {
-            const overlay = document.getElementById('loading-overlay');
-            const main = document.getElementById('main-content');
-            
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.style.display = 'none'; // 徹底移除遮罩
-                main.style.display = 'flex';    // 顯示內容區 (flex 排版)
-                
-                // 小延遲讓 display:flex 生效後再跑 opacity 動畫
-                setTimeout(() => main.classList.add('visible'), 50);
-            }, 500);
-        }
-
-        async function checkUserRole(user) {
-            const userRef = doc(db, "users", user.uid);
-            let role = "member";
-
-            try {
-                const docSnap = await getDoc(userRef);
-                if (docSnap.exists()) {
-                    role = docSnap.data().role || "member";
-                } else {
-                    await setDoc(userRef, { email: user.email, role: "member", createdAt: new Date() });
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-            }
-            updateUIByRole(role);
-        }
-
-        function updateUIByRole(role) {
-            const badge = document.getElementById('role-display');
-            badge.style.display = "inline-block";
-            let roleName = "普通會員";
-            if (role === 'admin') roleName = "管理員 (最高權限)";
-            if (role === 'merchant') roleName = "特約商家";
-            
-            badge.innerText = roleName;
-            badge.className = `role-badge role-${role}`;
-
-            document.querySelectorAll('.group-member').forEach(el => el.classList.add('show'));
-            if (role === 'merchant' || role === 'admin') {
-                document.querySelectorAll('.group-merchant').forEach(el => el.classList.add('show'));
-            }
-            if (role === 'admin') {
-                document.querySelectorAll('.group-admin').forEach(el => el.classList.add('show'));
-            }
-        }
-
         window.handleLogout = function() {
-            if(confirm('確定要登出系統嗎？')) {
-                signOut(auth).then(() => window.location.href = 'index.html');
-            }
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => { console.error(error); });
         }
     </script>
 </body>

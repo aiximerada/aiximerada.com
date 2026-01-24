@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>白板大廳 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg-dark: #050510; --neon-pink: #ff00ff; --glass: rgba(255, 255, 255, 0.05); }
+        body { background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
+        
+        .lobby-card {
+            background: var(--glass); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            padding: 40px; width: 320px; text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.1);
+        }
+        h1 { margin-bottom: 30px; color: var(--neon-pink); text-shadow: 0 0 10px var(--neon-pink); }
+        
+        .btn { width: 100%; padding: 12px; margin: 10px 0; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem; }
+        .btn-create { background: var(--neon-pink); color: #000; }
+        .btn-create:hover { box-shadow: 0 0 20px var(--neon-pink); }
+        .btn-join { background: transparent; border: 1px solid #fff; color: #fff; }
+        .btn-join:hover { background: rgba(255,255,255,0.1); }
+
+        .input-code {
+            width: 100%; padding: 12px; border-radius: 50px; border: 1px solid #555;
+            background: rgba(0,0,0,0.3); color: #fff; text-align: center; font-size: 1.2rem; margin-bottom: 10px; box-sizing: border-box;
+        }
+        .or-divider { margin: 20px 0; color: #888; font-size: 0.9rem; }
+        .back-link { display: block; margin-top: 20px; color: #888; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="lobby-card">
+        <h1><i class="fa-solid fa-shapes"></i> 星際白板</h1>
+        
+        <button class="btn btn-create" onclick="createRoom()">
+            <i class="fa-solid fa-plus"></i> 創建新房間
+        </button>
+        
+        <div class="or-divider">- OR -</div>
+        
+        <input type="text" id="roomCode" class="input-code" placeholder="輸入 6 位邀請碼" maxlength="6">
+        <button class="btn btn-join" onclick="joinRoom()">加入房間</button>
+        
+        <a href="vip_area.html" class="back-link">返回會員區</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 Config (請貼上您的)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUser = user;
+            else window.location.href = 'login.html';
+        });
+
+        window.createRoom = async function() {
+            if(!currentUser) return;
+            // 產生 6 位數亂碼
+            const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            // 初始化房間數據
+            try {
+                await setDoc(doc(db, "rooms", roomId), {
+                    hostId: currentUser.uid,
+                    hostName: currentUser.email.split('@')[0],
+                    guestsCanEdit: false, // 預設權限：關閉
+                    activePage: 1,
+                    pages: { 1: "" }, // 畫布數據
+                    createdAt: new Date()
+                });
+                // 跳轉並帶上身分參數
+                window.location.href = `whiteboard.html?room=${roomId}&role=host`;
+            } catch (e) {
+                alert("創建失敗: " + e.message);
+            }
+        }
+
+        window.joinRoom = async function() {
+            const code = document.getElementById('roomCode').value.toUpperCase();
+            if(code.length !== 6) { alert('請輸入正確的 6 位代碼'); return; }
+
+            const docRef = doc(db, "rooms", code);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                window.location.href = `whiteboard.html?room=${code}&role=guest`;
+            } else {
+                alert("找不到此房間！");
+            }
+        }
+    </script>
+</body>
+</html>
