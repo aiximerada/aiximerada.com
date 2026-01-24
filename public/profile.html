@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>指揮官檔案設定 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg-dark: #0b1021; --glass: rgba(255, 255, 255, 0.05); --accent: #00f3ff; }
+        body {
+            background: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+        }
+
+        .container {
+            width: 90%; max-width: 450px;
+            background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            padding: 40px; box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        h2 { text-align: center; margin-bottom: 30px; text-shadow: 0 0 10px var(--accent); }
+
+        /* 頭像上傳區 */
+        .avatar-wrapper {
+            width: 120px; height: 120px; margin: 0 auto 30px; position: relative;
+        }
+        .avatar-img {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+            border: 3px solid var(--accent); box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+            background: #000;
+        }
+        .upload-btn {
+            position: absolute; bottom: 0; right: 0;
+            width: 35px; height: 35px; background: #fff; border-radius: 50%;
+            color: #000; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; border: 2px solid var(--bg-dark);
+        }
+        .upload-btn:hover { background: var(--accent); }
+
+        /* 表單樣式 */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
+        input[type="text"], textarea {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; border-radius: 8px; color: #fff;
+            box-sizing: border-box; font-size: 1rem;
+        }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+        
+        .color-options { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .color-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .color-dot.active { border-color: #fff; transform: scale(1.1); }
+
+        .btn-save {
+            width: 100%; padding: 12px; border-radius: 50px; border: none;
+            background: var(--accent); color: #000; font-weight: bold; font-size: 1rem;
+            cursor: pointer; margin-top: 20px; transition: 0.3s;
+        }
+        .btn-save:hover { box-shadow: 0 0 20px var(--accent); filter: brightness(1.1); }
+        .btn-cancel {
+            display: block; text-align: center; margin-top: 15px; color: #888; text-decoration: none;
+        }
+
+        #loading { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10; border-radius:20px; display:flex; align-items:center; justify-content:center; display:none; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="loading"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:var(--accent)"></i><p style="margin-top:10px;">資料更新中...</p></div>
+
+        <h2><i class="fa-solid fa-id-card"></i> 檔案設定</h2>
+
+        <div class="avatar-wrapper">
+            <img src="https://via.placeholder.com/150" id="avatarPreview" class="avatar-img">
+            <label class="upload-btn" for="fileInput">
+                <i class="fa-solid fa-camera"></i>
+            </label>
+            <input type="file" id="fileInput" accept="image/*" style="display:none">
+        </div>
+
+        <div class="form-group">
+            <label>指揮官代號 (暱稱)</label>
+            <input type="text" id="displayName" placeholder="輸入您的稱呼">
+        </div>
+
+        <div class="form-group">
+            <label>個性簽名 (Bio)</label>
+            <textarea id="bio" rows="3" placeholder="寫下一句座右銘..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>介面代表色</label>
+            <div class="color-options" id="colorOptions">
+                <div class="color-dot" style="background:#00f3ff" data-color="#00f3ff"></div> <div class="color-dot" style="background:#ff00ff" data-color="#ff00ff"></div> <div class="color-dot" style="background:#f2c94c" data-color="#f2c94c"></div> <div class="color-dot" style="background:#00ff9d" data-color="#00ff9d"></div> <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div> </div>
+        </div>
+
+        <button class="btn-save" onclick="saveProfile()">儲存變更</button>
+        <a href="vip_area.html" class="btn-cancel">返回會員區</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const storage = getStorage(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let selectedFile = null;
+        let selectedColor = '#00f3ff';
+
+        // 初始化
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // 1. 載入 Auth 基本資料
+                document.getElementById('displayName').value = user.displayName || user.email.split('@')[0];
+                document.getElementById('avatarPreview').src = user.photoURL || 'https://via.placeholder.com/150';
+
+                // 2. 載入 Firestore 額外資料 (Bio, Color)
+                const docRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.bio) document.getElementById('bio').value = data.bio;
+                    if(data.themeColor) selectColor(data.themeColor);
+                } else {
+                    selectColor('#00f3ff');
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // 圖片預覽
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('avatarPreview').src = URL.createObjectURL(file);
+            }
+        });
+
+        // 顏色選擇邏輯
+        window.selectColor = (color) => {
+            selectedColor = color;
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.classList.remove('active');
+                if(dot.getAttribute('data-color') === color) dot.classList.add('active');
+            });
+            document.documentElement.style.setProperty('--accent', color);
+        };
+
+        // 綁定顏色點擊事件
+        document.querySelectorAll('.color-dot').forEach(dot => {
+            dot.addEventListener('click', () => selectColor(dot.getAttribute('data-color')));
+        });
+
+        // 儲存邏輯
+        window.saveProfile = async () => {
+            if (!currentUser) return;
+            document.getElementById('loading').style.display = 'flex';
+
+            try {
+                let newPhotoURL = currentUser.photoURL;
+
+                // 1. 上傳圖片 (如果有選)
+                if (selectedFile) {
+                    const storageRef = ref(storage, `avatars/${currentUser.uid}.jpg`);
+                    await uploadBytes(storageRef, selectedFile);
+                    newPhotoURL = await getDownloadURL(storageRef);
+                }
+
+                // 2. 更新 Auth Profile (暱稱 + 頭像)
+                await updateProfile(currentUser, {
+                    displayName: document.getElementById('displayName').value,
+                    photoURL: newPhotoURL
+                });
+
+                // 3. 更新 Firestore (Bio + Color + 其他擴充欄位)
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    bio: document.getElementById('bio').value,
+                    themeColor: selectedColor,
+                    email: currentUser.email
+                }, { merge: true });
+
+                alert("檔案更新成功！");
+                window.location.href = 'vip_area.html';
+
+            } catch (error) {
+                console.error(error);
+                alert("更新失敗：" + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
