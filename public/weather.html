@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>氣象指揮中心 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* 霓虹色票 */
+            --neon-blue: #00f3ff;
+            --neon-green: #00ff9d;
+            --neon-red: #ff4757;
+            --neon-yellow: #f2c94c;
+            --glass-bg: rgba(20, 30, 50, 0.6); /* 更通透的背景 */
+            --glass-border: rgba(255, 255, 255, 0.15);
+        }
+        body {
+            /* 🌌 深空星際背景 (與首頁統一) */
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            background-attachment: fixed; /* 背景固定，增加質感 */
+        }
+
+        /* 頂部導航 */
+        .header {
+            width: 100%; padding: 20px; box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px); z-index: 10;
+        }
+        .back-btn { 
+            color: #fff; text-decoration: none; font-size: 1.1rem; 
+            display: flex; align-items: center; gap: 8px; 
+            padding: 8px 12px; border-radius: 30px; background: rgba(255,255,255,0.05);
+            transition: 0.3s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.15); }
+
+        .location-badge {
+            background: rgba(0, 243, 255, 0.15); border: 1px solid var(--neon-blue);
+            color: var(--neon-blue); padding: 8px 20px; border-radius: 30px;
+            font-size: 0.9rem; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+
+        /* 主儀表板區塊 */
+        .dashboard {
+            width: 90%; max-width: 550px; margin-top: 30px;
+            display: grid; gap: 25px; padding-bottom: 40px;
+        }
+
+        /* 通用卡片樣式 (強化玻璃質感) */
+        .glass-card {
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border);
+            border-radius: 25px; padding: 30px; text-align: center;
+            position: relative; overflow: hidden; 
+            backdrop-filter: blur(20px); /* 強力毛玻璃 */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s;
+        }
+
+        /* 目前天氣主卡 */
+        .weather-main-card { padding: 40px 30px; }
+        .temp-display { 
+            font-size: 5rem; font-weight: 200; line-height: 1; 
+            text-shadow: 0 0 30px rgba(0, 243, 255, 0.5); 
+            margin: 20px 0;
+        }
+        .temp-unit { font-size: 2rem; color: rgba(255,255,255,0.7); }
+        .condition-text { 
+            font-size: 1.8rem; color: var(--neon-blue); 
+            letter-spacing: 3px; font-weight: bold; text-transform: uppercase;
+        }
+        
+        /* 狀態指示燈區塊 */
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .status-box {
+            padding: 25px 15px;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+        .status-icon { font-size: 3rem; filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+        .status-label { font-size: 1rem; color: #aaa; letter-spacing: 1px; }
+        .status-value { 
+            font-size: 1.3rem; font-weight: bold; padding: 8px 15px; 
+            border-radius: 12px; width: 90%; white-space: nowrap;
+            border: 2px solid transparent;
+        }
+        
+        /* 狀態顏色定義 */
+        .go { color: #000; background: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 20px var(--neon-green); }
+        .caution { color: #000; background: var(--neon-yellow); border-color: var(--neon-yellow); box-shadow: 0 0 20px var(--neon-yellow); }
+        .stop { color: #fff; background: var(--neon-red); border-color: var(--neon-red); box-shadow: 0 0 20px var(--neon-red); }
+
+        /* 詳細數據網格 */
+        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .detail-item {
+            background: rgba(255,255,255,0.05); padding: 20px 10px; border-radius: 20px;
+            text-align: center; border: 1px solid var(--glass-border);
+            transition: 0.3s;
+        }
+        .detail-item:hover { background: rgba(255,255,255,0.1); transform: translateY(-5px); }
+        .detail-icon { font-size: 1.8rem; margin-bottom: 10px; color: var(--neon-blue); }
+        .detail-value { font-size: 1.4rem; font-weight: bold; color: #fff; margin-bottom: 5px; }
+        .detail-label { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+        /* 掃描線動畫 */
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            opacity: 0.7; animation: scan 4s infinite ease-in-out; pointer-events: none;
+        }
+        @keyframes scan { 0% {top: 0; opacity:0;} 50% {opacity:1;} 100% {top: 100%; opacity:0;} }
+        
+        #loading { 
+            margin-top: 100px; font-size: 1.3rem; color: var(--neon-blue); 
+            display: flex; flex-direction: column; align-items: center; gap: 20px; 
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        .fa-spinner { font-size: 3rem; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <div class="location-badge">
+            <i class="fa-solid fa-satellite-dish"></i> <span id="locName">定位中...</span>
+        </div>
+    </div>
+
+    <div id="loading">
+        <i class="fa-solid fa-spinner fa-spin"></i> 
+        <div>正在連線衛星氣象站...</div>
+    </div>
+
+    <div class="dashboard" id="dashboard" style="display:none;">
+        
+        <div class="glass-card weather-main-card">
+            <div class="scan-line"></div>
+            <div style="color:var(--neon-blue); letter-spacing: 2px;">CURRENT TEMP</div>
+            <div class="temp-display"><span id="temp">--</span><span class="temp-unit">°C</span></div>
+            <div class="condition-text" id="condition">---</div>
+        </div>
+
+        <div class="status-grid">
+            <div class="glass-card status-box">
+                <i class="fa-solid fa-motorcycle status-icon" style="color:#fff;"></i>
+                <div class="status-label">騎行判定</div>
+                <div id="rideStatus" class="status-value">分析中</div>
+            </div>
+            
+            <div class="glass-card status-box">
+                <i class="fa-solid fa-plane-up status-icon" style="color:#fff;"></i>
+                <div class="status-label">空拍機飛行</div>
+                <div id="droneStatus" class="status-value">分析中</div>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-item">
+                <i class="fa-solid fa-wind detail-icon"></i>
+                <div class="detail-value" id="windSpeed">--</div>
+                <div class="detail-label">風速 (km/h)</div>
+            </div>
+            <div class="detail-item">
+                <i class="fa-solid fa-droplet detail-icon"></i>
+                <div class="detail-value" id="humidity">--%</div>
+                <div class="detail-label">濕度</div>
+            </div>
+            <div class="detail-item">
+                <i class="fa-solid fa-cloud-showers-heavy detail-icon"></i>
+                <div class="detail-value" id="rainProb">--</div>
+                <div class="detail-label">降雨機率</div>
+            </div>
+        </div>
+        
+        <div style="text-align:center; font-size:0.8rem; color:rgba(255,255,255,0.4); margin-top:10px;">
+            Data Source: Open-Meteo / GPS
+        </div>
+
+    </div>
+
+    <script>
+        // 初始化
+        window.onload = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(success, error);
+            } else {
+                alert("瀏覽器不支援定位");
+                fetchWeather(25.03, 121.56); // 預設台北
+            }
+        };
+
+        function success(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            document.getElementById('locName').innerText = `GPS: ${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+            fetchWeather(lat, lng);
+        }
+
+        function error() {
+            document.getElementById('loading').innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i><div>無法取得位置，使用預設座標</div>";
+            setTimeout(() => fetchWeather(25.03, 121.56), 1500);
+        }
+
+        async function fetchWeather(lat, lng) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,wind_speed_10m,wind_gusts_10m&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                renderUI(data.current);
+            } catch(e) {
+                console.error(e);
+                document.getElementById('loading').innerHTML = "<i class='fa-solid fa-xmark'></i><div>連線失敗，請檢查網路</div>";
+            }
+        }
+
+        function renderUI(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'grid';
+
+            // 1. 基礎數據 (風速在這裡!)
+            document.getElementById('temp').innerText = Math.round(data.temperature_2m);
+            document.getElementById('windSpeed').innerText = data.wind_speed_10m.toFixed(1); // 顯示到小數點後一位
+            document.getElementById('humidity').innerText = data.relative_humidity_2m;
+            document.getElementById('rainProb').innerText = data.precipitation > 0 ? "高" : "低"; 
+            
+            // 天氣代碼轉換
+            const code = data.weather_code;
+            let conditionText = "晴朗";
+            if(code > 3) conditionText = "多雲";
+            if(code > 45) conditionText = "起霧";
+            if(code > 50) conditionText = "有雨";
+            if(code > 80) conditionText = "雷雨";
+            document.getElementById('condition').innerText = conditionText;
+
+            // 2. 判定邏輯
+            const wind = data.wind_speed_10m;
+            const gusts = data.wind_gusts_10m;
+            const rain = data.precipitation;
+            
+            const rideEl = document.getElementById('rideStatus');
+            if (rain >= 1.0 || wind > 50 || gusts > 70) {
+                rideEl.innerText = "危險 (勿騎)"; rideEl.className = "status-value stop";
+            } else if (rain > 0 || wind > 30) {
+                rideEl.innerText = "注意濕滑/側風"; rideEl.className = "status-value caution";
+            } else {
+                rideEl.innerText = "適合出發"; rideEl.className = "status-value go";
+            }
+
+            const droneEl = document.getElementById('droneStatus');
+            if (rain > 0 || wind > 35 || gusts > 50) {
+                droneEl.innerText = "禁飛 (NO FLY)"; droneEl.className = "status-value stop";
+            } else if (wind > 20) {
+                droneEl.innerText = "風大注意"; droneEl.className = "status-value caution";
+            } else {
+                droneEl.innerText = "准許飛行"; droneEl.className = "status-value go";
+            }
+        }
+    </script>
+</body>
+</html>
