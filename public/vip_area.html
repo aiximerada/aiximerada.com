@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #2c1a4e 100%);
-            --accent: #00f3ff; /* 這個變數會被 JS 動態修改 */
+            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
+            --suisei-cyan: #3bc6e4;
             --neon-gold: #f2c94c;
+            --neon-pink: #ff00ff;
+            --neon-green: #28a745;
+            --glass: rgba(255, 255, 255, 0.05);
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -21,129 +24,122 @@
             padding-bottom: 50px;
         }
         
+        /* Logout 按鈕 */
         .logout-btn {
             position: absolute; top: 20px; right: 20px;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #fff; padding: 8px 15px; border-radius: 20px; cursor: pointer;
-            transition: 0.3s; z-index: 20;
+            transition: 0.3s; z-index: 20; display: flex; align-items: center; gap: 5px;
         }
         .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
-        .header { text-align: center; margin-top: 40px; margin-bottom: 30px; }
-        h1 { font-size: 2rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0; }
+        /* 標題區 */
+        .header { text-align: center; margin-top: 60px; margin-bottom: 40px; position: relative; z-index: 2; }
+        h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0 0 10px 0; }
         
-        /* --- 💳 VIP 卡片設計 (升級版) --- */
-        .vip-card-container { perspective: 1000px; margin-bottom: 40px; width: 90%; max-width: 420px; position: relative; }
-        
-        .vip-card {
-            width: 100%; aspect-ratio: 1.58/1;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
-            backdrop-filter: blur(20px); border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-left: 5px solid var(--accent); /* 使用者代表色 */
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            padding: 25px; box-sizing: border-box;
-            display: flex; flex-direction: column; justify-content: space-between;
-            position: relative; overflow: hidden; transition: transform 0.5s;
+        .user-greeting { 
+            color: #aaa; font-size: 1.1rem; letter-spacing: 1px; 
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        .vip-card:hover { transform: rotateY(5deg) rotateX(5deg); }
-        .vip-card::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg); animation: shine 6s infinite; pointer-events: none;
-        }
-        @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 20% { transform: translateX(100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
-
-        .card-top { display: flex; justify-content: space-between; align-items: center; }
-        .card-logo { font-size: 1.1rem; font-weight: 900; letter-spacing: 1px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-        .card-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
-
-        .card-middle { margin-top: 15px; }
-        .user-bio { font-size: 0.85rem; color: #aaa; font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        .card-bottom { margin-top: auto; }
-        .user-name { font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); color: #fff; }
-        .card-meta { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.8rem; color: #ccc; }
-
-        /* 編輯按鈕 */
-        .edit-btn {
-            position: absolute; bottom: -20px; right: 10px;
-            background: var(--accent); color: #000;
-            padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 0.9rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.3s;
-            display: flex; align-items: center; gap: 5px;
-        }
-        .edit-btn:hover { transform: translateY(-3px); box-shadow: 0 0 15px var(--accent); color: #000; }
+        .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--suisei-cyan); }
+        .user-id { color: var(--suisei-cyan); font-weight: bold; text-transform: uppercase; }
 
         /* --- 功能網格 --- */
-        .secret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1000px; }
+        .secret-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px; width: 90%; max-width: 1000px;
+            position: relative; z-index: 2;
+        }
+
         .secret-card {
-            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255,255,255,0.1);
-            padding: 30px; border-radius: 20px; text-decoration: none; color: #fff;
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 30px; border-radius: 20px;
+            text-decoration: none; color: #fff;
             transition: 0.3s; position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; text-align: center;
+            backdrop-filter: blur(10px);
         }
-        .secret-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.05); }
-        .secret-card i { font-size: 3rem; margin-bottom: 15px; }
-        .tag { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: #000; }
+        .secret-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .secret-card i { font-size: 3rem; margin-bottom: 15px; transition: 0.3s; }
+        .secret-card:hover i { transform: scale(1.1); }
+        
+        .secret-card h3 { margin: 0 0 10px 0; font-size: 1.3rem; letter-spacing: 1px; }
+        .secret-card p { color: #aaa; font-size: 0.9rem; margin: 0; line-height: 1.5; }
+        
+        /* 標籤 Tag */
+        .tag { 
+            position: absolute; top: 15px; right: 15px; 
+            font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; 
+            font-weight: bold; color: #000; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* 背景特效 */
+        .bg-glow {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 600px; height: 600px; background: radial-gradient(circle, rgba(59, 198, 228, 0.1), transparent 70%);
+            z-index: 0; pointer-events: none;
+        }
     </style>
 </head>
 <body>
-    <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> 登出</button>
+    <div class="bg-glow"></div>
+
+    <button class="logout-btn" onclick="handleLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> 登出
+    </button>
 
     <div class="header">
         <h1>會員核心專區</h1>
-        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">ACCESS GRANTED</p>
-    </div>
-
-    <div class="vip-card-container">
-        <div class="vip-card" id="vipCard">
-            <div class="card-top">
-                <div class="card-logo"><i class="fa-solid fa-gem"></i> JADE PASS</div>
-                <img src="" id="card-avatar" class="card-avatar">
-            </div>
-            <div class="card-middle">
-                <div class="user-bio" id="card-bio">Loading profile...</div>
-            </div>
-            <div class="card-bottom">
-                <div class="user-name" id="card-name">---</div>
-                <div class="card-meta">
-                    <span id="card-uid">ID: ---</span>
-                    <span id="card-date">SINCE: --/--</span>
-                </div>
-            </div>
+        <div class="user-greeting">
+            <img src="" id="header-avatar" class="user-avatar" style="display:none">
+            <span>指揮官</span>
+            <span id="current-user" class="user-id">---</span>
         </div>
-        
-        <a href="profile.html" class="edit-btn">
-            <i class="fa-solid fa-pen"></i> 編輯檔案
-        </a>
     </div>
 
     <div class="secret-grid">
-        <a href="whiteboard_lobby.html" class="secret-card" style="border-color: #ff00ff;">
-            <span class="tag" style="background: #ff00ff;">LIVE</span>
-            <i class="fa-solid fa-pen-to-square" style="color: #ff00ff;"></i>
-            <h3>星際白板</h3>
-            <p>多人即時協作，支援圖層與權限控管。</p>
+        
+        <a href="profile.html" class="secret-card" style="border-color: #fff;">
+            <i class="fa-solid fa-id-card" style="color: #fff;"></i>
+            <h3>檔案設定</h3>
+            <p>修改頭像、暱稱與個人化配色。</p>
         </a>
-        <a href="ebook.html" class="secret-card" style="border-color: #3bc6e4;">
-            <span class="tag" style="background: #3bc6e4;">BETA</span>
-            <i class="fa-solid fa-book-open-reader" style="color: #3bc6e4;"></i>
+
+        <a href="parking_map.html" class="secret-card" style="border-color: var(--neon-green);">
+            <span class="tag" style="background: var(--neon-green);">NEW</span>
+            <i class="fa-solid fa-motorcycle" style="color: var(--neon-green);"></i>
+            <h3>騎士據點</h3>
+            <p>全台重機友善停車地圖，一鍵導航。</p>
+        </a>
+
+        <a href="whiteboard_lobby.html" class="secret-card" style="border-color: var(--neon-pink);">
+            <span class="tag" style="background: var(--neon-pink);">LIVE</span>
+            <i class="fa-solid fa-pen-to-square" style="color: var(--neon-pink);"></i>
+            <h3>星際白板</h3>
+            <p>多人即時協作，圖層與權限控管。</p>
+        </a>
+
+        <a href="ebook.html" class="secret-card" style="border-color: var(--suisei-cyan);">
+            <i class="fa-solid fa-book-open-reader" style="color: var(--suisei-cyan);"></i>
             <h3>電子書測試</h3>
             <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
         </a>
-        <a href="upload_zone.html" class="secret-card" style="border-color: #fff;">
-            <i class="fa-solid fa-cloud-arrow-up" style="color: #fff;"></i>
+
+        <a href="upload_zone.html" class="secret-card" style="border-color: #aaa;">
+            <i class="fa-solid fa-cloud-arrow-up" style="color: #aaa;"></i>
             <h3>上傳專區</h3>
             <p>傳送圖片至星際資料庫。</p>
         </a>
-        <a href="admin_gallery.html" class="secret-card" style="border-color: #f2c94c;">
-            <i class="fa-solid fa-images" style="color: #f2c94c;"></i>
+
+        <a href="admin_gallery.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <i class="fa-solid fa-images" style="color: var(--neon-gold);"></i>
             <h3>圖庫後台</h3>
             <p>檢視與下載所有上傳內容。</p>
         </a>
+
         <a href="index.html" class="secret-card" style="border-color: rgba(255,255,255,0.2);">
-            <i class="fa-solid fa-house" style="color: #888;"></i>
+            <i class="fa-solid fa-house" style="color: #666;"></i>
             <h3>返回表層</h3>
             <p>回到一般使用者的首頁。</p>
         </a>
@@ -169,38 +165,34 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // 監聽登入
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.style.opacity = "1";
                 
-                // 1. 填入 Auth 資訊 (頭像, 暱稱, UID, 日期)
-                document.getElementById('card-name').innerText = (user.displayName || "指揮官").toUpperCase();
-                document.getElementById('card-avatar').src = user.photoURL || "https://via.placeholder.com/150";
-                
-                const uidRaw = user.uid.toUpperCase();
-                document.getElementById('card-uid').innerText = "ID: " + uidRaw.substring(0, 8); // 只顯示前8碼
+                // 顯示基本資料
+                const name = user.displayName || user.email.split('@')[0];
+                document.getElementById('current-user').innerText = name;
 
-                const creationDate = new Date(user.metadata.creationTime);
-                document.getElementById('card-date').innerText = `SINCE: ${(creationDate.getMonth()+1).toString().padStart(2,'0')}/${creationDate.getFullYear().toString().slice(-2)}`;
+                // 顯示頭像 (如果有)
+                if (user.photoURL) {
+                    const avatar = document.getElementById('header-avatar');
+                    avatar.src = user.photoURL;
+                    avatar.style.display = 'block';
+                }
 
-                // 2. 讀取 Firestore 額外資訊 (Bio, Theme Color)
+                // 讀取個人化顏色設定 (Theme Color)
                 try {
-                    const docRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        if(data.bio) document.getElementById('card-bio').innerText = data.bio;
-                        else document.getElementById('card-bio').innerText = "這位指揮官很懶，什麼都沒寫...";
-
-                        if(data.themeColor) {
-                            // 動態修改 CSS 變數，改變卡片邊框和文字顏色
-                            document.documentElement.style.setProperty('--accent', data.themeColor);
+                        if (data.themeColor) {
+                            // 動態改變歡迎文字的顏色
+                            document.querySelector('.user-id').style.color = data.themeColor;
+                            document.querySelector('.header h1').style.textShadow = `0 0 20px ${data.themeColor}`;
                         }
-                    } else {
-                        document.getElementById('card-bio').innerText = "歡迎加入玉露寶庫";
                     }
-                } catch(e) { console.error(e); }
+                } catch(e) { console.log("Profile load error", e); }
 
             } else {
                 window.location.href = "login.html";
@@ -208,7 +200,9 @@
         });
 
         window.handleLogout = function() {
-            signOut(auth).then(() => { window.location.href = 'index.html'; });
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => { console.error(error); });
         }
     </script>
 </body>

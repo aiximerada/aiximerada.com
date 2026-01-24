@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>騎士據點 - 重機停泊圖</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-panel: rgba(255, 255, 255, 0.98);
+            --text-color: #333;
+            --input-bg: #f5f5f5;
+            --border-color: #ddd;
+            --accent: #007bff;
+            --shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        [data-theme="dark"] {
+            --bg-panel: rgba(40, 40, 40, 0.98);
+            --text-color: #eee;
+            --input-bg: #555;
+            --border-color: #666;
+            --accent: #00d2ff;
+            --shadow: 0 4px 15px rgba(0,0,0,0.8);
+        }
+        
+        [data-theme="dark"] select option { background-color: #333; color: #fff; }
+
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Microsoft JhengHei', sans-serif; }
+
+        #map { width: 100%; height: 100%; z-index: 1; background: #333; }
+
+        /* 搜尋欄 */
+        .search-box {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px;
+            background: var(--bg-panel); color: var(--text-color);
+            border-radius: 50px; padding: 8px 20px;
+            display: flex; align-items: center; gap: 10px;
+            box-shadow: var(--shadow); z-index: 1000;
+        }
+        .search-box input { border: none; background: transparent; flex: 1; font-size: 1rem; color: var(--text-color); outline: none; }
+        .icon-btn { background: none; border: none; color: var(--text-color); font-size: 1.1rem; cursor: pointer; padding: 5px; }
+
+        /* 右側功能鍵 */
+        .control-group {
+            position: absolute; right: 20px; top: 90px;
+            display: flex; flex-direction: column; gap: 15px; z-index: 1000;
+        }
+        .float-btn {
+            width: 45px; height: 45px; border-radius: 12px;
+            background: var(--bg-panel); color: var(--text-color);
+            border: none; box-shadow: var(--shadow);
+            font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* 底部按鈕 */
+        .bottom-panel { position: absolute; bottom: 30px; right: 20px; z-index: 1000; }
+        .add-btn {
+            background: linear-gradient(135deg, #ff0055, #ff5500);
+            color: #fff; padding: 15px 25px; border-radius: 50px;
+            font-weight: bold; border: none; box-shadow: 0 5px 15px rgba(255,0,85,0.4);
+            cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 1rem;
+        }
+
+        /* 選點 UI */
+        .crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 900; pointer-events: none; display: none;
+        }
+        .crosshair i { font-size: 40px; color: #dc3545; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+        
+        .select-mode-msg {
+            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-panel); color: var(--text-color); padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; z-index: 1000; box-shadow: var(--shadow);
+            display: none; text-align: center; width: 80%;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: none; justify-content: center; align-items: end; 
+        }
+        .modal-card {
+            background: var(--bg-panel); color: var(--text-color);
+            width: 100%; max-width: 500px; border-radius: 20px 20px 0 0;
+            padding: 25px; box-sizing: border-box; animation: slideUp 0.3s;
+            max-height: 85vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from {transform: translateY(100%);} to {transform: translateY(0);} }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #888; }
+        
+        .form-input, .form-select, textarea {
+            width: 100%; padding: 12px; border-radius: 8px; 
+            border: 1px solid var(--border-color);
+            background: var(--input-bg); color: var(--text-color); 
+            font-size: 1rem; box-sizing: border-box; appearance: none;
+        }
+        
+        .btn-submit {
+            width: 100%; padding: 12px; background: #28a745; color: #fff;
+            border: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px;
+        }
+        .btn-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.5rem; color: #888; cursor: pointer; }
+
+        /* Error Banner */
+        #error-banner {
+            position: fixed; top: 0; left: 0; width: 100%; background: #ff4757; color: #fff;
+            text-align: center; padding: 10px; font-size: 0.9rem; z-index: 9999; display: none;
+        }
+
+        /* Popup 樣式優化 */
+        .custom-popup .leaflet-popup-content-wrapper { background: var(--bg-panel); color: var(--text-color); border-radius: 12px; min-width: 260px; }
+        .custom-popup .leaflet-popup-tip { background: var(--bg-panel); }
+        .popup-header { font-weight: bold; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;}
+        .info-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.9rem; }
+        .nav-btn { display: block; text-align: center; margin-top: 8px; padding: 8px; border-radius: 5px; color: #fff; text-decoration: none; font-size: 0.9rem; font-weight: bold; }
+        
+        /* 刪除按鈕 */
+        .delete-btn { background: none; border: none; color: #ff4757; cursor: pointer; font-size: 1rem; padding: 5px; }
+        .delete-btn:hover { background: rgba(255, 71, 87, 0.1); border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="error-banner"></div>
+
+    <div class="search-box">
+        <i class="fa-solid fa-location-dot" style="color:var(--accent)"></i>
+        <input type="text" id="searchInput" placeholder="搜尋地點 (例如: 101)...">
+        <button class="icon-btn" onclick="safeSearchLocation()"><i class="fa-solid fa-magnifying-glass"></i></button>
+    </div>
+
+    <div class="control-group">
+        <button class="float-btn" onclick="safeLocateMe()"><i class="fa-solid fa-crosshairs"></i></button>
+        <button class="float-btn" onclick="safeToggleTheme()"><i class="fa-solid fa-sun" id="theme-icon"></i></button>
+        <button class="float-btn" onclick="window.location.href='vip_area.html'"><i class="fa-solid fa-arrow-left"></i></button>
+    </div>
+
+    <div class="bottom-panel" id="addBtnContainer">
+        <button class="add-btn" onclick="safeStartAddMode()">
+            <i class="fa-solid fa-map-pin"></i> 回報停車位置
+        </button>
+    </div>
+
+    <div class="crosshair" id="crosshair"><i class="fa-solid fa-location-crosshairs"></i></div>
+    <div class="select-mode-msg" id="selectMsg">
+        移動地圖對準位置<br>
+        <button class="add-btn" style="margin-top:10px; width:100%; padding: 10px;" onclick="safeConfirmLocation()">
+            <i class="fa-solid fa-check"></i> 確認位置
+        </button>
+        <button class="icon-btn" style="margin-top:10px; display:block; width:100%; color:#888;" onclick="safeCancelAddMode()">取消</button>
+    </div>
+
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-card">
+            <button class="btn-close" onclick="safeCloseModal()">×</button>
+            <h3 style="margin-top:0"><i class="fa-solid fa-pen-to-square"></i> 新增據點</h3>
+            
+            <div class="form-group">
+                <label class="form-label">地點名稱</label>
+                <input type="text" id="spotName" class="form-input" placeholder="例如：xx百貨地下停車場">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="flex:1">
+                    <label class="form-label">收費方式</label>
+                    <select id="payMethod" class="form-select">
+                        <option value="free">免費</option>
+                        <option value="count">計次</option>
+                        <option value="hourly">計時</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label class="form-label">金額 (元)</label>
+                    <input type="number" id="payPrice" class="form-input" placeholder="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">進場辨識方式</label>
+                <select id="entryType" class="form-select">
+                    <option value="back_scan">後車牌掃描 (最優)</option>
+                    <option value="front_scan">前車牌掃描 (需技巧)</option>
+                    <option value="ticket">按鈕取票</option>
+                    <option value="intercom">對講機開門</option>
+                    <option value="manual">人工收費</option>
+                    <option value="open">開放式入口</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">停車格類型</label>
+                <select id="spotType" class="form-select">
+                    <option value="heavy">🟢 重機專用停車格</option>
+                    <option value="car">🔵 汽車停車格</option>
+                    <option value="scooter">🟡 機車停車格</option>
+                    <option value="no">🔴 無法停重機 (警示)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">地址</label>
+                <input type="text" id="spotAddress" class="form-input" placeholder="正在讀取..." readonly>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">備註</label>
+                <textarea id="spotDesc" class="form-input" rows="2" placeholder="路面狀況、動線提醒..."></textarea>
+            </div>
+
+            <button class="btn-submit" onclick="safeSubmitSpot()">送出回報</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        let map, dayLayer, nightLayer, isDarkMode = false;
+        let selectedLat, selectedLng;
+        let db = null;
+
+        try {
+            map = L.map('map', { zoomControl: false }).setView([25.0478, 121.5170], 15);
+            dayLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
+            nightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: 'CartoDB' });
+            dayLayer.addTo(map);
+            map.whenReady(() => window.safeLocateMe());
+        } catch (e) { showError("地圖初始化失敗: " + e.message); }
+
+        window.safeToggleTheme = function() {
+            if(!map) return;
+            isDarkMode = !isDarkMode;
+            const btnIcon = document.getElementById('theme-icon');
+            if(isDarkMode) {
+                map.removeLayer(dayLayer); nightLayer.addTo(map);
+                document.documentElement.setAttribute('data-theme', 'dark');
+                btnIcon.classList.remove('fa-sun'); btnIcon.classList.add('fa-moon');
+            } else {
+                map.removeLayer(nightLayer); dayLayer.addTo(map);
+                document.documentElement.removeAttribute('data-theme');
+                btnIcon.classList.remove('fa-moon'); btnIcon.classList.add('fa-sun');
+            }
+        };
+
+        window.safeLocateMe = function() {
+            if(navigator.geolocation && map) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    map.flyTo([latitude, longitude], 17);
+                    if(window.myLocationMarker) map.removeLayer(window.myLocationMarker);
+                    window.myLocationMarker = L.circleMarker([latitude, longitude], { 
+                        radius: 8, color: '#fff', fillColor: '#007bff', fillOpacity: 1 
+                    }).addTo(map).bindPopup("你的位置");
+                }, () => showError("無法取得 GPS"));
+            }
+        };
+
+        window.safeSearchLocation = async function() {
+            const q = document.getElementById('searchInput').value;
+            if(!q) return;
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                if(data.length > 0) map.flyTo([data[0].lat, data[0].lon], 16);
+                else alert("找不到地點");
+            } catch(e) { showError("搜尋失敗"); }
+        };
+
+        window.safeStartAddMode = function() {
+            window.safeLocateMe(); 
+            document.getElementById('addBtnContainer').style.display = 'none';
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('selectMsg').style.display = 'block';
+        };
+
+        window.safeCancelAddMode = function() {
+            document.getElementById('addBtnContainer').style.display = 'block';
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('selectMsg').style.display = 'none';
+        };
+
+        window.safeConfirmLocation = async function() {
+            const center = map.getCenter();
+            selectedLat = center.lat;
+            selectedLng = center.lng;
+            document.getElementById('addModal').style.display = 'flex';
+            document.getElementById('spotAddress').value = "讀取地址中...";
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${selectedLat}&lon=${selectedLng}`);
+                const data = await res.json();
+                document.getElementById('spotAddress').value = data.display_name || "未知地址";
+            } catch(e) { document.getElementById('spotAddress').value = "未知地址"; }
+        };
+
+        window.safeCloseModal = function() { document.getElementById('addModal').style.display = 'none'; };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            const markersLayer = L.layerGroup().addTo(map);
+
+            onSnapshot(collection(db, "parking_spots"), (snapshot) => {
+                markersLayer.clearLayers();
+                snapshot.forEach((docSnapshot) => {
+                    createMarker(docSnapshot.id, docSnapshot.data(), markersLayer);
+                });
+            }, (err) => showError(err.message));
+
+            window.safeSubmitSpot = async function() {
+                if(!db) { alert("資料庫未連線"); return; }
+                const name = document.getElementById('spotName').value;
+                if(!name) { alert("請輸入名稱"); return; }
+
+                const data = {
+                    name,
+                    payMethod: document.getElementById('payMethod').value,
+                    payPrice: document.getElementById('payPrice').value || 0,
+                    entryType: document.getElementById('entryType').value,
+                    type: document.getElementById('spotType').value,
+                    desc: document.getElementById('spotDesc').value,
+                    address: document.getElementById('spotAddress').value,
+                    lat: selectedLat, lng: selectedLng,
+                    createdAt: serverTimestamp()
+                };
+
+                try {
+                    await addDoc(collection(db, "parking_spots"), data);
+                    alert("回報成功！");
+                    window.safeCloseModal();
+                    window.safeCancelAddMode();
+                    document.getElementById('spotName').value = "";
+                    document.getElementById('spotDesc').value = "";
+                    document.getElementById('payPrice').value = "";
+                } catch (e) { showError("上傳失敗: " + e.message); }
+            };
+
+            // 🟢 刪除功能
+            window.deleteSpot = async (id) => {
+                if(confirm("確定要刪除這個據點嗎？(此動作無法復原)")) {
+                    try {
+                        await deleteDoc(doc(db, "parking_spots", id));
+                        // 刪除後 onSnapshot 會自動更新地圖，不需手動移除
+                        alert("已刪除");
+                    } catch(e) {
+                        alert("刪除失敗: " + e.message);
+                    }
+                }
+            };
+
+        } catch (e) { showError("Firebase 錯誤: " + e.message); }
+
+        function createMarker(id, data, layer) {
+            const colors = { heavy: '#28a745', car: '#007bff', scooter: '#ffc107', no: '#dc3545' };
+            const color = colors[data.type] || '#ccc';
+            const icon = L.divIcon({ 
+                className: 'custom-pin', 
+                html: `<div style="background:${color}; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.5);"></div>`, 
+                iconSize: [22,22], iconAnchor: [11,11] 
+            });
+
+            const payText = data.payMethod === 'free' ? '免費' : `${data.payPrice}元/${data.payMethod==='hourly'?'時':'次'}`;
+            const entryMap = { back_scan: '後牌掃描', front_scan: '前牌掃描', ticket: '取票', intercom: '對講機', manual: '人工', open: '開放' };
+            
+            const popupContent = `
+                <div class="popup-header">
+                    ${data.name}
+                    <button class="delete-btn" onclick="deleteSpot('${id}')" title="修正/刪除"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+                <div class="info-row"><i class="fa-solid fa-sack-dollar" style="color:var(--accent)"></i> ${payText}</div>
+                <div class="info-row"><i class="fa-solid fa-door-open" style="color:var(--accent)"></i> ${entryMap[data.entryType]||'未知'}</div>
+                <div style="font-size:0.85rem; color:#888; margin:5px 0;">${data.address || ''}</div>
+                <p style="margin:5px 0; font-size:0.9rem;">${data.desc || '無備註'}</p>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=${data.lat},${data.lng}" target="_blank" class="nav-btn" style="background:#4285F4;">Google 導航</a>
+                <a href="http://maps.apple.com/?daddr=${data.lat},${data.lng}" target="_blank" class="nav-btn" style="background:#000;">Apple 導航</a>
+            `;
+
+            L.marker([data.lat, data.lng], { icon: icon }).bindPopup(popupContent, { className: 'custom-popup' }).addTo(layer);
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            banner.innerText = msg;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 5000);
+        }
+    </script>
+</body>
+</html>
