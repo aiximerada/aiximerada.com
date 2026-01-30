@@ -19,7 +19,7 @@
         .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
         .nav a:hover { border-color: var(--admin-gold); color: #fff; }
 
-        /* 兩欄佈局 */
+        /* 佈局 */
         .container { display: flex; flex-wrap: wrap; gap: 20px; }
         .section { flex: 1; min-width: 300px; background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 15px; }
         
@@ -30,6 +30,16 @@
         select option { background: #000; }
         button { background: var(--admin-gold); color: #000; font-weight: bold; cursor: pointer; border: none; }
         button:hover { box-shadow: 0 0 15px rgba(242, 201, 76, 0.4); }
+
+        /* 分類管理區 */
+        .cat-manager { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .cat-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .cat-tag { 
+            background: #333; border: 1px solid #555; padding: 5px 10px; border-radius: 20px; 
+            font-size: 0.85rem; display: flex; align-items: center; gap: 5px; 
+        }
+        .cat-del { cursor: pointer; color: #ff4757; }
+        .cat-del:hover { color: #fff; }
 
         /* 紀錄表格 */
         .log-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -42,7 +52,7 @@
         .prize-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; }
         .prize-img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
         .info-col { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-        .badge { font-size: 0.75rem; background: #333; padding: 2px 6px; border-radius: 4px; color: #aaa; width: fit-content; }
+        .badge { font-size: 0.75rem; background: #00f3ff; color:#000; padding: 2px 6px; border-radius: 4px; width: fit-content; font-weight: bold; }
         .btn-del { width: auto; padding: 5px 10px; background: #ff4757; margin: 0; font-size: 0.8rem; color: #fff; }
     </style>
 </head>
@@ -57,17 +67,25 @@
 
     <div class="container">
         <div class="section">
+            
+            <h2><i class="fa-solid fa-tags"></i> 分類管理</h2>
+            <div class="cat-manager">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newCatInput" placeholder="輸入新分類名稱 (如: 戰術裝備)" style="margin-bottom:0;">
+                    <button onclick="addCategory()" style="width: auto; margin-bottom:0; background:#00f3ff;"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div class="cat-list" id="catListDisplay">
+                    </div>
+            </div>
+
             <h2><i class="fa-solid fa-upload"></i> 新增補給項目</h2>
             
-            <label style="font-size:0.8rem; color:#aaa;">分類</label>
+            <label style="font-size:0.8rem; color:#aaa;">選擇分類</label>
             <select id="prizeCategory">
-                <option value="equipment">戰術裝備 (實體)</option>
-                <option value="digital">數位資源 (虛擬)</option>
-                <option value="food">能量補給 (食品)</option>
-                <option value="other">其他物資</option>
-            </select>
+                <option value="" disabled selected>-- 請先建立或選擇分類 --</option>
+                </select>
 
-            <input type="text" id="prizeName" placeholder="物資名稱 (例如: 手工皂禮盒)">
+            <input type="text" id="prizeName" placeholder="物資名稱">
             
             <div style="display: flex; gap: 10px;">
                 <input type="number" id="prizeCost" placeholder="所需星星 ⭐">
@@ -106,7 +124,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -123,36 +141,65 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // --- 0. 圖片壓縮函式 ---
+        // --- 0. 圖片壓縮 ---
         const compressImage = async (file) => {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.src = URL.createObjectURL(file);
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // 強制最大寬度 800px
+                    const MAX_WIDTH = 800; 
                     const scaleSize = MAX_WIDTH / img.width;
-                    
-                    // 如果圖片原本就很小，就不縮放
                     const newWidth = (scaleSize < 1) ? MAX_WIDTH : img.width;
                     const newHeight = (scaleSize < 1) ? img.height * scaleSize : img.height;
-
                     canvas.width = newWidth;
                     canvas.height = newHeight;
-                    
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                    
-                    // 轉回 Blob (JPEG, 70% 品質)
-                    canvas.toBlob((blob) => {
-                        resolve(blob);
-                    }, 'image/jpeg', 0.7); 
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7); 
                 };
                 img.onerror = (err) => reject(err);
             });
         };
 
-        // --- 1. 上架獎品 ---
+        // --- 1. 分類管理 (Categories) ---
+        window.addCategory = async () => {
+            const name = document.getElementById('newCatInput').value.trim();
+            if(!name) return;
+            try {
+                await addDoc(collection(db, "shop_categories"), { name: name, createdAt: serverTimestamp() });
+                document.getElementById('newCatInput').value = '';
+            } catch(e) { alert("新增失敗:" + e.message); }
+        }
+
+        window.deleteCategory = async (id) => {
+            if(confirm("確定刪除此分類？(已上架的商品分類標籤不會消失，但無法再選擇此分類)")) {
+                await deleteDoc(doc(db, "shop_categories", id));
+            }
+        }
+
+        // 監聽分類變化並更新 UI
+        onSnapshot(query(collection(db, "shop_categories"), orderBy("createdAt", "asc")), (snapshot) => {
+            const list = document.getElementById('catListDisplay');
+            const select = document.getElementById('prizeCategory');
+            
+            list.innerHTML = '';
+            select.innerHTML = '<option value="" disabled selected>-- 選擇分類 --</option>';
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                // 更新標籤列表
+                list.innerHTML += `
+                    <div class="cat-tag">
+                        ${data.name} 
+                        <i class="fa-solid fa-xmark cat-del" onclick="deleteCategory('${docSnap.id}')"></i>
+                    </div>`;
+                // 更新下拉選單
+                select.innerHTML += `<option value="${data.name}">${data.name}</option>`;
+            });
+        });
+
+        // --- 2. 上架獎品 ---
         window.addPrize = async () => {
             const category = document.getElementById('prizeCategory').value;
             const name = document.getElementById('prizeName').value;
@@ -162,22 +209,17 @@
             const file = fileInput.files[0];
             const btn = document.getElementById('btnUpload');
 
-            if(!name || isNaN(cost) || isNaN(qty) || !file) return alert("請填寫完整資訊");
+            if(!category || !name || isNaN(cost) || isNaN(qty) || !file) return alert("請填寫完整資訊並選擇分類");
 
             btn.disabled = true;
             btn.innerText = "壓縮並上傳中...";
 
             try {
-                // 1. 執行前端壓縮
                 const compressedFile = await compressImage(file);
-                console.log(`壓縮前: ${(file.size/1024).toFixed(1)}KB, 壓縮後: ${(compressedFile.size/1024).toFixed(1)}KB`);
-
-                // 2. 上傳圖片
                 const storageRef = ref(storage, `prizes/${Date.now()}_compressed.jpg`);
                 await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
 
-                // 3. 寫入資料庫 (新增分類與數量)
                 await addDoc(collection(db, "prizes"), {
                     category: category,
                     name: name,
@@ -189,17 +231,22 @@
                 });
 
                 alert("上架成功！");
-                location.reload();
+                // location.reload(); // 不需要重整，因為有監聽器或重新載入函式
+                loadPrizes(); // 手動重載列表
+                // 清空表單
+                document.getElementById('prizeName').value = '';
+                document.getElementById('prizeImg').value = '';
 
             } catch(e) {
                 console.error(e);
                 alert("上架失敗: " + e.message);
+            } finally {
                 btn.disabled = false;
                 btn.innerText = "上架補給品";
             }
         };
 
-        // --- 2. 載入現有獎品 ---
+        // --- 3. 載入現有獎品 ---
         async function loadPrizes() {
             const list = document.getElementById('prizeList');
             const q = query(collection(db, "prizes"), orderBy("createdAt", "desc"));
@@ -208,17 +255,12 @@
             list.innerHTML = '';
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                
-                // 分類中文對照
-                const catMap = { 'equipment': '戰術裝備', 'digital': '數位資源', 'food': '能量補給', 'other': '其他' };
-                const catName = catMap[data.category] || data.category;
-
                 list.innerHTML += `
                     <div class="prize-item">
                         <img src="${data.imageUrl}" class="prize-img">
                         <div class="info-col">
                             <div style="font-weight:bold;">${data.name}</div>
-                            <span class="badge">${catName}</span>
+                            <span class="badge">${data.category}</span>
                             <div style="font-size:0.8rem; color:#ccc;">
                                 <span style="color:#f2c94c;">⭐ ${data.cost}</span> | 
                                 <span style="color:#00ff9d;">📦 剩餘: ${data.quantity}</span>
@@ -233,7 +275,6 @@
         window.deletePrize = async (id, imgUrl) => {
             if(confirm("確定永久刪除此商品？")) {
                 try {
-                    // 嘗試刪除圖片 (如果有的話)
                     if(imgUrl) {
                         const imgRef = ref(storage, imgUrl);
                         await deleteObject(imgRef).catch(e => console.log('Image already gone'));
@@ -244,7 +285,7 @@
             }
         }
 
-        // --- 3. 載入全域日誌 ---
+        // --- 4. 載入全域日誌 ---
         async function loadLogs() {
             const tbody = document.getElementById('logList');
             const q = query(collection(db, "transactions"), orderBy("timestamp", "desc"));
