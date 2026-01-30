@@ -6,27 +6,27 @@
     <title>加密傳輸艙 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
     <style>
         :root {
             --neon-blue: #00f3ff;
             --neon-red: #ff4757;
             --neon-green: #00ff9d;
-            --glass-bg: rgba(20, 30, 50, 0.8);
+            --glass-bg: rgba(20, 30, 50, 0.6);
             --glass-border: rgba(0, 243, 255, 0.2);
         }
         body {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 100%);
+            /* 🌌 深空星際背景 (與首頁統一) */
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
             color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            background-attachment: fixed;
         }
 
         /* 頂部 */
         .header {
             width: 100%; padding: 20px; box-sizing: border-box;
-            background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--glass-border);
-            display: flex; align-items: center; gap: 15px;
+            background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; gap: 15px; backdrop-filter: blur(10px);
         }
         .back-btn { color: #fff; text-decoration: none; font-size: 1.2rem; transition: 0.3s; }
         .back-btn:hover { color: var(--neon-blue); }
@@ -44,7 +44,7 @@
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: 20px; padding: 30px;
             box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px); margin-bottom: 50px;
         }
 
         /* 分頁切換 */
@@ -72,10 +72,21 @@
         .drop-zone {
             border: 2px dashed #444; border-radius: 10px; padding: 30px;
             text-align: center; cursor: pointer; transition: 0.3s;
-            color: #888;
+            color: #888; background: rgba(0,0,0,0.2);
         }
         .drop-zone:hover, .drop-zone.dragover { border-color: var(--neon-blue); color: #fff; background: rgba(0, 243, 255, 0.05); }
         .file-list { margin-top: 10px; font-size: 0.85rem; color: var(--neon-blue); text-align: left; }
+
+        /* 進度條樣式 (新增) */
+        .progress-container {
+            width: 100%; background: #333; border-radius: 10px; height: 10px;
+            margin-top: 15px; overflow: hidden; display: none;
+        }
+        .progress-bar {
+            width: 0%; height: 100%; background: var(--neon-blue);
+            transition: width 0.3s; box-shadow: 0 0 10px var(--neon-blue);
+        }
+        .progress-text { text-align: center; font-size: 0.8rem; margin-top: 5px; color: #aaa; display: none; }
 
         /* 按鈕 */
         .btn-action {
@@ -99,6 +110,15 @@
             display: inline-block; background: #333; padding: 5px 10px; 
             border-radius: 5px; font-size: 0.8rem; margin-top: 5px; color: #ffaa00;
         }
+        
+        /* 下載列表 */
+        .download-list { margin-top: 15px; text-align: left; }
+        .download-item {
+            background: rgba(255,255,255,0.1); padding: 10px; margin-bottom: 8px;
+            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .dl-link { color: var(--neon-green); text-decoration: none; font-weight: bold; border:1px solid var(--neon-green); padding:5px 10px; border-radius:5px;}
+        .dl-link:hover { background: var(--neon-green); color:#000; }
     </style>
 </head>
 <body>
@@ -118,14 +138,14 @@
         <div id="uploadSection">
             <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
                 <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <div>點擊或拖曳檔案至此 (支援批量)</div>
+                <div>點擊或拖曳檔案至此 (多檔自動列表)</div>
                 <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileSelect(this)">
             </div>
             <div class="file-list" id="fileList"></div>
 
             <div class="form-group" style="margin-top:20px;">
                 <label class="form-label">附加加密訊息 (可選)</label>
-                <textarea id="secretMsg" rows="2" placeholder="輸入文字，這將會被轉存為 message.txt..."></textarea>
+                <textarea id="secretMsg" rows="2" placeholder="輸入文字..."></textarea>
             </div>
 
             <div class="form-group">
@@ -142,8 +162,13 @@
                 </select>
             </div>
 
-            <button class="btn-action" id="uploadBtn" onclick="executeUpload()">
-                <i class="fa-solid fa-rocket"></i> 壓縮並加密傳送
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText">準備中...</div>
+
+            <button class="btn-action" id="uploadBtn" onclick="window.executeUpload()">
+                <i class="fa-solid fa-rocket"></i> 加密上傳
             </button>
         </div>
 
@@ -156,9 +181,19 @@
                 <label class="form-label">輸入提取密碼</label>
                 <input type="password" id="accessPwd" class="form-input" placeholder="密碼">
             </div>
-            <button class="btn-action download-btn" id="downloadBtn" onclick="executeDownload()">
-                <i class="fa-solid fa-unlock"></i> 解密並下載
+            
+            <button class="btn-action download-btn" id="downloadBtn" onclick="window.executeDownload()">
+                <i class="fa-solid fa-unlock"></i> 解鎖檔案
             </button>
+
+            <div id="downloadArea" style="display:none; margin-top:20px;">
+                <h4 style="color:var(--neon-green); margin:0 0 10px 0;">檔案列表</h4>
+                <div class="download-list" id="downloadList"></div>
+                <div style="background:rgba(255,255,255,0.1); padding:10px; margin-top:10px; border-radius:5px;" id="msgArea">
+                    <div style="color:#aaa; font-size:0.8rem;">附加訊息：</div>
+                    <div id="msgContent" style="white-space: pre-wrap;"></div>
+                </div>
+            </div>
         </div>
 
         <div id="resultArea">
@@ -175,9 +210,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, doc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Config (請確認這裡的設定是否正確)
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -189,19 +223,16 @@
         };
 
         // 全域變數
-        let currentUser = null;
+        let app, auth, db, storage, currentUser;
         let selectedFiles = [];
-        let app, auth, db, storage;
 
-        // --- 初始化檢查 ---
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
             storage = getStorage(app);
-            console.log("Firebase 初始化成功");
+            console.log("Firebase Ready");
 
-            // 監聽登入狀態
             onAuthStateChanged(auth, user => {
                 if(user) {
                     currentUser = user;
@@ -218,10 +249,10 @@
             });
 
         } catch (e) {
-            alert("系統初始化失敗！請檢查 F12 Console。\n錯誤原因: " + e.message);
+            alert("Firebase 初始化失敗: " + e.message);
         }
 
-        // --- 介面切換 ---
+        // 綁定 UI 函式到 window (解決按鈕無效問題)
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab')[tab==='upload'?0:1].classList.add('active');
@@ -229,34 +260,27 @@
             document.getElementById('downloadSection').style.display = tab==='download'?'block':'none';
             document.getElementById('resultArea').style.display = 'none';
             document.getElementById('statusMsg').innerText = '';
-        }
+        };
 
-        // --- 檔案選擇 ---
         window.handleFileSelect = (input) => {
-            const files = Array.from(input.files);
-            selectedFiles = [...selectedFiles, ...files];
-            renderFileList();
-        }
-
-        function renderFileList() {
+            selectedFiles = Array.from(input.files);
             const list = document.getElementById('fileList');
             if(selectedFiles.length === 0) {
                 list.innerText = ''; return;
             }
             list.innerHTML = selectedFiles.map(f => `<div><i class="fa-solid fa-file"></i> ${f.name} (${(f.size/1024).toFixed(1)}KB)</div>`).join('');
-        }
+        };
 
-        // --- 🚀 修正後的上傳邏輯 ---
+        window.copyCode = () => {
+            const code = document.getElementById('resultCode').innerText;
+            navigator.clipboard.writeText(code);
+            alert("代碼已複製！");
+        };
+
+        // --- 🚀 上傳邏輯 (無壓縮 + 進度條) ---
         window.executeUpload = async () => {
-            console.log("按鈕被點擊了"); // Debug 用
-
-            // 1. 檢查 JSZip 是否存在
-            if (typeof JSZip === 'undefined') {
-                alert("錯誤：壓縮元件 (JSZip) 未載入。\n請確認網路連線正常，並重新整理頁面。");
-                return;
-            }
-
-            // 2. 獲取表單資料
+            console.log("Upload started..."); // Debug
+            
             const pwd = document.getElementById('uploadPwd').value;
             const msg = document.getElementById('secretMsg').value;
             const expiryMins = parseInt(document.getElementById('expiryTime').value);
@@ -264,45 +288,59 @@
             if(!pwd) return alert("請設定密碼！");
             if(selectedFiles.length === 0 && !msg) return alert("請至少選擇檔案或輸入文字訊息");
 
-            setLoading(true, "正在壓縮封裝...");
+            // 鎖定按鈕與顯示進度條
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressText').style.display = 'block';
+            updateProgress(0, "初始化上傳任務...");
 
             try {
-                // 3. 執行壓縮
-                const zip = new JSZip();
-                selectedFiles.forEach(file => zip.file(file.name, file));
-                
-                const senderName = currentUser ? (currentUser.displayName || 'Commander') : 'Anonymous Rogue';
-                if(msg) zip.file("secret_message.txt", `From: ${senderName}\n\n${msg}`);
-
-                const zipBlob = await zip.generateAsync({type: "blob"});
-                console.log("壓縮完成，大小:", zipBlob.size);
-
-                // 4. 上傳 Firebase
-                setLoading(true, "上傳至衛星...");
                 const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                
-                // 這裡加入 try-catch 捕捉上傳錯誤
-                const storageRef = ref(storage, `temp_shares/${shareCode}.zip`);
-                await uploadBytes(storageRef, zipBlob);
-                const downloadUrl = await getDownloadURL(storageRef);
-                console.log("上傳成功，URL:", downloadUrl);
+                const uploadedFiles = []; // 存 URL
 
-                // 5. 寫入資料庫
-                setLoading(true, "寫入加密協議...");
+                // 1. 逐一上傳檔案 (不壓縮)
+                let completedCount = 0;
+                const totalFiles = selectedFiles.length;
+
+                // 如果有文字訊息，也當作一個檔案上傳
+                if(msg) {
+                    const msgBlob = new Blob([`From: ${currentUser?.displayName || 'Anonymous'}\n\n${msg}`], {type: 'text/plain'});
+                    const msgFile = new File([msgBlob], "message.txt");
+                    selectedFiles.push(msgFile);
+                }
+
+                if(selectedFiles.length > 0) {
+                    for (let i = 0; i < selectedFiles.length; i++) {
+                        const file = selectedFiles[i];
+                        updateProgress((i / selectedFiles.length) * 100, `上傳中: ${file.name}`);
+                        
+                        // 上傳到 temp_shares/代碼/檔名
+                        const storageRef = ref(storage, `temp_shares/${shareCode}/${file.name}`);
+                        // 使用 uploadBytesResumable (雖然這裡沒用監聽器，但它比 uploadBytes 穩定)
+                        await uploadBytesResumable(storageRef, file);
+                        const url = await getDownloadURL(storageRef);
+                        
+                        uploadedFiles.push({ name: file.name, url: url, path: `temp_shares/${shareCode}/${file.name}` });
+                    }
+                }
+
+                updateProgress(100, "正在寫入資料庫...");
+
+                // 2. 寫入 Firestore
                 const expiryDate = new Date(Date.now() + expiryMins * 60000);
-
                 await addDoc(collection(db, "temp_shares"), {
                     shareCode: shareCode,
                     password: pwd,
-                    downloadUrl: downloadUrl,
-                    storagePath: `temp_shares/${shareCode}.zip`,
+                    files: uploadedFiles, // 存入檔案列表 (含 URL)
+                    message: msg || "",   // 也可以直接存文字
                     expiresAt: expiryDate,
-                    uploader: currentUser ? currentUser.uid : "anonymous_guest",
+                    uploader: currentUser ? currentUser.uid : "anonymous",
                     createdAt: serverTimestamp()
                 });
 
-                // 6. UI 更新
-                setLoading(false);
+                // 3. 完成
+                updateProgress(100, "完成！");
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('resultArea').style.display = 'block';
                 document.getElementById('resultCode').innerText = shareCode;
@@ -312,25 +350,35 @@
                 selectedFiles = [];
                 document.getElementById('fileInput').value = '';
                 document.getElementById('secretMsg').value = '';
+                btn.disabled = false;
 
             } catch (e) {
-                console.error("執行錯誤:", e);
-                setLoading(false);
-                alert("執行失敗！\n錯誤訊息: " + e.message + "\n(請確認 Storage Rules 是否已開啟)");
+                console.error(e);
+                alert("上傳失敗: " + e.message);
+                btn.disabled = false;
+                document.getElementById('progressText').innerText = "錯誤";
             }
         };
 
-        // --- 📥 下載邏輯 ---
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').innerText = `${Math.round(percent)}% - ${text}`;
+        }
+
+
+        // --- 📥 下載邏輯 (顯示列表) ---
         window.executeDownload = async () => {
             const code = document.getElementById('shareCode').value.toUpperCase();
             const pwd = document.getElementById('accessPwd').value;
+            const btn = document.getElementById('downloadBtn');
+            const status = document.getElementById('statusMsg');
 
             if(!code || !pwd) return alert("請輸入代碼與密碼");
 
-            setLoading(true, "搜尋信號來源...");
+            btn.disabled = true;
+            status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 搜尋中...`;
 
             try {
-                // 查詢資料
                 const snapshot = await getDocs(collection(db, "temp_shares"));
                 let targetDoc = null;
                 snapshot.forEach(docSnap => {
@@ -338,67 +386,61 @@
                 });
 
                 if(!targetDoc) {
-                    setLoading(false); return alert("找不到此傳輸代碼");
+                    btn.disabled = false; status.innerText = "";
+                    return alert("找不到此代碼");
                 }
 
-                const now = new Date();
-                const expiry = targetDoc.expiresAt.toDate();
-
-                // 過期檢查
-                if (now > expiry) {
-                    setLoading(true, "檔案過期，正在銷毀...");
-                    const fileRef = ref(storage, targetDoc.storagePath);
-                    await deleteObject(fileRef).catch(err => console.log("File already gone"));
-                    await deleteDoc(doc(db, "temp_shares", targetDoc.id));
-                    setLoading(false);
+                // 驗證
+                if (new Date() > targetDoc.expiresAt.toDate()) {
+                    // 簡易銷毀邏輯 (不等待)
+                    deleteDoc(doc(db, "temp_shares", targetDoc.id));
+                    btn.disabled = false; status.innerText = "";
                     return alert("檔案已過期並銷毀。");
                 }
 
-                // 密碼檢查
                 if (targetDoc.password !== pwd) {
-                    setLoading(false); return alert("密碼錯誤，拒絕存取");
+                    btn.disabled = false; status.innerText = "";
+                    return alert("密碼錯誤");
                 }
 
-                // 下載
-                setLoading(false);
-                const a = document.createElement('a');
-                a.href = targetDoc.downloadUrl;
-                // 嘗試強制瀏覽器下載
-                a.setAttribute('download', `Secure_Data_${code}.zip`);
-                a.setAttribute('target', '_blank');
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                
-                document.getElementById('statusMsg').innerHTML = `<span style="color:#00ff9d">驗證通過！下載已啟動。</span>`;
+                // 顯示檔案列表
+                status.innerText = "";
+                document.getElementById('downloadArea').style.display = 'block';
+                const list = document.getElementById('downloadList');
+                list.innerHTML = '';
+
+                // 相容舊版資料 (如果只有 single downloadUrl)
+                if (targetDoc.downloadUrl && !targetDoc.files) {
+                     list.innerHTML = `<div class="download-item"><span>壓縮檔.zip</span><a href="${targetDoc.downloadUrl}" target="_blank" class="dl-link">下載</a></div>`;
+                } 
+                // 新版列表
+                else if (targetDoc.files && targetDoc.files.length > 0) {
+                    targetDoc.files.forEach(f => {
+                        list.innerHTML += `
+                            <div class="download-item">
+                                <span><i class="fa-solid fa-file"></i> ${f.name}</span>
+                                <a href="${f.url}" target="_blank" class="dl-link">下載</a>
+                            </div>`;
+                    });
+                }
+
+                // 顯示訊息
+                const msgArea = document.getElementById('msgArea');
+                if(targetDoc.message) {
+                    msgArea.style.display = 'block';
+                    document.getElementById('msgContent').innerText = targetDoc.message;
+                } else {
+                    msgArea.style.display = 'none';
+                }
+
+                btn.style.display = 'none'; // 隱藏解鎖按鈕
 
             } catch (e) {
                 console.error(e);
-                setLoading(false);
-                alert("下載失敗：" + e.message);
+                btn.disabled = false;
+                alert("讀取失敗: " + e.message);
             }
         };
-
-        // --- 輔助功能 ---
-        function setLoading(isLoading, text) {
-            const btn = document.querySelector('.btn-action:visible') || document.getElementById('uploadBtn');
-            const status = document.getElementById('statusMsg');
-            
-            if(isLoading) {
-                if(btn) btn.disabled = true;
-                status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${text}`;
-                status.style.color = "var(--neon-blue)";
-            } else {
-                if(btn) btn.disabled = false;
-                status.innerText = "";
-            }
-        }
-
-        window.copyCode = () => {
-            const code = document.getElementById('resultCode').innerText;
-            navigator.clipboard.writeText(code);
-            alert("代碼已複製！");
-        }
     </script>
 </body>
 </html>
