@@ -3,96 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員管理 V3 - 玉露寶庫</title>
+    <title>人員管理 V4 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.95); --neon-blue: #00f3ff; --neon-red: #ff4757; }
+        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.95); --neon-blue: #00f3ff; }
         body {
             background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
             color: #fff; font-family: 'Microsoft JhengHei', monospace;
             padding: 20px; min-height: 100vh;
         }
 
-        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; text-shadow: 0 0 10px rgba(242, 201, 76, 0.5); }
+        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; }
         
         .nav { margin-bottom: 30px; }
         .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
-        .nav a:hover { border-color: var(--admin-gold); color: #fff; background: rgba(242, 201, 76, 0.1); }
+        .nav a:hover { border-color: var(--admin-gold); color: #fff; }
 
-        /* 搜尋列 */
+        /* 全域設定區塊 (New) */
+        .system-config {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--neon-blue);
+            padding: 20px; border-radius: 12px; margin-bottom: 30px;
+        }
+        .config-title { color: var(--neon-blue); font-size: 1.1rem; margin-bottom: 15px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .config-row { display: flex; gap: 10px; }
+        
+        /* 搜尋與網格 */
         .search-bar { margin-bottom: 25px; display: flex; gap: 10px; max-width: 500px; }
-        .search-input {
-            flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid #444; 
-            color: #fff; border-radius: 8px; font-family: inherit;
-        }
-        .search-input:focus { outline: none; border-color: var(--admin-gold); }
-
-        /* 卡片網格 */
+        .search-input { flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid #444; color: #fff; border-radius: 8px; }
+        
         .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
-        
-        .card {
-            background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 20px; border-radius: 12px;
-            position: relative; transition: 0.3s;
-        }
-        .card:hover { border-color: var(--admin-gold); box-shadow: 0 0 15px rgba(242, 201, 76, 0.15); transform: translateY(-3px); }
-        
+        .card { background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 12px; position: relative; transition: 0.3s; }
+        .card:hover { border-color: var(--admin-gold); transform: translateY(-3px); }
         .card.is-admin { border: 1px solid #ff00ff; background: rgba(50, 0, 50, 0.6); }
 
-        .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .info-row i { width: 20px; text-align: center; color: var(--admin-gold); }
-        
-        .nickname { font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
-        .stars { font-size: 1.1rem; color: var(--admin-gold); font-weight: bold; }
-        
-        .role-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; border: 1px solid #666; color: #aaa; letter-spacing: 1px; }
+        .nickname { font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 10px; }
+        .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; }
+        .role-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; border: 1px solid #666; color: #aaa; }
         .role-tag.admin { border-color: #ff00ff; color: #ff00ff; background: rgba(255,0,255,0.1); }
 
-        .btn-edit {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(242, 201, 76, 0.1); border: 1px solid var(--admin-gold);
-            color: var(--admin-gold); padding: 6px 15px; border-radius: 20px; cursor: pointer;
-            transition: 0.2s; font-size: 0.9rem;
-        }
+        .btn-edit { position: absolute; top: 20px; right: 20px; background: rgba(242, 201, 76, 0.1); border: 1px solid var(--admin-gold); color: var(--admin-gold); padding: 6px 15px; border-radius: 20px; cursor: pointer; }
         .btn-edit:hover { background: var(--admin-gold); color: #000; }
 
-        /* 🛠️ 全息編輯面板 (Modal) */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            display: none; justify-content: center; align-items: center; z-index: 1000;
-        }
-        .modal-box {
-            background: #1a1a2e; border: 1px solid var(--admin-gold);
-            padding: 30px; border-radius: 15px; width: 90%; max-width: 500px;
-            box-shadow: 0 0 30px rgba(242, 201, 76, 0.2); position: relative;
-            max-height: 90vh; overflow-y: auto;
-        }
-        .modal-title { font-size: 1.5rem; color: var(--admin-gold); margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; color: #aaa; }
-        
-        /* 區塊分隔 */
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-box { background: #1a1a2e; border: 1px solid var(--admin-gold); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; }
         .modal-section { margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; }
         .sec-title { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; border-left: 3px solid var(--admin-gold); padding-left: 8px; }
-
-        .modal-label { display: block; color: #888; margin-bottom: 5px; font-size: 0.85rem; }
-        .modal-input { 
-            width: 100%; padding: 10px; background: rgba(0,0,0,0.3); 
-            border: 1px solid #555; color: #fff; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px;
-        }
-        .modal-input:focus { border-color: var(--admin-gold); outline: none; }
-        .modal-input[readonly] { color: #666; border-color: #333; cursor: not-allowed; }
-
-        /* 按鈕群組 */
-        .btn-group { display: flex; gap: 10px; }
-        .btn-action { flex: 1; padding: 10px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; color:#000;}
         
-        .btn-save { background: var(--neon-blue); width: 100%; margin-top: 5px;}
-        .btn-add { background: #00ff9d; }
-        .btn-sub { background: #ff4757; color: #fff; }
-        .btn-reset { background: transparent; border: 1px solid #ff4757; color: #ff4757; width: 100%; margin-top: 5px;}
-        .btn-reset:hover { background: #ff4757; color: #fff; }
-
-        #loading { text-align: center; margin-top: 50px; color: #aaa; }
+        input, select { width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid #555; color: #fff; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px; }
+        .btn-save { width: 100%; background: var(--admin-gold); color: #000; padding: 10px; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn-action { flex: 1; padding: 10px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; color:#000; }
+        .btn-add { background: #00ff9d; } .btn-sub { background: #ff4757; color: #fff; }
     </style>
 </head>
 <body>
@@ -100,74 +63,63 @@
     <div class="nav">
         <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
         <a href="admin_invite.html">邀請碼</a>
-        <a href="admin_transfers.html">傳輸監控</a>
     </div>
 
     <h1><i class="fa-solid fa-users-viewfinder"></i> 指揮官人事檔案局</h1>
+
+    <div class="system-config">
+        <div class="config-title"><i class="fa-solid fa-gear"></i> 系統外觀設定</div>
+        <div style="font-size:0.9rem; color:#aaa; margin-bottom:5px;">全站背景圖片 URL (留空則使用預設星空)</div>
+        <div class="config-row">
+            <input type="text" id="globalBgUrl" placeholder="輸入圖片網址 (https://...)">
+            <button onclick="saveGlobalConfig()" style="width: auto; background: var(--neon-blue); color:#000; border:none; padding:0 20px; font-weight:bold; border-radius:5px;">儲存設定</button>
+        </div>
+    </div>
     
     <div class="search-bar">
-        <i class="fa-solid fa-magnifying-glass" style="padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px 0 0 8px; border:1px solid #444; border-right:none;"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="搜尋代號、信箱..." onkeyup="filterMembers()" style="border-radius: 0 8px 8px 0;">
+        <input type="text" class="search-input" id="searchInput" placeholder="搜尋代號、信箱..." onkeyup="filterMembers()">
     </div>
 
-    <div style="margin-bottom: 15px; color:#888;">
-        總成員: <span id="totalCount" style="color:#fff">--</span> | 
-        總能源: <span id="totalStars" style="color:#fff">--</span>
-    </div>
-
-    <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在解密人員資料庫...</div>
+    <div id="loading" style="text-align:center; color:#aaa;">讀取中...</div>
     <div class="member-grid" id="grid"></div>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal-box">
-            <i class="fa-solid fa-xmark modal-close" onclick="closeModal()"></i>
-            <div class="modal-title"><i class="fa-solid fa-user-pen"></i> 檔案管理</div>
+            <i class="fa-solid fa-xmark" onclick="closeModal()" style="position:absolute; right:20px; top:20px; font-size:1.5rem; cursor:pointer;"></i>
+            <h2 style="color:var(--admin-gold); margin-top:0;">檔案管理</h2>
             
             <input type="hidden" id="editUid">
             
             <div class="modal-section">
-                <div class="sec-title">基本資料</div>
-                <label class="modal-label">電子信箱</label>
-                <input type="text" id="editEmail" class="modal-input" readonly>
+                <div class="sec-title">基本資料 & 權限</div>
+                <label>Email</label> <input type="text" id="editEmail" readonly>
+                <label>暱稱</label> <input type="text" id="editNickname">
                 
-                <label class="modal-label">指揮官代號 (暱稱)</label>
-                <input type="text" id="editNickname" class="modal-input" placeholder="輸入新的代號">
-                <button class="btn-action btn-save" onclick="updateProfile()">更新暱稱</button>
+                <label style="color:#ff4757;">身份權限 (慎用)</label>
+                <select id="editRole">
+                    <option value="member">一般成員 (Member)</option>
+                    <option value="admin">管理員 (Admin)</option>
+                </select>
+                
+                <button class="btn-save" onclick="updateProfile()">更新資料</button>
             </div>
 
-            <div class="modal-section" style="border-left: 2px solid var(--admin-gold);">
-                <div class="sec-title" style="color:var(--admin-gold);">星際能源調度</div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span class="modal-label">目前持有:</span>
-                    <span id="displayStars" style="font-weight:bold; color:var(--admin-gold); font-size:1.2rem;">0</span>
-                </div>
-
-                <label class="modal-label">變動數值 (正整數)</label>
-                <input type="number" id="adjustAmount" class="modal-input" placeholder="例如: 50">
-                
-                <label class="modal-label">變動原因 (必填)</label>
-                <input type="text" id="adjustReason" class="modal-input" placeholder="例如: 參與活動獎勵 / 違規扣除">
-
+            <div class="modal-section">
+                <div class="sec-title">點數管理 (目前: <span id="displayStars">0</span>)</div>
+                <input type="number" id="adjustAmount" placeholder="數量">
+                <input type="text" id="adjustReason" placeholder="原因 (必填)">
                 <div class="btn-group">
-                    <button class="btn-action btn-add" onclick="handlePoints('add')"><i class="fa-solid fa-plus"></i> 配發能源</button>
-                    <button class="btn-action btn-sub" onclick="handlePoints('sub')"><i class="fa-solid fa-minus"></i> 扣除能源</button>
+                    <button class="btn-action btn-add" onclick="handlePoints('add')">配發 (+)</button>
+                    <button class="btn-action btn-sub" onclick="handlePoints('sub')">扣除 (-)</button>
                 </div>
             </div>
-
-            <div class="modal-section" style="border-color: #ff4757;">
-                <div class="sec-title" style="color:#ff4757; border-color:#ff4757;">安全操作</div>
-                <button class="btn-action btn-reset" onclick="triggerResetPwd()">
-                    <i class="fa-solid fa-envelope"></i> 發送密碼重置信
-                </button>
-            </div>
-
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, runTransaction, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, runTransaction, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -180,203 +132,116 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
-
         let allMembers = [];
 
-        // 載入資料
-        async function loadData() {
-            const grid = document.getElementById('grid');
-            document.getElementById('loading').style.display = 'block';
-            
+        // 1. 載入全域設定
+        async function loadGlobalConfig() {
             try {
-                const querySnapshot = await getDocs(collection(db, "users"));
-                document.getElementById('loading').style.display = 'none';
-
-                if(querySnapshot.empty) {
-                    grid.innerHTML = '<div style="color:#aaa;">無會員資料</div>';
-                    return;
+                const docSnap = await getDoc(doc(db, "settings", "global"));
+                if(docSnap.exists()) {
+                    document.getElementById('globalBgUrl').value = docSnap.data().bgUrl || '';
                 }
-
-                allMembers = [];
-                let totalStars = 0;
-
-                querySnapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    allMembers.push({ id: docSnap.id, ...data });
-                    totalStars += (data.stars || 0);
-                });
-
-                sortMembers(allMembers);
-                
-                document.getElementById('totalCount').innerText = allMembers.length;
-                document.getElementById('totalStars').innerText = totalStars;
-
-                renderGrid(allMembers);
-
-            } catch(e) {
-                console.error(e);
-                alert("讀取失敗: " + e.message);
-            }
+            } catch(e) { console.error("Config load error", e); }
         }
 
-        function sortMembers(list) {
-            list.sort((a, b) => {
-                if (a.role === 'admin' && b.role !== 'admin') return -1;
-                if (a.role !== 'admin' && b.role === 'admin') return 1;
-                const timeA = a.joinedAt ? a.joinedAt.seconds : 0;
-                const timeB = b.joinedAt ? b.joinedAt.seconds : 0;
-                return timeB - timeA;
-            });
+        window.saveGlobalConfig = async () => {
+            const url = document.getElementById('globalBgUrl').value;
+            try {
+                await setDoc(doc(db, "settings", "global"), { bgUrl: url }, { merge: true });
+                alert("背景設定已更新！(請重新整理其他頁面查看效果)");
+            } catch(e) { alert("儲存失敗: " + e.message); }
+        }
+
+        // 2. 載入會員
+        async function loadData() {
+            const grid = document.getElementById('grid');
+            try {
+                const snapshot = await getDocs(collection(db, "users"));
+                document.getElementById('loading').style.display = 'none';
+                
+                allMembers = [];
+                snapshot.forEach(doc => allMembers.push({ id: doc.id, ...doc.data() }));
+                
+                // 排序：管理員優先
+                allMembers.sort((a,b) => (a.role==='admin' && b.role!=='admin') ? -1 : 1);
+                renderGrid(allMembers);
+            } catch(e) { alert("讀取失敗: " + e.message); }
         }
 
         window.renderGrid = (list) => {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            
             list.forEach(user => {
-                const stars = user.stars !== undefined ? user.stars : 0;
-                let dateStr = user.joinedAt ? new Date(user.joinedAt.toDate()).toLocaleDateString() : '未知';
-                
-                const isAdmin = user.role === 'admin' || user.role === 'owner';
-                const roleTag = isAdmin 
-                    ? `<span class="role-tag admin">ADMIN</span>` 
-                    : `<span class="role-tag">MEMBER</span>`;
-                const cardClass = isAdmin ? 'card is-admin' : 'card';
-
-                const card = document.createElement('div');
-                card.className = cardClass;
-                card.innerHTML = `
-                    <div class="nickname">
-                        ${user.displayName || '無暱稱'} 
-                        ${roleTag}
-                    </div>
-                    <div class="info-row" title="${user.email}">
-                        <i class="fa-regular fa-envelope"></i> ${user.email}
-                    </div>
-                    <div class="info-row">
-                        <i class="fa-regular fa-calendar"></i> 加入: ${dateStr}
-                    </div>
-                    <div class="info-row">
-                        <i class="fa-solid fa-star"></i> 點數: <span class="stars">${stars}</span>
-                    </div>
-                    
-                    <button class="btn-edit" onclick="openModal('${user.id}')">
-                        <i class="fa-solid fa-sliders"></i> 管理
-                    </button>
-                `;
-                grid.appendChild(card);
+                const isAdmin = user.role === 'admin';
+                grid.innerHTML += `
+                    <div class="card ${isAdmin ? 'is-admin' : ''}">
+                        <div class="nickname">${user.displayName || '無暱稱'} ${isAdmin ? '<span class="role-tag admin">ADMIN</span>' : ''}</div>
+                        <div class="info-row">${user.email}</div>
+                        <div class="info-row"><i class="fa-solid fa-star" style="color:var(--admin-gold)"></i> ${user.stars || 0}</div>
+                        <button class="btn-edit" onclick="openModal('${user.id}')">管理</button>
+                    </div>`;
             });
         }
 
         window.filterMembers = () => {
-            const val = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allMembers.filter(m => 
-                (m.displayName && m.displayName.toLowerCase().includes(val)) ||
-                (m.email && m.email.toLowerCase().includes(val))
-            );
-            renderGrid(filtered);
+            const v = document.getElementById('searchInput').value.toLowerCase();
+            renderGrid(allMembers.filter(m => (m.displayName && m.displayName.toLowerCase().includes(v)) || m.email.includes(v)));
         }
 
-        // --- Modal 操作 ---
-        
+        // Modal 操作
         window.openModal = (uid) => {
             const user = allMembers.find(m => m.id === uid);
             if(!user) return;
-
             document.getElementById('editUid').value = uid;
             document.getElementById('editEmail').value = user.email;
             document.getElementById('editNickname').value = user.displayName || '';
-            document.getElementById('displayStars').innerText = user.stars !== undefined ? user.stars : 0;
-            
-            // 清空輸入框
-            document.getElementById('adjustAmount').value = '';
-            document.getElementById('adjustReason').value = '';
-
+            document.getElementById('editRole').value = user.role || 'member'; // 設定下拉選單
+            document.getElementById('displayStars').innerText = user.stars || 0;
             document.getElementById('editModal').style.display = 'flex';
         }
+        window.closeModal = () => document.getElementById('editModal').style.display = 'none';
 
-        window.closeModal = () => {
-            document.getElementById('editModal').style.display = 'none';
-        }
-
-        // 1. 更新暱稱
+        // 更新資料 (暱稱 + 權限)
         window.updateProfile = async () => {
             const uid = document.getElementById('editUid').value;
-            const newName = document.getElementById('editNickname').value;
-            if(!newName) return alert("請輸入暱稱");
-
+            const name = document.getElementById('editNickname').value;
+            const role = document.getElementById('editRole').value;
+            
             try {
-                await updateDoc(doc(db, "users", uid), { displayName: newName });
-                alert("暱稱已更新");
+                await updateDoc(doc(db, "users", uid), { displayName: name, role: role });
+                alert("資料已更新！");
                 loadData();
             } catch(e) { alert("更新失敗: " + e.message); }
         }
 
-        // 2. 處理點數 (交易 + 紀錄)
+        // 點數調整
         window.handlePoints = async (type) => {
             const uid = document.getElementById('editUid').value;
-            const amountInput = document.getElementById('adjustAmount').value;
+            const amount = parseInt(document.getElementById('adjustAmount').value);
             const reason = document.getElementById('adjustReason').value;
-
-            if(!amountInput || !reason) return alert("請填寫「變動數值」與「原因」！");
             
-            const amount = parseInt(amountInput);
-            if(isNaN(amount) || amount <= 0) return alert("數值必須為正整數");
-
-            // 計算正負
+            if(!amount || !reason) return alert("請填寫數值與原因");
             const finalAmount = type === 'add' ? amount : -amount;
-            const actionText = type === 'add' ? '配發' : '扣除';
-
-            if(!confirm(`確定要「${actionText}」 ${amount} 點嗎？\n原因：${reason}`)) return;
 
             try {
-                await runTransaction(db, async (transaction) => {
-                    const userRef = doc(db, "users", uid);
-                    const userDoc = await transaction.get(userRef);
-                    if (!userDoc.exists()) throw "找不到使用者";
-
-                    const currentStars = userDoc.data().stars || 0;
-                    const newTotal = currentStars + finalAmount;
-
-                    // 1. 更新使用者點數
-                    transaction.update(userRef, { stars: newTotal });
-
-                    // 2. 寫入交易日誌 (Transactions)
-                    const logRef = doc(collection(db, "transactions"));
-                    transaction.set(logRef, {
-                        userId: uid,
-                        userEmail: document.getElementById('editEmail').value,
-                        userName: document.getElementById('editNickname').value,
-                        action: "admin_adjust", // 管理員調整
-                        itemName: reason,       // 原因作為項目名稱
-                        amount: finalAmount,
-                        note: `由管理員手動調整 (${actionText})`,
-                        timestamp: serverTimestamp()
+                await runTransaction(db, async (t) => {
+                    const ref = doc(db, "users", uid);
+                    const docSnap = await t.get(ref);
+                    const newStars = (docSnap.data().stars || 0) + finalAmount;
+                    t.update(ref, { stars: newStars });
+                    t.set(doc(collection(db, "transactions")), {
+                        userId: uid, action: "admin_adjust", itemName: reason, amount: finalAmount, 
+                        userEmail: document.getElementById('editEmail').value, timestamp: serverTimestamp()
                     });
                 });
-
-                alert("調整完成！");
+                alert("調整成功");
                 closeModal();
-                loadData(); // 重新整理列表
-
-            } catch(e) {
-                console.error(e);
-                alert("交易失敗: " + e);
-            }
+                loadData();
+            } catch(e) { alert("交易失敗: " + e.message); }
         }
 
-        // 3. 發送重置信
-        window.triggerResetPwd = async () => {
-            const email = document.getElementById('editEmail').value;
-            if(!confirm(`確定發送重置信給 ${email}？`)) return;
-            try {
-                await sendPasswordResetEmail(auth, email);
-                alert("已發送！");
-            } catch(e) { alert("發送失敗: " + e.message); }
-        }
-
+        loadGlobalConfig();
         loadData();
     </script>
 </body>
