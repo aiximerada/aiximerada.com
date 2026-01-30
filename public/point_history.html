@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>能源存摺 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-gold: #f2c94c;
+            --neon-blue: #00f3ff;
+            --neon-green: #00ff9d;
+            --neon-red: #ff4757;
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
+        }
+        body {
+            background: var(--bg-gradient); color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            background-attachment: fixed;
+        }
+
+        .header {
+            width: 100%; padding: 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 10;
+        }
+        .back-btn { color: #fff; text-decoration: none; font-size: 1.1rem; }
+        
+        /* 總資產卡片 */
+        .balance-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            width: 90%; max-width: 600px; padding: 25px; border-radius: 20px;
+            margin-top: 30px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+        }
+        .balance-title { color: #aaa; font-size: 0.9rem; margin-bottom: 5px; }
+        .balance-val { font-size: 3rem; font-weight: bold; color: var(--neon-gold); text-shadow: 0 0 20px rgba(242, 201, 76, 0.3); }
+
+        /* 列表容器 */
+        .history-container { width: 90%; max-width: 600px; margin-top: 20px; padding-bottom: 50px; }
+        .section-title { color: var(--neon-blue); border-left: 4px solid var(--neon-blue); padding-left: 10px; margin-bottom: 15px; font-size: 1.1rem; }
+
+        .tx-item {
+            background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 15px; display: flex; align-items: center; justify-content: space-between;
+            transition: 0.3s;
+        }
+        .tx-item:first-child { border-radius: 15px 15px 0 0; }
+        .tx-item:last-child { border-radius: 0 0 15px 15px; border-bottom: none; }
+        .tx-item:hover { background: rgba(255,255,255,0.08); }
+
+        .tx-icon {
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; margin-right: 15px; background: rgba(255,255,255,0.1);
+        }
+        .tx-icon.plus { color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .tx-icon.minus { color: var(--neon-red); border: 1px solid var(--neon-red); }
+
+        .tx-info { flex: 1; }
+        .tx-name { font-weight: bold; font-size: 1rem; margin-bottom: 3px; }
+        .tx-date { font-size: 0.8rem; color: #888; }
+        
+        .tx-amount { font-weight: bold; font-size: 1.1rem; }
+        .plus-amount { color: var(--neon-green); }
+        .minus-amount { color: var(--neon-red); }
+
+        #loading { margin-top: 50px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <span style="color:#aaa; font-size:0.9rem;">交易明細</span>
+    </div>
+
+    <div class="balance-card">
+        <div class="balance-title">目前持有星際能源</div>
+        <div class="balance-val" id="currentBalance">--</div>
+    </div>
+
+    <div class="history-container">
+        <div class="section-title">近期變動紀錄</div>
+        <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在下載數據鏈...</div>
+        <div id="txList">
+            </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                loadBalance(user.uid);
+                loadTransactions(user.uid);
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // 1. 讀取目前餘額
+        async function loadBalance(uid) {
+            try {
+                const docSnap = await getDoc(doc(db, "users", uid));
+                if (docSnap.exists()) {
+                    const stars = docSnap.data().stars || 0;
+                    document.getElementById('currentBalance').innerText = stars;
+                }
+            } catch(e) { console.error("Balance Error", e); }
+        }
+
+        // 2. 讀取交易紀錄
+        async function loadTransactions(uid) {
+            const list = document.getElementById('txList');
+            const loading = document.getElementById('loading');
+            
+            try {
+                // 查詢該用戶的所有交易，按時間倒序
+                const q = query(
+                    collection(db, "transactions"), 
+                    where("userId", "==", uid),
+                    orderBy("timestamp", "desc")
+                );
+                
+                const snapshot = await getDocs(q);
+                loading.style.display = 'none';
+
+                if (snapshot.empty) {
+                    list.innerHTML = '<div style="text-align:center; color:#555; padding:20px;">尚無任何紀錄</div>';
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const isIncome = data.amount >= 0;
+                    const amountClass = isIncome ? 'plus-amount' : 'minus-amount';
+                    const iconClass = isIncome ? 'plus' : 'minus';
+                    const icon = isIncome ? 'fa-plus' : 'fa-minus';
+                    const sign = isIncome ? '+' : '';
+                    
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知時間';
+                    
+                    // 判斷顯示名稱 (優先顯示 itemName，沒有則顯示 action)
+                    let title = data.itemName || data.note || "點數變動";
+                    if (data.action === 'redeem') title = `兌換: ${data.itemName}`;
+                    if (data.action === 'admin_adjust') title = `系統調整: ${data.itemName}`;
+
+                    list.innerHTML += `
+                        <div class="tx-item">
+                            <div class="tx-icon ${iconClass}">
+                                <i class="fa-solid ${icon}"></i>
+                            </div>
+                            <div class="tx-info">
+                                <div class="tx-name">${title}</div>
+                                <div class="tx-date">${date}</div>
+                            </div>
+                            <div class="tx-amount ${amountClass}">
+                                ${sign}${data.amount}
+                            </div>
+                        </div>
+                    `;
+                });
+
+            } catch(e) {
+                console.error(e);
+                loading.style.display = 'none';
+                if(e.message.includes("requires an index")) {
+                    list.innerHTML = '<div style="color:#ff4757; text-align:center; padding:20px;">系統初始化中 (建立索引)...<br>請稍後再試</div>';
+                } else {
+                    list.innerHTML = `<div style="color:#ff4757; text-align:center;">讀取錯誤</div>`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
