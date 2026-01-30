@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加密傳輸艙 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-red: #ff4757;
+            --neon-green: #00ff9d;
+            --glass-bg: rgba(20, 30, 50, 0.8);
+            --glass-border: rgba(0, 243, 255, 0.2);
+        }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* 頂部 */
+        .header {
+            width: 100%; padding: 20px; box-sizing: border-box;
+            background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; gap: 15px;
+        }
+        .back-btn { color: #fff; text-decoration: none; font-size: 1.2rem; transition: 0.3s; }
+        .back-btn:hover { color: var(--neon-blue); }
+        h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--neon-blue); display: flex; align-items: center; gap: 10px; }
+
+        /* 身份標籤 */
+        .user-status {
+            margin-left: auto; font-size: 0.8rem; padding: 4px 10px;
+            border-radius: 10px; background: rgba(255,255,255,0.1); color: #aaa;
+        }
+
+        /* 主容器 */
+        .container {
+            width: 90%; max-width: 500px; margin-top: 30px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* 分頁切換 */
+        .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .tab {
+            flex: 1; padding: 15px; text-align: center; cursor: pointer;
+            color: #888; transition: 0.3s; position: relative;
+        }
+        .tab.active { color: var(--neon-blue); font-weight: bold; }
+        .tab.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px;
+            background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* 表單樣式 */
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
+        .form-input, .form-select, textarea {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; border-radius: 8px; color: #fff; box-sizing: border-box;
+        }
+        .form-input:focus { border-color: var(--neon-blue); outline: none; }
+
+        /* 檔案上傳區 */
+        .drop-zone {
+            border: 2px dashed #444; border-radius: 10px; padding: 30px;
+            text-align: center; cursor: pointer; transition: 0.3s;
+            color: #888;
+        }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--neon-blue); color: #fff; background: rgba(0, 243, 255, 0.05); }
+        .file-list { margin-top: 10px; font-size: 0.85rem; color: var(--neon-blue); text-align: left; }
+
+        /* 按鈕 */
+        .btn-action {
+            width: 100%; padding: 12px; border: none; border-radius: 50px;
+            font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px;
+            background: var(--neon-blue); color: #000; transition: 0.3s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn-action:hover { box-shadow: 0 0 20px var(--neon-blue); }
+        .btn-action:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+        .download-btn { background: var(--neon-green); }
+
+        /* 結果顯示區 */
+        #resultArea { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; text-align: center; }
+        .code-display { 
+            font-size: 2rem; font-family: monospace; color: var(--neon-green); margin: 10px 0; 
+            letter-spacing: 5px; border: 1px dashed var(--neon-green); padding: 10px;
+        }
+        .copy-btn { background: none; border: none; color: #fff; cursor: pointer; text-decoration: underline; }
+        .timer-badge {
+            display: inline-block; background: #333; padding: 5px 10px; 
+            border-radius: 5px; font-size: 0.8rem; margin-top: 5px; color: #ffaa00;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-house"></i> 返回大廳</a>
+        <h1><i class="fa-solid fa-file-shield"></i> 公開傳輸艙</h1>
+        <div class="user-status" id="userStatus">訪客模式</div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('upload')">發送檔案</div>
+            <div class="tab" onclick="switchTab('download')">接收檔案</div>
+        </div>
+
+        <div id="uploadSection">
+            <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <div>點擊或拖曳檔案至此 (支援批量)</div>
+                <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileSelect(this)">
+            </div>
+            <div class="file-list" id="fileList"></div>
+
+            <div class="form-group" style="margin-top:20px;">
+                <label class="form-label">附加加密訊息 (可選)</label>
+                <textarea id="secretMsg" rows="2" placeholder="輸入文字，這將會被轉存為 message.txt..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">設定提取密碼</label>
+                <input type="text" id="uploadPwd" class="form-input" placeholder="例如：1234">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">有效期限 (過期自動銷毀)</label>
+                <select id="expiryTime" class="form-select">
+                    <option value="10">10 分鐘後銷毀</option>
+                    <option value="60">1 小時後銷毀</option>
+                    <option value="1440">24 小時後銷毀</option>
+                </select>
+            </div>
+
+            <button class="btn-action" id="uploadBtn" onclick="executeUpload()">
+                <i class="fa-solid fa-rocket"></i> 壓縮並加密傳送
+            </button>
+        </div>
+
+        <div id="downloadSection" style="display:none;">
+            <div class="form-group">
+                <label class="form-label">輸入傳輸代碼 (Share Code)</label>
+                <input type="text" id="shareCode" class="form-input" placeholder="請輸入6位代碼" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">輸入提取密碼</label>
+                <input type="password" id="accessPwd" class="form-input" placeholder="密碼">
+            </div>
+            <button class="btn-action download-btn" id="downloadBtn" onclick="executeDownload()">
+                <i class="fa-solid fa-unlock"></i> 解密並下載
+            </button>
+        </div>
+
+        <div id="resultArea">
+            <div style="color:#aaa; font-size:0.9rem;">傳輸建立成功！請將代碼交給對方：</div>
+            <div class="code-display" id="resultCode">------</div>
+            <button class="copy-btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> 複製代碼</button>
+            <div class="timer-badge" id="expiryDisplay"></div>
+        </div>
+
+        <div id="statusMsg" style="text-align:center; margin-top:15px; font-weight:bold;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        let currentUser = null;
+
+        // 🟢 修改：不強制登入，只偵測狀態
+        onAuthStateChanged(auth, user => {
+            if(user) {
+                currentUser = user;
+                document.getElementById('userStatus').innerText = `指揮官: ${user.displayName || 'User'}`;
+                document.getElementById('userStatus').style.color = "#00ff9d";
+            } else {
+                currentUser = null;
+                document.getElementById('userStatus').innerText = "匿名訪客";
+            }
+        });
+
+        // --- 全域變數 ---
+        let selectedFiles = [];
+
+        // --- 介面切換 ---
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab')[tab==='upload'?0:1].classList.add('active');
+            document.getElementById('uploadSection').style.display = tab==='upload'?'block':'none';
+            document.getElementById('downloadSection').style.display = tab==='download'?'block':'none';
+            document.getElementById('resultArea').style.display = 'none';
+            document.getElementById('statusMsg').innerText = '';
+        }
+
+        // --- 檔案選擇 ---
+        window.handleFileSelect = (input) => {
+            const files = Array.from(input.files);
+            selectedFiles = [...selectedFiles, ...files];
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            if(selectedFiles.length === 0) {
+                list.innerText = ''; return;
+            }
+            list.innerHTML = selectedFiles.map(f => `<div><i class="fa-solid fa-file"></i> ${f.name} (${(f.size/1024).toFixed(1)}KB)</div>`).join('');
+        }
+
+        // --- 🚀 上傳邏輯 ---
+        window.executeUpload = async () => {
+            const pwd = document.getElementById('uploadPwd').value;
+            const msg = document.getElementById('secretMsg').value;
+            const expiryMins = parseInt(document.getElementById('expiryTime').value);
+
+            if(!pwd) return alert("請設定密碼！");
+            if(selectedFiles.length === 0 && !msg) return alert("請至少選擇檔案或輸入文字訊息");
+
+            setLoading(true, "正在壓縮封裝...");
+
+            try {
+                // 1. JSZip 壓縮
+                const zip = new JSZip();
+                selectedFiles.forEach(file => zip.file(file.name, file));
+                
+                // 標記發送者
+                const senderName = currentUser ? (currentUser.displayName || 'Commander') : 'Anonymous Rogue';
+                if(msg) zip.file("secret_message.txt", `From: ${senderName}\n\n${msg}`);
+
+                const zipBlob = await zip.generateAsync({type: "blob"});
+
+                // 2. 上傳到 Firebase Storage
+                setLoading(true, "上傳至衛星...");
+                const timestamp = Date.now();
+                const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                
+                const storageRef = ref(storage, `temp_shares/${shareCode}.zip`);
+                await uploadBytes(storageRef, zipBlob);
+                const downloadUrl = await getDownloadURL(storageRef);
+
+                // 3. 寫入 Firestore
+                setLoading(true, "寫入加密協議...");
+                const expiryDate = new Date(Date.now() + expiryMins * 60000);
+
+                await addDoc(collection(db, "temp_shares"), {
+                    shareCode: shareCode,
+                    password: pwd,
+                    downloadUrl: downloadUrl,
+                    storagePath: `temp_shares/${shareCode}.zip`,
+                    expiresAt: expiryDate,
+                    uploader: currentUser ? currentUser.uid : "anonymous_guest", // 允許匿名
+                    createdAt: serverTimestamp()
+                });
+
+                // 4. 完成 UI 更新
+                setLoading(false);
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('resultArea').style.display = 'block';
+                document.getElementById('resultCode').innerText = shareCode;
+                document.getElementById('expiryDisplay').innerText = `有效至: ${expiryDate.toLocaleString()}`;
+
+                selectedFiles = [];
+                document.getElementById('fileInput').value = '';
+                document.getElementById('secretMsg').value = '';
+
+            } catch (e) {
+                console.error(e);
+                setLoading(false);
+                alert("傳輸失敗：請檢查網路或系統權限\n(Error: " + e.message + ")");
+            }
+        };
+
+        // --- 📥 下載邏輯 ---
+        window.executeDownload = async () => {
+            const code = document.getElementById('shareCode').value.toUpperCase();
+            const pwd = document.getElementById('accessPwd').value;
+
+            if(!code || !pwd) return alert("請輸入代碼與密碼");
+
+            setLoading(true, "搜尋信號來源...");
+
+            try {
+                // Client-side Query 尋找代碼
+                const snapshot = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js")
+                    .then(module => module.getDocs(module.collection(db, "temp_shares")));
+                
+                let targetDoc = null;
+                snapshot.forEach(doc => {
+                    if(doc.data().shareCode === code) targetDoc = { id: doc.id, ...doc.data() };
+                });
+
+                if(!targetDoc) {
+                    setLoading(false); return alert("找不到此傳輸代碼");
+                }
+
+                const now = new Date();
+                const expiry = targetDoc.expiresAt.toDate();
+
+                if (now > expiry) {
+                    setLoading(true, "檔案過期，正在銷毀...");
+                    const fileRef = ref(storage, targetDoc.storagePath);
+                    await deleteObject(fileRef).catch(err => console.log("File already gone"));
+                    await deleteDoc(doc(db, "temp_shares", targetDoc.id));
+                    setLoading(false);
+                    return alert("檔案已過期並銷毀。");
+                }
+
+                if (targetDoc.password !== pwd) {
+                    setLoading(false); return alert("密碼錯誤，拒絕存取");
+                }
+
+                setLoading(false);
+                const a = document.createElement('a');
+                a.href = targetDoc.downloadUrl;
+                a.download = `Secure_Data_${code}.zip`; 
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                document.getElementById('statusMsg').innerHTML = `<span style="color:#00ff9d">驗證通過！下載已啟動。</span>`;
+
+            } catch (e) {
+                console.error(e);
+                setLoading(false);
+                alert("下載失敗：" + e.message);
+            }
+        };
+
+        function setLoading(isLoading, text) {
+            const btn = document.querySelector('.btn-action:visible') || document.getElementById('uploadBtn');
+            const status = document.getElementById('statusMsg');
+            
+            if(isLoading) {
+                if(btn) btn.disabled = true;
+                status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${text}`;
+                status.style.color = "var(--neon-blue)";
+            } else {
+                if(btn) btn.disabled = false;
+                status.innerText = "";
+            }
+        }
+
+        window.copyCode = () => {
+            const code = document.getElementById('resultCode').innerText;
+            navigator.clipboard.writeText(code);
+            alert("代碼已複製！");
+        }
+    </script>
+</body>
+</html>
