@@ -3,112 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>指揮官檔案設定 - 玉露寶庫</title>
+    <title>個人設定 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
-        :root { --bg-dark: #0b1021; --glass: rgba(255, 255, 255, 0.05); --accent: #00f3ff; }
+        :root {
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-radius: 20px;
+        }
+
         body {
-            background: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
-            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
-            min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding-bottom: 50px;
+            position: relative; overflow-x: hidden;
         }
 
-        .container {
-            width: 90%; max-width: 450px;
-            background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
-            padding: 40px; box-shadow: 0 0 40px rgba(0,0,0,0.5);
-            position: relative;
+        /* --- 背景星空 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
         }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        h2 { text-align: center; margin-bottom: 30px; text-shadow: 0 0 10px var(--accent); }
+        /* --- 介面樣式 --- */
+        .header { width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; position: sticky; top: 0; z-index: 100; }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
 
-        /* 頭像上傳區 */
-        .avatar-wrapper {
-            width: 120px; height: 120px; margin: 0 auto 30px; position: relative;
-        }
-        .avatar-img {
-            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
-            border: 3px solid var(--accent); box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
-            background: #000;
-        }
-        .upload-btn {
-            position: absolute; bottom: 0; right: 0;
-            width: 35px; height: 35px; background: #fff; border-radius: 50%;
-            color: #000; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: 0.2s; border: 2px solid var(--bg-dark);
-        }
-        .upload-btn:hover { background: var(--accent); }
+        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title h1 { margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900; background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
+        .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
 
-        /* 表單樣式 */
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
-        input[type="text"], textarea {
-            width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; border-radius: 8px; color: #fff;
-            box-sizing: border-box; font-size: 1rem;
+        .profile-card {
+            width: 90%; max-width: 500px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius); padding: 40px 30px;
+            display: flex; flex-direction: column; align-items: center;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: slideUp 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative; transition: 0.3s;
         }
-        input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .id-tag { position: absolute; top: 20px; right: 20px; font-family: monospace; color: #64748b; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; }
+
+        /* 🔥 頭像上傳區優化 */
+        .avatar-container {
+            position: relative; margin-bottom: 30px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .avatar-preview {
+            width: 140px; height: 140px; border-radius: 50%; object-fit: cover;
+            border: 3px solid var(--main-gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            transition: 0.3s;
+        }
         
-        .color-options { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        .color-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-        .color-dot.active { border-color: #fff; transform: scale(1.1); }
+        /* 拖曳時的效果 */
+        .avatar-container.drag-active .avatar-preview {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+            border-color: var(--nebula-blue);
+            box-shadow: 0 0 50px var(--nebula-blue);
+        }
+        
+        .avatar-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); border-radius: 50%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; transition: 0.3s; color: #fff; font-size: 0.9rem;
+        }
+        .avatar-container:hover .avatar-overlay,
+        .avatar-container.drag-active .avatar-overlay { opacity: 1; }
+        
+        .avatar-edit-hint {
+            position: absolute; bottom: 5px; right: 5px;
+            background: var(--main-gold); color: #000;
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 2; pointer-events: none;
+        }
+
+        /* 載入中動畫 */
+        .upload-spinner {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2rem; color: var(--main-gold); display: none; z-index: 10;
+        }
+
+        .form-group { width: 100%; margin-bottom: 20px; }
+        .form-label { display: block; color: #94a3b8; margin-bottom: 8px; font-size: 0.9rem; font-weight: bold; }
+        .form-input {
+            width: 100%; padding: 12px 15px; border-radius: 12px;
+            background: rgba(15, 23, 42, 0.6); border: 1px solid #475569;
+            color: #fff; font-size: 1rem; box-sizing: border-box; transition: 0.3s;
+        }
+        .form-input:focus { outline: none; border-color: var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
+        .form-input:disabled { color: #aaa; background: rgba(0,0,0,0.2); cursor: not-allowed; }
+
+        .color-picker-wrapper {
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(15, 23, 42, 0.6); border: 1px solid #475569;
+            padding: 10px 15px; border-radius: 12px;
+        }
+        input[type="color"] { border: none; width: 40px; height: 40px; cursor: pointer; background: none; padding: 0; }
+        .color-text { font-family: monospace; color: var(--main-gold); }
 
         .btn-save {
-            width: 100%; padding: 12px; border-radius: 50px; border: none;
-            background: var(--accent); color: #000; font-weight: bold; font-size: 1rem;
-            cursor: pointer; margin-top: 20px; transition: 0.3s;
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #0f172a; border: none; padding: 15px 50px;
+            border-radius: 50px; font-size: 1.2rem; cursor: pointer;
+            font-weight: 900; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.25);
+            width: 100%; margin-top: 20px; letter-spacing: 2px; transition: 0.3s;
         }
-        .btn-save:hover { box-shadow: 0 0 20px var(--accent); filter: brightness(1.1); }
-        .btn-cancel {
-            display: block; text-align: center; margin-top: 15px; color: #888; text-decoration: none;
-        }
+        .btn-save:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(255, 215, 0, 0.4); }
+        .btn-save:disabled { background: #475569; cursor: not-allowed; box-shadow: none; }
 
-        #loading { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10; border-radius:20px; display:flex; align-items:center; justify-content:center; display:none; flex-direction: column; }
+        .msg-toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.9); color: #fff; padding: 12px 25px;
+            border-radius: 30px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100;
+        }
+        .msg-toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div id="loading"><i class="fa-solid fa-spinner fa-spin" style="font-size:2rem; color:var(--accent)"></i><p style="margin-top:10px;">資料更新中...</p></div>
-
-        <h2><i class="fa-solid fa-id-card"></i> 檔案設定</h2>
-
-        <div class="avatar-wrapper">
-            <img src="https://via.placeholder.com/150" id="avatarPreview" class="avatar-img">
-            <label class="upload-btn" for="fileInput">
-                <i class="fa-solid fa-camera"></i>
-            </label>
-            <input type="file" id="fileInput" accept="image/*" style="display:none">
-        </div>
-
-        <div class="form-group">
-            <label>指揮官代號 (暱稱)</label>
-            <input type="text" id="displayName" placeholder="輸入您的稱呼">
-        </div>
-
-        <div class="form-group">
-            <label>個性簽名 (Bio)</label>
-            <textarea id="bio" rows="3" placeholder="寫下一句座右銘..."></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>介面代表色</label>
-            <div class="color-options" id="colorOptions">
-                <div class="color-dot" style="background:#00f3ff" data-color="#00f3ff"></div> <div class="color-dot" style="background:#ff00ff" data-color="#ff00ff"></div> <div class="color-dot" style="background:#f2c94c" data-color="#f2c94c"></div> <div class="color-dot" style="background:#00ff9d" data-color="#00ff9d"></div> <div class="color-dot" style="background:#ff4757" data-color="#ff4757"></div> </div>
-        </div>
-
-        <button class="btn-save" onclick="saveProfile()">儲存變更</button>
-        <a href="vip_area.html" class="btn-cancel">返回會員區</a>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
     </div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+    </div>
+
+    <div class="page-title">
+        <h1>個人設定</h1>
+        <p>COMMANDER PROFILE</p>
+    </div>
+
+    <div class="profile-card" id="profileCard">
+        <div class="id-tag" id="uidDisplay">UID: ---</div>
+
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+
+        <div class="avatar-container" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <img src="" id="avatarPreview" class="avatar-preview" onerror="this.src='https://cdn-icons-png.flaticon.com/512/847/847969.png'">
+            
+            <div class="avatar-overlay">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.5rem; margin-bottom:5px;"></i>
+                <span>更換頭像</span>
+            </div>
+            
+            <div class="avatar-edit-hint"><i class="fa-solid fa-camera"></i></div>
+            
+            <i class="fa-solid fa-spinner fa-spin upload-spinner" id="uploadSpinner"></i>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">代號 (Nickname)</label>
+            <input type="text" id="displayName" class="form-input" placeholder="請輸入您的暱稱">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">頭像連結 (唯讀，自動生成)</label>
+            <input type="text" id="photoURL" class="form-input" readonly placeholder="上傳圖片後自動生成...">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">專屬識別色 (Theme Color)</label>
+            <div class="color-picker-wrapper">
+                <input type="color" id="themeColor" value="#FFD700" oninput="updateColorPreview()">
+                <span class="color-text" id="colorCode">#FFD700</span>
+                <span style="color:#64748b; font-size:0.8rem; margin-left:auto;">調整介面光暈</span>
+            </div>
+        </div>
+
+        <button class="btn-save" id="btnSave" onclick="saveProfile()">儲存變更</button>
+    </div>
+
+    <div id="toast" class="msg-toast"><i class="fa-solid fa-check"></i> 資料更新成功！</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -121,97 +234,164 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const storage = getStorage(app);
         const db = getFirestore(app);
-
+        const storage = getStorage(app);
         let currentUser = null;
-        let selectedFile = null;
-        let selectedColor = '#00f3ff';
 
-        // 初始化
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                // 1. 載入 Auth 基本資料
-                document.getElementById('displayName').value = user.displayName || user.email.split('@')[0];
-                document.getElementById('avatarPreview').src = user.photoURL || 'https://via.placeholder.com/150';
+                document.getElementById('uidDisplay').innerText = `UID: ${user.uid.substring(0, 8)}...`;
+                
+                document.getElementById('displayName').value = user.displayName || '';
+                document.getElementById('photoURL').value = user.photoURL || '';
+                if(user.photoURL) document.getElementById('avatarPreview').src = user.photoURL;
+                
+                try {
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
+                    if(docSnap.exists()) {
+                        const data = docSnap.data();
+                        if(data.themeColor) document.getElementById('themeColor').value = data.themeColor;
+                    }
+                } catch(e) { console.error(e); }
 
-                // 2. 載入 Firestore 額外資料 (Bio, Color)
-                const docRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    if(data.bio) document.getElementById('bio').value = data.bio;
-                    if(data.themeColor) selectColor(data.themeColor);
-                } else {
-                    selectColor('#00f3ff');
-                }
+                updateColorPreview();
             } else {
-                window.location.href = 'login.html';
+                window.location.href = "login.html";
             }
         });
 
-        // 圖片預覽
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                selectedFile = file;
-                document.getElementById('avatarPreview').src = URL.createObjectURL(file);
-            }
+        // --- 🔥 拖曳與壓縮邏輯 ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        // 拖曳事件
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-active');
         });
 
-        // 顏色選擇邏輯
-        window.selectColor = (color) => {
-            selectedColor = color;
-            document.querySelectorAll('.color-dot').forEach(dot => {
-                dot.classList.remove('active');
-                if(dot.getAttribute('data-color') === color) dot.classList.add('active');
-            });
-            document.documentElement.style.setProperty('--accent', color);
-        };
-
-        // 綁定顏色點擊事件
-        document.querySelectorAll('.color-dot').forEach(dot => {
-            dot.addEventListener('click', () => selectColor(dot.getAttribute('data-color')));
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-active');
         });
 
-        // 儲存邏輯
-        window.saveProfile = async () => {
-            if (!currentUser) return;
-            document.getElementById('loading').style.display = 'flex';
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-active');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFileUpload(files[0]);
+        });
+
+        // 點擊上傳
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) handleFileUpload(fileInput.files[0]);
+        });
+
+        // 圖片處理主函式
+        async function handleFileUpload(file) {
+            if (!file.type.startsWith('image/')) return alert("請上傳圖片檔案！");
+
+            const spinner = document.getElementById('uploadSpinner');
+            spinner.style.display = 'block'; // 顯示轉圈圈
 
             try {
-                let newPhotoURL = currentUser.photoURL;
+                // 1. 客戶端壓縮
+                const compressedBlob = await compressImage(file);
 
-                // 1. 上傳圖片 (如果有選)
-                if (selectedFile) {
-                    const storageRef = ref(storage, `avatars/${currentUser.uid}.jpg`);
-                    await uploadBytes(storageRef, selectedFile);
-                    newPhotoURL = await getDownloadURL(storageRef);
-                }
+                // 2. 上傳至 Firebase Storage
+                const storageRef = ref(storage, `profile_images/${currentUser.uid}_${Date.now()}.jpg`);
+                await uploadBytes(storageRef, compressedBlob);
 
-                // 2. 更新 Auth Profile (暱稱 + 頭像)
-                await updateProfile(currentUser, {
-                    displayName: document.getElementById('displayName').value,
-                    photoURL: newPhotoURL
-                });
+                // 3. 取得下載連結
+                const downloadURL = await getDownloadURL(storageRef);
 
-                // 3. 更新 Firestore (Bio + Color + 其他擴充欄位)
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    bio: document.getElementById('bio').value,
-                    themeColor: selectedColor,
-                    email: currentUser.email
-                }, { merge: true });
-
-                alert("檔案更新成功！");
-                window.location.href = 'vip_area.html';
-
+                // 4. 更新介面
+                document.getElementById('photoURL').value = downloadURL;
+                document.getElementById('avatarPreview').src = downloadURL;
+                
             } catch (error) {
                 console.error(error);
-                alert("更新失敗：" + error.message);
-                document.getElementById('loading').style.display = 'none';
+                alert("上傳失敗: " + error.message);
+            } finally {
+                spinner.style.display = 'none';
             }
-        };
+        }
+
+        // 使用 Canvas 進行圖片壓縮 (500x500 max)
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const MAX_SIZE = 500;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                };
+                img.onerror = reject;
+            });
+        }
+
+        // --- 既有邏輯 ---
+        window.updateColorPreview = () => {
+            const color = document.getElementById('themeColor').value;
+            document.getElementById('colorCode').innerText = color.toUpperCase();
+            
+            const card = document.getElementById('profileCard');
+            card.style.borderColor = color;
+            card.style.boxShadow = `0 0 40px ${color}40`;
+            
+            const avatar = document.getElementById('avatarPreview');
+            avatar.style.borderColor = color;
+            avatar.style.boxShadow = `0 0 20px ${color}60`;
+
+            const btn = document.getElementById('btnSave');
+            btn.style.background = `linear-gradient(135deg, ${color}, #ffffff)`;
+        }
+
+        window.saveProfile = async () => {
+            if(!currentUser) return;
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true; btn.innerText = "更新中...";
+
+            const newName = document.getElementById('displayName').value;
+            const newPhoto = document.getElementById('photoURL').value;
+            const newColor = document.getElementById('themeColor').value;
+
+            try {
+                await updateProfile(currentUser, { displayName: newName, photoURL: newPhoto });
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    displayName: newName,
+                    photoURL: newPhoto,
+                    themeColor: newColor,
+                    lastUpdated: new Date()
+                });
+                
+                // 顯示成功提示
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+                
+            } catch(e) {
+                alert("更新失敗: " + e.message);
+            } finally {
+                btn.disabled = false; btn.innerText = "儲存變更";
+            }
+        }
     </script>
 </body>
 </html>
