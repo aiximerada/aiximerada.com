@@ -50,7 +50,6 @@
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
         .user-id { color: var(--neon-blue); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px var(--neon-blue); }
 
-        /* ✨ 星星點數標籤 (新) */
         .stars-badge {
             background: rgba(242, 201, 76, 0.15); border: 1px solid var(--neon-gold);
             color: var(--neon-gold); padding: 5px 15px; border-radius: 20px;
@@ -130,6 +129,12 @@
             <p>修改頭像、暱稱與個人化配色。</p>
         </a>
 
+        <a href="shop.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <i class="fa-solid fa-store" style="color: var(--neon-gold);"></i>
+            <h3>星際補給站</h3>
+            <p>消耗能源兌換裝備與物資。</p>
+        </a>
+
         <a href="temp_share.html" class="secret-card" style="border-color: var(--neon-red);">
             <i class="fa-solid fa-file-shield" style="color: var(--neon-red);"></i>
             <h3>加密傳輸艙</h3>
@@ -162,6 +167,13 @@
             <i class="fa-solid fa-users-gear" style="color: var(--neon-gold);"></i>
             <h3>人員管理</h3>
             <p>查看會員列表與調整點數。</p>
+        </a>
+
+        <a href="admin_shop.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
+            <i class="fa-solid fa-warehouse" style="color: var(--neon-gold);"></i>
+            <h3>後勤補給管理</h3>
+            <p>上架獎品與查看兌換紀錄。</p>
         </a>
 
         <a href="admin_invite.html" class="secret-card" style="border-color: #00f3ff;">
@@ -242,7 +254,7 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         
-                        // 🔥 讀取並顯示星星
+                        // 顯示點數
                         const stars = data.stars !== undefined ? data.stars : 0;
                         document.getElementById('star-count').innerText = stars;
 

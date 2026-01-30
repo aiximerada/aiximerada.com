@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>後勤補給管理 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.9); }
+        body {
+            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', monospace;
+            padding: 20px; min-height: 100vh;
+        }
+
+        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; }
+        
+        .nav { margin-bottom: 30px; }
+        .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
+        .nav a:hover { border-color: var(--admin-gold); color: #fff; }
+
+        /* 兩欄佈局 */
+        .container { display: flex; flex-wrap: wrap; gap: 20px; }
+        .section { flex: 1; min-width: 300px; background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 15px; }
+        
+        h2 { color: #00f3ff; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
+
+        /* 表單 */
+        input, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border-radius: 5px; border: 1px solid #555; background: rgba(0,0,0,0.3); color: #fff; }
+        button { background: var(--admin-gold); color: #000; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { box-shadow: 0 0 15px rgba(242, 201, 76, 0.4); }
+
+        /* 紀錄表格 */
+        .log-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .log-table th { text-align: left; color: #888; padding: 10px; border-bottom: 1px solid #555; }
+        .log-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .log-plus { color: #00ff9d; } /* 增加點數 */
+        .log-minus { color: #ff4757; } /* 扣除點數 */
+
+        /* 獎品預覽 */
+        .prize-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+        .prize-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+        .btn-del { width: auto; padding: 5px 10px; background: #ff4757; margin: 0; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
+        <a href="admin_members.html">人員管理</a>
+    </div>
+
+    <h1><i class="fa-solid fa-warehouse"></i> 後勤補給管理</h1>
+
+    <div class="container">
+        <div class="section">
+            <h2><i class="fa-solid fa-upload"></i> 新增兌換項目</h2>
+            <input type="text" id="prizeName" placeholder="獎品名稱 (例如: 手工皂禮盒)">
+            <input type="number" id="prizeCost" placeholder="兌換所需星星數 (例如: 500)">
+            <input type="file" id="prizeImg" accept="image/*">
+            <button onclick="addPrize()" id="btnUpload">上架補給品</button>
+
+            <div id="prizeList">
+                </div>
+        </div>
+
+        <div class="section" style="flex: 2;">
+            <h2><i class="fa-solid fa-list-ul"></i> 點數異動與兌換紀錄</h2>
+            <div style="overflow-x:auto;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>時間</th>
+                            <th>指揮官</th>
+                            <th>動作/物品</th>
+                            <th>點數</th>
+                            <th>備註</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logList">
+                        <tr><td colspan="5">載入中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // --- 1. 上架獎品 ---
+        window.addPrize = async () => {
+            const name = document.getElementById('prizeName').value;
+            const cost = parseInt(document.getElementById('prizeCost').value);
+            const file = document.getElementById('prizeImg').files[0];
+            const btn = document.getElementById('btnUpload');
+
+            if(!name || !cost || !file) return alert("請填寫完整資訊");
+
+            btn.disabled = true;
+            btn.innerText = "上傳圖片中...";
+
+            try {
+                // 上傳圖片
+                const storageRef = ref(storage, `prizes/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, file);
+                const url = await getDownloadURL(storageRef);
+
+                // 寫入資料庫
+                await addDoc(collection(db, "prizes"), {
+                    name: name,
+                    cost: cost,
+                    imageUrl: url,
+                    active: true,
+                    createdAt: serverTimestamp()
+                });
+
+                alert("上架成功！");
+                location.reload();
+
+            } catch(e) {
+                console.error(e);
+                alert("上架失敗: " + e.message);
+                btn.disabled = false;
+            }
+        };
+
+        // --- 2. 載入現有獎品 ---
+        async function loadPrizes() {
+            const list = document.getElementById('prizeList');
+            const q = query(collection(db, "prizes"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            
+            list.innerHTML = '';
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                list.innerHTML += `
+                    <div class="prize-item">
+                        <img src="${data.imageUrl}" class="prize-img">
+                        <div style="flex:1;">
+                            <div style="font-weight:bold;">${data.name}</div>
+                            <div style="font-size:0.8rem; color:#f2c94c;">⭐ ${data.cost}</div>
+                        </div>
+                        <button class="btn-del" onclick="deletePrize('${docSnap.id}')">下架</button>
+                    </div>
+                `;
+            });
+        }
+
+        window.deletePrize = async (id) => {
+            if(confirm("確定下架此商品？")) {
+                await deleteDoc(doc(db, "prizes", id));
+                loadPrizes();
+            }
+        }
+
+        // --- 3. 載入全域日誌 (Transactions) ---
+        async function loadLogs() {
+            const tbody = document.getElementById('logList');
+            // 注意：如果資料量大，建議加 limit(50)
+            const q = query(collection(db, "transactions"), orderBy("timestamp", "desc"));
+            const snapshot = await getDocs(q);
+
+            tbody.innerHTML = '';
+            if(snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5">暫無紀錄</td></tr>'; return; }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知';
+                const colorClass = data.amount >= 0 ? 'log-plus' : 'log-minus';
+                const sign = data.amount >= 0 ? '+' : '';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${data.userName || data.userEmail}</td>
+                        <td>${data.itemName || data.action}</td>
+                        <td class="${colorClass}">${sign}${data.amount}</td>
+                        <td style="color:#aaa;">${data.note || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        loadPrizes();
+        loadLogs();
+    </script>
+</body>
+</html>

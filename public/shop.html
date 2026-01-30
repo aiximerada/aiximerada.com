@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星際補給站 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-gold: #f2c94c;
+            --neon-blue: #00f3ff;
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
+        }
+        body {
+            background: var(--bg-gradient); color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            background-attachment: fixed;
+        }
+
+        /* 頂部 */
+        .header {
+            width: 100%; padding: 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100; box-sizing: border-box;
+        }
+        .back-btn { color: #fff; text-decoration: none; font-size: 1.1rem; }
+        .my-balance { 
+            background: rgba(242, 201, 76, 0.2); border: 1px solid var(--neon-gold); 
+            color: var(--neon-gold); padding: 5px 15px; border-radius: 20px; font-weight: bold;
+        }
+
+        /* 商品網格 */
+        .shop-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px; width: 90%; max-width: 800px; margin-top: 30px; padding-bottom: 50px;
+        }
+
+        .product-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; overflow: hidden; transition: 0.3s;
+            display: flex; flex-direction: column;
+        }
+        .product-card:hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); }
+        
+        .p-img { width: 100%; height: 160px; object-fit: cover; background: #000; }
+        .p-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .p-name { font-size: 1rem; font-weight: bold; margin-bottom: 5px; }
+        .p-cost { color: var(--neon-gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; }
+        
+        .btn-buy {
+            margin-top: auto; width: 100%; padding: 10px; border: none; border-radius: 8px;
+            background: var(--neon-blue); color: #000; font-weight: bold; cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-buy:hover { background: #fff; box-shadow: 0 0 10px #fff; }
+        .btn-buy:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+
+        .loading { margin-top: 50px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <div class="my-balance">
+            <i class="fa-solid fa-star"></i> <span id="userStars">--</span>
+        </div>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+        <h1 style="margin:0; text-shadow: 0 0 10px var(--neon-blue);">星際補給站</h1>
+        <p style="color:#aaa; font-size:0.9rem;">消耗星際能源兌換裝備</p>
+    </div>
+
+    <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描物資...</div>
+    <div class="shop-grid" id="grid"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, runTransaction, query, orderBy, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+
+        // 1. 監聽登入並取得即時點數
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                updateBalanceDisplay(user.uid);
+                loadProducts();
+            } else {
+                alert("請先登入");
+                window.location.href = "login.html";
+            }
+        });
+
+        // 刷新點數顯示
+        async function updateBalanceDisplay(uid) {
+            const docSnap = await getDoc(doc(db, "users", uid));
+            if(docSnap.exists()) {
+                const stars = docSnap.data().stars || 0;
+                document.getElementById('userStars').innerText = stars;
+                return stars;
+            }
+            return 0;
+        }
+
+        // 2. 載入商品
+        async function loadProducts() {
+            const grid = document.getElementById('grid');
+            const q = query(collection(db, "prizes"), orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(q);
+            
+            document.getElementById('loading').style.display = 'none';
+            grid.innerHTML = '';
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <img src="${data.imageUrl}" class="p-img">
+                        <div class="p-info">
+                            <div class="p-name">${data.name}</div>
+                            <div class="p-cost">⭐ ${data.cost}</div>
+                            <button class="btn-buy" onclick="buyItem('${docSnap.id}', '${data.name}', ${data.cost})">
+                                立即兌換
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 3. 購買邏輯 (交易)
+        window.buyItem = async (prizeId, prizeName, cost) => {
+            if(!confirm(`確定要花費 ${cost} 點兌換「${prizeName}」嗎？`)) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerText = "處理中...";
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    // A. 讀取使用者資料
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) throw "使用者資料錯誤";
+
+                    const currentStars = userDoc.data().stars || 0;
+                    
+                    // B. 檢查餘額
+                    if (currentStars < cost) {
+                        throw "星際能源不足！無法兌換。";
+                    }
+
+                    // C. 執行扣款
+                    const newBalance = currentStars - cost;
+                    transaction.update(userRef, { stars: newBalance });
+
+                    // D. 寫入交易日誌 (Transactions)
+                    const newLogRef = doc(collection(db, "transactions"));
+                    transaction.set(newLogRef, {
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                        userName: currentUser.displayName,
+                        action: "redeem",
+                        itemName: prizeName,
+                        amount: -cost, // 負數代表扣除
+                        note: "商城兌換",
+                        timestamp: serverTimestamp()
+                    });
+                });
+
+                alert(`兌換成功！\n已獲得：${prizeName}`);
+                updateBalanceDisplay(currentUser.uid); // 更新介面數字
+                
+            } catch (e) {
+                console.error(e);
+                alert("交易失敗: " + e);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "立即兌換";
+            }
+        };
+    </script>
+</body>
+</html>
