@@ -3,95 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>極速傳送門 - 玉露寶庫</title>
+    <title>圖片傳輸器 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-dark: #050510; --neon-cyan: #00f3ff; --neon-green: #00ff9d; --neon-red: #ff4757; --glass: rgba(255, 255, 255, 0.05); --star-gold: #f2c94c; }
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; opacity: 0; transition: opacity 0.5s; }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --success-green: #10b981;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-radius: 20px;
+        }
 
-        /* 背景特效 */
-        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; animation: moveStars 100s linear infinite; z-index: -2; }
-        @keyframes moveStars { from {transform: translateY(0);} to {transform: translateY(-1000px);} }
-        #twinkling-stars-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
-        .t-star { position: absolute; background-color: white; border-radius: 50%; opacity: 0; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation-name: twinkle; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
-        @keyframes twinkle { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.3); } }
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding-bottom: 50px;
+            position: relative; overflow-x: hidden;
+        }
 
-        .container { width: 90%; max-width: 600px; margin-top: 50px; background: var(--glass); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; margin-bottom: 50px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
-        h1 { margin-bottom: 20px; text-shadow: 0 0 10px var(--neon-cyan); }
+        /* --- 背景星空動畫 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 介面樣式 --- */
+        .header { width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; position: sticky; top: 0; z-index: 100; }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
+        .user-status { font-size: 0.9rem; color: var(--main-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+
+        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+        }
+        .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
+
+        /* --- 主卡片 --- */
+        .main-card {
+            width: 90%; max-width: 900px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius); padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(16px);
+            animation: slideUp 0.6s cubic-bezier(0.19, 1, 0.22, 1); margin-bottom: 50px;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 分頁 Tabs */
+        .tabs { display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #64748b; border-radius: 12px; transition: 0.3s; font-weight: bold; letter-spacing: 1px; }
+        .tab:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .tab.active { background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color: #0f172a; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+
+        /* --- 上傳區 --- */
+        .drop-zone { 
+            border: 2px dashed #475569; border-radius: 16px; padding: 50px 20px; 
+            text-align: center; cursor: pointer; transition: 0.3s; color: #64748b; 
+            background: rgba(0,0,0,0.2); display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .drop-zone:hover { border-color: var(--main-gold); color: #fff; background: rgba(255, 215, 0, 0.05); }
+        .drop-zone i { font-size: 3rem; margin-bottom: 5px; color: var(--main-gold); }
         
-        .upload-area { border: 2px dashed #555; padding: 40px; border-radius: 15px; cursor: pointer; transition: 0.3s; position: relative; }
-        .upload-area:hover { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); }
-        .upload-area input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-        
-        .file-list { margin-top: 20px; text-align: left; max-height: 300px; overflow-y: auto; }
-        .file-item { background: rgba(0,0,0,0.3); padding: 10px 15px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; border-left: 3px solid #555; transition: 0.3s; }
-        .file-item.success { border-left-color: var(--neon-green); background: rgba(0, 255, 157, 0.1); }
-        .file-item.uploading { border-left-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.1); }
-        .file-item.fail { border-left-color: var(--neon-red); }
-        .file-item.cancelled { border-left-color: #888; color: #888; }
+        .file-list { margin-top: 15px; }
+        .file-item { 
+            background: rgba(255,255,255,0.05); padding: 10px 15px; margin-bottom: 8px; border-radius: 8px; 
+            display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;
+            border-left: 3px solid #64748b; 
+        }
+        .file-item.uploading { border-left-color: var(--nebula-blue); }
+        .file-item.success { border-left-color: var(--success-green); }
 
-        .btn-group { display: flex; gap: 15px; margin-top: 20px; }
-        .btn { flex: 1; border: none; padding: 12px; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s; }
-        .btn-start { background: var(--neon-cyan); color: #000; }
-        .btn-start:disabled { background: #555; cursor: not-allowed; }
-        .btn-start:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 0 15px var(--neon-cyan); }
-        .btn-stop { background: var(--neon-red); color: #fff; display: none; }
-        .btn-stop:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--neon-red); }
-        
-        .progress-container { margin-top: 20px; display: none; }
-        .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 5px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--neon-cyan); width: 0%; transition: 0.3s; }
-        .progress-text { margin-top: 5px; font-size: 0.8rem; color: #aaa; }
+        .btn-action { 
+            width: 100%; padding: 15px; border: none; border-radius: 50px; 
+            font-weight: 900; font-size: 1.1rem; cursor: pointer; margin-top: 20px; 
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); 
+            color: #0f172a; transition: 0.3s; box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2);
+        }
+        .btn-action:disabled { background: #475569; cursor: not-allowed; }
 
-        /* 優化選項 */
-        .options-panel { margin-top: 20px; display: flex; justify-content: center; gap: 20px; font-size: 0.9rem; color: #aaa; }
-        .switch-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .switch-label input { accent-color: var(--neon-cyan); width: 18px; height: 18px; }
+        /* --- 圖庫區 --- */
+        .gallery-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap:10px; }
+        .select-info { color: #94a3b8; font-size: 0.9rem; }
+        .gallery-btns { display: flex; gap: 10px; }
+        .btn-tool {
+            padding: 8px 15px; border-radius: 20px; border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; transition: 0.3s; font-size: 0.9rem;
+        }
+        .btn-tool:hover { background: rgba(255,255,255,0.1); }
+        .btn-tool.delete { color: var(--danger-red); border-color: var(--danger-red); }
+        .btn-tool.delete:hover { background: var(--danger-red); color: #fff; }
+        .btn-tool.download { color: var(--success-green); border-color: var(--success-green); }
+        .btn-tool.download:hover { background: var(--success-green); color: #000; }
+
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px;
+            max-height: 60vh; overflow-y: auto; padding-right: 5px;
+        }
+        .gallery-item {
+            position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+            border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+        }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .gallery-item:hover img { transform: scale(1.1); }
+        
+        /* 選中狀態 */
+        .gallery-item.selected { border-color: var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); }
+        .gallery-item.selected::after {
+            content: '✔'; position: absolute; top: 5px; right: 5px;
+            background: var(--main-gold); color: #000; width: 20px; height: 20px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 0.8rem; font-weight: bold;
+        }
+
+        .empty-msg { grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px; }
+
     </style>
 </head>
 <body>
-    <div class="stars-bg"></div>
-    <div id="twinkling-stars-container"></div>
 
-    <div class="container">
-        <h1><i class="fa-solid fa-bolt"></i> 極速傳送門</h1>
-        <p style="color:#aaa; font-size:0.9rem;">支援並行傳輸技術 (Parallel Upload)</p>
-        
-        <div class="upload-area" id="drop-area">
-            <i class="fa-solid fa-images" style="font-size: 3rem; color: #ccc;"></i>
-            <p>點擊 或 拖放多張圖片至此</p>
-            <input type="file" id="fileInput" accept="image/*" multiple>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+        <div class="user-status" id="userStatus">...</div>
+    </div>
+
+    <div class="page-title">
+        <h1>圖片傳輸器</h1>
+        <p>IMAGE TRANSMITTER & GALLERY</p>
+    </div>
+
+    <div class="main-card">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('upload')"><i class="fa-solid fa-cloud-arrow-up"></i> 傳輸上傳</div>
+            <div class="tab" onclick="switchTab('gallery')"><i class="fa-solid fa-images"></i> 我的圖庫</div>
         </div>
 
-        <div class="options-panel">
-            <label class="switch-label" title="先壓縮再上傳，速度提升 5 倍以上，適合非高畫質需求">
-                <input type="checkbox" id="compressSwitch" checked> 
-                <span>啟用極速壓縮 (推薦)</span>
-            </label>
+        <div id="uploadSection">
+            <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-camera"></i>
+                <div>點擊拍照 或 拖曳圖片至此</div>
+                <div style="font-size:0.8rem; color:var(--success-green); margin-top:5px;">
+                    <i class="fa-solid fa-bolt"></i> 已啟用智能壓縮技術
+                </div>
+                <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFileSelect(this)">
+            </div>
+            
+            <div class="file-list" id="uploadList"></div>
+
+            <button class="btn-action" id="startUploadBtn" onclick="startUpload()" disabled>
+                <i class="fa-solid fa-rocket"></i> 開始傳輸
+            </button>
         </div>
 
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar"><div class="progress-fill" id="totalProgress"></div></div>
-            <div class="progress-text" id="progressText">準備傳輸...</div>
+        <div id="gallerySection" style="display:none;">
+            <div class="gallery-controls">
+                <div class="select-info">已選擇 <span id="selectCount" style="color:#fff; font-weight:bold;">0</span> 張圖片</div>
+                <div class="gallery-btns">
+                    <button class="btn-tool" onclick="selectAll()">全選</button>
+                    <button class="btn-tool download" onclick="batchDownload()"><i class="fa-solid fa-download"></i> 下載</button>
+                    <button class="btn-tool delete" onclick="batchDelete()"><i class="fa-solid fa-trash"></i> 刪除</button>
+                </div>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="empty-msg"><i class="fa-solid fa-spinner fa-spin"></i> 載入中...</div>
+            </div>
         </div>
-        
-        <div class="file-list" id="fileList"></div>
-        
-        <div class="btn-group">
-            <button class="btn btn-start" id="uploadBtn" onclick="startBatchUpload()" disabled>開始並行上傳</button>
-            <button class="btn btn-stop" id="stopBtn" onclick="stopUpload()">🛑 終止上傳</button>
-        </div>
-
-        <a href="vip_area.html" style="display:block; margin-top:20px; color:#888; text-decoration:none;">返回會員區</a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -103,192 +218,247 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const storage = getStorage(app);
-        const db = getFirestore(app);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
         let currentUser = null;
+        let selectedUploadFiles = [];
+        let galleryImages = []; // 存儲圖庫資料
+        let selectedGalleryIds = new Set(); // 存儲選中的圖片 ID
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) { currentUser = user; document.body.style.opacity = "1"; } 
-            else window.location.href = 'login.html';
-        });
-
-        const fileInput = document.getElementById('fileInput');
-        const fileListDiv = document.getElementById('fileList');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        let selectedFiles = [];
-        let uploadTasks = []; // 儲存所有任務以便取消
-        let stopRequested = false;
-
-        // 星空特效
-        function createTwinklingStars() {
-            const container = document.getElementById('twinkling-stars-container');
-            if(!container) return;
-            for (let i = 0; i < 60; i++) {
-                const star = document.createElement('div');
-                star.className = 't-star';
-                star.style.left = `${Math.random() * 100}%`;
-                star.style.top = `${Math.random() * 100}%`;
-                star.style.width = `${Math.random() * 2 + 1}px`;
-                star.style.height = star.style.width;
-                star.style.animationDuration = `${Math.random() * 4 + 2}s`;
-                star.style.animationDelay = `${Math.random() * 5}s`;
-                container.appendChild(star);
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('userStatus').innerText = user.displayName || '指揮官';
+                loadGallery(); // 登入後載入圖庫
+            } else {
+                window.location.href = 'login.html';
             }
-        }
-        window.addEventListener('load', createTwinklingStars);
-
-        fileInput.addEventListener('change', function(e) {
-            selectedFiles = Array.from(e.target.files);
-            renderFileList();
-            if(selectedFiles.length > 0) uploadBtn.disabled = false;
         });
 
-        function renderFileList() {
-            fileListDiv.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.id = `file-${index}`;
-                const displayName = file.name.length > 20 ? file.name.substring(0,20)+'...' : file.name;
-                item.innerHTML = `
-                    <span>${displayName} <small style="color:#888">(${(file.size/1024).toFixed(1)} KB)</small></span>
-                    <span class="status"><i class="fa-regular fa-clock"></i> 待機</span>
-                `;
-                fileListDiv.appendChild(item);
+        // --- Tab 切換 ---
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab')[tab === 'upload' ? 0 : 1].classList.add('active');
+            document.getElementById('uploadSection').style.display = tab === 'upload' ? 'block' : 'none';
+            document.getElementById('gallerySection').style.display = tab === 'gallery' ? 'block' : 'none';
+        };
+
+        // --- 🚀 上傳與壓縮邏輯 ---
+        const dropZone = document.querySelector('.drop-zone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#FFD700'; });
+        dropZone.addEventListener('dragleave', () => dropZone.style.borderColor = '#475569');
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#475569';
+            if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+        });
+
+        window.handleFileSelect = (input) => {
+            if(input.files.length) handleFiles(input.files);
+        }
+
+        function handleFiles(files) {
+            selectedUploadFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            renderUploadList();
+            document.getElementById('startUploadBtn').disabled = selectedUploadFiles.length === 0;
+        }
+
+        function renderUploadList() {
+            const list = document.getElementById('uploadList');
+            list.innerHTML = '';
+            selectedUploadFiles.forEach(f => {
+                list.innerHTML += `
+                    <div class="file-item">
+                        <span><i class="fa-regular fa-image"></i> ${f.name}</span>
+                        <span style="color:#aaa; font-size:0.8rem;">(${(f.size/1024).toFixed(1)} KB)</span>
+                    </div>`;
             });
         }
 
-        window.stopUpload = function() {
-            if(confirm('確定要終止所有上傳嗎？')) {
-                stopRequested = true;
-                uploadTasks.forEach(task => task.cancel()); // 🛑 一次取消所有任務
-                stopBtn.innerText = "正在停止...";
-                stopBtn.disabled = true;
-            }
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX = 1200; // 限制最大邊長
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } } 
+                    else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+                    canvas.width = w; canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+                };
+                img.onerror = reject;
+            });
         }
 
-        // ⚡ 核心：並行上傳邏輯
-        window.startBatchUpload = async function() {
-            if(selectedFiles.length === 0) return;
+        window.startUpload = async () => {
+            const btn = document.getElementById('startUploadBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在傳輸中...';
 
-            // UI 狀態切換
-            stopRequested = false;
-            uploadTasks = [];
-            uploadBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
-            stopBtn.disabled = false;
-            stopBtn.innerText = "🛑 終止上傳";
-            document.getElementById('progressContainer').style.display = 'block';
+            let successCount = 0;
 
-            let completedCount = 0;
-            const useCompression = document.getElementById('compressSwitch').checked;
-
-            // ⚡ 建立所有 Promise 任務 (並發請求)
-            const promises = selectedFiles.map(async (file, index) => {
-                const itemEl = document.getElementById(`file-${index}`);
-                const statusSpan = itemEl.querySelector('.status');
-
-                if (stopRequested) return;
-
-                itemEl.classList.add('uploading');
-                statusSpan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 上傳中...';
-
+            for (const file of selectedUploadFiles) {
                 try {
-                    let fileToUpload = file;
-
-                    // 🛠️ 壓縮處理 (如果在本地先縮小，上傳就會飛快)
-                    if (useCompression) {
-                        statusSpan.innerHTML = '<i class="fa-solid fa-compress"></i> 壓縮中...';
-                        fileToUpload = await compressImage(file, 0.7); // 70% 品質
-                        statusSpan.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 上傳中...';
-                    }
-
-                    const fileName = `user_uploads/${Date.now()}_${index}_${file.name}`;
+                    const compressedBlob = await compressImage(file);
+                    const fileName = `user_gallery/${currentUser.uid}/${Date.now()}_${file.name}`;
                     const storageRef = ref(storage, fileName);
                     
-                    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-                    uploadTasks.push(uploadTask); // 加入任務清單
+                    await uploadBytes(storageRef, compressedBlob);
+                    const url = await getDownloadURL(storageRef);
 
-                    await uploadTask; // 等待這個任務完成
-
-                    const downloadURL = await getDownloadURL(storageRef);
-                    await addDoc(collection(db, "gallery"), {
-                        imageUrl: downloadURL,
-                        fileName: file.name,
-                        uploadedBy: currentUser.email,
+                    // 寫入 Firestore
+                    await addDoc(collection(db, "user_gallery"), {
+                        userId: currentUser.uid,
+                        url: url,
+                        storagePath: fileName,
+                        name: file.name,
                         timestamp: serverTimestamp()
                     });
-
-                    itemEl.classList.remove('uploading');
-                    itemEl.classList.add('success');
-                    statusSpan.innerHTML = '<i class="fa-solid fa-check"></i> 完成';
-
-                } catch (error) {
-                    itemEl.classList.remove('uploading');
-                    if (error.code === 'storage/canceled' || stopRequested) {
-                        itemEl.classList.add('cancelled');
-                        statusSpan.innerText = '已取消';
-                    } else {
-                        console.error(error);
-                        itemEl.classList.add('fail');
-                        statusSpan.innerHTML = '<i class="fa-solid fa-xmark"></i> 失敗';
-                    }
-                } finally {
-                    completedCount++;
-                    const percent = (completedCount / selectedFiles.length) * 100;
-                    document.getElementById('totalProgress').style.width = percent + '%';
-                    document.getElementById('progressText').innerText = `處理進度：${completedCount} / ${selectedFiles.length}`;
+                    successCount++;
+                } catch (e) {
+                    console.error("Upload failed", e);
                 }
-            });
+            }
 
-            // 等待所有任務全部跑完
-            await Promise.all(promises);
+            alert(`傳輸完畢！成功 ${successCount} 張圖片。`);
+            btn.innerHTML = '<i class="fa-solid fa-rocket"></i> 開始傳輸';
+            selectedUploadFiles = [];
+            renderUploadList();
+            loadGallery(); // 重新整理圖庫
+            switchTab('gallery'); // 跳轉到圖庫
+        };
 
-            uploadBtn.style.display = 'block';
-            stopBtn.style.display = 'none';
-            if(!stopRequested) {
-                uploadBtn.innerText = "上傳完成 (點擊重整)";
-                uploadBtn.onclick = () => window.location.reload();
-                alert('所有任務處理完畢！');
-            } else {
-                uploadBtn.innerText = "已終止 (點擊重整)";
-                uploadBtn.onclick = () => window.location.reload();
+        // --- 🖼️ 圖庫邏輯 ---
+        async function loadGallery() {
+            if (!currentUser) return;
+            const grid = document.getElementById('galleryGrid');
+            
+            try {
+                const q = query(
+                    collection(db, "user_gallery"), 
+                    where("userId", "==", currentUser.uid),
+                    orderBy("timestamp", "desc")
+                );
+                const snapshot = await getDocs(q);
+                
+                galleryImages = [];
+                snapshot.forEach(doc => {
+                    galleryImages.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderGallery();
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<div class="empty-msg">讀取失敗，請檢查網路</div>';
             }
         }
 
-        // 🖼️ 本地壓縮函式 (Canvas API)
-        function compressImage(file, quality) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        // 簡單縮圖邏輯：最大寬度 1920
-                        const maxWidth = 1920;
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        canvas.toBlob((blob) => {
-                            resolve(blob);
-                        }, 'image/jpeg', quality);
-                    };
-                    img.onerror = error => reject(error);
-                };
-                reader.onerror = error => reject(error);
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+            selectedGalleryIds.clear();
+            updateSelectCount();
+
+            if (galleryImages.length === 0) {
+                grid.innerHTML = '<div class="empty-msg">圖庫空空如也，快去上傳吧！</div>';
+                return;
+            }
+
+            galleryImages.forEach(img => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+                div.onclick = () => toggleSelect(img.id, div);
+                div.innerHTML = `<img src="${img.url}" loading="lazy">`;
+                grid.appendChild(div);
             });
         }
+
+        function toggleSelect(id, el) {
+            if (selectedGalleryIds.has(id)) {
+                selectedGalleryIds.delete(id);
+                el.classList.remove('selected');
+            } else {
+                selectedGalleryIds.add(id);
+                el.classList.add('selected');
+            }
+            updateSelectCount();
+        }
+
+        function updateSelectCount() {
+            document.getElementById('selectCount').innerText = selectedGalleryIds.size;
+        }
+
+        window.selectAll = () => {
+            const items = document.querySelectorAll('.gallery-item');
+            const allSelected = selectedGalleryIds.size === galleryImages.length;
+            
+            if (allSelected) {
+                selectedGalleryIds.clear();
+                items.forEach(el => el.classList.remove('selected'));
+            } else {
+                galleryImages.forEach(img => selectedGalleryIds.add(img.id));
+                items.forEach(el => el.classList.add('selected'));
+            }
+            updateSelectCount();
+        };
+
+        // --- 📥 批量下載 ---
+        window.batchDownload = async () => {
+            if (selectedGalleryIds.size === 0) return alert("請先選擇圖片");
+            
+            let count = 0;
+            for (const id of selectedGalleryIds) {
+                const imgData = galleryImages.find(img => img.id === id);
+                if (imgData) {
+                    // 建立臨時連結觸發下載
+                    const link = document.createElement('a');
+                    link.href = imgData.url;
+                    link.target = '_blank';
+                    link.download = imgData.name || `image_${count}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    count++;
+                    // 延遲一下避免瀏覽器擋彈窗
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
+        };
+
+        // --- 🗑️ 批量刪除 ---
+        window.batchDelete = async () => {
+            if (selectedGalleryIds.size === 0) return alert("請先選擇圖片");
+            if (!confirm(`確定要永久刪除這 ${selectedGalleryIds.size} 張圖片嗎？`)) return;
+
+            const btn = document.querySelector('.btn-tool.delete');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 刪除中';
+
+            for (const id of selectedGalleryIds) {
+                const imgData = galleryImages.find(img => img.id === id);
+                if (imgData) {
+                    try {
+                        // 1. 刪除 Storage 檔案
+                        const imgRef = ref(storage, imgData.storagePath);
+                        await deleteObject(imgRef).catch(e => console.warn("File missing", e));
+                        
+                        // 2. 刪除 Firestore 紀錄
+                        await deleteDoc(doc(db, "user_gallery", id));
+                    } catch (e) {
+                        console.error("Delete error", e);
+                    }
+                }
+            }
+
+            btn.innerHTML = '<i class="fa-solid fa-trash"></i> 刪除';
+            loadGallery(); // 重新整理
+        };
+
     </script>
 </body>
 </html>
