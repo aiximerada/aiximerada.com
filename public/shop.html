@@ -29,10 +29,22 @@
             color: var(--neon-gold); padding: 5px 15px; border-radius: 20px; font-weight: bold;
         }
 
+        /* 分類篩選器 */
+        .filter-bar {
+            margin-top: 20px; display: flex; gap: 10px; overflow-x: auto; padding: 10px; width: 90%; max-width: 800px;
+            justify-content: center;
+        }
+        .filter-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid #555; color: #aaa;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; white-space: nowrap; transition: 0.3s;
+        }
+        .filter-btn.active { background: var(--neon-blue); color: #000; border-color: var(--neon-blue); font-weight: bold; }
+        .filter-btn:hover { border-color: var(--neon-blue); color: #fff; }
+
         /* 商品網格 */
         .shop-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 20px; width: 90%; max-width: 800px; margin-top: 30px; padding-bottom: 50px;
+            gap: 20px; width: 90%; max-width: 800px; margin-top: 20px; padding-bottom: 50px;
         }
 
         .product-card {
@@ -45,8 +57,12 @@
         .p-img { width: 100%; height: 160px; object-fit: cover; background: #000; }
         .p-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
         .p-name { font-size: 1rem; font-weight: bold; margin-bottom: 5px; }
-        .p-cost { color: var(--neon-gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; }
         
+        .p-meta { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .p-cost { color: var(--neon-gold); font-weight: bold; }
+        .p-qty { color: #00ff9d; }
+        .p-qty.out { color: #ff4757; }
+
         .btn-buy {
             margin-top: auto; width: 100%; padding: 10px; border: none; border-radius: 8px;
             background: var(--neon-blue); color: #000; font-weight: bold; cursor: pointer;
@@ -67,9 +83,17 @@
         </div>
     </div>
 
-    <div style="text-align:center; margin-top:30px;">
+    <div style="text-align:center; margin-top:20px;">
         <h1 style="margin:0; text-shadow: 0 0 10px var(--neon-blue);">星際補給站</h1>
         <p style="color:#aaa; font-size:0.9rem;">消耗星際能源兌換裝備</p>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterItems('all')">全部</button>
+        <button class="filter-btn" onclick="filterItems('equipment')">戰術裝備</button>
+        <button class="filter-btn" onclick="filterItems('digital')">數位資源</button>
+        <button class="filter-btn" onclick="filterItems('food')">能量補給</button>
+        <button class="filter-btn" onclick="filterItems('other')">其他</button>
     </div>
 
     <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描物資...</div>
@@ -94,49 +118,79 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         let currentUser = null;
+        let allProducts = []; // 暫存所有商品以便篩選
 
-        // 1. 監聽登入並取得即時點數
+        // 1. 監聽登入
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 updateBalanceDisplay(user.uid);
                 loadProducts();
             } else {
-                alert("請先登入");
                 window.location.href = "login.html";
             }
         });
 
-        // 刷新點數顯示
         async function updateBalanceDisplay(uid) {
             const docSnap = await getDoc(doc(db, "users", uid));
             if(docSnap.exists()) {
-                const stars = docSnap.data().stars || 0;
-                document.getElementById('userStars').innerText = stars;
-                return stars;
+                document.getElementById('userStars').innerText = docSnap.data().stars || 0;
             }
-            return 0;
         }
 
         // 2. 載入商品
         async function loadProducts() {
-            const grid = document.getElementById('grid');
             const q = query(collection(db, "prizes"), orderBy("createdAt", "desc"));
             const snapshot = await getDocs(q);
             
+            allProducts = [];
+            snapshot.forEach(doc => {
+                allProducts.push({ id: doc.id, ...doc.data() });
+            });
+
             document.getElementById('loading').style.display = 'none';
+            renderGrid('all');
+        }
+
+        // 3. 渲染與篩選
+        window.filterItems = (category) => {
+            // 更新按鈕樣式
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderGrid(category);
+        }
+
+        function renderGrid(filter) {
+            const grid = document.getElementById('grid');
             grid.innerHTML = '';
 
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
+            const items = filter === 'all' ? allProducts : allProducts.filter(p => p.category === filter);
+
+            if(items.length === 0) {
+                grid.innerHTML = '<div style="color:#aaa; grid-column:1/-1; text-align:center;">此分類暫無補給</div>';
+                return;
+            }
+
+            items.forEach(data => {
+                // 檢查庫存狀態
+                const qty = data.quantity !== undefined ? data.quantity : 0;
+                const isOutOfStock = qty <= 0;
+                const qtyClass = isOutOfStock ? 'p-qty out' : 'p-qty';
+                const qtyText = isOutOfStock ? '補給耗盡' : `庫存: ${qty}`;
+                const btnState = isOutOfStock ? 'disabled' : '';
+                const btnText = isOutOfStock ? '缺貨中' : '立即兌換';
+
                 grid.innerHTML += `
                     <div class="product-card">
                         <img src="${data.imageUrl}" class="p-img">
                         <div class="p-info">
                             <div class="p-name">${data.name}</div>
-                            <div class="p-cost">⭐ ${data.cost}</div>
-                            <button class="btn-buy" onclick="buyItem('${docSnap.id}', '${data.name}', ${data.cost})">
-                                立即兌換
+                            <div class="p-meta">
+                                <span class="p-cost">⭐ ${data.cost}</span>
+                                <span class="${qtyClass}">${qtyText}</span>
+                            </div>
+                            <button class="btn-buy" ${btnState} onclick="buyItem('${data.id}', '${data.name}', ${data.cost})">
+                                ${btnText}
                             </button>
                         </div>
                     </div>
@@ -144,33 +198,38 @@
             });
         }
 
-        // 3. 購買邏輯 (交易)
+        // 4. 購買邏輯 (含庫存扣除)
         window.buyItem = async (prizeId, prizeName, cost) => {
             if(!confirm(`確定要花費 ${cost} 點兌換「${prizeName}」嗎？`)) return;
 
             const btn = event.target;
+            const originalText = btn.innerText;
             btn.disabled = true;
-            btn.innerText = "處理中...";
+            btn.innerText = "通訊中...";
 
             try {
                 await runTransaction(db, async (transaction) => {
-                    // A. 讀取使用者資料
+                    // A. 讀取使用者
                     const userRef = doc(db, "users", currentUser.uid);
                     const userDoc = await transaction.get(userRef);
                     if (!userDoc.exists()) throw "使用者資料錯誤";
 
+                    // B. 讀取商品 (檢查最新庫存)
+                    const prizeRef = doc(db, "prizes", prizeId);
+                    const prizeDoc = await transaction.get(prizeRef);
+                    if (!prizeDoc.exists()) throw "商品已下架";
+
                     const currentStars = userDoc.data().stars || 0;
-                    
-                    // B. 檢查餘額
-                    if (currentStars < cost) {
-                        throw "星際能源不足！無法兌換。";
-                    }
+                    const currentQty = prizeDoc.data().quantity !== undefined ? prizeDoc.data().quantity : 0;
 
-                    // C. 執行扣款
-                    const newBalance = currentStars - cost;
-                    transaction.update(userRef, { stars: newBalance });
+                    // C. 驗證
+                    if (currentStars < cost) throw "星際能源不足！";
+                    if (currentQty <= 0) throw "手慢了一步，補給已耗盡！";
 
-                    // D. 寫入交易日誌 (Transactions)
+                    // D. 執行寫入
+                    transaction.update(userRef, { stars: currentStars - cost });
+                    transaction.update(prizeRef, { quantity: currentQty - 1 });
+
                     const newLogRef = doc(collection(db, "transactions"));
                     transaction.set(newLogRef, {
                         userId: currentUser.uid,
@@ -178,21 +237,22 @@
                         userName: currentUser.displayName,
                         action: "redeem",
                         itemName: prizeName,
-                        amount: -cost, // 負數代表扣除
+                        amount: -cost,
                         note: "商城兌換",
                         timestamp: serverTimestamp()
                     });
                 });
 
                 alert(`兌換成功！\n已獲得：${prizeName}`);
-                updateBalanceDisplay(currentUser.uid); // 更新介面數字
+                // 重新載入以更新介面庫存與點數
+                updateBalanceDisplay(currentUser.uid);
+                loadProducts();
                 
             } catch (e) {
                 console.error(e);
                 alert("交易失敗: " + e);
-            } finally {
                 btn.disabled = false;
-                btn.innerText = "立即兌換";
+                btn.innerText = originalText;
             }
         };
     </script>

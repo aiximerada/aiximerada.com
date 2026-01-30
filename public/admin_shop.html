@@ -26,7 +26,8 @@
         h2 { color: #00f3ff; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
 
         /* 表單 */
-        input, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border-radius: 5px; border: 1px solid #555; background: rgba(0,0,0,0.3); color: #fff; }
+        input, select, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border-radius: 5px; border: 1px solid #555; background: rgba(0,0,0,0.3); color: #fff; }
+        select option { background: #000; }
         button { background: var(--admin-gold); color: #000; font-weight: bold; cursor: pointer; border: none; }
         button:hover { box-shadow: 0 0 15px rgba(242, 201, 76, 0.4); }
 
@@ -34,13 +35,15 @@
         .log-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         .log-table th { text-align: left; color: #888; padding: 10px; border-bottom: 1px solid #555; }
         .log-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .log-plus { color: #00ff9d; } /* 增加點數 */
-        .log-minus { color: #ff4757; } /* 扣除點數 */
+        .log-plus { color: #00ff9d; }
+        .log-minus { color: #ff4757; }
 
         /* 獎品預覽 */
         .prize-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; }
-        .prize-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
-        .btn-del { width: auto; padding: 5px 10px; background: #ff4757; margin: 0; font-size: 0.8rem; }
+        .prize-img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
+        .info-col { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .badge { font-size: 0.75rem; background: #333; padding: 2px 6px; border-radius: 4px; color: #aaa; width: fit-content; }
+        .btn-del { width: auto; padding: 5px 10px; background: #ff4757; margin: 0; font-size: 0.8rem; color: #fff; }
     </style>
 </head>
 <body>
@@ -54,10 +57,26 @@
 
     <div class="container">
         <div class="section">
-            <h2><i class="fa-solid fa-upload"></i> 新增兌換項目</h2>
-            <input type="text" id="prizeName" placeholder="獎品名稱 (例如: 手工皂禮盒)">
-            <input type="number" id="prizeCost" placeholder="兌換所需星星數 (例如: 500)">
+            <h2><i class="fa-solid fa-upload"></i> 新增補給項目</h2>
+            
+            <label style="font-size:0.8rem; color:#aaa;">分類</label>
+            <select id="prizeCategory">
+                <option value="equipment">戰術裝備 (實體)</option>
+                <option value="digital">數位資源 (虛擬)</option>
+                <option value="food">能量補給 (食品)</option>
+                <option value="other">其他物資</option>
+            </select>
+
+            <input type="text" id="prizeName" placeholder="物資名稱 (例如: 手工皂禮盒)">
+            
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="prizeCost" placeholder="所需星星 ⭐">
+                <input type="number" id="prizeQty" placeholder="庫存數量 📦">
+            </div>
+
+            <label style="font-size:0.8rem; color:#aaa;">預覽圖 (自動壓縮)</label>
             <input type="file" id="prizeImg" accept="image/*">
+            
             <button onclick="addPrize()" id="btnUpload">上架補給品</button>
 
             <div id="prizeList">
@@ -88,7 +107,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -104,28 +123,66 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
+        // --- 0. 圖片壓縮函式 ---
+        const compressImage = async (file) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // 強制最大寬度 800px
+                    const scaleSize = MAX_WIDTH / img.width;
+                    
+                    // 如果圖片原本就很小，就不縮放
+                    const newWidth = (scaleSize < 1) ? MAX_WIDTH : img.width;
+                    const newHeight = (scaleSize < 1) ? img.height * scaleSize : img.height;
+
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                    
+                    // 轉回 Blob (JPEG, 70% 品質)
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/jpeg', 0.7); 
+                };
+                img.onerror = (err) => reject(err);
+            });
+        };
+
         // --- 1. 上架獎品 ---
         window.addPrize = async () => {
+            const category = document.getElementById('prizeCategory').value;
             const name = document.getElementById('prizeName').value;
             const cost = parseInt(document.getElementById('prizeCost').value);
-            const file = document.getElementById('prizeImg').files[0];
+            const qty = parseInt(document.getElementById('prizeQty').value);
+            const fileInput = document.getElementById('prizeImg');
+            const file = fileInput.files[0];
             const btn = document.getElementById('btnUpload');
 
-            if(!name || !cost || !file) return alert("請填寫完整資訊");
+            if(!name || isNaN(cost) || isNaN(qty) || !file) return alert("請填寫完整資訊");
 
             btn.disabled = true;
-            btn.innerText = "上傳圖片中...";
+            btn.innerText = "壓縮並上傳中...";
 
             try {
-                // 上傳圖片
-                const storageRef = ref(storage, `prizes/${Date.now()}_${file.name}`);
-                await uploadBytes(storageRef, file);
+                // 1. 執行前端壓縮
+                const compressedFile = await compressImage(file);
+                console.log(`壓縮前: ${(file.size/1024).toFixed(1)}KB, 壓縮後: ${(compressedFile.size/1024).toFixed(1)}KB`);
+
+                // 2. 上傳圖片
+                const storageRef = ref(storage, `prizes/${Date.now()}_compressed.jpg`);
+                await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
 
-                // 寫入資料庫
+                // 3. 寫入資料庫 (新增分類與數量)
                 await addDoc(collection(db, "prizes"), {
+                    category: category,
                     name: name,
                     cost: cost,
+                    quantity: qty,
                     imageUrl: url,
                     active: true,
                     createdAt: serverTimestamp()
@@ -138,6 +195,7 @@
                 console.error(e);
                 alert("上架失敗: " + e.message);
                 btn.disabled = false;
+                btn.innerText = "上架補給品";
             }
         };
 
@@ -150,30 +208,45 @@
             list.innerHTML = '';
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
+                
+                // 分類中文對照
+                const catMap = { 'equipment': '戰術裝備', 'digital': '數位資源', 'food': '能量補給', 'other': '其他' };
+                const catName = catMap[data.category] || data.category;
+
                 list.innerHTML += `
                     <div class="prize-item">
                         <img src="${data.imageUrl}" class="prize-img">
-                        <div style="flex:1;">
+                        <div class="info-col">
                             <div style="font-weight:bold;">${data.name}</div>
-                            <div style="font-size:0.8rem; color:#f2c94c;">⭐ ${data.cost}</div>
+                            <span class="badge">${catName}</span>
+                            <div style="font-size:0.8rem; color:#ccc;">
+                                <span style="color:#f2c94c;">⭐ ${data.cost}</span> | 
+                                <span style="color:#00ff9d;">📦 剩餘: ${data.quantity}</span>
+                            </div>
                         </div>
-                        <button class="btn-del" onclick="deletePrize('${docSnap.id}')">下架</button>
+                        <button class="btn-del" onclick="deletePrize('${docSnap.id}', '${data.imageUrl}')">刪除</button>
                     </div>
                 `;
             });
         }
 
-        window.deletePrize = async (id) => {
-            if(confirm("確定下架此商品？")) {
-                await deleteDoc(doc(db, "prizes", id));
-                loadPrizes();
+        window.deletePrize = async (id, imgUrl) => {
+            if(confirm("確定永久刪除此商品？")) {
+                try {
+                    // 嘗試刪除圖片 (如果有的話)
+                    if(imgUrl) {
+                        const imgRef = ref(storage, imgUrl);
+                        await deleteObject(imgRef).catch(e => console.log('Image already gone'));
+                    }
+                    await deleteDoc(doc(db, "prizes", id));
+                    loadPrizes();
+                } catch(e) { alert("刪除錯誤:" + e.message); }
             }
         }
 
-        // --- 3. 載入全域日誌 (Transactions) ---
+        // --- 3. 載入全域日誌 ---
         async function loadLogs() {
             const tbody = document.getElementById('logList');
-            // 注意：如果資料量大，建議加 limit(50)
             const q = query(collection(db, "transactions"), orderBy("timestamp", "desc"));
             const snapshot = await getDocs(q);
 
