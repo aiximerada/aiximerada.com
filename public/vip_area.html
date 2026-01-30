@@ -55,7 +55,9 @@
             color: var(--neon-gold); padding: 5px 15px; border-radius: 20px;
             margin-top: 15px; display: inline-flex; align-items: center; gap: 8px;
             font-weight: bold; font-size: 1.1rem; box-shadow: 0 0 15px rgba(242, 201, 76, 0.2);
+            cursor: pointer; transition: 0.3s; text-decoration: none;
         }
+        .stars-badge:hover { background: rgba(242, 201, 76, 0.3); transform: scale(1.05); }
         .stars-badge i { animation: twinkle 2s infinite; }
         @keyframes twinkle { 0%,100%{opacity:1;} 50%{opacity:0.5; transform:scale(1.2);} }
 
@@ -115,10 +117,10 @@
             <span>指揮官</span>
             <span id="current-user" class="user-id">---</span>
         </div>
-        <div class="stars-badge">
+        <a href="point_history.html" class="stars-badge">
             <i class="fa-solid fa-star"></i>
             <span id="star-count">...</span> 點
-        </div>
+        </a>
     </div>
 
     <div class="secret-grid">
@@ -133,6 +135,12 @@
             <i class="fa-solid fa-store" style="color: var(--neon-gold);"></i>
             <h3>星際補給站</h3>
             <p>消耗能源兌換裝備與物資。</p>
+        </a>
+
+        <a href="point_history.html" class="secret-card" style="border-color: var(--neon-green);">
+            <i class="fa-solid fa-file-invoice-dollar" style="color: var(--neon-green);"></i>
+            <h3>星存摺</h3>
+            <p>查看點數配發與消耗紀錄。</p>
         </a>
 
         <a href="temp_share.html" class="secret-card" style="border-color: var(--neon-red);">
@@ -156,13 +164,6 @@
         
         <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
 
-        <a href="ebook.html" class="secret-card" style="border-color: var(--neon-blue);">
-            <span class="tag" style="background: var(--neon-blue);">ADMIN</span>
-            <i class="fa-solid fa-book-open-reader" style="color: var(--neon-blue);"></i>
-            <h3>電子書測試</h3>
-            <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
-        </a>
-
         <a href="admin_members.html" class="secret-card" style="border-color: var(--neon-gold);">
             <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
             <i class="fa-solid fa-users-gear" style="color: var(--neon-gold);"></i>
@@ -175,6 +176,13 @@
             <i class="fa-solid fa-warehouse" style="color: var(--neon-gold);"></i>
             <h3>後勤補給管理</h3>
             <p>上架獎品與查看兌換紀錄。</p>
+        </a>
+
+        <a href="ebook.html" class="secret-card" style="border-color: var(--neon-blue);">
+            <span class="tag" style="background: var(--neon-blue);">ADMIN</span>
+            <i class="fa-solid fa-book-open-reader" style="color: var(--neon-blue);"></i>
+            <h3>電子書測試</h3>
+            <p>全息投影閱讀介面，支援沉浸式閱讀。</p>
         </a>
 
         <a href="admin_invite.html" class="secret-card" style="border-color: #00f3ff;">

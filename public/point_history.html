@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>能源存摺 - 玉露寶庫</title>
+    <title>星存摺 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -71,11 +71,11 @@
 
     <div class="header">
         <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
-        <span style="color:#aaa; font-size:0.9rem;">交易明細</span>
+        <span style="color:#aaa; font-size:0.9rem;">星存摺</span>
     </div>
 
     <div class="balance-card">
-        <div class="balance-title">目前持有星際能源</div>
+        <div class="balance-title">星存摺總資產</div>
         <div class="balance-val" id="currentBalance">--</div>
     </div>
 
@@ -114,7 +114,6 @@
             }
         });
 
-        // 1. 讀取目前餘額
         async function loadBalance(uid) {
             try {
                 const docSnap = await getDoc(doc(db, "users", uid));
@@ -125,13 +124,11 @@
             } catch(e) { console.error("Balance Error", e); }
         }
 
-        // 2. 讀取交易紀錄
         async function loadTransactions(uid) {
             const list = document.getElementById('txList');
             const loading = document.getElementById('loading');
             
             try {
-                // 查詢該用戶的所有交易，按時間倒序
                 const q = query(
                     collection(db, "transactions"), 
                     where("userId", "==", uid),
@@ -156,7 +153,6 @@
                     
                     const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知時間';
                     
-                    // 判斷顯示名稱 (優先顯示 itemName，沒有則顯示 action)
                     let title = data.itemName || data.note || "點數變動";
                     if (data.action === 'redeem') title = `兌換: ${data.itemName}`;
                     if (data.action === 'admin_adjust') title = `系統調整: ${data.itemName}`;
