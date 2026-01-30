@@ -40,7 +40,7 @@
         }
         .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
-        .header { text-align: center; margin-top: 60px; margin-bottom: 40px; position: relative; z-index: 2; }
+        .header { text-align: center; margin-top: 60px; margin-bottom: 30px; position: relative; z-index: 2; }
         h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0 0 10px 0; }
         
         .user-greeting { 
@@ -49,6 +49,16 @@
         }
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
         .user-id { color: var(--neon-blue); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px var(--neon-blue); }
+
+        /* ✨ 星星點數標籤 (新) */
+        .stars-badge {
+            background: rgba(242, 201, 76, 0.15); border: 1px solid var(--neon-gold);
+            color: var(--neon-gold); padding: 5px 15px; border-radius: 20px;
+            margin-top: 15px; display: inline-flex; align-items: center; gap: 8px;
+            font-weight: bold; font-size: 1.1rem; box-shadow: 0 0 15px rgba(242, 201, 76, 0.2);
+        }
+        .stars-badge i { animation: twinkle 2s infinite; }
+        @keyframes twinkle { 0%,100%{opacity:1;} 50%{opacity:0.5; transform:scale(1.2);} }
 
         .secret-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -106,6 +116,10 @@
             <span>指揮官</span>
             <span id="current-user" class="user-id">---</span>
         </div>
+        <div class="stars-badge">
+            <i class="fa-solid fa-star"></i>
+            <span id="star-count">...</span> 點
+        </div>
     </div>
 
     <div class="secret-grid">
@@ -142,6 +156,13 @@
         </a>
         
         <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
+
+        <a href="admin_members.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
+            <i class="fa-solid fa-users-gear" style="color: var(--neon-gold);"></i>
+            <h3>人員管理</h3>
+            <p>查看會員列表與調整點數。</p>
+        </a>
 
         <a href="admin_invite.html" class="secret-card" style="border-color: #00f3ff;">
             <span class="tag" style="background: #00f3ff;">ADMIN</span>
@@ -220,6 +241,11 @@
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists()) {
                         const data = docSnap.data();
+                        
+                        // 🔥 讀取並顯示星星
+                        const stars = data.stars !== undefined ? data.stars : 0;
+                        document.getElementById('star-count').innerText = stars;
+
                         if (data.themeColor) {
                             const userIdEl = document.querySelector('.user-id');
                             const userAvatarEl = document.querySelector('.user-avatar');

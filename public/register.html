@@ -98,9 +98,7 @@
                 const q = query(codesRef, where("code", "==", codeInput));
                 const querySnapshot = await getDocs(q);
 
-                if (querySnapshot.empty) {
-                    throw new Error("邀請碼無效 (不存在)");
-                }
+                if (querySnapshot.empty) { throw new Error("邀請碼無效 (不存在)"); }
 
                 let codeDocId = null;
                 let isUsed = false;
@@ -110,9 +108,7 @@
                     isUsed = doc.data().isUsed;
                 });
 
-                if (isUsed) {
-                    throw new Error("此邀請碼已被使用");
-                }
+                if (isUsed) { throw new Error("此邀請碼已被使用"); }
 
                 // 2. 建立帳號
                 btn.innerText = "建立檔案中...";
@@ -122,21 +118,23 @@
                 // 3. 更新使用者暱稱
                 await updateProfile(user, { displayName: nickname });
                 
+                // 4. 🔥 建立資料庫並給予 100 顆星星 🔥
                 await setDoc(doc(db, "users", user.uid), {
                     email: email,
                     displayName: nickname,
                     role: "member",
+                    stars: 100, // 新增點數欄位
                     joinedAt: new Date()
                 });
 
-                // 4. 標記邀請碼為已使用
+                // 5. 標記邀請碼為已使用
                 const codeDocRef = doc(db, "invite_codes", codeDocId);
                 await updateDoc(codeDocRef, {
                     isUsed: true,
                     usedBy: email 
                 });
 
-                alert("註冊成功！歡迎加入。");
+                alert("註冊成功！獲得 100 點星際能源獎勵！");
                 window.location.href = "vip_area.html";
 
             } catch (error) {

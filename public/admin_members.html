@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人員管理 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.8); }
+        body {
+            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', monospace;
+            padding: 20px; min-height: 100vh;
+        }
+
+        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; }
+        
+        .nav { margin-bottom: 30px; }
+        .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
+        .nav a:hover { border-color: var(--admin-gold); color: #fff; }
+
+        .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        
+        .card {
+            background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 10px;
+            position: relative; transition: 0.3s;
+        }
+        .card:hover { border-color: var(--admin-gold); box-shadow: 0 0 10px rgba(242, 201, 76, 0.2); }
+        
+        .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; display: flex; align-items: center; gap: 10px; }
+        .info-row i { width: 20px; text-align: center; color: var(--admin-gold); }
+        
+        .nickname { font-size: 1.2rem; font-weight: bold; color: #fff; margin-bottom: 5px; }
+        .stars { font-size: 1.1rem; color: var(--admin-gold); font-weight: bold; }
+        
+        .btn-edit {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(242, 201, 76, 0.2); border: 1px solid var(--admin-gold);
+            color: var(--admin-gold); padding: 5px 10px; border-radius: 5px; cursor: pointer;
+        }
+        .btn-edit:hover { background: var(--admin-gold); color: #000; }
+
+        #loading { text-align: center; margin-top: 50px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
+        <a href="admin_invite.html">邀請碼</a>
+        <a href="admin_transfers.html">傳輸監控</a>
+    </div>
+
+    <h1><i class="fa-solid fa-users-gear"></i> 人員與點數管理</h1>
+    
+    <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描成員資料庫...</div>
+    <div class="member-grid" id="grid"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 載入列表
+        async function loadData() {
+            const grid = document.getElementById('grid');
+            document.getElementById('loading').style.display = 'block';
+            grid.innerHTML = '';
+
+            try {
+                // 依加入時間排序
+                const q = query(collection(db, "users"), orderBy("joinedAt", "desc"));
+                const snapshot = await getDocs(q);
+                
+                document.getElementById('loading').style.display = 'none';
+
+                if(snapshot.empty) {
+                    grid.innerHTML = '<div style="color:#aaa;">無會員資料</div>';
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const stars = data.stars !== undefined ? data.stars : 0;
+                    const dateStr = data.joinedAt ? new Date(data.joinedAt.toDate()).toLocaleDateString() : '未知';
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="nickname">${data.displayName || '無暱稱'}</div>
+                        <div class="info-row"><i class="fa-regular fa-envelope"></i> ${data.email}</div>
+                        <div class="info-row"><i class="fa-regular fa-calendar"></i> 加入: ${dateStr}</div>
+                        <div class="info-row"><i class="fa-solid fa-star"></i> 點數: <span class="stars">${stars}</span></div>
+                        
+                        <button class="btn-edit" onclick="editStars('${docSnap.id}', ${stars})">
+                            <i class="fa-solid fa-pen"></i> 修改
+                        </button>
+                    `;
+                    grid.appendChild(card);
+                });
+
+            } catch(e) {
+                console.error(e);
+                alert("讀取失敗: " + e.message);
+            }
+        }
+
+        // 修改點數功能
+        window.editStars = async (uid, currentStars) => {
+            const input = prompt(`請輸入新的點數 (目前: ${currentStars})`, currentStars);
+            
+            if (input !== null) {
+                const newStars = parseInt(input);
+                if (isNaN(newStars)) {
+                    alert("請輸入有效的數字");
+                    return;
+                }
+
+                try {
+                    const userRef = doc(db, "users", uid);
+                    await updateDoc(userRef, { stars: newStars });
+                    alert("更新成功！");
+                    loadData(); // 重新整理
+                } catch(e) {
+                    alert("更新失敗: " + e.message);
+                }
+            }
+        };
+
+        loadData();
+    </script>
+</body>
+</html>
