@@ -3,77 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>邀請碼中心 - 玉露寶庫</title>
+    <title>邀請中心 - 指揮官後台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --accent: #00f3ff; --bg: #0b1021; --panel: rgba(20,30,50,0.8); }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --success-green: #10b981;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.85); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-radius: 16px;
+        }
+
         body {
-            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
-            color: #fff; font-family: 'Microsoft JhengHei', monospace;
-            padding: 20px; min-height: 100vh;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 80px; position: relative;
         }
 
-        h1 { color: var(--accent); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 10px; }
+        /* --- 背景星空 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 20px; 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
+
+        /* --- 標題 --- */
+        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+        }
+        .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
+
+        /* --- 生成控制台 (Generator) --- */
+        .control-panel {
+            width: 90%; max-width: 600px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius); padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(16px);
+            margin-bottom: 40px; display: flex; flex-direction: column; gap: 20px;
+            animation: slideDown 0.5s ease;
+        }
+        @keyframes slideDown { from{transform:translateY(-20px); opacity:0;} to{transform:translateY(0); opacity:1;} }
+
+        .panel-header { display: flex; align-items: center; gap: 10px; color: var(--main-gold); font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 5px; }
         
-        .nav { margin-bottom: 30px; }
-        .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
-        .nav a:hover { border-color: var(--accent); color: #fff; }
-
-        .generator-box {
-            background: var(--panel); padding: 20px; border-radius: 15px; border: 1px solid #444;
-            max-width: 600px; margin-bottom: 30px; display: flex; gap: 10px; align-items: center;
+        .form-row { display: flex; gap: 15px; align-items: flex-end; }
+        .form-group { flex: 1; }
+        .form-label { display: block; color: #94a3b8; margin-bottom: 8px; font-size: 0.9rem; }
+        
+        /* 輸入框樣式 */
+        .form-input {
+            width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.6); 
+            border: 1px solid #475569; border-radius: 10px; color: #fff; font-size: 1rem;
+            box-sizing: border-box; transition: 0.3s;
         }
+        .form-input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+
         .btn-gen {
-            background: var(--accent); color: #000; border: none; padding: 10px 20px;
-            font-weight: bold; border-radius: 5px; cursor: pointer;
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #0f172a; border: none; padding: 12px 30px; border-radius: 30px;
+            font-weight: 900; cursor: pointer; font-size: 1rem; transition: 0.3s;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2); white-space: nowrap;
+            display: flex; align-items: center; gap: 8px;
         }
-        .btn-gen:hover { box-shadow: 0 0 15px var(--accent); }
+        .btn-gen:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4); }
 
-        .code-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .code-card {
-            background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 15px; border-radius: 10px;
-            position: relative; transition: 0.3s;
+        /* --- 邀請碼列表 (Grid) --- */
+        .code-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px; width: 90%; max-width: 1000px;
         }
-        .code-text { font-size: 1.5rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; margin-bottom: 5px; }
-        .status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-        .status.unused { background: #28a745; color: #fff; }
-        .status.used { background: #555; color: #aaa; text-decoration: line-through; }
+
+        /* 全息通行證卡片 */
+        .ticket-card {
+            background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+            transition: 0.3s; backdrop-filter: blur(5px);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        /* 左側光條 */
+        .ticket-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--nebula-blue); box-shadow: 0 0 10px var(--nebula-blue);
+        }
+        /* 管理員卡片特別色 */
+        .ticket-card.role-admin::before { background: var(--main-gold); box-shadow: 0 0 10px var(--main-gold); }
+        /* 已使用卡片 */
+        .ticket-card.is-used { opacity: 0.5; filter: grayscale(0.8); }
+        .ticket-card.is-used::before { background: #64748b; box-shadow: none; }
+
+        .ticket-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.2); }
+
+        .ticket-role { 
+            font-size: 0.75rem; letter-spacing: 1px; font-weight: bold; 
+            color: var(--nebula-blue); text-transform: uppercase; display: flex; justify-content: space-between;
+        }
+        .role-admin .ticket-role { color: var(--main-gold); }
+
+        .ticket-code {
+            font-family: 'Courier New', Courier, monospace; font-size: 1.8rem; font-weight: bold;
+            color: #fff; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+        }
+        .ticket-code:active { transform: scale(0.98); }
+        .ticket-code i { font-size: 1rem; opacity: 0.5; }
+
+        .ticket-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);
+        }
+        .ticket-date { font-size: 0.8rem; color: #64748b; }
         
-        .meta { font-size: 0.8rem; color: #888; margin-top: 10px; }
-        
-        .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
-        .btn-icon { cursor: pointer; color: #fff; font-size: 1rem; }
-        .btn-copy:hover { color: var(--accent); }
-        .btn-del:hover { color: #ff4757; }
+        .btn-del {
+            background: transparent; border: 1px solid var(--danger-red); color: var(--danger-red);
+            width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-del:hover { background: var(--danger-red); color: #fff; box-shadow: 0 0 10px var(--danger-red); }
+
+        .empty-msg { grid-column: 1/-1; text-align: center; color: #64748b; padding: 40px; font-size: 1.1rem; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--success-green); color: #fff; padding: 10px 20px; border-radius: 30px;
+            font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
 
     </style>
 </head>
 <body>
 
-    <div class="nav">
-        <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
-        <a href="admin_transfers.html">傳輸監控</a>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
     </div>
 
-    <h1><i class="fa-solid fa-ticket"></i> 入隊邀請碼生成器</h1>
-    
-    <div class="generator-box">
-        <div style="flex:1;">
-            <div style="font-size:0.9rem; color:#aaa; margin-bottom:5px;">點擊生成新的隨機代碼</div>
-            <div style="color:#00f3ff; font-size:1.2rem;">一次性通行證</div>
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+        <div style="color:var(--main-gold); font-weight:bold;">INVITATION CENTER</div>
+    </div>
+
+    <div class="page-title">
+        <h1>邀請中心</h1>
+        <p>ACCESS CODE GENERATOR</p>
+    </div>
+
+    <div class="control-panel">
+        <div class="panel-header"><i class="fa-solid fa-wand-magic-sparkles"></i> 生成新的通行證</div>
+        <div class="form-row">
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">權限等級</label>
+                <select id="codeRole" class="form-input">
+                    <option value="member">一般星員 (Member)</option>
+                    <option value="admin">指揮官 (Admin)</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">數量 (Max 100)</label>
+                <input type="number" id="codeCount" class="form-input" value="1" min="1" max="100" placeholder="輸入數量">
+            </div>
+            
+            <button class="btn-gen" onclick="generateCode()">
+                <i class="fa-solid fa-bolt"></i> 立即生成
+            </button>
         </div>
-        <button class="btn-gen" onclick="generateCode()">
-            <i class="fa-solid fa-plus"></i> 生成代碼
-        </button>
     </div>
 
-    <h3 style="margin-bottom:15px; border-left:3px solid #fff; padding-left:10px;">代碼列表</h3>
-    <div id="loading">讀取中...</div>
-    <div class="code-grid" id="grid"></div>
+    <div class="code-grid" id="codeList">
+        <div class="empty-msg"><i class="fa-solid fa-spinner fa-spin"></i> 正在讀取數據...</div>
+    </div>
+
+    <div id="toast" class="toast">已複製到剪貼簿</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -86,76 +229,130 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 生成隨機碼
+        // 權限驗證
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+            } else {
+                loadCodes();
+            }
+        });
+
+        // 載入邀請碼
+        function loadCodes() {
+            const q = query(collection(db, "invitation_codes"), orderBy("createdAt", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                const grid = document.getElementById('codeList');
+                grid.innerHTML = '';
+
+                if (snapshot.empty) {
+                    grid.innerHTML = '<div class="empty-msg">目前沒有任何邀請碼</div>';
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const date = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleDateString() : '剛剛';
+                    const roleClass = data.role === 'admin' ? 'role-admin' : 'role-member';
+                    const roleText = data.role === 'admin' ? 'COMMANDER' : 'MEMBER';
+                    const usedClass = data.isUsed ? 'is-used' : '';
+                    const statusText = data.isUsed ? '已使用' : '有效';
+
+                    grid.innerHTML += `
+                        <div class="ticket-card ${roleClass} ${usedClass}">
+                            <div class="ticket-role">
+                                <span>${roleText} ACCESS</span>
+                                <span>${statusText}</span>
+                            </div>
+                            <div class="ticket-code" onclick="copyText('${data.code}')" title="點擊複製">
+                                ${data.code} <i class="fa-regular fa-copy"></i>
+                            </div>
+                            <div class="ticket-footer">
+                                <span class="ticket-date">CREATED: ${date}</span>
+                                <button class="btn-del" onclick="deleteCode('${docSnap.id}')" title="刪除">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // 生成邀請碼
         window.generateCode = async () => {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
-            let code = '';
-            for (let i = 0; i < 6; i++) {
-                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            const role = document.getElementById('codeRole').value;
+            let count = parseInt(document.getElementById('codeCount').value);
+            const btn = document.querySelector('.btn-gen');
+            
+            // 🔥 輸入驗證
+            if (isNaN(count) || count < 1) count = 1;
+            if (count > 100) {
+                alert("單次生成上限為 100 張，請分批操作。");
+                return;
             }
 
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中...';
+
             try {
-                await addDoc(collection(db, "invite_codes"), {
-                    code: code,
-                    isUsed: false,
-                    usedBy: null,
-                    createdAt: serverTimestamp()
-                });
+                const batchPromises = [];
+                for(let i=0; i<count; i++) {
+                    const code = generateRandomString(8);
+                    batchPromises.push(addDoc(collection(db, "invitation_codes"), {
+                        code: code,
+                        role: role,
+                        isUsed: false,
+                        createdAt: serverTimestamp()
+                    }));
+                }
+                await Promise.all(batchPromises);
+                showToast(`成功生成 ${count} 張通行證`);
             } catch(e) {
                 alert("生成失敗: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> 立即生成';
             }
         };
 
-        // 刪除代碼 (新增功能)
-        window.deleteCode = async (docId) => {
-            if(confirm("確定刪除此邀請碼？")) {
+        // 刪除邀請碼
+        window.deleteCode = async (id) => {
+            if(confirm("確定要銷毀這張通行證嗎？")) {
                 try {
-                    await deleteDoc(doc(db, "invite_codes", docId));
+                    await deleteDoc(doc(db, "invitation_codes", id));
                 } catch(e) {
-                    alert("刪除失敗: " + e.message);
+                    alert("刪除失敗");
                 }
             }
+        };
+
+        // 工具函式
+        function generateRandomString(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
-
-        // 監聽列表
-        const q = query(collection(db, "invite_codes"), orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
-            const grid = document.getElementById('grid');
-            document.getElementById('loading').style.display = 'none';
-            grid.innerHTML = '';
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const card = document.createElement('div');
-                card.className = 'code-card';
-                
-                const statusClass = data.isUsed ? 'used' : 'unused';
-                const statusText = data.isUsed ? '已使用' : '有效';
-                const userText = data.usedBy ? `<br>使用者: ${data.usedBy}` : '';
-                const timeStr = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'Just now';
-
-                card.innerHTML = `
-                    <div class="code-text">${data.code}</div>
-                    <span class="status ${statusClass}">${statusText}</span>
-                    <div class="action-btns">
-                        <i class="fa-regular fa-copy btn-icon btn-copy" onclick="copyText('${data.code}')" title="複製"></i>
-                        <i class="fa-solid fa-trash btn-icon btn-del" onclick="deleteCode('${doc.id}')" title="刪除"></i>
-                    </div>
-                    <div class="meta">
-                        建立: ${timeStr}
-                        ${userText}
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        });
 
         window.copyText = (text) => {
             navigator.clipboard.writeText(text);
-            alert("已複製代碼: " + text);
+            showToast("代碼已複製");
+        };
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
         }
+
     </script>
 </body>
 </html>
