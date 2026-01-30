@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>會員核心區 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <style>
         :root {
             --neon-blue: #00f3ff;
@@ -118,17 +123,10 @@
             <p>修改頭像、暱稱與個人化配色。</p>
         </a>
 
-        <a href="weather.html" class="secret-card" style="border-color: var(--neon-blue);">
-            <i class="fa-solid fa-temperature-high" style="color: var(--neon-blue);"></i>
-            <h3>氣象指揮站</h3>
-            <p>即時風速分析與空拍機飛行判定。</p>
-        </a>
-
-        <a href="parking_map.html" class="secret-card" style="border-color: var(--neon-green);">
-            <span class="tag" style="background: var(--neon-green);">NEW</span>
-            <i class="fa-solid fa-motorcycle" style="color: var(--neon-green);"></i>
-            <h3>騎士據點</h3>
-            <p>全台重機友善停車地圖，一鍵導航。</p>
+        <a href="temp_share.html" class="secret-card" style="border-color: var(--neon-red);">
+            <i class="fa-solid fa-file-shield" style="color: var(--neon-red);"></i>
+            <h3>加密傳輸艙</h3>
+            <p>會員專屬加密通道，限時檔案傳輸。</p>
         </a>
 
         <a href="whiteboard_lobby.html" class="secret-card" style="border-color: var(--neon-pink);">
@@ -147,7 +145,7 @@
         <a href="upload_zone.html" class="secret-card" style="border-color: #aaa;">
             <i class="fa-solid fa-toolbox" style="color: #aaa;"></i>
             <h3>資源工具區</h3>
-            <p>包含加密傳輸艙與圖庫上傳投稿。</p>
+            <p>圖庫上傳投稿與其他公開工具。</p>
         </a>
         
         <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
@@ -164,6 +162,20 @@
             <i class="fa-solid fa-network-wired" style="color: var(--neon-pink);"></i>
             <h3>傳輸監控</h3>
             <p>強制管理與銷毀所有傳輸檔案。</p>
+        </a>
+        
+        <a href="weather.html" class="secret-card" style="border-color: var(--neon-blue);">
+            <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
+            <i class="fa-solid fa-temperature-high" style="color: var(--neon-blue);"></i>
+            <h3>氣象指揮站</h3>
+            <p>即時風速分析與空拍機飛行判定。</p>
+        </a>
+
+        <a href="parking_map.html" class="secret-card" style="border-color: var(--neon-green);">
+            <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
+            <i class="fa-solid fa-motorcycle" style="color: var(--neon-green);"></i>
+            <h3>騎士據點</h3>
+            <p>全台重機友善停車地圖，一鍵導航。</p>
         </a>
 
         <a href="index.html" class="secret-card" style="border-color: rgba(255,255,255,0.2);">

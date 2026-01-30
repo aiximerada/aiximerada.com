@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>加密傳輸艙 - 玉露寶庫</title>
+    <title>加密傳輸艙 (會員專屬) - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -42,10 +42,12 @@
             display: flex; align-items: center; gap: 15px; backdrop-filter: blur(10px);
             z-index: 10;
         }
-        .back-btn { color: #fff; text-decoration: none; font-size: 1.2rem; transition: 0.3s; }
+        /* 修改：返回按鈕樣式 */
+        .back-btn { color: #fff; text-decoration: none; font-size: 1rem; transition: 0.3s; display: flex; align-items: center; gap: 5px; }
         .back-btn:hover { color: var(--neon-blue); }
+        
         h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--neon-blue); display: flex; align-items: center; gap: 10px; }
-        .user-status { margin-left: auto; font-size: 0.8rem; padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,0.1); color: #aaa; }
+        .user-status { margin-left: auto; font-size: 0.8rem; padding: 4px 10px; border-radius: 10px; background: rgba(0, 243, 255, 0.1); border:1px solid var(--neon-blue); color: var(--neon-blue); }
 
         /* 主容器 */
         .container {
@@ -81,7 +83,6 @@
         .btn-action:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; transform: none; }
         
         .download-btn { background: var(--neon-green); }
-        /* 次要按鈕 (重置用) */
         .btn-secondary { background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue); margin-top: 15px; }
         .btn-secondary:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
 
@@ -123,9 +124,9 @@
     <div id="star-container"></div>
 
     <div class="header">
-        <a href="upload_zone.html" class="back-btn"><i class="fa-solid fa-toolbox"></i> 返回工具區</a>
-        <h1><i class="fa-solid fa-file-shield"></i> 加密傳輸艙</h1>
-        <div class="user-status" id="userStatus">偵測中...</div>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <h1><i class="fa-solid fa-file-shield"></i> 加密傳輸艙 (VIP)</h1>
+        <div class="user-status" id="userStatus">身份驗證中...</div>
     </div>
 
     <div class="container">
@@ -257,14 +258,15 @@
             db = getFirestore(app);
             storage = getStorage(app);
 
+            // 🔥 關鍵修改：強制登入檢查
             onAuthStateChanged(auth, user => {
                 if(user) {
                     currentUser = user;
-                    document.getElementById('userStatus').innerText = `指揮官: ${user.displayName || 'User'}`;
-                    document.getElementById('userStatus').style.color = "#00ff9d";
+                    document.getElementById('userStatus').innerText = `指揮官: ${user.displayName || 'Member'}`;
                 } else {
-                    currentUser = null;
-                    document.getElementById('userStatus').innerText = "匿名訪客";
+                    // 未登入，踢回登入頁
+                    alert("此為會員專屬功能，請先登入。");
+                    window.location.href = "login.html";
                 }
             });
             
@@ -300,7 +302,6 @@
             document.querySelectorAll('.tab')[tab==='upload'?0:1].classList.add('active');
             document.getElementById('uploadSection').style.display = tab==='upload'?'block':'none';
             document.getElementById('downloadSection').style.display = tab==='download'?'block':'none';
-            // 切換分頁時重置介面狀態
             if(tab === 'upload') resetUpload();
             if(tab === 'download') resetDownload();
         };
@@ -317,7 +318,6 @@
             alert("已複製");
         };
 
-        // --- 介面重置功能 ---
         window.resetUpload = () => {
             document.getElementById('uploadFormArea').style.display = 'block';
             document.getElementById('resultArea').style.display = 'none';
@@ -325,8 +325,6 @@
             document.getElementById('fileList').innerHTML = '';
             document.getElementById('secretMsg').value = '';
             selectedFiles = [];
-            
-            // 重置進度條
             document.getElementById('progressContainer').style.display = 'none';
             document.getElementById('uploadBtn').disabled = false;
         };
@@ -358,7 +356,6 @@
                 const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 const uploadedFiles = [];
                 
-                // 1. 上傳檔案
                 if(selectedFiles.length > 0) {
                     for (let i = 0; i < selectedFiles.length; i++) {
                         const file = selectedFiles[i];
@@ -388,7 +385,8 @@
                     files: uploadedFiles,
                     message: msg || "",
                     expiresAt: expiryDate,
-                    uploader: currentUser ? currentUser.uid : "anonymous",
+                    // 🔥 強制使用目前使用者的 UID
+                    uploader: currentUser.uid, 
                     createdAt: serverTimestamp()
                 });
 
@@ -400,8 +398,6 @@
                 });
 
                 updateProgress(100, "完成！");
-                
-                // 切換顯示結果
                 document.getElementById('uploadFormArea').style.display = 'none';
                 document.getElementById('resultArea').style.display = 'block';
                 document.getElementById('resultCode').innerText = shareCode;
@@ -498,7 +494,7 @@
             }
         };
 
-        // --- 📥 下載邏輯 (優化圖示與流程) ---
+        // --- 📥 下載邏輯 ---
         window.executeDownload = async () => {
             const code = document.getElementById('shareCode').value.toUpperCase();
             const pwd = document.getElementById('accessPwd').value;
@@ -531,14 +527,12 @@
                     return alert("密碼錯誤");
                 }
 
-                // --- 顯示結果區域，隱藏輸入表單 ---
                 document.getElementById('downloadForm').style.display = 'none';
                 document.getElementById('downloadArea').style.display = 'block';
                 
                 const list = document.getElementById('downloadList');
                 list.innerHTML = '';
 
-                // 產生檔案列表 (含 Icon 判斷)
                 if (targetDoc.files && targetDoc.files.length > 0) {
                     targetDoc.files.forEach(f => {
                         let icon = 'fa-file';
@@ -559,7 +553,7 @@
                                 <a href="${f.url}" target="_blank" class="dl-link">下載</a>
                             </div>`;
                     });
-                } else if (targetDoc.downloadUrl) { // 舊版相容
+                } else if (targetDoc.downloadUrl) {
                     list.innerHTML = `<div class="download-item"><span><i class="fa-solid fa-file-zipper file-icon"></i> 壓縮檔.zip</span><a href="${targetDoc.downloadUrl}" target="_blank" class="dl-link">下載</a></div>`;
                 }
 
