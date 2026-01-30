@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>星際巡航：地面疾行 - 玉露寶庫</title>
+    <title>銀河探索 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -20,11 +20,18 @@
             height: 100vh; overflow: hidden; user-select: none; touch-action: none;
         }
 
-        /* --- ✨ 視差星空背景 --- */
+        /* --- ✨ 視差星空背景 (優化版) --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%); z-index: -5; }
+        /* 移除 heavy SVG filter，改用純 CSS */
+        .nebula { 
+            position: fixed; top: 0; left: 0; width: 200%; height: 100%; 
+            background: radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.1), transparent 60%),
+                        radial-gradient(circle at 20% 80%, rgba(255, 0, 255, 0.1), transparent 50%);
+            animation: spaceMove 120s linear infinite; z-index: -4; 
+        }
         .stars-1 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(1px 1px at 20px 30px, #fff, transparent); background-size: 100px 100px; animation: spaceMove 60s linear infinite; z-index: -4; opacity: 0.5; }
-        .stars-2 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(2px 2px at 50px 80px, var(--neon-cyan), transparent); background-size: 200px 200px; animation: spaceMove 30s linear infinite; z-index: -3; opacity: 0.3; }
-        .nebula { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wMSIgbnVtT2N0YXZlcz0iNSIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9"100%" filter="url(%23n)" opacity="0.1"/ >'); background-size: cover; animation: spaceMove 120s linear infinite; z-index: -4; mix-blend-mode: screen; filter: sepia(100%) hue-rotate(190deg) saturate(300%); }
+        .stars-2 { position: fixed; top: 0; left: 0; width: 200%; height: 100%; background: radial-gradient(1.5px 1.5px at 50px 80px, var(--neon-cyan), transparent); background-size: 150px 150px; animation: spaceMove 30s linear infinite; z-index: -3; opacity: 0.4; }
+        
         @keyframes spaceMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
         /* --- HUD儀表板 --- */
@@ -34,8 +41,8 @@
         }
         .score-box { 
             font-family: 'Microsoft JhengHei', sans-serif; font-size: 1.2rem; font-weight: bold; 
-            background: rgba(0, 0, 0, 0.5); padding: 8px 20px; border-radius: 30px;
-            border: 1px solid rgba(0, 243, 255, 0.3); backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.6); padding: 8px 20px; border-radius: 30px;
+            border: 1px solid rgba(0, 243, 255, 0.3); backdrop-filter: blur(4px);
         }
         .best-label { font-size: 0.95rem; color: var(--star-gold); margin-right: 15px; }
         .label-text { font-size: 0.8rem; opacity: 0.8; margin-right: 5px; font-weight: normal; }
@@ -48,38 +55,37 @@
         /* --- 彈窗介面 --- */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 5, 16, 0.4); 
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            background: rgba(5, 5, 16, 0.7); 
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); opacity: 0; pointer-events: none;
+            transition: 0.3s; opacity: 0; pointer-events: none;
         }
         .overlay.show { opacity: 1; pointer-events: auto; }
 
         .result-card {
-            background: rgba(16, 24, 48, 0.85);
-            border: 1px solid rgba(0, 243, 255, 0.5); padding: 45px; border-radius: 30px; text-align: center;
-            width: 85%; max-width: 420px; 
-            box-shadow: 0 0 50px rgba(0, 243, 255, 0.15), inset 0 0 30px rgba(0, 243, 255, 0.05);
-            transform: scale(0.9); transition: 0.4s; position: relative; overflow: hidden;
+            background: rgba(16, 24, 48, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.5); padding: 40px; border-radius: 24px; text-align: center;
+            width: 85%; max-width: 400px; 
+            box-shadow: 0 0 40px rgba(0, 243, 255, 0.1);
+            transform: scale(0.95); transition: 0.3s; position: relative; overflow: hidden;
         }
         .overlay.show .result-card { transform: scale(1); }
 
-        .rank-badge { display: inline-block; padding: 6px 25px; background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple)); border-radius: 20px; font-weight: bold; margin-bottom: 15px; box-shadow: 0 0 20px var(--neon-pink); font-size: 1.1rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); }
-        .final-time { font-size: 4rem; font-weight: 900; margin: 10px 0; font-family: 'Courier New', monospace; color: #fff; text-shadow: 0 0 30px var(--neon-cyan); letter-spacing: -2px; }
+        .rank-badge { display: inline-block; padding: 6px 25px; background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple)); border-radius: 20px; font-weight: bold; margin-bottom: 15px; box-shadow: 0 0 15px var(--neon-pink); font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.3); }
+        .final-time { font-size: 3.5rem; font-weight: 900; margin: 10px 0; font-family: 'Courier New', monospace; color: #fff; text-shadow: 0 0 20px var(--neon-cyan); letter-spacing: -2px; }
         
-        .btn-group { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; width: 100%; position: relative; z-index: 2; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; width: 100%; position: relative; z-index: 2; }
         .btn {
-            background: linear-gradient(90deg, var(--neon-cyan), #00aaff); color: #000; border: none; padding: 16px 0; border-radius: 50px;
-            font-size: 1.2rem; font-weight: 900; cursor: pointer; transition: 0.1s; text-decoration: none; text-align: center;
-            box-shadow: 0 5px 20px rgba(0, 243, 255, 0.3); outline: none; user-select: none;
+            background: linear-gradient(90deg, var(--neon-cyan), #00aaff); color: #000; border: none; padding: 14px 0; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 900; cursor: pointer; transition: 0.1s; text-decoration: none; text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 243, 255, 0.3); outline: none; user-select: none;
         }
-        .btn:hover { transform: scale(1.05); filter: brightness(1.1); }
-        .btn:active, .btn.pressed { transform: scale(0.95); background: #fff; }
-        .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2); box-shadow: none; }
+        .btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2); box-shadow: none; }
         .btn-secondary:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
 
-        p { color: rgba(255, 255, 255, 0.7); letter-spacing: 2px; font-size: 0.9rem; }
-        .hint { margin-top: 20px; font-size: 0.8rem; color: #666; }
+        .hint { margin-top: 20px; font-size: 0.8rem; color: #888; }
     </style>
 </head>
 <body>
@@ -92,7 +98,7 @@
         <div class="score-box">
             <span class="best-label"><span class="label-text">最高:</span><span id="best-val">0.00秒</span></span>
             <span class="label-text">存活:</span><span id="score-val">0.00秒</span>
-            <span id="shield-indicator" class="shield-icon"><i class="fa-solid fa-shield-halved"></i> 護盾啟動</span>
+            <span id="shield-indicator" class="shield-icon"><i class="fa-solid fa-shield-halved"></i> 護盾</span>
         </div>
     </div>
 
@@ -100,9 +106,9 @@
 
     <div id="overlay" class="overlay show">
         <div class="result-card" id="start-card">
-            <div style="font-size: 3.5rem; color: #fff; margin-bottom: 15px; text-shadow: 0 0 30px var(--neon-cyan);"><i class="fa-solid fa-road"></i></div>
-            <h1 style="color:var(--neon-cyan); font-size: 2.2rem; margin-bottom: 5px;">星際巡航</h1>
-            <p>地面疾行模式 (DINO RUN STYLE)</p>
+            <div style="font-size: 3rem; color: #fff; margin-bottom: 15px; text-shadow: 0 0 20px var(--neon-cyan);"><i class="fa-brands fa-space-awesome"></i></div>
+            <h1 style="color:var(--neon-cyan); font-size: 2rem; margin-bottom: 5px; margin-top:0;">銀河探索</h1>
+            <p style="color:#aaa; letter-spacing:1px; font-size:0.9rem;">極速疾行模式 (HYPER RUNNER)</p>
             <div class="btn-group">
                 <button class="btn" id="start-btn" onclick="initGame()">啟動引擎</button>
                 <a href="entertainment.html" class="btn btn-secondary">返回基地</a>
@@ -111,8 +117,8 @@
         </div>
         <div class="result-card" id="end-card" style="display:none;">
             <div id="rank-badge" class="rank-badge">評等中</div>
-            <div style="color:#aaa; font-size: 0.9rem;">任務存活時間</div>
-            <div class="final-time" id="final-time">0.00秒</div>
+            <div style="color:#aaa; font-size: 0.9rem;">存活時間</div>
+            <div class="final-time" id="final-time">0.00</div>
             <div class="btn-group">
                 <button class="btn" id="restart-btn" onclick="initGame()">再次出擊</button>
                 <a href="entertainment.html" class="btn btn-secondary">返回基地</a>
@@ -138,58 +144,67 @@
         let isCrashed = false; 
         let startTime;
         let currentTime = 0;
-        let bestTime = parseFloat(localStorage.getItem('starship_best_time') || 0);
+        let bestTime = parseFloat(localStorage.getItem('galaxy_run_best') || 0);
         bestVal.innerText = bestTime.toFixed(2) + "秒";
 
-        // --- 物理參數 (地面模式) ---
-        const INITIAL_SPEED = 9;
-        const MAX_SPEED = 22;
-        const GRAVITY = 1.8;          // 重力更強，讓下墜更快 (手感更脆)
-        const JUMP_STRENGTH = -23;    // 跳躍高度
+        // --- 🔥 物理參數 (難度與速度優化) ---
+        const INITIAL_SPEED = 10;     // 初始速度提升
+        const MAX_SPEED = 35;         // 最大速度大幅提升
+        const ACCELERATION = 0.008;   // 加速度提升 (原本 0.003)
+        const GRAVITY = 1.5;          
+        const JUMP_STRENGTH = -22;    
         
         let gameSpeed = INITIAL_SPEED;
         let gridOffset = 0;
-        const starColors = ['#00f3ff', '#ff00ff', '#f2c94c', '#00ff9d'];
+        // 移除昂貴的顏色計算，預先定義
+        const STAR_COLORS = ['#00f3ff', '#ff00ff', '#f2c94c', '#00ff9d'];
 
         let player = {
-            x: 80, y: 0, width: 50, height: 25, dy: 0, rotation: 0, hasShield: false,
-            isOnGround: true, // 新增：是否在地面
+            x: 100, y: 0, width: 50, height: 25, dy: 0, rotation: 0, hasShield: false,
+            isOnGround: true,
             draw() {
                 if(isCrashed) return;
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 
-                // 地面模式不需要大幅度傾斜
+                // 角度計算
                 let targetRot = this.isOnGround ? 0 : Math.min(Math.max(this.dy * 0.04, -0.4), 0.4);
                 this.rotation += (targetRot - this.rotation) * 0.2;
                 ctx.rotate(this.rotation);
 
-                // 護盾
+                // 護盾 (優化: 減少陰影模糊)
                 if(this.hasShield) {
                     ctx.beginPath(); ctx.arc(0, 5, 40, 0, Math.PI*2);
-                    ctx.fillStyle = 'rgba(0, 243, 255, 0.2)'; ctx.fill();
+                    ctx.fillStyle = 'rgba(0, 243, 255, 0.15)'; ctx.fill();
                     ctx.strokeStyle = 'rgba(0, 243, 255, 0.6)'; ctx.lineWidth = 2; ctx.stroke();
                 }
 
-                // 尾焰
-                ctx.shadowBlur = 20; ctx.shadowColor = '#00f3ff'; ctx.fillStyle = '#00f3ff';
-                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-35 - Math.random()*20, 5); ctx.lineTo(-15, 10); ctx.fill();
+                // 尾焰 (優化: 減少陰影)
+                ctx.fillStyle = '#00f3ff';
+                let flameLen = this.isOnGround ? 20 : 45;
+                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-35 - Math.random()*flameLen, 5); ctx.lineTo(-15, 10); ctx.fill();
 
                 // 機身
-                ctx.shadowBlur = 10; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.moveTo(25, 5); ctx.lineTo(-10, 15); ctx.lineTo(-5, 5); ctx.lineTo(-10, -5); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); 
+                ctx.moveTo(30, 5); ctx.lineTo(-15, 15); ctx.lineTo(-5, 5); ctx.lineTo(-15, -5); 
+                ctx.closePath(); ctx.fill();
                 
                 // 座艙
-                ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(15, 2); ctx.lineTo(5, 5); ctx.fill();
-                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(10, 5); ctx.stroke();
+                ctx.fillStyle = '#111'; ctx.beginPath(); ctx.moveTo(5, -2); ctx.lineTo(20, 2); ctx.lineTo(5, 5); ctx.fill();
+                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-5, -2); ctx.lineTo(15, 5); ctx.stroke();
+                
+                // 只有主角保留微弱光暈
+                ctx.shadowBlur = 10; ctx.shadowColor = '#00f3ff';
+                ctx.stroke(); ctx.shadowBlur = 0; // 重置以免影響其他繪圖
+
                 ctx.restore();
             },
             jump() { 
-                // 只有在地面時才能跳 (Dino 規則)
                 if(this.isOnGround) {
                     this.dy = JUMP_STRENGTH;
                     this.isOnGround = false;
-                    createParticles(this.x, this.y + 10, '#fff', 5, 2, 'circle'); 
+                    createParticles(this.x, this.y + 10, '#00f3ff', 5, 3); 
                 }
             }
         };
@@ -197,24 +212,21 @@
         let obstacles = [];
         let items = [];
         let particles = [];
-        let shockwaves = [];
         let frameCount = 0;
 
         function resize() {
             gameWidth = canvas.width = window.innerWidth;
             gameHeight = canvas.height = window.innerHeight;
-            // 重新計算地面位置
             const horizonY = gameHeight * 0.85;
             if(!isPlaying && !isCrashed) player.y = horizonY - player.height/2;
         }
 
         function initGame() {
-            obstacles = []; particles = []; shockwaves = []; items = [];
+            obstacles = []; particles = []; items = [];
             gameSpeed = INITIAL_SPEED; 
             frameCount = 0; currentTime = 0;
             player.dy = 0; player.rotation = 0; player.hasShield = false; player.isOnGround = true;
             
-            // 確保初始位置正確
             const horizonY = gameHeight * 0.85;
             player.y = horizonY - player.height/2;
             
@@ -223,9 +235,10 @@
             startTime = Date.now();
             
             overlay.classList.remove('show');
-            setTimeout(() => { startCard.style.display = 'none'; endCard.style.display = 'none'; }, 400);
+            setTimeout(() => { startCard.style.display = 'none'; endCard.style.display = 'none'; }, 300);
         }
 
+        // ⚡ 效能優化：移除 shadowBlur，改用簡單填充
         function drawStar(cx, cy, spikes, outerRadius, innerRadius, color, rotOffset) {
             let rot = Math.PI/2*3 + rotOffset; let step = Math.PI/spikes;
             ctx.beginPath(); ctx.moveTo(cx, cy - outerRadius);
@@ -233,19 +246,20 @@
                 ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius); rot += step;
                 ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius); rot += step;
             }
-            ctx.closePath(); ctx.fillStyle = color; ctx.shadowBlur = 20; ctx.shadowColor = color; 
-            ctx.fill(); ctx.shadowBlur = 0;
-            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, innerRadius * 0.5, 0, Math.PI*2); ctx.fill();
+            ctx.closePath(); 
+            ctx.fillStyle = color; 
+            ctx.fill(); 
+            // 內核
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx, cy, innerRadius * 0.6, 0, Math.PI*2); ctx.fill();
         }
 
         function drawItem(item) {
             ctx.save();
             ctx.translate(item.x, item.y);
-            // 漂浮動畫
             let floatY = Math.sin(frameCount * 0.1) * 5;
             ctx.translate(0, floatY);
             
-            ctx.shadowBlur = 20; ctx.shadowColor = '#00f3ff';
+            // 簡化特效
             ctx.fillStyle = 'rgba(0, 243, 255, 0.3)';
             ctx.beginPath(); ctx.arc(0, 0, item.size, 0, Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
@@ -257,33 +271,37 @@
 
         function drawGrid() {
             let horizonY = gameHeight * 0.85;
-            ctx.save();
-            let grad = ctx.createLinearGradient(0, horizonY, 0, gameHeight);
-            grad.addColorStop(0, 'rgba(0, 243, 255, 0.05)'); grad.addColorStop(1, 'rgba(0, 243, 255, 0.2)');
-            ctx.fillStyle = grad; ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
+            
+            // 地面填充 (減少漸層運算，使用純色帶透明度)
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.08)'; 
+            ctx.fillRect(0, horizonY, gameWidth, gameHeight - horizonY);
 
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.3)'; ctx.lineWidth = 1;
-            gridOffset = (gridOffset - gameSpeed) % 100;
-            for(let x = gridOffset; x < gameWidth; x += 100) {
-                let topX = (x - gameWidth/2) * 0.2 + gameWidth/2;
+            // 格線
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.2)'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            gridOffset = (gridOffset - gameSpeed) % 120;
+            for(let x = gridOffset; x < gameWidth; x += 120) { // 減少線條密度
+                let topX = (x - gameWidth/2) * 0.1 + gameWidth/2; // 調整透視
                 ctx.moveTo(topX, horizonY); ctx.lineTo(x, gameHeight);
             }
             ctx.stroke();
             
-            ctx.shadowBlur = 10; ctx.shadowColor = '#00f3ff'; ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2;
+            // 地平線
+            ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, horizonY); ctx.lineTo(gameWidth, horizonY); ctx.stroke();
-            ctx.restore();
             return horizonY;
         }
 
-        function createParticles(x, y, color, count, speedMult, type = 'circle') {
+        function createParticles(x, y, color, count, speedMult) {
+            // 限制粒子數量上限
+            if(particles.length > 50) return; 
             for(let k=0; k<count; k++) {
                 particles.push({
                     x: x, y: y, color: color,
-                    size: Math.random() * 4 + 2,
-                    vx: (Math.random() - 0.5) * 15 * speedMult,
-                    vy: (Math.random() - 0.5) * 15 * speedMult,
-                    life: 1.0, decay: 0.01 + Math.random() * 0.02, type: type
+                    size: Math.random() * 3 + 1,
+                    vx: (Math.random() - 0.5) * 10 * speedMult,
+                    vy: (Math.random() - 0.5) * 10 * speedMult,
+                    life: 1.0, decay: 0.05 + Math.random() * 0.05
                 });
             }
         }
@@ -297,90 +315,90 @@
                 currentTime = (Date.now() - startTime) / 1000;
                 scoreVal.innerText = currentTime.toFixed(2) + "秒";
                 
-                if (gameSpeed < MAX_SPEED) gameSpeed += 0.003;
+                // 🔥 加速與難度控制
+                if (gameSpeed < MAX_SPEED) gameSpeed += ACCELERATION;
                 
-                // 尾焰粒子
-                particles.push({
-                    x: player.x - 10, y: player.y + 5 + (Math.random()-0.5)*5,
-                    color: Math.random()>0.5 ? '#00f3ff':'#88ffff', size: Math.random() * 4,
-                    vx: -gameSpeed * 0.8, vy: (Math.random()-0.5)*2, life: 0.6, decay: 0.05, type: 'circle'
-                });
+                // 尾焰 (降低產生頻率)
+                if(frameCount % 2 === 0) {
+                    particles.push({
+                        x: player.x - 10, y: player.y + 5 + (Math.random()-0.5)*5,
+                        color: Math.random()>0.5 ? '#00f3ff':'#88ffff', size: Math.random() * 3,
+                        vx: -gameSpeed * 0.8, vy: (Math.random()-0.5)*2, life: 0.5, decay: 0.1
+                    });
+                }
 
-                // 物理計算 (地面跳躍模式)
                 if (!player.isOnGround) {
                     player.dy += GRAVITY;
                     player.y += player.dy;
                 }
 
-                // 地板判定
                 if(player.y >= groundLimit) { 
-                    player.y = groundLimit; 
-                    player.dy = 0; 
-                    player.isOnGround = true;
-                    // 貼地滑行火花
-                    if(frameCount % 5 === 0) createParticles(player.x, player.y+10, '#00f3ff', 2, 0.5);
+                    player.y = groundLimit; player.dy = 0; player.isOnGround = true;
                 } else {
                     player.isOnGround = false;
                 }
                 
                 player.draw();
 
-                // 生成障礙物 (只生成在地面)
-                let spawnRate = Math.max(30, 80 - Math.floor(currentTime * 1.5));
-                if(frameCount % spawnRate === 0) {
-                    // 最短間距檢查，避免產生無法跳過的障礙
+                // 🔥 障礙物生成邏輯 (高密度)
+                // 基礎生成率隨時間變快，從 50 幀/個 降到 15 幀/個
+                let baseRate = Math.max(15, 50 - Math.floor(currentTime * 2));
+                if(frameCount % baseRate === 0) {
                     let lastObs = obstacles[obstacles.length - 1];
-                    let minGap = 250 + (gameSpeed * 10);
-                    if (!lastObs || (gameWidth - lastObs.x > minGap)) {
-                        let size = Math.random() * 20 + 25; // 大小變化
+                    // 動態計算安全間距：速度越快，間距需要越大
+                    let safeGap = 200 + (gameSpeed * 8); 
+                    
+                    if (!lastObs || (gameWidth - lastObs.x > safeGap)) {
+                        let size = Math.random() * 20 + 25;
                         obstacles.push({
                             x: gameWidth + size,
-                            y: groundLimit - size + 10, // 固定在地面
+                            y: groundLimit - size + 10,
                             size: size,
-                            color: starColors[Math.floor(Math.random() * starColors.length)],
+                            color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
                             rotation: 0, rotSpeed: (Math.random() + 0.5) * 0.1
                         });
                     }
                 }
 
-                // 生成道具 (空中或地面)
-                if(frameCount % 700 === 0 && !player.hasShield) {
-                    items.push({
-                        x: gameWidth + 50,
-                        y: groundLimit - 100, // 稍微高一點，需要跳起來吃
-                        size: 20, type: 'shield'
-                    });
+                if(frameCount % 600 === 0 && !player.hasShield) {
+                    items.push({ x: gameWidth + 50, y: groundLimit - 120, size: 20, type: 'shield' });
                 }
 
                 frameCount++;
             } else if(isCrashed) {
-                gameSpeed *= 0.95;
+                gameSpeed *= 0.9; // 碰撞後快速減速
+                if(gameSpeed < 0.5) gameSpeed = 0;
             }
 
             // 更新障礙物
             for(let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.x -= gameSpeed; obs.rotation += obs.rotSpeed;
-                ctx.save(); ctx.translate(obs.x, obs.y);
-                drawStar(0, 0, 5, obs.size, obs.size*0.4, obs.color, obs.rotation);
-                ctx.restore();
+                
+                // 優化：畫面外不繪製
+                if(obs.x > -50 && obs.x < gameWidth + 50) {
+                    ctx.save(); ctx.translate(obs.x, obs.y);
+                    drawStar(0, 0, 5, obs.size, obs.size*0.4, obs.color, obs.rotation);
+                    ctx.restore();
+                }
 
                 if(isPlaying) {
-                    let hitDist = obs.size * 0.6 + player.width * 0.3;
+                    // 🔥 判定寬容度：碰撞箱縮小至 70%
+                    let hitDist = (obs.size + player.width/2) * 0.7; 
                     let dx = player.x - obs.x; let dy = player.y - obs.y;
+                    
                     if (Math.sqrt(dx*dx + dy*dy) < hitDist) {
                         if(player.hasShield) {
                             player.hasShield = false;
                             shieldIndicator.style.display = 'none';
-                            createParticles(player.x, player.y, '#00f3ff', 30, 2, 'circle');
-                            shockwaves.push({x: player.x, y: player.y, radius: 10, alpha: 1, color: '#00f3ff', width: 5});
+                            createParticles(player.x, player.y, '#00f3ff', 15, 2);
                             obstacles.splice(i, 1); 
                         } else {
                             handleCrash(obs);
                         }
                     }
                 }
-                if(obs.x + obs.size < -50) obstacles.splice(i, 1);
+                if(obs.x + obs.size < -100) obstacles.splice(i, 1);
             }
 
             // 更新道具
@@ -394,7 +412,7 @@
                         if(item.type === 'shield') {
                             player.hasShield = true;
                             shieldIndicator.style.display = 'inline-block';
-                            createParticles(player.x, player.y, '#fff', 20, 1, 'circle');
+                            createParticles(player.x, player.y, '#fff', 10, 1);
                         }
                         items.splice(i, 1);
                     }
@@ -402,88 +420,82 @@
                 if(item.x < -50) items.splice(i, 1);
             }
 
-            updateEffects();
+            // 更新粒子 (簡單物理)
+            ctx.globalAlpha = 0.8;
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+                if(p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.fillStyle = p.color; 
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
             requestAnimationFrame(update);
         }
 
         function handleCrash(obs) {
             isPlaying = false; isCrashed = true;
-            createParticles(player.x, player.y, '#fff', 30, 1.5, 'triangle'); 
-            createParticles(player.x, player.y, '#00f3ff', 20, 1.5, 'circle');
-            createParticles(obs.x, obs.y, obs.color, 20, 1, 'circle'); 
-            shockwaves.push({x: player.x, y: player.y, radius: 10, alpha: 1, color: '#fff', width: 8});
+            createParticles(player.x, player.y, '#fff', 20, 1.5); 
+            createParticles(obs.x, obs.y, obs.color, 15, 1); 
             gameOver();
         }
 
-        function updateEffects() {
-            for(let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= p.decay;
-                if(p.life <= 0) { particles.splice(i, 1); continue; }
-                ctx.save(); ctx.translate(p.x, p.y); ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
-                if(p.type === 'triangle') {
-                    ctx.rotate(p.life * 10); ctx.beginPath();
-                    ctx.moveTo(0, -p.size); ctx.lineTo(p.size, p.size); ctx.lineTo(-p.size, p.size); ctx.fill();
-                } else {
-                    ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI*2); ctx.fill();
-                }
-                ctx.restore();
-            }
-            ctx.globalAlpha = 1.0;
-            for(let i = shockwaves.length - 1; i >= 0; i--) {
-                let sw = shockwaves[i]; sw.radius += 10; sw.alpha -= 0.05;
-                if(sw.alpha <= 0) { shockwaves.splice(i, 1); continue; }
-                ctx.strokeStyle = sw.color; ctx.lineWidth = sw.width; ctx.globalAlpha = sw.alpha;
-                ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI*2); ctx.stroke(); ctx.globalAlpha = 1.0;
-            }
-        }
-
         function getRank(s) {
-            if(s < 10) return { t: "星際塵埃", c: "linear-gradient(45deg, #777, #aaa)" };
-            if(s < 25) return { t: "超光速新兵", c: "linear-gradient(45deg, #00f3ff, #0077ff)" };
-            if(s < 45) return { t: "時空護航者", c: "linear-gradient(45deg, #00ff9d, #00cc55)" };
-            if(s < 70) return { t: "獵戶座王牌", c: "linear-gradient(45deg, #f2c94c, #f2994a)" };
+            if(s < 15) return { t: "星際塵埃", c: "linear-gradient(45deg, #777, #aaa)" };
+            if(s < 30) return { t: "超光速新兵", c: "linear-gradient(45deg, #00f3ff, #0077ff)" };
+            if(s < 60) return { t: "時空護航者", c: "linear-gradient(45deg, #00ff9d, #00cc55)" };
+            if(s < 100) return { t: "獵戶座王牌", c: "linear-gradient(45deg, #f2c94c, #f2994a)" };
             return { t: "銀河傳奇", c: "linear-gradient(45deg, #ff00ff, #bc13fe)" };
         }
 
         function gameOver() {
             if(currentTime > bestTime) {
-                bestTime = currentTime; localStorage.setItem('starship_best_time', bestTime);
+                bestTime = currentTime; localStorage.setItem('galaxy_run_best', bestTime);
                 bestVal.innerText = bestTime.toFixed(2) + "秒";
             }
             document.getElementById('final-time').innerText = currentTime.toFixed(2) + "秒";
             const r = getRank(currentTime);
             rankBadge.innerText = r.t; rankBadge.style.background = r.c; 
-            setTimeout(() => { overlay.classList.add('show'); endCard.style.display = 'block'; }, 1000);
+            setTimeout(() => { overlay.classList.add('show'); endCard.style.display = 'block'; }, 500);
         }
 
+        // --- 🎮 事件處理 (Bug Fix: 排除按鈕點擊) ---
         function jumpAction(e) {
-            if (e && e.preventDefault) e.preventDefault(); 
-            let activeBtn = startCard.style.display !== 'none' ? startBtn : restartBtn;
-            if(activeBtn) { activeBtn.classList.add('pressed'); setTimeout(() => activeBtn.classList.remove('pressed'), 100); }
+            // 🔥 修正：點擊按鈕不觸發跳躍
+            if (e && e.target && (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a'))) {
+                return; 
+            }
+
+            if (e && e.preventDefault && e.type !== 'mousedown') {
+                e.preventDefault();
+            }
 
             if(isPlaying) {
-                player.jump(); // 改回 jump
+                player.jump();
             } else if (overlay.classList.contains('show')) {
-                if(startCard.style.display !== 'none' || (endCard.style.display !== 'none' && !isCrashed)) {
-                     initGame();
-                } else if (endCard.style.display !== 'none' && isCrashed) {
-                    initGame();
-                }
+                // 只有在非按鈕區域點擊時，且 endCard 顯示時，才允許快速重開
+                // (避免誤觸)
             }
         }
 
         window.addEventListener('keydown', (e) => { 
-            if(e.code === 'Space' || e.key === ' ' || e.keyCode === 32 || e.code === 'Enter' || e.code === 'ArrowUp') {
-                jumpAction(e);
+            if(e.code === 'Space' || e.key === ' ' || e.keyCode === 32 || e.code === 'ArrowUp') {
+                if(isPlaying) {
+                    e.preventDefault(); // 防止空白鍵滾動
+                    player.jump();
+                } else if(endCard.style.display === 'block') {
+                    initGame(); // 鍵盤可以直接重開
+                }
             }
         });
+        
         window.addEventListener('touchstart', (e) => { jumpAction(e); }, {passive: false});
         window.addEventListener('mousedown', (e) => { if(e.button === 0) jumpAction(e); });
         
         window.addEventListener('resize', resize);
-        requestAnimationFrame(update);
         resize();
+        requestAnimationFrame(update);
     </script>
 </body>
 </html>
