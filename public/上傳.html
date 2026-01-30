@@ -5,21 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>加密傳輸艙 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
         :root {
             --neon-blue: #00f3ff;
             --neon-red: #ff4757;
             --neon-green: #00ff9d;
-            --glass-bg: rgba(20, 30, 50, 0.6);
-            --glass-border: rgba(0, 243, 255, 0.2);
+            --glass-bg: rgba(20, 30, 50, 0.7);
+            --glass-border: rgba(0, 243, 255, 0.3);
         }
         body {
-            /* 🌌 深空星際背景 (與首頁統一) */
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
             color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
-            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* 🌌 動態星空背景 */
+        #star-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none; overflow: hidden;
+        }
+        .star {
+            position: absolute; background: white; border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+            opacity: var(--opacity);
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px white; }
         }
 
         /* 頂部 */
@@ -27,105 +40,87 @@
             width: 100%; padding: 20px; box-sizing: border-box;
             background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--glass-border);
             display: flex; align-items: center; gap: 15px; backdrop-filter: blur(10px);
+            z-index: 10;
         }
         .back-btn { color: #fff; text-decoration: none; font-size: 1.2rem; transition: 0.3s; }
         .back-btn:hover { color: var(--neon-blue); }
         h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--neon-blue); display: flex; align-items: center; gap: 10px; }
-
-        /* 身份標籤 */
-        .user-status {
-            margin-left: auto; font-size: 0.8rem; padding: 4px 10px;
-            border-radius: 10px; background: rgba(255,255,255,0.1); color: #aaa;
-        }
+        .user-status { margin-left: auto; font-size: 0.8rem; padding: 4px 10px; border-radius: 10px; background: rgba(255,255,255,0.1); color: #aaa; }
 
         /* 主容器 */
         .container {
-            width: 90%; max-width: 500px; margin-top: 30px;
+            width: 90%; max-width: 550px; margin-top: 30px;
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 20px; padding: 30px;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
-            backdrop-filter: blur(10px); margin-bottom: 50px;
+            border-radius: 20px; padding: 30px; margin-bottom: 50px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+            backdrop-filter: blur(10px); z-index: 5;
         }
 
         /* 分頁切換 */
         .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
-        .tab {
-            flex: 1; padding: 15px; text-align: center; cursor: pointer;
-            color: #888; transition: 0.3s; position: relative;
-        }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; color: #888; transition: 0.3s; position: relative; }
         .tab.active { color: var(--neon-blue); font-weight: bold; }
-        .tab.active::after {
-            content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px;
-            background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue);
-        }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
 
-        /* 表單樣式 */
+        /* 表單與按鈕 */
         .form-group { margin-bottom: 20px; }
         .form-label { display: block; margin-bottom: 8px; color: #aaa; font-size: 0.9rem; }
-        .form-input, .form-select, textarea {
-            width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; border-radius: 8px; color: #fff; box-sizing: border-box;
-        }
+        .form-input, .form-select, textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid #444; border-radius: 8px; color: #fff; box-sizing: border-box; }
         .form-input:focus { border-color: var(--neon-blue); outline: none; }
 
-        /* 檔案上傳區 */
-        .drop-zone {
-            border: 2px dashed #444; border-radius: 10px; padding: 30px;
-            text-align: center; cursor: pointer; transition: 0.3s;
-            color: #888; background: rgba(0,0,0,0.2);
-        }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--neon-blue); color: #fff; background: rgba(0, 243, 255, 0.05); }
+        .drop-zone { border: 2px dashed #444; border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; transition: 0.3s; color: #888; background: rgba(0,0,0,0.2); }
+        .drop-zone:hover { border-color: var(--neon-blue); color: #fff; background: rgba(0, 243, 255, 0.05); }
         .file-list { margin-top: 10px; font-size: 0.85rem; color: var(--neon-blue); text-align: left; }
 
-        /* 進度條樣式 (新增) */
-        .progress-container {
-            width: 100%; background: #333; border-radius: 10px; height: 10px;
-            margin-top: 15px; overflow: hidden; display: none;
-        }
-        .progress-bar {
-            width: 0%; height: 100%; background: var(--neon-blue);
-            transition: width 0.3s; box-shadow: 0 0 10px var(--neon-blue);
-        }
+        .progress-container { width: 100%; background: #333; border-radius: 10px; height: 10px; margin-top: 15px; overflow: hidden; display: none; }
+        .progress-bar { width: 0%; height: 100%; background: var(--neon-blue); transition: width 0.3s; box-shadow: 0 0 10px var(--neon-blue); }
         .progress-text { text-align: center; font-size: 0.8rem; margin-top: 5px; color: #aaa; display: none; }
 
-        /* 按鈕 */
-        .btn-action {
-            width: 100%; padding: 12px; border: none; border-radius: 50px;
-            font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px;
-            background: var(--neon-blue); color: #000; transition: 0.3s;
-            display: flex; justify-content: center; align-items: center; gap: 8px;
-        }
-        .btn-action:hover { box-shadow: 0 0 20px var(--neon-blue); }
-        .btn-action:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 50px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px; background: var(--neon-blue); color: #000; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-action:hover { box-shadow: 0 0 20px var(--neon-blue); transform: translateY(-2px); }
+        .btn-action:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; transform: none; }
         .download-btn { background: var(--neon-green); }
 
-        /* 結果顯示區 */
+        /* 結果顯示 */
         #resultArea { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 10px; text-align: center; }
-        .code-display { 
-            font-size: 2rem; font-family: monospace; color: var(--neon-green); margin: 10px 0; 
-            letter-spacing: 5px; border: 1px dashed var(--neon-green); padding: 10px;
+        .code-display { font-size: 2.5rem; font-family: monospace; color: var(--neon-green); margin: 15px 0; letter-spacing: 5px; text-shadow: 0 0 10px var(--neon-green); }
+        .copy-btn { background: none; border: 1px solid #fff; padding: 5px 15px; border-radius: 20px; color: #fff; cursor: pointer; margin-top: 10px; }
+        .copy-btn:hover { background: #fff; color: #000; }
+
+        /* 歷史紀錄 */
+        .history-section { margin-top: 40px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+        .history-title { font-size: 1rem; color: #aaa; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .history-list { display: flex; flex-direction: column; gap: 10px; }
+        .history-item { 
+            background: rgba(0,0,0,0.3); border: 1px solid #444; border-radius: 10px; padding: 15px; 
+            display: flex; justify-content: space-between; align-items: center; transition: 0.3s;
         }
-        .copy-btn { background: none; border: none; color: #fff; cursor: pointer; text-decoration: underline; }
-        .timer-badge {
-            display: inline-block; background: #333; padding: 5px 10px; 
-            border-radius: 5px; font-size: 0.8rem; margin-top: 5px; color: #ffaa00;
+        .history-item:hover { border-color: var(--neon-blue); background: rgba(0, 243, 255, 0.05); }
+        .h-info { display: flex; flex-direction: column; gap: 3px; }
+        .h-code { font-family: monospace; font-size: 1.2rem; color: var(--neon-green); font-weight: bold; }
+        .h-date { font-size: 0.8rem; color: #888; }
+        .h-expire { font-size: 0.8rem; color: var(--neon-red); }
+        .btn-delete { 
+            background: rgba(255, 71, 87, 0.1); border: 1px solid var(--neon-red); color: var(--neon-red); 
+            width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            transition: 0.2s;
         }
-        
+        .btn-delete:hover { background: var(--neon-red); color: #fff; box-shadow: 0 0 10px var(--neon-red); }
+
         /* 下載列表 */
-        .download-list { margin-top: 15px; text-align: left; }
-        .download-item {
-            background: rgba(255,255,255,0.1); padding: 10px; margin-bottom: 8px;
-            border-radius: 8px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .dl-link { color: var(--neon-green); text-decoration: none; font-weight: bold; border:1px solid var(--neon-green); padding:5px 10px; border-radius:5px;}
+        .download-item { background: rgba(255,255,255,0.1); padding: 10px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .dl-link { color: var(--neon-green); text-decoration: none; font-weight: bold; border:1px solid var(--neon-green); padding:5px 10px; border-radius:5px; transition:0.3s;}
         .dl-link:hover { background: var(--neon-green); color:#000; }
+        .file-icon { margin-right: 8px; color: var(--neon-blue); }
     </style>
 </head>
 <body>
 
+    <div id="star-container"></div>
+
     <div class="header">
-        <a href="index.html" class="back-btn"><i class="fa-solid fa-house"></i> 返回大廳</a>
-        <h1><i class="fa-solid fa-file-shield"></i> 公開傳輸艙</h1>
+        <a href="upload_zone.html" class="back-btn"><i class="fa-solid fa-toolbox"></i> 返回工具區</a>
+        <h1><i class="fa-solid fa-file-shield"></i> 加密傳輸艙</h1>
         <div class="user-status" id="userStatus">偵測中...</div>
     </div>
 
@@ -137,8 +132,8 @@
 
         <div id="uploadSection">
             <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <div>點擊或拖曳檔案至此 (多檔自動列表)</div>
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+                <div>點擊或拖曳檔案至此</div>
                 <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileSelect(this)">
             </div>
             <div class="file-list" id="fileList"></div>
@@ -158,7 +153,8 @@
                 <select id="expiryTime" class="form-select">
                     <option value="10">10 分鐘後銷毀</option>
                     <option value="60">1 小時後銷毀</option>
-                    <option value="1440">24 小時後銷毀</option>
+                    <option value="1440">24 小時後銷毀 (1天)</option>
+                    <option value="4320">72 小時後銷毀 (3天)</option>
                 </select>
             </div>
 
@@ -170,6 +166,16 @@
             <button class="btn-action" id="uploadBtn" onclick="window.executeUpload()">
                 <i class="fa-solid fa-rocket"></i> 加密上傳
             </button>
+
+            <div class="history-section">
+                <div class="history-title">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> 本機傳輸日誌</span>
+                    <span style="font-size:0.8rem; cursor:pointer;" onclick="clearHistory()">清空紀錄</span>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div style="text-align:center; color:#555;">暫無紀錄</div>
+                </div>
+            </div>
         </div>
 
         <div id="downloadSection" style="display:none;">
@@ -187,9 +193,9 @@
             </button>
 
             <div id="downloadArea" style="display:none; margin-top:20px;">
-                <h4 style="color:var(--neon-green); margin:0 0 10px 0;">檔案列表</h4>
-                <div class="download-list" id="downloadList"></div>
-                <div style="background:rgba(255,255,255,0.1); padding:10px; margin-top:10px; border-radius:5px;" id="msgArea">
+                <h4 style="color:var(--neon-green); margin:0 0 10px 0;">檔案列表 (點擊下載)</h4>
+                <div id="downloadList"></div>
+                <div style="background:rgba(255,255,255,0.1); padding:10px; margin-top:10px; border-radius:5px; display:none;" id="msgArea">
                     <div style="color:#aaa; font-size:0.8rem;">附加訊息：</div>
                     <div id="msgContent" style="white-space: pre-wrap;"></div>
                 </div>
@@ -200,7 +206,8 @@
             <div style="color:#aaa; font-size:0.9rem;">傳輸建立成功！請將代碼交給對方：</div>
             <div class="code-display" id="resultCode">------</div>
             <button class="copy-btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> 複製代碼</button>
-            <div class="timer-badge" id="expiryDisplay"></div>
+            <div class="timer-badge" id="expiryDisplay" style="margin-top:15px; display:block; color:#ffaa00;"></div>
+            <button class="btn-action" onclick="location.reload()" style="margin-top:20px; background:transparent; border:1px solid #555; color:#fff;">返回</button>
         </div>
 
         <div id="statusMsg" style="text-align:center; margin-top:15px; font-weight:bold;"></div>
@@ -222,7 +229,6 @@
             measurementId: "G-YPCY41EKWX"
         };
 
-        // 全域變數
         let app, auth, db, storage, currentUser;
         let selectedFiles = [];
 
@@ -231,115 +237,135 @@
             auth = getAuth(app);
             db = getFirestore(app);
             storage = getStorage(app);
-            console.log("Firebase Ready");
 
             onAuthStateChanged(auth, user => {
                 if(user) {
                     currentUser = user;
-                    const statusEl = document.getElementById('userStatus');
-                    if(statusEl) {
-                        statusEl.innerText = `指揮官: ${user.displayName || 'User'}`;
-                        statusEl.style.color = "#00ff9d";
-                    }
+                    document.getElementById('userStatus').innerText = `指揮官: ${user.displayName || 'User'}`;
+                    document.getElementById('userStatus').style.color = "#00ff9d";
                 } else {
                     currentUser = null;
-                    const statusEl = document.getElementById('userStatus');
-                    if(statusEl) statusEl.innerText = "匿名訪客";
+                    document.getElementById('userStatus').innerText = "匿名訪客";
                 }
             });
+            
+            loadHistory();
 
-        } catch (e) {
-            alert("Firebase 初始化失敗: " + e.message);
+        } catch (e) { alert("系統初始化錯誤: " + e.message); }
+
+        // --- 星空特效 ---
+        function createStars() {
+            const container = document.getElementById('star-container');
+            const starCount = 80;
+            for(let i=0; i<starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const size = Math.random() * 2.5;
+                const duration = 2 + Math.random() * 3;
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.setProperty('--opacity', Math.random());
+                container.appendChild(star);
+            }
         }
+        createStars();
 
-        // 綁定 UI 函式到 window (解決按鈕無效問題)
+        // --- 全域變數綁定 ---
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab')[tab==='upload'?0:1].classList.add('active');
             document.getElementById('uploadSection').style.display = tab==='upload'?'block':'none';
             document.getElementById('downloadSection').style.display = tab==='download'?'block':'none';
             document.getElementById('resultArea').style.display = 'none';
-            document.getElementById('statusMsg').innerText = '';
         };
 
         window.handleFileSelect = (input) => {
             selectedFiles = Array.from(input.files);
             const list = document.getElementById('fileList');
-            if(selectedFiles.length === 0) {
-                list.innerText = ''; return;
-            }
+            if(selectedFiles.length === 0) { list.innerText = ''; return; }
             list.innerHTML = selectedFiles.map(f => `<div><i class="fa-solid fa-file"></i> ${f.name} (${(f.size/1024).toFixed(1)}KB)</div>`).join('');
         };
 
         window.copyCode = () => {
-            const code = document.getElementById('resultCode').innerText;
-            navigator.clipboard.writeText(code);
-            alert("代碼已複製！");
+            navigator.clipboard.writeText(document.getElementById('resultCode').innerText);
+            alert("已複製");
         };
 
-        // --- 🚀 上傳邏輯 (無壓縮 + 進度條) ---
+        // --- 🚀 上傳邏輯 (修復類型問題) ---
         window.executeUpload = async () => {
-            console.log("Upload started..."); // Debug
-            
             const pwd = document.getElementById('uploadPwd').value;
             const msg = document.getElementById('secretMsg').value;
             const expiryMins = parseInt(document.getElementById('expiryTime').value);
 
-            if(!pwd) return alert("請設定密碼！");
-            if(selectedFiles.length === 0 && !msg) return alert("請至少選擇檔案或輸入文字訊息");
+            if(!pwd) return alert("請設定密碼");
+            if(selectedFiles.length === 0 && !msg) return alert("請選擇檔案或輸入訊息");
 
-            // 鎖定按鈕與顯示進度條
             const btn = document.getElementById('uploadBtn');
             btn.disabled = true;
             document.getElementById('progressContainer').style.display = 'block';
             document.getElementById('progressText').style.display = 'block';
-            updateProgress(0, "初始化上傳任務...");
 
             try {
                 const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                const uploadedFiles = []; // 存 URL
-
-                // 1. 逐一上傳檔案 (不壓縮)
-                let completedCount = 0;
-                const totalFiles = selectedFiles.length;
-
-                // 如果有文字訊息，也當作一個檔案上傳
-                if(msg) {
-                    const msgBlob = new Blob([`From: ${currentUser?.displayName || 'Anonymous'}\n\n${msg}`], {type: 'text/plain'});
-                    const msgFile = new File([msgBlob], "message.txt");
-                    selectedFiles.push(msgFile);
-                }
-
+                const uploadedFiles = [];
+                
+                // 1. 上傳檔案
                 if(selectedFiles.length > 0) {
                     for (let i = 0; i < selectedFiles.length; i++) {
                         const file = selectedFiles[i];
-                        updateProgress((i / selectedFiles.length) * 100, `上傳中: ${file.name}`);
+                        updateProgress((i / selectedFiles.length) * 100, `上傳: ${file.name}`);
                         
-                        // 上傳到 temp_shares/代碼/檔名
                         const storageRef = ref(storage, `temp_shares/${shareCode}/${file.name}`);
-                        // 使用 uploadBytesResumable (雖然這裡沒用監聽器，但它比 uploadBytes 穩定)
-                        await uploadBytesResumable(storageRef, file);
+                        
+                        // 🔥 關鍵修正：加入 metadata 讓瀏覽器知道它是什麼檔案 (Word, PDF...)
+                        const metadata = {
+                            contentType: file.type || 'application/octet-stream'
+                        };
+                        
+                        await uploadBytesResumable(storageRef, file, metadata);
                         const url = await getDownloadURL(storageRef);
                         
-                        uploadedFiles.push({ name: file.name, url: url, path: `temp_shares/${shareCode}/${file.name}` });
+                        uploadedFiles.push({ 
+                            name: file.name, 
+                            url: url, 
+                            path: `temp_shares/${shareCode}/${file.name}`,
+                            type: file.type // 紀錄類型
+                        });
                     }
                 }
+                
+                // 2. 處理文字訊息 (存成獨立檔案)
+                if(msg) {
+                    // 不需要上傳到 Storage，直接存入 Firestore 即可，下載時顯示在介面上
+                }
 
-                updateProgress(100, "正在寫入資料庫...");
-
-                // 2. 寫入 Firestore
+                updateProgress(100, "寫入資料庫...");
                 const expiryDate = new Date(Date.now() + expiryMins * 60000);
-                await addDoc(collection(db, "temp_shares"), {
+                
+                // 3. 寫入 Firestore
+                const docRef = await addDoc(collection(db, "temp_shares"), {
                     shareCode: shareCode,
                     password: pwd,
-                    files: uploadedFiles, // 存入檔案列表 (含 URL)
-                    message: msg || "",   // 也可以直接存文字
+                    files: uploadedFiles,
+                    message: msg || "",
                     expiresAt: expiryDate,
                     uploader: currentUser ? currentUser.uid : "anonymous",
                     createdAt: serverTimestamp()
                 });
 
-                // 3. 完成
+                // 4. 儲存歷史紀錄
+                saveHistory({
+                    code: shareCode,
+                    expiry: expiryDate.getTime(),
+                    docId: docRef.id,
+                    files: uploadedFiles
+                });
+
                 updateProgress(100, "完成！");
                 document.getElementById('uploadSection').style.display = 'none';
                 document.getElementById('resultArea').style.display = 'block';
@@ -349,14 +375,12 @@
                 // 重置
                 selectedFiles = [];
                 document.getElementById('fileInput').value = '';
-                document.getElementById('secretMsg').value = '';
                 btn.disabled = false;
 
             } catch (e) {
                 console.error(e);
                 alert("上傳失敗: " + e.message);
                 btn.disabled = false;
-                document.getElementById('progressText').innerText = "錯誤";
             }
         };
 
@@ -365,18 +389,94 @@
             document.getElementById('progressText').innerText = `${Math.round(percent)}% - ${text}`;
         }
 
+        // --- 📜 歷史紀錄功能 ---
+        function saveHistory(item) {
+            const history = JSON.parse(localStorage.getItem('yulu_transfer_history') || '[]');
+            history.unshift(item); 
+            localStorage.setItem('yulu_transfer_history', JSON.stringify(history));
+            loadHistory();
+        }
 
-        // --- 📥 下載邏輯 (顯示列表) ---
+        function loadHistory() {
+            const list = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('yulu_transfer_history') || '[]');
+            
+            if(history.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:#555;">暫無紀錄</div>';
+                return;
+            }
+
+            list.innerHTML = history.map(item => {
+                const isExpired = Date.now() > item.expiry;
+                const dateStr = new Date(item.expiry).toLocaleString();
+                const statusColor = isExpired ? '#ff4757' : '#00ff9d';
+                const statusText = isExpired ? '已過期' : '有效';
+                
+                return `
+                    <div class="history-item">
+                        <div class="h-info">
+                            <div class="h-code">${item.code}</div>
+                            <div class="h-date">截止: ${dateStr}</div>
+                            <div class="h-expire" style="color:${statusColor}">狀態: ${statusText}</div>
+                        </div>
+                        <button class="btn-delete" onclick="window.deleteItem('${item.docId}', '${item.code}')" title="刪除檔案">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.clearHistory = () => {
+            if(confirm("確定清空本機紀錄？(不會刪除雲端檔案)")) {
+                localStorage.removeItem('yulu_transfer_history');
+                loadHistory();
+            }
+        };
+
+        // --- 🗑️ 刪除功能 ---
+        window.deleteItem = async (docId, code) => {
+            if(!confirm(`確定要刪除代碼 ${code} 的所有檔案嗎？`)) return;
+
+            const history = JSON.parse(localStorage.getItem('yulu_transfer_history') || '[]');
+            const item = history.find(h => h.docId === docId);
+
+            if(!item) { alert("找不到本機紀錄"); return; }
+            const btn = event.target.closest('button');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            try {
+                if (item.files && item.files.length > 0) {
+                    for (const file of item.files) {
+                        const fileRef = ref(storage, file.path);
+                        await deleteObject(fileRef).catch(err => console.warn("File already deleted"));
+                    }
+                }
+                await deleteDoc(doc(db, "temp_shares", docId));
+                
+                const newHistory = history.filter(h => h.docId !== docId);
+                localStorage.setItem('yulu_transfer_history', JSON.stringify(newHistory));
+                
+                alert("刪除成功！");
+                loadHistory();
+
+            } catch (e) {
+                console.error(e);
+                alert("刪除失敗: " + e.message);
+                loadHistory();
+            }
+        };
+
+        // --- 📥 下載邏輯 ---
         window.executeDownload = async () => {
             const code = document.getElementById('shareCode').value.toUpperCase();
             const pwd = document.getElementById('accessPwd').value;
             const btn = document.getElementById('downloadBtn');
-            const status = document.getElementById('statusMsg');
 
             if(!code || !pwd) return alert("請輸入代碼與密碼");
 
             btn.disabled = true;
-            status.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 搜尋中...`;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 搜尋中...';
 
             try {
                 const snapshot = await getDocs(collection(db, "temp_shares"));
@@ -386,58 +486,54 @@
                 });
 
                 if(!targetDoc) {
-                    btn.disabled = false; status.innerText = "";
+                    btn.disabled = false; btn.innerText = "解鎖檔案";
                     return alert("找不到此代碼");
                 }
 
-                // 驗證
                 if (new Date() > targetDoc.expiresAt.toDate()) {
-                    // 簡易銷毀邏輯 (不等待)
-                    deleteDoc(doc(db, "temp_shares", targetDoc.id));
-                    btn.disabled = false; status.innerText = "";
-                    return alert("檔案已過期並銷毀。");
+                    btn.disabled = false; btn.innerText = "解鎖檔案";
+                    return alert("檔案已過期。");
                 }
 
                 if (targetDoc.password !== pwd) {
-                    btn.disabled = false; status.innerText = "";
+                    btn.disabled = false; btn.innerText = "解鎖檔案";
                     return alert("密碼錯誤");
                 }
 
-                // 顯示檔案列表
-                status.innerText = "";
+                // 顯示列表
                 document.getElementById('downloadArea').style.display = 'block';
                 const list = document.getElementById('downloadList');
                 list.innerHTML = '';
 
-                // 相容舊版資料 (如果只有 single downloadUrl)
-                if (targetDoc.downloadUrl && !targetDoc.files) {
-                     list.innerHTML = `<div class="download-item"><span>壓縮檔.zip</span><a href="${targetDoc.downloadUrl}" target="_blank" class="dl-link">下載</a></div>`;
-                } 
-                // 新版列表
-                else if (targetDoc.files && targetDoc.files.length > 0) {
+                // 🔥 關鍵修復：下載連結不使用 download 屬性（跨域無效），而是直接開啟連結
+                if (targetDoc.files && targetDoc.files.length > 0) {
                     targetDoc.files.forEach(f => {
+                        let icon = 'fa-file';
+                        if(f.name.includes('.doc')) icon = 'fa-file-word';
+                        if(f.name.includes('.pdf')) icon = 'fa-file-pdf';
+                        if(f.name.includes('.jpg') || f.name.includes('.png')) icon = 'fa-file-image';
+
                         list.innerHTML += `
                             <div class="download-item">
-                                <span><i class="fa-solid fa-file"></i> ${f.name}</span>
+                                <span><i class="fa-solid ${icon} file-icon"></i> ${f.name}</span>
                                 <a href="${f.url}" target="_blank" class="dl-link">下載</a>
                             </div>`;
                     });
+                } else if (targetDoc.downloadUrl) { // 舊版相容
+                    list.innerHTML = `<div class="download-item"><span>壓縮檔.zip</span><a href="${targetDoc.downloadUrl}" target="_blank" class="dl-link">下載</a></div>`;
                 }
 
-                // 顯示訊息
                 const msgArea = document.getElementById('msgArea');
                 if(targetDoc.message) {
                     msgArea.style.display = 'block';
                     document.getElementById('msgContent').innerText = targetDoc.message;
-                } else {
-                    msgArea.style.display = 'none';
-                }
+                } else { msgArea.style.display = 'none'; }
 
-                btn.style.display = 'none'; // 隱藏解鎖按鈕
+                btn.style.display = 'none'; 
 
             } catch (e) {
                 console.error(e);
-                btn.disabled = false;
+                btn.disabled = false; btn.innerText = "解鎖檔案";
                 alert("讀取失敗: " + e.message);
             }
         };

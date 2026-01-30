@@ -11,12 +11,13 @@
             --neon-gold: #f2c94c;
             --neon-pink: #ff00ff;
             --neon-green: #28a745;
+            --neon-red: #ff4757;
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
-            /* 🌌 深空星際背景 (與氣象站統一) */
+            /* 🌌 深空星際背景 */
             background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
             color: #fff;
             min-height: 100vh;
@@ -84,6 +85,13 @@
             width: 80vw; height: 80vh; background: radial-gradient(circle, rgba(0, 243, 255, 0.08), transparent 60%);
             z-index: 0; pointer-events: none;
         }
+
+        /* 管理員專區分隔線 */
+        .admin-divider {
+            grid-column: 1 / -1; margin-top: 20px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 15px; color: #ff00ff; font-weight: bold; letter-spacing: 2px;
+        }
+        .admin-divider::before, .admin-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,0,255,0.5); }
     </style>
 </head>
 <body>
@@ -137,15 +145,25 @@
         </a>
 
         <a href="upload_zone.html" class="secret-card" style="border-color: #aaa;">
-            <i class="fa-solid fa-cloud-arrow-up" style="color: #aaa;"></i>
-            <h3>上傳專區</h3>
-            <p>傳送圖片至星際資料庫。</p>
+            <i class="fa-solid fa-toolbox" style="color: #aaa;"></i>
+            <h3>資源工具區</h3>
+            <p>包含加密傳輸艙與圖庫上傳投稿。</p>
         </a>
+        
+        <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
 
         <a href="admin_gallery.html" class="secret-card" style="border-color: var(--neon-gold);">
+            <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
             <i class="fa-solid fa-images" style="color: var(--neon-gold);"></i>
-            <h3>圖庫後台</h3>
-            <p>檢視與下載所有上傳內容。</p>
+            <h3>圖庫管理</h3>
+            <p>檢視與下載所有投稿圖片。</p>
+        </a>
+
+        <a href="admin_transfers.html" class="secret-card" style="border-color: var(--neon-pink);">
+            <span class="tag" style="background: var(--neon-pink);">ADMIN</span>
+            <i class="fa-solid fa-network-wired" style="color: var(--neon-pink);"></i>
+            <h3>傳輸監控</h3>
+            <p>強制管理與銷毀所有傳輸檔案。</p>
         </a>
 
         <a href="index.html" class="secret-card" style="border-color: rgba(255,255,255,0.2);">
