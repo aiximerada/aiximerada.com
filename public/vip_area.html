@@ -22,7 +22,6 @@
         }
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
-            /* 🌌 深空星際背景 */
             background: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
             color: #fff;
             min-height: 100vh;
@@ -32,7 +31,6 @@
             background-attachment: fixed;
         }
         
-        /* Logout 按鈕 */
         .logout-btn {
             position: absolute; top: 20px; right: 20px;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
@@ -42,7 +40,6 @@
         }
         .logout-btn:hover { background: #ff4757; border-color: #ff4757; }
 
-        /* 標題區 */
         .header { text-align: center; margin-top: 60px; margin-bottom: 40px; position: relative; z-index: 2; }
         h1 { font-size: 2.5rem; text-shadow: 0 0 20px var(--neon-gold); margin: 0 0 10px 0; }
         
@@ -53,7 +50,6 @@
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
         .user-id { color: var(--neon-blue); font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px var(--neon-blue); }
 
-        /* --- 功能網格 --- */
         .secret-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 25px; width: 90%; max-width: 1000px;
@@ -67,7 +63,7 @@
             text-decoration: none; color: #fff;
             transition: 0.4s ease; position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; text-align: center;
-            backdrop-filter: blur(15px); /* 強力毛玻璃 */
+            backdrop-filter: blur(15px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         .secret-card:hover { transform: translateY(-8px) scale(1.02); background: rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.3); }
@@ -77,21 +73,18 @@
         .secret-card h3 { margin: 0 0 10px 0; font-size: 1.3rem; letter-spacing: 1px; }
         .secret-card p { color: rgba(255,255,255,0.7); font-size: 0.95rem; margin: 0; line-height: 1.6; }
         
-        /* 標籤 Tag */
         .tag { 
             position: absolute; top: 15px; right: 15px; 
             font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; 
             font-weight: bold; color: #000; box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
-        /* 背景光暈特效 */
         .bg-glow {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 80vw; height: 80vh; background: radial-gradient(circle, rgba(0, 243, 255, 0.08), transparent 60%);
             z-index: 0; pointer-events: none;
         }
 
-        /* 管理員專區分隔線 */
         .admin-divider {
             grid-column: 1 / -1; margin-top: 20px; margin-bottom: 10px;
             display: flex; align-items: center; gap: 15px; color: #ff00ff; font-weight: bold; letter-spacing: 2px;
@@ -150,6 +143,13 @@
         
         <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
 
+        <a href="admin_invite.html" class="secret-card" style="border-color: #00f3ff;">
+            <span class="tag" style="background: #00f3ff;">ADMIN</span>
+            <i class="fa-solid fa-ticket" style="color: #00f3ff;"></i>
+            <h3>邀請碼中心</h3>
+            <p>生成與管理入隊邀請碼。</p>
+        </a>
+
         <a href="admin_gallery.html" class="secret-card" style="border-color: var(--neon-gold);">
             <span class="tag" style="background: var(--neon-gold);">ADMIN</span>
             <i class="fa-solid fa-images" style="color: var(--neon-gold);"></i>
@@ -190,7 +190,6 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -205,11 +204,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 監聽登入
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.body.style.opacity = "1";
-                
                 const name = user.displayName || user.email.split('@')[0];
                 document.getElementById('current-user').innerText = name;
 
@@ -219,7 +216,6 @@
                     avatar.style.display = 'block';
                 }
 
-                // 讀取個人化顏色設定
                 try {
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists()) {
@@ -235,7 +231,6 @@
                         }
                     }
                 } catch(e) { console.log("Profile load error", e); }
-
             } else {
                 window.location.href = "login.html";
             }

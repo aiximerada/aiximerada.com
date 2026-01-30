@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員註冊 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --neon-green: #00ff9d; --bg: #0b1021; }
+        body {
+            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+        }
+        .register-box {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
+            padding: 40px; border-radius: 20px; width: 100%; max-width: 350px;
+            backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        h2 { color: var(--neon-green); margin-bottom: 20px; letter-spacing: 2px; }
+        input {
+            width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; border-radius: 5px; color: #fff; box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--neon-green); outline: none; }
+        
+        button {
+            width: 100%; padding: 12px; background: var(--neon-green); color: #000;
+            border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;
+            font-size: 1rem; transition: 0.3s;
+        }
+        button:hover { box-shadow: 0 0 15px var(--neon-green); }
+        
+        .error { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
+        .links { margin-top: 20px; font-size: 0.9rem; color: #aaa; }
+        .links a { color: #fff; text-decoration: none; border-bottom: 1px dashed #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="register-box">
+        <h2><i class="fa-solid fa-user-plus"></i> 會員註冊</h2>
+        
+        <input type="text" id="nickname" placeholder="指揮官代號 (暱稱)">
+        <input type="email" id="email" placeholder="電子信箱 (Email)">
+        <input type="password" id="password" placeholder="設定密碼 (6位以上)">
+        
+        <input type="text" id="inviteCode" placeholder="⚠️ 輸入入隊邀請碼" style="border-color: #f39c12; color:#f39c12; font-weight:bold; text-transform:uppercase;">
+        
+        <button onclick="handleRegister()" id="btnReg">確認註冊</button>
+        <div class="error" id="errorMsg"></div>
+
+        <div class="links">
+            已經有帳號？ <a href="login.html">直接登入</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.handleRegister = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const nickname = document.getElementById('nickname').value;
+            const codeInput = document.getElementById('inviteCode').value.trim().toUpperCase();
+            const btn = document.getElementById('btnReg');
+            const errorDiv = document.getElementById('errorMsg');
+
+            if(!email || !password || !nickname || !codeInput) {
+                errorDiv.innerText = "請填寫所有欄位"; return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "驗證邀請碼...";
+            errorDiv.innerText = "";
+
+            try {
+                // 1. 驗證邀請碼
+                const codesRef = collection(db, "invite_codes");
+                const q = query(codesRef, where("code", "==", codeInput));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    throw new Error("邀請碼無效 (不存在)");
+                }
+
+                let codeDocId = null;
+                let isUsed = false;
+
+                querySnapshot.forEach((doc) => {
+                    codeDocId = doc.id;
+                    isUsed = doc.data().isUsed;
+                });
+
+                if (isUsed) {
+                    throw new Error("此邀請碼已被使用");
+                }
+
+                // 2. 建立帳號
+                btn.innerText = "建立檔案中...";
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 3. 更新使用者暱稱
+                await updateProfile(user, { displayName: nickname });
+                
+                await setDoc(doc(db, "users", user.uid), {
+                    email: email,
+                    displayName: nickname,
+                    role: "member",
+                    joinedAt: new Date()
+                });
+
+                // 4. 標記邀請碼為已使用
+                const codeDocRef = doc(db, "invite_codes", codeDocId);
+                await updateDoc(codeDocRef, {
+                    isUsed: true,
+                    usedBy: email 
+                });
+
+                alert("註冊成功！歡迎加入。");
+                window.location.href = "vip_area.html";
+
+            } catch (error) {
+                console.error(error);
+                let msg = error.message;
+                if(msg.includes("auth/email-already-in-use")) msg = "此 Email 已被註冊";
+                if(msg.includes("auth/weak-password")) msg = "密碼強度不足";
+                errorDiv.innerText = "錯誤: " + msg;
+                btn.disabled = false;
+                btn.innerText = "確認註冊";
+            }
+        };
+    </script>
+</body>
+</html>

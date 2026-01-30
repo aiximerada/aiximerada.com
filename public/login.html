@@ -3,122 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>會員登入 - 玉露寶庫</title>
+    <title>登入 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg-gradient: linear-gradient(135deg, #0b1021 0%, #1a2c4e 100%);
-            --suisei-cyan: #3bc6e4;
-            --neon-gold: #f2c94c;
-            --glass: rgba(255, 255, 255, 0.05);
-        }
+        :root { --neon-blue: #00f3ff; --neon-green: #00ff9d; }
         body {
-            font-family: 'Microsoft JhengHei', sans-serif;
-            background: var(--bg-gradient);
-            color: #fff;
-            height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0; overflow: hidden;
+            background: #0b1021; color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+            background: radial-gradient(circle at center, #1a2c4e 0%, #000000 100%);
         }
-
-        /* 星空背景 */
-        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
-
-        .login-card {
-            background: var(--glass); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 40px; border-radius: 20px; width: 320px; text-align: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            animation: fadeIn 0.8s ease-out;
+        .login-box {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
+            padding: 40px; border-radius: 20px; width: 100%; max-width: 320px;
+            backdrop-filter: blur(10px); text-align: center;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .login-card h2 { 
-            margin-bottom: 30px; color: var(--suisei-cyan); 
-            text-shadow: 0 0 10px rgba(59, 198, 228, 0.5); 
-            font-size: 1.8rem; letter-spacing: 2px;
+        h2 { margin-bottom: 20px; color: var(--neon-blue); letter-spacing: 2px; }
+        input {
+            width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3);
+            border: 1px solid #444; border-radius: 5px; color: #fff; box-sizing: border-box;
         }
+        input:focus { border-color: var(--neon-blue); outline: none; }
+        button {
+            width: 100%; padding: 12px; background: var(--neon-blue); color: #000;
+            border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;
+            transition: 0.3s;
+        }
+        button:hover { box-shadow: 0 0 15px var(--neon-blue); }
         
-        /* 輸入框樣式 */
-        .input-group { margin-bottom: 20px; position: relative; text-align: left; }
-        .input-label { font-size: 0.9rem; color: #aaa; margin-bottom: 5px; display: block; margin-left: 5px; }
-        
-        .input-wrapper { position: relative; }
-        .input-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #aaa; transition: 0.3s; }
-        
-        .input-wrapper input {
-            width: 100%; padding: 12px 12px 12px 45px;
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50px; color: #fff; outline: none; box-sizing: border-box; transition: 0.3s; font-size: 1rem;
+        .register-btn {
+            background: transparent; border: 1px solid var(--neon-green); color: var(--neon-green); margin-top: 15px;
         }
-        .input-wrapper input:focus { border-color: var(--suisei-cyan); box-shadow: 0 0 10px rgba(59, 198, 228, 0.2); }
-        .input-wrapper input:focus + i { color: var(--suisei-cyan); }
+        .register-btn:hover { background: rgba(0, 255, 157, 0.1); box-shadow: 0 0 15px var(--neon-green); }
 
-        /* 按鈕樣式 */
-        .btn-login {
-            width: 100%; padding: 12px; background: linear-gradient(90deg, var(--suisei-cyan), #0072ff);
-            border: none; border-radius: 50px; color: #fff; font-weight: bold; font-size: 1.1rem;
-            cursor: pointer; transition: 0.3s; margin-top: 10px;
-        }
-        .btn-login:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(59, 198, 228, 0.4); }
-        .btn-login:disabled { background: #555; cursor: not-allowed; transform: none; }
-
-        /* 記住我 Checkbox */
-        .options-row {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 20px; font-size: 0.9rem; color: #ccc;
-            padding: 0 5px;
-        }
-        .checkbox-container { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .checkbox-container input { accent-color: var(--suisei-cyan); width: 16px; height: 16px; cursor: pointer; }
-
-        .back-link { margin-top: 20px; display: block; color: #888; text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
-        .back-link:hover { color: #fff; }
-
-        /* 錯誤訊息 */
-        .error-msg { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
+        .error { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
     </style>
 </head>
 <body>
-    <div class="stars-bg"></div>
 
-    <div class="login-card">
-        <h2><i class="fa-solid fa-user-astronaut"></i> 會員登入</h2>
+    <div class="login-box">
+        <h2><i class="fa-solid fa-fingerprint"></i> 身份識別</h2>
+        <input type="email" id="email" placeholder="電子信箱">
+        <input type="password" id="password" placeholder="通行密碼">
+        <button onclick="handleLogin()">登入系統</button>
         
-        <div class="input-group">
-            <label class="input-label">帳號 (Email)</label>
-            <div class="input-wrapper">
-                <input type="email" id="email" placeholder="name@example.com">
-                <i class="fa-solid fa-envelope"></i>
-            </div>
+        <button class="register-btn" onclick="location.href='register.html'">
+            <i class="fa-solid fa-user-plus"></i> 會員註冊
+        </button>
+
+        <div class="error" id="errorMsg"></div>
+        <div style="margin-top:20px; font-size:0.8rem; color:#888;">
+            <a href="index.html" style="color:#aaa; text-decoration:none;">返回首頁</a>
         </div>
-
-        <div class="input-group">
-            <label class="input-label">密碼</label>
-            <div class="input-wrapper">
-                <input type="password" id="password" placeholder="輸入密碼">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-        </div>
-
-        <div class="options-row">
-            <label class="checkbox-container">
-                <input type="checkbox" id="rememberMe"> 
-                <span>記住我</span>
-            </label>
-            </div>
-
-        <button class="btn-login" id="loginBtn" onclick="handleLogin()">登入</button>
-        <div class="error-msg" id="errorMsg"></div>
-
-        <a href="index.html" class="back-link">返回首頁</a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -132,81 +73,20 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // 🧠 頁面載入時：檢查是否有「記住我」的資料
-        window.addEventListener('load', () => {
-            const savedEmail = localStorage.getItem('yulubox_remember_email');
-            if (savedEmail) {
-                document.getElementById('email').value = savedEmail;
-                document.getElementById('rememberMe').checked = true;
-            }
-        });
-
-        // 監聽登入狀態：如果已登入，直接跳轉
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = 'vip_area.html';
-            }
-        });
-
-        window.handleLogin = function() {
+        window.handleLogin = () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
             const errorDiv = document.getElementById('errorMsg');
-            const btn = document.getElementById('loginBtn');
-
-            if(!email || !password) {
-                errorDiv.innerText = "請輸入帳號與密碼";
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
-            errorDiv.innerText = "";
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // ✅ 登入成功
-                    
-                    // 處理「記住我」邏輯
-                    if (rememberMe) {
-                        localStorage.setItem('yulubox_remember_email', email);
-                    } else {
-                        localStorage.removeItem('yulubox_remember_email');
-                    }
-
-                    // 頁面跳轉 (onAuthStateChanged 會處理，這裡不用寫)
+                    window.location.href = "vip_area.html";
                 })
                 .catch((error) => {
-                    // ❌ 登入失敗
-                    btn.disabled = false;
-                    btn.innerText = "登入";
+                    errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
                     console.error(error);
-
-                    switch(error.code) {
-                        case 'auth/invalid-email':
-                            errorDiv.innerText = "Email 格式錯誤";
-                            break;
-                        case 'auth/user-not-found':
-                        case 'auth/invalid-credential':
-                            errorDiv.innerText = "帳號或密碼錯誤";
-                            break;
-                        case 'auth/wrong-password':
-                            errorDiv.innerText = "密碼錯誤";
-                            break;
-                        case 'auth/too-many-requests':
-                            errorDiv.innerText = "嘗試次數過多，請稍後再試";
-                            break;
-                        default:
-                            errorDiv.innerText = "登入失敗：" + error.message;
-                    }
                 });
         }
-        
-        // 支援按 Enter 登入
-        document.getElementById('password').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') handleLogin();
-        });
     </script>
 </body>
 </html>

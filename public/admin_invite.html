@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邀請碼中心 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --accent: #00f3ff; --bg: #0b1021; --panel: rgba(20,30,50,0.8); }
+        body {
+            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', monospace;
+            padding: 20px; min-height: 100vh;
+        }
+
+        h1 { color: var(--accent); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 10px; }
+        
+        .nav { margin-bottom: 30px; }
+        .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
+        .nav a:hover { border-color: var(--accent); color: #fff; }
+
+        .generator-box {
+            background: var(--panel); padding: 20px; border-radius: 15px; border: 1px solid #444;
+            max-width: 600px; margin-bottom: 30px; display: flex; gap: 10px; align-items: center;
+        }
+        .btn-gen {
+            background: var(--accent); color: #000; border: none; padding: 10px 20px;
+            font-weight: bold; border-radius: 5px; cursor: pointer;
+        }
+        .btn-gen:hover { box-shadow: 0 0 15px var(--accent); }
+
+        .code-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .code-card {
+            background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 15px; border-radius: 10px;
+            position: relative; transition: 0.3s;
+        }
+        .code-text { font-size: 1.5rem; font-weight: bold; color: var(--accent); letter-spacing: 2px; margin-bottom: 5px; }
+        .status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        .status.unused { background: #28a745; color: #fff; }
+        .status.used { background: #555; color: #aaa; text-decoration: line-through; }
+        
+        .meta { font-size: 0.8rem; color: #888; margin-top: 10px; }
+        
+        .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
+        .btn-icon { cursor: pointer; color: #fff; font-size: 1rem; }
+        .btn-copy:hover { color: var(--accent); }
+        .btn-del:hover { color: #ff4757; }
+
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
+        <a href="admin_transfers.html">傳輸監控</a>
+    </div>
+
+    <h1><i class="fa-solid fa-ticket"></i> 入隊邀請碼生成器</h1>
+    
+    <div class="generator-box">
+        <div style="flex:1;">
+            <div style="font-size:0.9rem; color:#aaa; margin-bottom:5px;">點擊生成新的隨機代碼</div>
+            <div style="color:#00f3ff; font-size:1.2rem;">一次性通行證</div>
+        </div>
+        <button class="btn-gen" onclick="generateCode()">
+            <i class="fa-solid fa-plus"></i> 生成代碼
+        </button>
+    </div>
+
+    <h3 style="margin-bottom:15px; border-left:3px solid #fff; padding-left:10px;">代碼列表</h3>
+    <div id="loading">讀取中...</div>
+    <div class="code-grid" id="grid"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 生成隨機碼
+        window.generateCode = async () => {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            try {
+                await addDoc(collection(db, "invite_codes"), {
+                    code: code,
+                    isUsed: false,
+                    usedBy: null,
+                    createdAt: serverTimestamp()
+                });
+            } catch(e) {
+                alert("生成失敗: " + e.message);
+            }
+        };
+
+        // 刪除代碼 (新增功能)
+        window.deleteCode = async (docId) => {
+            if(confirm("確定刪除此邀請碼？")) {
+                try {
+                    await deleteDoc(doc(db, "invite_codes", docId));
+                } catch(e) {
+                    alert("刪除失敗: " + e.message);
+                }
+            }
+        }
+
+        // 監聽列表
+        const q = query(collection(db, "invite_codes"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const grid = document.getElementById('grid');
+            document.getElementById('loading').style.display = 'none';
+            grid.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const card = document.createElement('div');
+                card.className = 'code-card';
+                
+                const statusClass = data.isUsed ? 'used' : 'unused';
+                const statusText = data.isUsed ? '已使用' : '有效';
+                const userText = data.usedBy ? `<br>使用者: ${data.usedBy}` : '';
+                const timeStr = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString() : 'Just now';
+
+                card.innerHTML = `
+                    <div class="code-text">${data.code}</div>
+                    <span class="status ${statusClass}">${statusText}</span>
+                    <div class="action-btns">
+                        <i class="fa-regular fa-copy btn-icon btn-copy" onclick="copyText('${data.code}')" title="複製"></i>
+                        <i class="fa-solid fa-trash btn-icon btn-del" onclick="deleteCode('${doc.id}')" title="刪除"></i>
+                    </div>
+                    <div class="meta">
+                        建立: ${timeStr}
+                        ${userText}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        });
+
+        window.copyText = (text) => {
+            navigator.clipboard.writeText(text);
+            alert("已複製代碼: " + text);
+        }
+    </script>
+</body>
+</html>
