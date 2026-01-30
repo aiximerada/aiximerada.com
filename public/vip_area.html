@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星員區 - 玉露寶庫</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" type="image/png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -88,14 +90,17 @@
         .user-greeting { 
             color: #94a3b8; font-size: 1.1rem; letter-spacing: 2px; 
             display: flex; align-items: center; justify-content: center; gap: 10px;
-            text-transform: uppercase;
         }
         .user-avatar { 
             width: 40px; height: 40px; border-radius: 50%; object-fit: cover; 
             border: 2px solid var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
             background: #000;
         }
-        .user-id { color: var(--main-gold); font-weight: bold; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+        /* 移除 COMMANDER 文字後的樣式調整 */
+        .user-id { 
+            color: var(--main-gold); font-weight: bold; font-size: 1.3rem; 
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); 
+        }
 
         .stars-badge {
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1));
@@ -194,7 +199,6 @@
         <h1>星員區</h1>
         <div class="user-greeting">
             <img src="" id="header-avatar" class="user-avatar" style="display:none">
-            <span>COMMANDER</span>
             <span id="current-user" class="user-id">---</span>
         </div>
         <a href="point_history.html" class="stars-badge">
