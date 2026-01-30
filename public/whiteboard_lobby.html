@@ -3,58 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>白板大廳 - 玉露寶庫</title>
+    <title>星空繪圖板 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-dark: #050510; --neon-pink: #ff00ff; --glass: rgba(255, 255, 255, 0.05); }
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Microsoft JhengHei', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent); background-size: 200px 200px; opacity: 0.2; z-index: -1; }
-        
-        .lobby-card {
-            background: var(--glass); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
-            padding: 40px; width: 320px; text-align: center;
-            box-shadow: 0 0 30px rgba(255, 0, 255, 0.1);
+        :root {
+            /* 🎨 星際奢華配色 (同步星維加斯) */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --card-radius: 16px;
         }
-        h1 { margin-bottom: 30px; color: var(--neon-pink); text-shadow: 0 0 10px var(--neon-pink); }
-        
-        .btn { width: 100%; padding: 12px; margin: 10px 0; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem; }
-        .btn-create { background: var(--neon-pink); color: #000; }
-        .btn-create:hover { box-shadow: 0 0 20px var(--neon-pink); }
-        .btn-join { background: transparent; border: 1px solid #fff; color: #fff; }
-        .btn-join:hover { background: rgba(255,255,255,0.1); }
 
-        .input-code {
-            width: 100%; padding: 12px; border-radius: 50px; border: 1px solid #555;
-            background: rgba(0,0,0,0.3); color: #fff; text-align: center; font-size: 1.2rem; margin-bottom: 10px; box-sizing: border-box;
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 80px; position: relative;
         }
-        .or-divider { margin: 20px 0; color: #888; font-size: 0.9rem; }
-        .back-link { display: block; margin-top: 20px; color: #888; text-decoration: none; }
+
+        /* --- 🔥 背景星空動畫 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 20px; 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
+        
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-name { color: var(--main-gold); font-weight: bold; font-size: 1rem; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+
+        /* --- 標題 --- */
+        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title h1 {
+            margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+        }
+        .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
+
+        /* --- 主控制區 --- */
+        .main-container {
+            width: 90%; max-width: 800px; display: grid; gap: 20px;
+        }
+
+        /* 創建房間卡片 */
+        .action-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius); padding: 30px;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            backdrop-filter: blur(10px); transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .action-card:hover {
+            border-color: var(--main-gold); transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05);
+        }
+
+        .icon-circle {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; color: var(--main-gold); margin-bottom: 15px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+        .action-card:hover .icon-circle {
+            background: rgba(255, 215, 0, 0.1); box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+
+        h2 { margin: 0 0 10px 0; color: #fff; font-size: 1.5rem; }
+        p { margin: 0 0 20px 0; color: #94a3b8; font-size: 0.95rem; }
+
+        .input-group { display: flex; width: 100%; max-width: 400px; gap: 10px; }
+        input {
+            flex: 1; padding: 12px 20px; border-radius: 50px; border: 1px solid #475569;
+            background: rgba(15, 23, 42, 0.8); color: #fff; font-size: 1rem; text-align: center;
+            transition: 0.3s;
+        }
+        input:focus { outline: none; border-color: var(--main-gold); box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #0f172a; border: none; padding: 12px 30px; border-radius: 50px;
+            font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2); white-space: nowrap;
+        }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4); }
+
+        /* 房間列表 */
+        .room-list { width: 100%; margin-top: 20px; }
+        .list-header { color: var(--nebula-blue); font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .list-header::after { content: ''; flex: 1; height: 1px; background: rgba(0, 243, 255, 0.3); }
+
+        .room-item {
+            background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.05);
+            padding: 15px 20px; border-radius: 12px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s; cursor: pointer;
+        }
+        .room-item:hover { background: rgba(255,255,255,0.1); border-color: var(--nebula-blue); }
+        
+        .room-name { font-weight: bold; font-size: 1.1rem; color: #fff; }
+        .room-info { font-size: 0.9rem; color: #94a3b8; }
+        .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 5px #10b981; }
+
     </style>
 </head>
 <body>
-    <div class="stars-bg"></div>
-    <div class="lobby-card">
-        <h1><i class="fa-solid fa-shapes"></i> 星際白板</h1>
+
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <div class="user-info">
+            <i class="fa-solid fa-user-astronaut" style="color:var(--main-gold)"></i>
+            <span id="current-user" class="user-name">---</span>
+        </div>
+    </div>
+
+    <div class="page-title">
+        <h1>星空繪圖板</h1>
+        <p>STARRY SKETCHPAD</p>
+    </div>
+
+    <div class="main-container">
         
-        <button class="btn btn-create" onclick="createRoom()">
-            <i class="fa-solid fa-plus"></i> 創建新房間
-        </button>
-        
-        <div class="or-divider">- OR -</div>
-        
-        <input type="text" id="roomCode" class="input-code" placeholder="輸入 6 位邀請碼" maxlength="6">
-        <button class="btn btn-join" onclick="joinRoom()">加入房間</button>
-        
-        <a href="vip_area.html" class="back-link">返回會員區</a>
+        <div class="action-card">
+            <div class="icon-circle"><i class="fa-solid fa-plus"></i></div>
+            <h2>創建新畫布</h2>
+            <p>開啟一個全新的星空畫布，邀請夥伴一同創作。</p>
+            <button class="btn-gold" onclick="createRoom()">立即創建</button>
+        </div>
+
+        <div class="action-card">
+            <div class="icon-circle"><i class="fa-solid fa-right-to-bracket"></i></div>
+            <h2>加入協作</h2>
+            <p>輸入房間代碼，進入現有的繪圖頻段。</p>
+            <div class="input-group">
+                <input type="text" id="roomInput" placeholder="輸入 6 位數代碼">
+                <button class="btn-gold" onclick="joinRoom()">加入</button>
+            </div>
+        </div>
+
+        <div class="room-list">
+            <div class="list-header"><i class="fa-solid fa-tower-broadcast"></i> 活躍頻段 (Active Rooms)</div>
+            <div id="roomContainer">
+                <div style="text-align:center; color:#64748b; padding:20px;">正在掃描訊號...</div>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 Config (請貼上您的)
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -71,44 +207,67 @@
         let currentUser = null;
 
         onAuthStateChanged(auth, (user) => {
-            if (user) currentUser = user;
-            else window.location.href = 'login.html';
+            if (user) {
+                currentUser = user;
+                document.getElementById('current-user').innerText = user.displayName || '指揮官';
+                loadRooms();
+            } else {
+                window.location.href = 'login.html';
+            }
         });
 
-        window.createRoom = async function() {
-            if(!currentUser) return;
-            // 產生 6 位數亂碼
+        window.createRoom = async () => {
             const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            
-            // 初始化房間數據
             try {
                 await setDoc(doc(db, "rooms", roomId), {
-                    hostId: currentUser.uid,
-                    hostName: currentUser.email.split('@')[0],
-                    guestsCanEdit: false, // 預設權限：關閉
-                    activePage: 1,
-                    pages: { 1: "" }, // 畫布數據
-                    createdAt: new Date()
+                    createdBy: currentUser.uid,
+                    creatorName: currentUser.displayName || 'Anonymous',
+                    createdAt: new Date(),
+                    participants: [currentUser.uid]
                 });
-                // 跳轉並帶上身分參數
-                window.location.href = `whiteboard.html?room=${roomId}&role=host`;
+                // 跳轉到畫板頁面 (這裡假設畫板頁面為 whiteboard.html)
+                // 並透過 URL 參數傳遞 roomId
+                window.location.href = `whiteboard.html?room=${roomId}`;
             } catch (e) {
                 alert("創建失敗: " + e.message);
             }
-        }
+        };
 
-        window.joinRoom = async function() {
-            const code = document.getElementById('roomCode').value.toUpperCase();
-            if(code.length !== 6) { alert('請輸入正確的 6 位代碼'); return; }
-
-            const docRef = doc(db, "rooms", code);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                window.location.href = `whiteboard.html?room=${code}&role=guest`;
+        window.joinRoom = () => {
+            const roomId = document.getElementById('roomInput').value.trim().toUpperCase();
+            if (roomId) {
+                window.location.href = `whiteboard.html?room=${roomId}`;
             } else {
-                alert("找不到此房間！");
+                alert("請輸入房間代碼");
             }
+        };
+
+        function loadRooms() {
+            const q = query(collection(db, "rooms"), orderBy("createdAt", "desc"), limit(5));
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('roomContainer');
+                container.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    container.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">目前沒有活躍的頻段</div>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const room = doc.data();
+                    const div = document.createElement('div');
+                    div.className = 'room-item';
+                    div.onclick = () => { window.location.href = `whiteboard.html?room=${doc.id}`; };
+                    div.innerHTML = `
+                        <div>
+                            <div class="room-name"><span class="status-dot"></span> ${doc.id}</div>
+                            <div class="room-info">指揮官: ${room.creatorName || '未知'}</div>
+                        </div>
+                        <div style="color:var(--main-gold);"><i class="fa-solid fa-arrow-right"></i></div>
+                    `;
+                    container.appendChild(div);
+                });
+            });
         }
     </script>
 </body>
