@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>星員通訊室 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;
+            --accent-amber: #FDB931;
+            --deep-space: #0f172a;
+            --nebula-blue: #00f3ff;
+            --danger-red: #ff4757;
+            --success-green: #10b981;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            
+            /* 訊息氣泡 */
+            --msg-sent: linear-gradient(135deg, #0f4c75, #00334e);
+            --msg-received: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0; height: 100vh; display: flex; overflow: hidden;
+        }
+
+        /* --- 背景星空 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0.5; animation: twinkle 5s infinite;
+        }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+
+        /* --- 左側：側邊欄 --- */
+        .sidebar {
+            width: 340px; background: rgba(15, 23, 42, 0.95); border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; backdrop-filter: blur(12px);
+            transition: 0.3s; z-index: 10;
+        }
+        
+        .sidebar-header {
+            padding: 20px; border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .app-title { font-size: 1.2rem; color: var(--main-gold); font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+        .back-link { color: #64748b; text-decoration: none; font-size: 0.9rem; transition: 0.3s; }
+        .back-link:hover { color: #fff; }
+
+        .sidebar-tabs { display: flex; padding: 10px; gap: 5px; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; border-radius: 8px; color: #94a3b8; transition: 0.3s; font-size: 0.85rem; border: 1px solid transparent; position: relative; }
+        .tab:hover { background: rgba(255,255,255,0.05); }
+        .tab.active { background: rgba(255, 215, 0, 0.1); color: var(--main-gold); border-color: rgba(255, 215, 0, 0.2); font-weight: bold; }
+        
+        .notify-dot {
+            position: absolute; top: 5px; right: 5px; width: 8px; height: 8px;
+            background: var(--danger-red); border-radius: 50%; display: none;
+            box-shadow: 0 0 5px var(--danger-red);
+        }
+        .notify-dot.show { display: block; }
+
+        .search-bar { padding: 0 15px 15px 15px; }
+        .search-input { width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid #475569; background: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; transition: 0.3s; }
+        .search-input:focus { border-color: var(--main-gold); outline: none; }
+
+        .list-container { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        .list-item {
+            display: flex; align-items: center; padding: 12px; border-radius: 12px;
+            cursor: pointer; transition: 0.2s; margin-bottom: 5px; border: 1px solid transparent;
+        }
+        .list-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+        
+        .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255,255,255,0.2); background: #000; }
+        .item-info { flex: 1; overflow: hidden; }
+        .item-name { font-weight: bold; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem; }
+        .item-preview { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+
+        /* 通知項目 */
+        .notify-item { background: rgba(0, 243, 255, 0.05); border: 1px solid rgba(0, 243, 255, 0.2); cursor: default; }
+        .notify-actions { display: flex; gap: 5px; margin-left: 10px; }
+        .btn-accept { background: var(--success-green); color: #fff; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; }
+        .btn-reject { background: var(--danger-red); color: #fff; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; }
+
+        .fab-add {
+            position: absolute; bottom: 20px; right: 20px;
+            width: 50px; height: 50px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #000; border: none; font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .fab-add:hover { transform: scale(1.1) rotate(90deg); }
+
+        /* --- 右側：聊天區 --- */
+        .chat-area { flex: 1; display: flex; flex-direction: column; position: relative; background: rgba(0,0,0,0.2); }
+        
+        .chat-header {
+            padding: 15px 25px; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center; height: 60px;
+            backdrop-filter: blur(10px);
+        }
+        .chat-title { font-size: 1.1rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .chat-actions { color: var(--main-gold); cursor: pointer; font-size: 1.2rem; transition: 0.3s; }
+        .chat-actions:hover { transform: rotate(90deg); }
+
+        .messages-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        
+        .message { display: flex; gap: 10px; max-width: 70%; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+        .message.self { align-self: flex-end; flex-direction: row-reverse; }
+        
+        .msg-bubble {
+            padding: 10px 15px; border-radius: 15px; font-size: 0.95rem; line-height: 1.5;
+            position: relative; word-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .message.self .msg-bubble { background: var(--msg-sent); color: #fff; border-top-right-radius: 2px; border: 1px solid rgba(255,255,255,0.1); }
+        .message.other .msg-bubble { background: var(--msg-received); color: #e2e8f0; border-top-left-radius: 2px; border: 1px solid rgba(255,255,255,0.05); }
+        
+        .msg-img { max-width: 200px; border-radius: 10px; cursor: pointer; border: 2px solid rgba(255,255,255,0.1); }
+        .msg-sticker { width: 120px; }
+        .msg-meta { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 5px; text-align: right; }
+
+        .input-area {
+            padding: 15px; background: rgba(15, 23, 42, 0.9); border-top: 1px solid var(--glass-border);
+            display: flex; gap: 10px; align-items: center;
+        }
+        .btn-icon { background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 5px; transition: 0.3s; }
+        .btn-icon:hover { color: var(--main-gold); transform: scale(1.1); }
+        .chat-input {
+            flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #475569;
+            background: rgba(0,0,0,0.3); color: #fff; outline: none; transition: 0.3s;
+        }
+        .chat-input:focus { border-color: var(--main-gold); }
+        .btn-send {
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color: #000; border: none;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+        }
+        .btn-send:hover { transform: scale(1.1); box-shadow: 0 0 10px var(--main-gold); }
+
+        /* 貼圖面板 */
+        .sticker-panel {
+            position: absolute; bottom: 80px; left: 20px; width: 300px; height: 200px;
+            background: #1e293b; border: 1px solid var(--main-gold); border-radius: 15px;
+            padding: 20px; display: none; overflow-y: auto; z-index: 20;
+            text-align: center; color: #94a3b8;
+        }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--main-gold); padding: 30px;
+            border-radius: 20px; width: 90%; max-width: 400px; color: #fff;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.15);
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; color: #94a3b8; }
+        .form-input { width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid #475569; color: #fff; border-radius: 8px; box-sizing: border-box; }
+        
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-modal { padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-confirm { background: var(--main-gold); color: #000; }
+        .btn-cancel { background: transparent; border: 1px solid #64748b; color: #ccc; }
+        .btn-danger { background: var(--danger-red); color: #fff; border:none; width: 100%; margin-top:10px; padding:10px; border-radius:8px; cursor: pointer; font-weight: bold; }
+
+        /* RWD */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; height: 100%; }
+            .sidebar.hidden { display: none; }
+            .chat-area { width: 100%; }
+            .chat-area.hidden { display: none; }
+            .back-to-list { display: block; }
+        }
+        @media (min-width: 769px) { .back-to-list { display: none; } }
+
+        .empty-state { text-align: center; color: #64748b; margin-top: 50px; }
+        
+        /* 預設星星頭像 */
+        .default-star-avatar { filter: drop-shadow(0 0 5px var(--main-gold)); }
+        
+        /* 開關 Toggle */
+        .toggle-switch { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+        .toggle-label { color: #fff; font-size: 0.95rem; }
+        input[type=checkbox] { accent-color: var(--main-gold); width: 20px; height: 20px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="space-container">
+        <div class="gold-twinklers"></div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="app-title"><i class="fa-solid fa-satellite-dish"></i> 星員通訊室</div>
+            <a href="vip_area.html" class="back-link"><i class="fa-solid fa-right-from-bracket"></i> 離開</a>
+        </div>
+        <div class="sidebar-tabs">
+            <div class="tab active" onclick="switchTab('chats')">聊天</div>
+            <div class="tab" onclick="switchTab('friends')">好友</div>
+            <div class="tab" onclick="switchTab('notifications')">
+                通知 <span class="notify-dot" id="notifyDot"></span>
+            </div>
+        </div>
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="搜尋..." id="listSearch" onkeyup="filterList()">
+        </div>
+        <div class="list-container" id="listContainer">
+            </div>
+        <button class="fab-add" onclick="openAddModal()"><i class="fa-solid fa-plus"></i></button>
+    </div>
+
+    <div class="chat-area hidden" id="chatArea">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fa-solid fa-arrow-left back-to-list" onclick="closeChat()"></i>
+                <img src="" id="chatHeaderAvatar" class="avatar default-star-avatar">
+                <span id="chatHeaderName">請選擇頻道</span>
+            </div>
+            <div class="chat-actions" onclick="openSettingsModal()"><i class="fa-solid fa-gear"></i></div>
+        </div>
+
+        <div class="messages-container" id="msgContainer">
+            <div class="empty-state">
+                <i class="fa-solid fa-comments" style="font-size:3rem; margin-bottom:10px;"></i>
+                <br>請選擇左側列表開始通訊
+            </div>
+        </div>
+
+        <div class="sticker-panel" id="stickerPanel">
+            <div style="margin-top:50px;"><i class="fa-solid fa-store"></i><br>貼圖商店準備中...</div>
+        </div>
+
+        <div class="input-area">
+            <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+            <button class="btn-icon" onclick="document.getElementById('imgInput').click()"><i class="fa-regular fa-image"></i></button>
+            <button class="btn-icon" onclick="toggleStickers()"><i class="fa-regular fa-face-smile"></i></button>
+            <input type="text" class="chat-input" id="msgInput" placeholder="輸入訊息..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="btn-send" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-box">
+            <h3 style="color:var(--main-gold); margin-top:0;">建立連結</h3>
+            <div class="sidebar-tabs" style="margin-bottom:15px;">
+                <div class="tab active" id="tabAddFriend" onclick="switchAddMode('friend')">發送邀請</div>
+                <div class="tab" id="tabCreateGroup" onclick="switchAddMode('group')">建立群組</div>
+            </div>
+            
+            <div id="formAddFriend">
+                <div class="form-group">
+                    <label class="form-label">輸入星員暱稱 (精確搜尋)</label>
+                    <input type="text" id="friendNameInput" class="form-input" placeholder="例如：SkyWalker">
+                </div>
+            </div>
+
+            <div id="formCreateGroup" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label">群組名稱</label>
+                    <input type="text" id="groupNameInput" class="form-input" placeholder="例如：獵戶座小隊">
+                </div>
+            </div>
+
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeModal('addModal')">取消</button>
+                <button class="btn-modal btn-confirm" onclick="executeAdd()">發送</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-box">
+            <h3 style="color:var(--main-gold); margin-top:0;"><i class="fa-solid fa-sliders"></i> 通訊設定</h3>
+            
+            <div class="form-group">
+                <label class="form-label">群組名稱</label>
+                <input type="text" id="editChatName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">群組頭像 (URL)</label>
+                <input type="text" id="editChatAvatar" class="form-input" placeholder="https://...">
+            </div>
+
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
+
+            <div class="toggle-switch">
+                <span class="toggle-label"><i class="fa-solid fa-bell-slash"></i> 關閉此聊天室通知</span>
+                <input type="checkbox" id="muteToggle" onchange="toggleMute()">
+            </div>
+
+            <button class="btn-danger" onclick="closeChat(true)">
+                <i class="fa-solid fa-door-open"></i> 關閉/離開聊天室
+            </button>
+
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeModal('settingsModal')">取消</button>
+                <button class="btn-modal btn-confirm" onclick="saveSettings()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let currentUser = null;
+        let currentChatId = null;
+        let unsubscribeMsg = null;
+        let activeTab = 'chats'; 
+        let addMode = 'friend';
+        
+        // 星星頭像 (預設)
+        const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
+
+        // 本地靜音設定 (簡單實作)
+        let mutedChats = JSON.parse(localStorage.getItem('muted_chats') || '[]');
+
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUser = user;
+                loadChats();
+                listenNotifications();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        window.switchTab = (tab) => {
+            activeTab = tab;
+            document.querySelectorAll('.sidebar-tabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'chats') loadChats();
+            else if (tab === 'friends') loadFriends();
+            else if (tab === 'notifications') loadNotifications();
+        };
+
+        // --- 關閉聊天室邏輯 ---
+        window.closeChat = (resetUI = false) => {
+            currentChatId = null;
+            if(unsubscribeMsg) unsubscribeMsg();
+            
+            if (resetUI) {
+                document.getElementById('msgContainer').innerHTML = '<div class="empty-state"><i class="fa-solid fa-comments" style="font-size:3rem; margin-bottom:10px;"></i><br>請選擇左側列表開始通訊</div>';
+                document.getElementById('chatHeaderName').innerText = "請選擇頻道";
+                document.getElementById('chatHeaderAvatar').src = DEFAULT_STAR_AVATAR;
+                closeModal('settingsModal');
+            }
+
+            // 手機版切換回列表
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chatArea').classList.add('hidden');
+        };
+
+        window.openChat = async (chatId, name, avatar) => {
+            currentChatId = chatId;
+            document.getElementById('chatHeaderName').innerText = name;
+            document.getElementById('chatHeaderAvatar').src = avatar || DEFAULT_STAR_AVATAR;
+            
+            // 手機版切換
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.add('hidden');
+                document.getElementById('chatArea').classList.remove('hidden');
+            }
+            loadMessages(chatId);
+        };
+
+        // --- 設定與通知 ---
+        window.openSettingsModal = () => {
+            if (!currentChatId) return;
+            document.getElementById('settingsModal').style.display = 'flex';
+            // 同步靜音狀態
+            document.getElementById('muteToggle').checked = mutedChats.includes(currentChatId);
+        };
+
+        window.toggleMute = () => {
+            const isMuted = document.getElementById('muteToggle').checked;
+            if (isMuted) {
+                if (!mutedChats.includes(currentChatId)) mutedChats.push(currentChatId);
+            } else {
+                mutedChats = mutedChats.filter(id => id !== currentChatId);
+            }
+            localStorage.setItem('muted_chats', JSON.stringify(mutedChats));
+        };
+
+        function showBrowserNotification(title, body, chatId) {
+            // 如果該聊天室被靜音，則不顯示
+            if (chatId && mutedChats.includes(chatId)) return;
+
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: body, icon: DEFAULT_STAR_AVATAR });
+            }
+        }
+
+        // --- 資料載入 ---
+        function loadChats() {
+            const list = document.getElementById('listContainer');
+            list.innerHTML = '<div style="text-align:center; color:#666;">載入中...</div>';
+            
+            const q = query(collection(db, "chats"), where("members", "array-contains", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                list.innerHTML = '';
+                if(snapshot.empty && activeTab === 'chats') {
+                    list.innerHTML = '<div class="empty-state">尚無對話紀錄</div>';
+                    return;
+                }
+                
+                snapshot.forEach(docSnap => {
+                    const chat = docSnap.data();
+                    let chatName = chat.name || "群組";
+                    let chatImg = chat.photoURL || DEFAULT_STAR_AVATAR;
+
+                    if (chat.type === 'private') {
+                        const otherId = chat.members.find(id => id !== currentUser.uid);
+                        if(chat.memberNames && chat.memberNames[otherId]) {
+                            chatName = chat.memberNames[otherId];
+                        }
+                    }
+
+                    const html = `
+                        <div class="list-item" onclick="openChat('${docSnap.id}', '${chatName}', '${chatImg}')">
+                            <img src="${chatImg}" class="avatar">
+                            <div class="item-info">
+                                <div class="item-name">${chatName}</div>
+                                <div class="item-preview">${chat.lastMessage || '...'}</div>
+                            </div>
+                        </div>
+                    `;
+                    list.innerHTML += html;
+                });
+            });
+        }
+
+        async function loadFriends() {
+            const list = document.getElementById('listContainer');
+            list.innerHTML = '<div style="text-align:center; color:#666;">載入名冊...</div>';
+            
+            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            const friends = userDoc.data().friends || [];
+
+            list.innerHTML = '';
+            if (friends.length === 0) {
+                list.innerHTML = '<div class="empty-state">尚無星員好友</div>';
+                return;
+            }
+
+            friends.forEach(async (friendId) => {
+                const fSnap = await getDoc(doc(db, "users", friendId));
+                if (fSnap.exists()) {
+                    const fData = fSnap.data();
+                    const html = `
+                        <div class="list-item" onclick="startPrivateChat('${friendId}', '${fData.displayName}')">
+                            <img src="${fData.photoURL || DEFAULT_STAR_AVATAR}" class="avatar">
+                            <div class="item-info">
+                                <div class="item-name">${fData.displayName}</div>
+                                <div class="item-preview">點擊發送訊息</div>
+                            </div>
+                        </div>
+                    `;
+                    list.innerHTML += html;
+                }
+            });
+        }
+
+        // --- 訊息功能 ---
+        function loadMessages(chatId) {
+            const container = document.getElementById('msgContainer');
+            if(unsubscribeMsg) unsubscribeMsg();
+
+            const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"), limit(50));
+            
+            unsubscribeMsg = onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const msg = change.doc.data();
+                        if (msg.senderId !== currentUser.uid) {
+                            showBrowserNotification(`來自 ${msg.senderName}`, msg.type==='text'?msg.content:'[多媒體訊息]', chatId);
+                        }
+                    }
+                });
+
+                snapshot.forEach(docSnap => {
+                    const msg = docSnap.data();
+                    const isSelf = msg.senderId === currentUser.uid;
+                    const typeClass = isSelf ? 'self' : 'other';
+                    
+                    let contentHtml = '';
+                    if (msg.type === 'text') contentHtml = msg.content;
+                    else if (msg.type === 'image') contentHtml = `<img src="${msg.content}" class="msg-img" onclick="window.open(this.src)">`;
+                    else if (msg.type === 'sticker') contentHtml = `<img src="${msg.content}" class="msg-sticker">`;
+
+                    const html = `
+                        <div class="message ${typeClass}">
+                            <div class="msg-bubble">
+                                ${contentHtml}
+                                <div class="msg-meta">${msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString() : '...'}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        window.sendMessage = async (content = null, type = 'text') => {
+            if (!currentChatId) return;
+            const input = document.getElementById('msgInput');
+            const txt = content || input.value;
+            if (!txt) return;
+
+            try {
+                await addDoc(collection(db, `chats/${currentChatId}/messages`), {
+                    senderId: currentUser.uid,
+                    senderName: currentUser.displayName,
+                    content: txt,
+                    type: type,
+                    timestamp: serverTimestamp()
+                });
+                await updateDoc(doc(db, "chats", currentChatId), {
+                    lastMessage: type === 'text' ? txt : '[圖片/貼圖]',
+                    lastTimestamp: serverTimestamp()
+                });
+                if(type === 'text') input.value = '';
+                document.getElementById('stickerPanel').style.display = 'none';
+            } catch (e) { console.error("Send error", e); }
+        };
+
+        // --- 圖片處理 ---
+        window.handleImageUpload = async (input) => {
+            const file = input.files[0];
+            if (!file || !currentChatId) return;
+            const compressedFile = await compressImage(file);
+            const storageRef = ref(storage, `chat_images/${currentChatId}/${Date.now()}`);
+            await uploadBytes(storageRef, compressedFile);
+            const url = await getDownloadURL(storageRef);
+            sendMessage(url, 'image');
+        };
+
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX = 800;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+                    else { if (h > MAX) { w *= MAX/h; h = MAX; } }
+                    canvas.width = w; canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.7);
+                };
+            });
+        }
+
+        window.toggleStickers = () => {
+            const p = document.getElementById('stickerPanel');
+            p.style.display = p.style.display === 'grid' ? 'none' : 'grid';
+        };
+
+        // --- 好友與群組管理 ---
+        window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+        window.switchAddMode = (mode) => {
+            addMode = mode;
+            document.getElementById('tabAddFriend').className = mode === 'friend' ? 'tab active' : 'tab';
+            document.getElementById('tabCreateGroup').className = mode === 'group' ? 'tab active' : 'tab';
+            document.getElementById('formAddFriend').style.display = mode === 'friend' ? 'block' : 'none';
+            document.getElementById('formCreateGroup').style.display = mode === 'group' ? 'block' : 'none';
+        };
+
+        window.executeAdd = async () => {
+            if (addMode === 'friend') {
+                const nickname = document.getElementById('friendNameInput').value;
+                const q = query(collection(db, "users"), where("displayName", "==", nickname));
+                const snap = await getDocs(q);
+                if (snap.empty) return alert("找不到此星員");
+                
+                const friendId = snap.docs[0].id;
+                if(friendId === currentUser.uid) return alert("不能加自己");
+
+                const myDoc = await getDoc(doc(db, "users", currentUser.uid));
+                if(myDoc.data().friends && myDoc.data().friends.includes(friendId)) return alert("你們已經是好友了");
+
+                await addDoc(collection(db, "notifications"), {
+                    type: 'friend_request',
+                    fromId: currentUser.uid,
+                    fromName: currentUser.displayName,
+                    toId: friendId,
+                    timestamp: serverTimestamp()
+                });
+                alert("已發送好友邀請");
+
+            } else {
+                const gName = document.getElementById('groupNameInput').value;
+                if(!gName) return;
+                
+                await addDoc(collection(db, "chats"), {
+                    name: gName,
+                    photoURL: DEFAULT_STAR_AVATAR,
+                    type: 'group',
+                    members: [currentUser.uid],
+                    createdBy: currentUser.uid,
+                    lastMessage: '群組已建立',
+                    timestamp: serverTimestamp()
+                });
+                alert("群組建立成功");
+                loadChats();
+            }
+            closeModal('addModal');
+        };
+
+        function listenNotifications() {
+            const q = query(collection(db, "notifications"), where("toId", "==", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                const dot = document.getElementById('notifyDot');
+                if(!snapshot.empty) dot.classList.add('show'); else dot.classList.remove('show');
+                if(activeTab === 'notifications') loadNotifications();
+            });
+        }
+
+        function loadNotifications() {
+            const list = document.getElementById('listContainer');
+            list.innerHTML = '<div style="text-align:center; color:#666;">載入中...</div>';
+            
+            const q = query(collection(db, "notifications"), where("toId", "==", currentUser.uid));
+            getDocs(q).then(snapshot => {
+                list.innerHTML = '';
+                if(snapshot.empty) {
+                    list.innerHTML = '<div class="empty-state">暫無通知</div>';
+                    return;
+                }
+                
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    let content = '';
+                    let actions = '';
+
+                    if(data.type === 'friend_request') {
+                        content = `${data.fromName} 請求加入好友`;
+                        actions = `
+                            <div class="notify-actions">
+                                <button class="btn-accept" onclick="window.respondFriend('${docSnap.id}', '${data.fromId}', '${data.fromName}', true)">接受</button>
+                                <button class="btn-reject" onclick="window.respondFriend('${docSnap.id}', null, null, false)">拒絕</button>
+                            </div>
+                        `;
+                    }
+
+                    list.innerHTML += `
+                        <div class="list-item notify-item">
+                            <div class="item-info">
+                                <div class="item-name">${content}</div>
+                                <div class="item-preview">${new Date(data.timestamp?.toDate()).toLocaleDateString()}</div>
+                            </div>
+                            ${actions}
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        window.respondFriend = async (notifyId, friendId, friendName, accept) => {
+            try {
+                if(accept) {
+                    await updateDoc(doc(db, "users", currentUser.uid), { friends: arrayUnion(friendId) });
+                    await updateDoc(doc(db, "users", friendId), { friends: arrayUnion(currentUser.uid) });
+                    alert(`已與 ${friendName} 成為好友！`);
+                }
+                await deleteDoc(doc(db, "notifications", notifyId));
+                loadNotifications();
+            } catch(e) { console.error(e); }
+        };
+
+        window.startPrivateChat = async (friendId, friendName) => {
+            const chatData = {
+                type: 'private',
+                members: [currentUser.uid, friendId],
+                memberNames: { [currentUser.uid]: currentUser.displayName, [friendId]: friendName },
+                lastMessage: '新對話',
+                timestamp: serverTimestamp()
+            };
+            const ref = await addDoc(collection(db, "chats"), chatData);
+            openChat(ref.id, friendName, DEFAULT_STAR_AVATAR);
+            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
+        };
+
+        window.saveSettings = async () => {
+            const name = document.getElementById('editChatName').value;
+            const avatar = document.getElementById('editChatAvatar').value;
+            const updateData = {};
+            if(name) updateData.name = name;
+            if(avatar) updateData.photoURL = avatar;
+
+            if(Object.keys(updateData).length > 0) {
+                await updateDoc(doc(db, "chats", currentChatId), updateData);
+                if(name) document.getElementById('chatHeaderName').innerText = name;
+                if(avatar) document.getElementById('chatHeaderAvatar').src = avatar;
+            }
+            closeModal('settingsModal');
+        };
+
+    </script>
+</body>
+</html>
