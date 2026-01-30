@@ -3,42 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員管理 - 玉露寶庫</title>
+    <title>人員管理 V2 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.8); }
+        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.9); --neon-blue: #00f3ff; }
         body {
             background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
             color: #fff; font-family: 'Microsoft JhengHei', monospace;
             padding: 20px; min-height: 100vh;
         }
 
-        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; }
+        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; text-shadow: 0 0 10px rgba(242, 201, 76, 0.5); }
         
         .nav { margin-bottom: 30px; }
         .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
-        .nav a:hover { border-color: var(--admin-gold); color: #fff; }
+        .nav a:hover { border-color: var(--admin-gold); color: #fff; background: rgba(242, 201, 76, 0.1); }
 
-        .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        /* 搜尋列 */
+        .search-bar {
+            margin-bottom: 25px; display: flex; gap: 10px; max-width: 500px;
+        }
+        .search-input {
+            flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid #444; 
+            color: #fff; border-radius: 8px; font-family: inherit;
+        }
+        .search-input:focus { outline: none; border-color: var(--admin-gold); }
+
+        /* 卡片網格 */
+        .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         
         .card {
-            background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 10px;
+            background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 12px;
             position: relative; transition: 0.3s;
         }
-        .card:hover { border-color: var(--admin-gold); box-shadow: 0 0 10px rgba(242, 201, 76, 0.2); }
+        .card:hover { border-color: var(--admin-gold); box-shadow: 0 0 15px rgba(242, 201, 76, 0.15); transform: translateY(-3px); }
         
-        .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; display: flex; align-items: center; gap: 10px; }
+        .card.is-admin { border: 1px solid #ff00ff; background: rgba(50, 0, 50, 0.6); }
+        .card.is-admin:hover { box-shadow: 0 0 15px rgba(255, 0, 255, 0.3); }
+
+        .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .info-row i { width: 20px; text-align: center; color: var(--admin-gold); }
         
-        .nickname { font-size: 1.2rem; font-weight: bold; color: #fff; margin-bottom: 5px; }
+        .nickname { font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
         .stars { font-size: 1.1rem; color: var(--admin-gold); font-weight: bold; }
         
+        .role-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; border: 1px solid #666; color: #aaa; letter-spacing: 1px; }
+        .role-tag.admin { border-color: #ff00ff; color: #ff00ff; background: rgba(255,0,255,0.1); }
+
         .btn-edit {
             position: absolute; top: 20px; right: 20px;
-            background: rgba(242, 201, 76, 0.2); border: 1px solid var(--admin-gold);
-            color: var(--admin-gold); padding: 5px 10px; border-radius: 5px; cursor: pointer;
+            background: rgba(242, 201, 76, 0.1); border: 1px solid var(--admin-gold);
+            color: var(--admin-gold); padding: 6px 15px; border-radius: 20px; cursor: pointer;
+            transition: 0.2s; font-size: 0.9rem;
         }
         .btn-edit:hover { background: var(--admin-gold); color: #000; }
+
+        /* 🛠️ 全息編輯面板 (Modal) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-box {
+            background: #1a1a2e; border: 1px solid var(--admin-gold);
+            padding: 30px; border-radius: 15px; width: 90%; max-width: 450px;
+            box-shadow: 0 0 30px rgba(242, 201, 76, 0.2); position: relative;
+        }
+        .modal-title { font-size: 1.5rem; color: var(--admin-gold); margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; color: #aaa; }
+        
+        .modal-group { margin-bottom: 15px; }
+        .modal-label { display: block; color: #888; margin-bottom: 5px; font-size: 0.9rem; }
+        .modal-input { 
+            width: 100%; padding: 10px; background: rgba(0,0,0,0.3); 
+            border: 1px solid #555; color: #fff; border-radius: 5px; box-sizing: border-box;
+        }
+        .modal-input:focus { border-color: var(--admin-gold); outline: none; }
+        .modal-input[readonly] { color: #555; border-color: #333; cursor: not-allowed; }
+
+        .modal-actions { margin-top: 25px; display: flex; gap: 10px; }
+        .btn-save { flex: 1; background: var(--admin-gold); color: #000; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-reset-pwd { flex: 1; background: transparent; color: #ff4757; border: 1px solid #ff4757; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-reset-pwd:hover { background: #ff4757; color: #fff; }
 
         #loading { text-align: center; margin-top: 50px; color: #aaa; }
     </style>
@@ -51,14 +97,61 @@
         <a href="admin_transfers.html">傳輸監控</a>
     </div>
 
-    <h1><i class="fa-solid fa-users-gear"></i> 人員與點數管理</h1>
+    <h1><i class="fa-solid fa-users-viewfinder"></i> 指揮官人事檔案局</h1>
     
-    <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描成員資料庫...</div>
+    <div class="search-bar">
+        <i class="fa-solid fa-magnifying-glass" style="padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px 0 0 8px; border:1px solid #444; border-right:none;"></i>
+        <input type="text" class="search-input" id="searchInput" placeholder="搜尋代號、信箱..." onkeyup="filterMembers()" style="border-radius: 0 8px 8px 0;">
+    </div>
+
+    <div style="margin-bottom: 15px; color:#888;">
+        總成員: <span id="totalCount" style="color:#fff">--</span> | 
+        總能源: <span id="totalStars" style="color:#fff">--</span>
+    </div>
+
+    <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在解密人員資料庫...</div>
     <div class="member-grid" id="grid"></div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-box">
+            <i class="fa-solid fa-xmark modal-close" onclick="closeModal()"></i>
+            <div class="modal-title"><i class="fa-solid fa-user-pen"></i> 編輯檔案</div>
+            
+            <input type="hidden" id="editUid">
+            
+            <div class="modal-group">
+                <label class="modal-label">電子信箱 (不可修改)</label>
+                <input type="text" id="editEmail" class="modal-input" readonly>
+            </div>
+
+            <div class="modal-group">
+                <label class="modal-label">指揮官代號 (暱稱)</label>
+                <input type="text" id="editNickname" class="modal-input" placeholder="輸入新的代號">
+            </div>
+
+            <div class="modal-group">
+                <label class="modal-label">星際能源 (點數)</label>
+                <input type="number" id="editStars" class="modal-input" placeholder="輸入數值">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-reset-pwd" onclick="triggerResetPwd()">
+                    <i class="fa-solid fa-envelope-circle-check"></i> 發送密碼重置信
+                </button>
+                <button class="btn-save" onclick="saveChanges()">
+                    <i class="fa-solid fa-floppy-disk"></i> 儲存變更
+                </button>
+            </div>
+            <div style="margin-top:10px; font-size:0.8rem; color:#666; text-align:center;">
+                * 密碼已加密，無法查看，僅能發送重置信供用戶修改。
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -71,45 +164,44 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 載入列表
+        let allMembers = []; // 儲存所有會員資料以便搜尋
+
+        // 載入資料
         async function loadData() {
             const grid = document.getElementById('grid');
             document.getElementById('loading').style.display = 'block';
-            grid.innerHTML = '';
-
+            
             try {
-                // 依加入時間排序
-                const q = query(collection(db, "users"), orderBy("joinedAt", "desc"));
-                const snapshot = await getDocs(q);
-                
+                // 抓取所有文件
+                const querySnapshot = await getDocs(collection(db, "users"));
                 document.getElementById('loading').style.display = 'none';
 
-                if(snapshot.empty) {
+                if(querySnapshot.empty) {
                     grid.innerHTML = '<div style="color:#aaa;">無會員資料</div>';
                     return;
                 }
 
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const stars = data.stars !== undefined ? data.stars : 0;
-                    const dateStr = data.joinedAt ? new Date(data.joinedAt.toDate()).toLocaleDateString() : '未知';
+                allMembers = [];
+                let totalStars = 0;
 
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `
-                        <div class="nickname">${data.displayName || '無暱稱'}</div>
-                        <div class="info-row"><i class="fa-regular fa-envelope"></i> ${data.email}</div>
-                        <div class="info-row"><i class="fa-regular fa-calendar"></i> 加入: ${dateStr}</div>
-                        <div class="info-row"><i class="fa-solid fa-star"></i> 點數: <span class="stars">${stars}</span></div>
-                        
-                        <button class="btn-edit" onclick="editStars('${docSnap.id}', ${stars})">
-                            <i class="fa-solid fa-pen"></i> 修改
-                        </button>
-                    `;
-                    grid.appendChild(card);
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    allMembers.push({ id: docSnap.id, ...data });
+                    totalStars += (data.stars || 0);
                 });
+
+                // 預設排序
+                sortMembers(allMembers);
+                
+                // 更新統計
+                document.getElementById('totalCount').innerText = allMembers.length;
+                document.getElementById('totalStars').innerText = totalStars;
+
+                // 渲染
+                renderGrid(allMembers);
 
             } catch(e) {
                 console.error(e);
@@ -117,27 +209,120 @@
             }
         }
 
-        // 修改點數功能
-        window.editStars = async (uid, currentStars) => {
-            const input = prompt(`請輸入新的點數 (目前: ${currentStars})`, currentStars);
-            
-            if (input !== null) {
-                const newStars = parseInt(input);
-                if (isNaN(newStars)) {
-                    alert("請輸入有效的數字");
-                    return;
-                }
+        function sortMembers(list) {
+            list.sort((a, b) => {
+                if (a.role === 'admin' && b.role !== 'admin') return -1;
+                if (a.role !== 'admin' && b.role === 'admin') return 1;
+                const timeA = a.joinedAt ? a.joinedAt.seconds : 0;
+                const timeB = b.joinedAt ? b.joinedAt.seconds : 0;
+                return timeB - timeA;
+            });
+        }
 
-                try {
-                    const userRef = doc(db, "users", uid);
-                    await updateDoc(userRef, { stars: newStars });
-                    alert("更新成功！");
-                    loadData(); // 重新整理
-                } catch(e) {
-                    alert("更新失敗: " + e.message);
-                }
+        // 渲染網格
+        window.renderGrid = (list) => {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            list.forEach(user => {
+                const stars = user.stars !== undefined ? user.stars : 0;
+                let dateStr = user.joinedAt ? new Date(user.joinedAt.toDate()).toLocaleDateString() : '未知';
+                
+                const isAdmin = user.role === 'admin' || user.role === 'owner';
+                const roleTag = isAdmin 
+                    ? `<span class="role-tag admin">ADMIN</span>` 
+                    : `<span class="role-tag">MEMBER</span>`;
+                const cardClass = isAdmin ? 'card is-admin' : 'card';
+
+                const card = document.createElement('div');
+                card.className = cardClass;
+                card.innerHTML = `
+                    <div class="nickname">
+                        ${user.displayName || '無暱稱'} 
+                        ${roleTag}
+                    </div>
+                    <div class="info-row" title="${user.email}">
+                        <i class="fa-regular fa-envelope"></i> ${user.email}
+                    </div>
+                    <div class="info-row">
+                        <i class="fa-regular fa-calendar"></i> 加入: ${dateStr}
+                    </div>
+                    <div class="info-row">
+                        <i class="fa-solid fa-star"></i> 點數: <span class="stars">${stars}</span>
+                    </div>
+                    
+                    <button class="btn-edit" onclick="openModal('${user.id}')">
+                        <i class="fa-solid fa-sliders"></i> 管理
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 搜尋功能
+        window.filterMembers = () => {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allMembers.filter(m => 
+                (m.displayName && m.displayName.toLowerCase().includes(val)) ||
+                (m.email && m.email.toLowerCase().includes(val))
+            );
+            renderGrid(filtered);
+        }
+
+        // --- Modal 操作 ---
+        
+        // 打開編輯視窗
+        window.openModal = (uid) => {
+            const user = allMembers.find(m => m.id === uid);
+            if(!user) return;
+
+            document.getElementById('editUid').value = uid;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editNickname').value = user.displayName || '';
+            document.getElementById('editStars').value = user.stars !== undefined ? user.stars : 0;
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        // 關閉
+        window.closeModal = () => {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // 儲存變更 (暱稱與點數)
+        window.saveChanges = async () => {
+            const uid = document.getElementById('editUid').value;
+            const newName = document.getElementById('editNickname').value;
+            const newStars = parseInt(document.getElementById('editStars').value);
+            
+            if(isNaN(newStars)) return alert("點數格式錯誤");
+
+            try {
+                await updateDoc(doc(db, "users", uid), {
+                    displayName: newName,
+                    stars: newStars
+                });
+                alert("資料已更新！");
+                closeModal();
+                loadData(); // 重新整理列表
+            } catch(e) {
+                alert("更新失敗: " + e.message);
             }
-        };
+        }
+
+        // 發送密碼重置信
+        window.triggerResetPwd = async () => {
+            const email = document.getElementById('editEmail').value;
+            if(!confirm(`確定要發送「密碼重置信」給 ${email} 嗎？\n使用者將收到 Email 並需自行設定新密碼。`)) return;
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert(`發送成功！\n請通知該成員去信箱 (${email}) 收信設定新密碼。`);
+            } catch(e) {
+                console.error(e);
+                alert("發送失敗: " + e.message);
+            }
+        }
 
         loadData();
     </script>
