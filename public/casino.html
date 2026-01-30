@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>星維加斯 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-purple: #b026ff;
+            --neon-pink: #ff00cc;
+            --neon-blue: #00f3ff;
+            --neon-gold: #f2c94c;
+            --glass-bg: rgba(20, 10, 30, 0.8);
+            --card-radius: 10px;
+        }
+        body {
+            background: radial-gradient(circle at center, #2a0e45 0%, #000000 100%);
+            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; touch-action: manipulation; padding-bottom: 100px; /* 為底部按鈕留空間 */
+        }
+
+        /* 特效畫布 */
+        #fxCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+        /* 頂部導航 */
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #fff; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
+        .balance-badge {
+            background: rgba(242, 201, 76, 0.15); border: 1px solid var(--neon-gold);
+            color: var(--neon-gold); padding: 6px 15px; border-radius: 20px; font-weight: bold;
+            display: flex; align-items: center; gap: 8px; font-size: 1rem;
+            box-shadow: 0 0 10px rgba(242, 201, 76, 0.2); transition: 0.3s;
+        }
+        .balance-update { animation: popGold 0.5s ease; }
+        @keyframes popGold { 0%{transform:scale(1);} 50%{transform:scale(1.2); color:#fff; background:var(--neon-gold);} 100%{transform:scale(1);} }
+
+        /* 標題 */
+        .vegas-title { text-align: center; margin: 20px 0 15px 0; }
+        .vegas-title h1 {
+            margin: 0; font-size: 2.8rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff, #b026ff);
+            -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 30px rgba(176, 38, 255, 0.8);
+        }
+        .vegas-title p { color: #aaa; margin-top: 5px; font-size: 0.9rem; letter-spacing: 2px; }
+
+        /* 遊戲切換 */
+        .game-tabs { 
+            display: flex; gap: 10px; margin-bottom: 20px; 
+            background: rgba(255,255,255,0.05); padding: 5px; border-radius: 50px;
+        }
+        .tab-btn {
+            background: transparent; border: none; color: #aaa; padding: 8px 20px;
+            border-radius: 40px; cursor: pointer; transition: 0.3s; font-size: 0.95rem; font-weight: bold;
+        }
+        .tab-btn.active {
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-pink));
+            color: #fff; box-shadow: 0 0 15px rgba(176, 38, 255, 0.4);
+        }
+
+        /* 遊戲舞台 */
+        .stage {
+            width: 95%; max-width: 800px;
+            background: var(--glass-bg); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 25px; padding: 25px 15px; text-align: center;
+            position: relative; min-height: 450px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; transition: 0.3s;
+        }
+        .stage.winner-glow { box-shadow: 0 0 50px rgba(242, 201, 76, 0.4), inset 0 0 20px rgba(242, 201, 76, 0.2); border-color: var(--neon-gold); }
+        .stage.loser-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ff4757; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        /* --- 卡牌區域 --- */
+        .card-area { 
+            display: flex; justify-content: center; gap: 15px; 
+            margin: 15px 0; perspective: 1000px; flex-wrap: wrap; min-height: 150px; align-items: center;
+        }
+        
+        /* 🔥 卡牌樣式 (修復顯示問題) */
+        .poker-card {
+            width: 100px; height: 145px; 
+            background: #fff; border-radius: var(--card-radius); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); position: relative;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold; 
+            /* 修正：預設為可見，動畫才會讓它從隱藏變顯示 */
+            opacity: 1; transform: scale(1);
+        }
+        
+        /* 角落數字與花色 */
+        .card-corner {
+            position: absolute; display: flex; flex-direction: column; align-items: center;
+            line-height: 1; font-size: 1.3rem;
+        }
+        .top-left { top: 5px; left: 5px; }
+        .bottom-right { bottom: 5px; right: 5px; transform: rotate(180deg); }
+        
+        /* 中央大花色 */
+        .card-center { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            font-size: 3.5rem; 
+        }
+
+        /* 顏色強制指定 */
+        .card-red .card-corner, .card-red .card-center { color: #d63031 !important; }
+        .card-black .card-corner, .card-black .card-center { color: #2d3436 !important; }
+
+        /* 動畫 */
+        .deal-anim { animation: dealSlide 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        /* 修正動畫：從透明到實體 */
+        @keyframes dealSlide { 
+            from { opacity: 0; transform: translateY(-30px) scale(0.8); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+        
+        .flip-anim { animation: flipCard 0.6s ease forwards; }
+        @keyframes flipCard { 0% { transform: rotateY(0); } 50% { transform: rotateY(90deg); } 100% { transform: rotateY(0); } }
+
+        /* 牌背 */
+        .card-back {
+            background: linear-gradient(135deg, #2d3436 25%, transparent 25%) -50px 0,
+                        linear-gradient(225deg, #2d3436 25%, transparent 25%) -50px 0,
+                        linear-gradient(315deg, #2d3436 25%, transparent 25%),
+                        linear-gradient(45deg, #2d3436 25%, transparent 25%);
+            background-size: 20px 20px; background-color: #111;
+            border: 3px solid #fff; display: flex; align-items: center; justify-content: center;
+        }
+        .card-back::after { content: '⚜️'; color: var(--neon-gold); font-size: 2.5rem; text-shadow: 0 0 10px var(--neon-gold); }
+
+        /* 手機版適配 */
+        @media (max-width: 600px) {
+            .vegas-title h1 { font-size: 2rem; }
+            .stage { padding: 15px 5px; min-height: 400px; }
+            .poker-card { width: 80px; height: 115px; }
+            .card-corner { font-size: 1rem; } 
+            .card-center { font-size: 2.5rem; }
+            .vs-text { font-size: 1.5rem !important; margin: 5px 0; }
+            #gameHighCard > div { flex-direction: column; gap: 10px; }
+        }
+
+        /* 下注面板 */
+        .bet-panel { margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
+        .bet-input-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        .bet-input {
+            background: rgba(255,255,255,0.1); border: 1px solid #555; color: var(--neon-gold);
+            padding: 12px; border-radius: 10px; width: 140px; text-align: center; font-size: 1.4rem; font-weight: bold;
+        }
+        .btn-all-in {
+            background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; border: none; 
+            padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; 
+            font-size: 1rem; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05); box-shadow: 0 0 15px #ff4757;} 100% {transform: scale(1);} }
+
+        .btn-action {
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue)); 
+            color: #fff; border: none; padding: 15px 50px;
+            border-radius: 50px; font-size: 1.2rem; cursor: pointer; margin-top: 20px;
+            transition: 0.3s; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 80%; max-width: 300px; letter-spacing: 2px;
+        }
+        .btn-action:disabled { background: #555; cursor: not-allowed; box-shadow: none; opacity: 0.6; }
+        .btn-action:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(176, 38, 255, 0.5); }
+
+        /* 結果訊息 */
+        .result-msg { 
+            font-size: 1.5rem; margin-top: 20px; font-weight: bold; min-height: 40px; 
+            display: flex; align-items: center; justify-content: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5); opacity: 0; transition: 0.5s;
+        }
+        .result-msg.show { opacity: 1; transform: scale(1.1); }
+        .win { color: #00ff9d; text-shadow: 0 0 20px #00ff9d; }
+        .lose { color: #ff4757; text-shadow: 0 0 20px #ff4757; }
+
+        .bj-controls { display: none; gap: 15px; justify-content: center; margin-top: 20px; }
+        .btn-bj { padding: 12px 30px; border-radius: 30px; font-size: 1.1rem; border: none; cursor: pointer; font-weight: bold; color: #fff; transition: 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.3);}
+        .btn-hit { background: #0984e3; }
+        .btn-stand { background: #d63031; }
+        .btn-bj:active { transform: scale(0.95); }
+
+        .score-box { background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 5px; font-family: monospace; letter-spacing: 1px; }
+
+        /* 🔥 再來一局按鈕 (固定在畫面底部) */
+        #btnReset {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 85%; max-width: 400px;
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            z-index: 500;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            border: 1px solid #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="fxCanvas"></canvas>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 大廳</a>
+        <div class="balance-badge" id="balanceBadge">
+            <i class="fa-solid fa-star"></i> <span id="userStars">--</span>
+        </div>
+    </div>
+
+    <div class="vegas-title">
+        <h1>星維加斯</h1>
+        <p>星際娛樂城 · 勇氣試煉場</p>
+    </div>
+
+    <div class="game-tabs">
+        <button class="tab-btn active" onclick="switchGame('highcard')">比大小</button>
+        <button class="tab-btn" onclick="switchGame('blackjack')">21點</button>
+    </div>
+
+    <div class="stage" id="gameStage">
+        
+        <div class="bet-panel" id="betPanel">
+            <div style="color:#aaa; margin-bottom:10px; font-size:1rem;">下注籌碼</div>
+            <div class="bet-input-group">
+                <input type="number" id="betAmount" class="bet-input" value="100" min="1">
+                <button class="btn-all-in" onclick="setAllIn()">全押</button>
+            </div>
+            <button class="btn-action" id="btnStart" onclick="startGame()">開始發牌</button>
+        </div>
+
+        <div id="gameHighCard" style="display:block;">
+            <div style="display:flex; justify-content:space-around; align-items: center; flex-wrap: wrap;">
+                <div style="flex:1; min-width: 110px;">
+                    <div style="margin-bottom:10px; color:#aaa; font-weight:bold;">您 (玩家)</div>
+                    <div class="card-area" id="hcPlayerCard">
+                        <div class="poker-card card-back"></div>
+                    </div>
+                </div>
+                
+                <div class="vs-text" style="font-size:2.5rem; font-weight:bold; color:var(--neon-purple); text-shadow:0 0 10px currentColor; padding:0 15px;">對決</div>
+                
+                <div style="flex:1; min-width: 110px;">
+                    <div style="margin-bottom:10px; color:#aaa; font-weight:bold;">系統 (莊家)</div>
+                    <div class="card-area" id="hcHouseCard">
+                        <div class="poker-card card-back"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameBlackjack" style="display:none;">
+            <div style="margin-bottom:20px;">
+                <div style="color:#aaa; margin-bottom:5px;">
+                    <i class="fa-solid fa-user-secret"></i> 莊家 
+                    <span id="bjHouseScore" class="score-box" style="color:#fff;">?</span>
+                </div>
+                <div class="card-area" id="bjHouseArea">
+                    <div class="poker-card card-back"></div>
+                    <div class="poker-card card-back"></div>
+                </div>
+            </div>
+
+            <div>
+                <div style="color:var(--neon-gold); margin-bottom:5px; font-weight:bold;">
+                    <i class="fa-solid fa-user"></i> 您 
+                    <span id="bjPlayerScore" class="score-box" style="color:var(--neon-gold);">0</span>
+                </div>
+                <div class="card-area" id="bjPlayerArea">
+                    <div class="poker-card card-back"></div>
+                    <div class="poker-card card-back"></div>
+                </div>
+            </div>
+
+            <div class="bj-controls" id="bjControls">
+                <button class="btn-bj btn-hit" onclick="bjHit()"><i class="fa-solid fa-hand-pointer"></i> 叫牌</button>
+                <button class="btn-bj btn-stand" onclick="bjStand()"><i class="fa-solid fa-hand"></i> 停牌</button>
+            </div>
+            <div style="color:#666; font-size:0.8rem; margin-top:10px;">*規則：最多持有 3 張牌，爆牌即輸</div>
+        </div>
+
+        <div id="resultMsg" class="result-msg"></div>
+        <button class="btn-action" id="btnReset" onclick="resetTable()" style="display:none;">再來一局</button>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, runTransaction, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentBalance = 0;
+        let currentGame = 'highcard'; 
+        let gameState = { bet: 0, isAllIn: false, bjPlayerCards: [], bjHouseCards: [], bjDeck: [], isPlayerTurn: true };
+
+        // 特效
+        const canvas = document.getElementById('fxCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createConfetti() {
+            particles = [];
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
+                    vx: Math.random() * 4 - 2, vy: Math.random() * 5 + 2,
+                    color: `hsl(${Math.random()*50 + 40}, 100%, 50%)`, size: Math.random() * 8 + 4
+                });
+            }
+            animateConfetti();
+        }
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let active = false;
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.y < canvas.height) {
+                    active = true; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+                }
+            });
+            if(active) requestAnimationFrame(animateConfetti);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) { currentUser = user; updateBalanceDisplay(); } 
+            else { window.location.href = "login.html"; }
+        });
+
+        async function updateBalanceDisplay() {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if(docSnap.exists()) {
+                currentBalance = docSnap.data().stars || 0;
+                document.getElementById('userStars').innerText = currentBalance;
+                const container = document.getElementById('balanceBadge');
+                container.classList.remove('balance-update');
+                void container.offsetWidth; container.classList.add('balance-update');
+            }
+        }
+
+        window.switchGame = (game) => {
+            currentGame = game;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('gameHighCard').style.display = game === 'highcard' ? 'block' : 'none';
+            document.getElementById('gameBlackjack').style.display = game === 'blackjack' ? 'block' : 'none';
+            resetTable();
+        };
+
+        window.setAllIn = () => { document.getElementById('betAmount').value = currentBalance; };
+
+        window.resetTable = () => {
+            document.getElementById('betPanel').style.display = 'block';
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnReset').style.display = 'none';
+            document.getElementById('resultMsg').innerText = '';
+            document.getElementById('resultMsg').classList.remove('show');
+            document.getElementById('betAmount').disabled = false;
+            document.getElementById('gameStage').classList.remove('winner-glow', 'loser-shake');
+            document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back"></div>';
+            document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back"></div>';
+            
+            // 重置為裝飾牌
+            document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back"></div><div class="poker-card card-back"></div>';
+            document.getElementById('bjHouseArea').innerHTML = '<div class="poker-card card-back"></div><div class="poker-card card-back"></div>';
+            
+            document.getElementById('bjControls').style.display = 'none';
+            document.getElementById('bjPlayerScore').innerText = '0';
+            document.getElementById('bjHouseScore').innerText = '?';
+        };
+
+        // --- 卡牌系統 ---
+        const SUITS = ['♠', '♥', '♦', '♣'];
+        const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        
+        function createDeck() {
+            let deck = [];
+            for(let s of SUITS) {
+                for(let i=0; i<VALUES.length; i++) {
+                    deck.push({ suit: s, text: VALUES[i], value: i + 2, bjValue: (i >= 8 && i <= 11) ? 10 : (i===12 ? 11 : i+2) });
+                }
+            }
+            return deck.sort(() => Math.random() - 0.5);
+        }
+
+        // 修改：使用 absolute 排版確保不會被擠壓
+        function createCardElement(card, isFlipping = true) {
+            const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'card-red' : 'card-black';
+            const div = document.createElement('div');
+            // 預設 opacity: 1 (CSS已修改)，如果需要動畫則加上 .deal-anim
+            div.className = `poker-card ${colorClass} ${isFlipping ? 'deal-anim' : ''}`;
+            div.innerHTML = `
+                <div class="card-corner top-left">
+                    <div>${card.text}</div><div>${card.suit}</div>
+                </div>
+                <div class="card-center">${card.suit}</div>
+                <div class="card-corner bottom-right">
+                    <div>${card.text}</div><div>${card.suit}</div>
+                </div>
+            `;
+            return div;
+        }
+
+        // --- 遊戲邏輯 ---
+        window.startGame = async () => {
+            const betInput = document.getElementById('betAmount');
+            const bet = parseInt(betInput.value);
+            if(isNaN(bet) || bet <= 0) return alert("請輸入有效金額");
+            if(bet > currentBalance) return alert("餘額不足！");
+
+            gameState.bet = bet;
+            gameState.isAllIn = (bet === currentBalance);
+            gameState.isPlayerTurn = true;
+            
+            document.getElementById('btnStart').disabled = true;
+            betInput.disabled = true;
+            document.getElementById('resultMsg').innerText = "發牌中...";
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const userDoc = await transaction.get(userRef);
+                    const bal = userDoc.data().stars || 0;
+                    if(bal < bet) throw "餘額不足";
+                    transaction.update(userRef, { stars: bal - bet });
+                    
+                    const logRef = doc(collection(db, "transactions"));
+                    transaction.set(logRef, {
+                        userId: currentUser.uid,
+                        action: "gamble_bet",
+                        itemName: currentGame === 'highcard' ? '比大小' : '21點',
+                        amount: -bet,
+                        timestamp: serverTimestamp()
+                    });
+                });
+                updateBalanceDisplay();
+                if(currentGame === 'highcard') playHighCard(); else playBlackjack();
+            } catch(e) { alert("交易失敗: " + e); resetTable(); }
+        };
+
+        function playHighCard() {
+            setTimeout(() => {
+                const deck = createDeck();
+                let playerCard = deck.pop();
+                let houseCard = deck.pop();
+
+                // ALL IN 0.1%
+                if (gameState.isAllIn && Math.random() > 0.001) {
+                    if (playerCard.value > houseCard.value) [playerCard, houseCard] = [houseCard, playerCard];
+                    else if (playerCard.value === houseCard.value) {
+                         while(houseCard.value <= playerCard.value && deck.length > 0) houseCard = deck.pop();
+                    }
+                }
+
+                const pArea = document.getElementById('hcPlayerCard');
+                const hArea = document.getElementById('hcHouseCard');
+                pArea.innerHTML = ''; hArea.innerHTML = '';
+
+                pArea.appendChild(createCardElement(playerCard));
+                setTimeout(() => {
+                    hArea.appendChild(createCardElement(houseCard));
+                    setTimeout(() => {
+                        if (playerCard.value > houseCard.value) endGame(true, 2, "勝利！");
+                        else if (playerCard.value < houseCard.value) endGame(false, 0, "失敗");
+                        else endGame(true, 1, "平手");
+                    }, 500);
+                }, 600);
+            }, 500);
+        }
+
+        function playBlackjack() {
+            gameState.bjDeck = createDeck();
+            gameState.bjPlayerCards = [];
+            gameState.bjHouseCards = [];
+            
+            // 🔥 重點修復：開始前必須清空所有裝飾牌
+            document.getElementById('bjPlayerArea').innerHTML = '';
+            document.getElementById('bjHouseArea').innerHTML = '';
+
+            document.getElementById('betPanel').style.display = 'none';
+            document.getElementById('resultMsg').innerText = "發牌中...";
+
+            const dealSequence = async () => {
+                gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
+                gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
+                gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
+                gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false);
+
+                document.getElementById('bjControls').style.display = 'flex';
+                document.getElementById('resultMsg').innerText = "請選擇行動";
+                if(getBJScore(gameState.bjPlayerCards) === 21) bjStand();
+            };
+            dealSequence();
+        }
+
+        function renderBJ(revealDealer = false) {
+            const pDiv = document.getElementById('bjPlayerArea');
+            const hDiv = document.getElementById('bjHouseArea');
+            
+            updateCardDiv(pDiv, gameState.bjPlayerCards);
+            document.getElementById('bjPlayerScore').innerText = getBJScore(gameState.bjPlayerCards);
+            
+            if (!revealDealer && gameState.isPlayerTurn) {
+                hDiv.innerHTML = '';
+                if(gameState.bjHouseCards.length > 0) hDiv.appendChild(createCardElement(gameState.bjHouseCards[0], false));
+                if(gameState.bjHouseCards.length > 1) {
+                    const back = document.createElement('div');
+                    back.className = 'poker-card card-back deal-anim';
+                    hDiv.appendChild(back);
+                }
+                document.getElementById('bjHouseScore').innerText = "?";
+            } else {
+                hDiv.innerHTML = '';
+                gameState.bjHouseCards.forEach((c, i) => {
+                    const el = createCardElement(c, false);
+                    if(i === 1 && revealDealer) el.classList.add('flip-anim');
+                    hDiv.appendChild(el);
+                });
+                document.getElementById('bjHouseScore').innerText = getBJScore(gameState.bjHouseCards);
+            }
+        }
+
+        function updateCardDiv(container, cards) {
+            const currentCount = container.children.length;
+            for (let i = currentCount; i < cards.length; i++) {
+                container.appendChild(createCardElement(cards[i], true));
+            }
+        }
+
+        function getBJScore(cards) {
+            let score = 0; let aces = 0;
+            for(let c of cards) { score += c.bjValue; if(c.text === 'A') aces++; }
+            while(score > 21 && aces > 0) { score -= 10; aces--; }
+            return score;
+        }
+
+        window.bjHit = () => {
+            if(gameState.bjPlayerCards.length >= 3) return alert("已達3張上限，請停牌");
+            gameState.bjPlayerCards.push(gameState.bjDeck.pop());
+            renderBJ(false);
+            const score = getBJScore(gameState.bjPlayerCards);
+            if(score > 21) {
+                gameState.isPlayerTurn = false; renderBJ(true);
+                endGame(false, 0, "爆牌！您輸了");
+                document.getElementById('bjControls').style.display = 'none';
+            } else if (gameState.bjPlayerCards.length === 3) { bjStand(); }
+        };
+
+        window.bjStand = () => {
+            document.getElementById('bjControls').style.display = 'none';
+            gameState.isPlayerTurn = false;
+            
+            if(gameState.isAllIn && Math.random() > 0.001) {
+                const pScore = getBJScore(gameState.bjPlayerCards);
+                while(getBJScore(gameState.bjHouseCards) <= pScore && getBJScore(gameState.bjHouseCards) < 21 && gameState.bjHouseCards.length < 3) {
+                     gameState.bjHouseCards.push(gameState.bjDeck.pop());
+                }
+                if(getBJScore(gameState.bjHouseCards) < pScore) {
+                    let last = gameState.bjHouseCards[gameState.bjHouseCards.length-1];
+                    last.bjValue = 10; last.text = "K";
+                }
+            } else {
+                while(getBJScore(gameState.bjHouseCards) < 17 && gameState.bjHouseCards.length < 3) {
+                    gameState.bjHouseCards.push(gameState.bjDeck.pop());
+                }
+            }
+            renderBJ(true);
+            const pScore = getBJScore(gameState.bjPlayerCards);
+            const hScore = getBJScore(gameState.bjHouseCards);
+            setTimeout(() => {
+                if (hScore > 21) endGame(true, 2, "莊家爆牌！您贏了！");
+                else if (pScore > hScore) endGame(true, 2, "您贏了！");
+                else if (pScore < hScore) endGame(false, 0, "莊家獲勝");
+                else endGame(true, 1, "平手，退回賭金");
+            }, 600);
+        };
+
+        async function endGame(isWin, multiplier, msg) {
+            const resultDiv = document.getElementById('resultMsg');
+            const stage = document.getElementById('gameStage');
+            
+            resultDiv.innerText = msg;
+            resultDiv.className = "result-msg " + (isWin && multiplier > 1 ? "win" : (multiplier===1 ? "" : "lose"));
+            setTimeout(() => resultDiv.classList.add('show'), 100);
+
+            if (isWin && multiplier > 1) { stage.classList.add('winner-glow'); createConfetti(); }
+            else if (multiplier === 0) { stage.classList.add('loser-shake'); }
+
+            if (isWin && multiplier > 0) {
+                const winAmount = Math.floor(gameState.bet * multiplier);
+                const profit = winAmount - gameState.bet;
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const userRef = doc(db, "users", currentUser.uid);
+                        const userDoc = await transaction.get(userRef);
+                        const bal = userDoc.data().stars || 0;
+                        transaction.update(userRef, { stars: bal + winAmount });
+                        if (profit > 0) { 
+                            const logRef = doc(collection(db, "transactions"));
+                            transaction.set(logRef, {
+                                userId: currentUser.uid, action: "gamble_win",
+                                itemName: currentGame === 'highcard' ? '比大小獲勝' : '21點獲勝',
+                                amount: winAmount, note: `賭金返還+獲利`, timestamp: serverTimestamp()
+                            });
+                        }
+                    });
+                    if(multiplier > 1) updateBalanceDisplay();
+                } catch(e) { console.error("派彩失敗", e); }
+            }
+            document.getElementById('btnReset').style.display = 'inline-block';
+        }
+    </script>
+</body>
+</html>
