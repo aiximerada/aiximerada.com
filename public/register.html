@@ -2,52 +2,130 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>會員註冊 - 玉露寶庫</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" type="image/png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --neon-green: #00ff9d; --bg: #0b1021; }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --neon-green: #00ff9d;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
         body {
-            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
-            color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+            overflow: hidden; position: relative;
         }
-        .register-box {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
-            padding: 40px; border-radius: 20px; width: 100%; max-width: 350px;
-            backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-        h2 { color: var(--neon-green); margin-bottom: 20px; letter-spacing: 2px; }
-        input {
-            width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; border-radius: 5px; color: #fff; box-sizing: border-box;
-            transition: 0.3s;
-        }
-        input:focus { border-color: var(--neon-green); outline: none; }
+
+        /* --- ✨ 背景特效 (同步星維加斯) --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
         
-        button {
-            width: 100%; padding: 12px; background: var(--neon-green); color: #000;
-            border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 註冊卡片 --- */
+        .register-box {
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border);
+            padding: 40px 30px; border-radius: 20px; width: 90%; max-width: 380px;
+            backdrop-filter: blur(12px); text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
+
+        h2 { 
+            margin-bottom: 25px; color: var(--neon-green); letter-spacing: 3px; font-size: 1.8rem; 
+            text-shadow: 0 0 20px rgba(0, 255, 157, 0.3); font-weight: 900;
+        }
+
+        .input-group { margin-bottom: 15px; }
+        
+        input {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.3);
+            border: 1px solid #475569; border-radius: 10px; color: #fff; box-sizing: border-box;
             font-size: 1rem; transition: 0.3s;
         }
-        button:hover { box-shadow: 0 0 15px var(--neon-green); }
+        input:focus { border-color: var(--neon-green); outline: none; box-shadow: 0 0 10px rgba(0, 255, 157, 0.2); }
+
+        /* 特殊樣式：邀請碼 */
+        #inviteCode {
+            border-color: var(--accent-amber); color: var(--accent-amber); font-weight: bold; letter-spacing: 1px;
+        }
+        #inviteCode::placeholder { color: rgba(253, 185, 49, 0.7); }
+        #inviteCode:focus { box-shadow: 0 0 15px rgba(253, 185, 49, 0.3); }
+
+        /* 按鈕樣式 */
+        button {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, var(--neon-green), #059669);
+            color: #000; border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
+            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 255, 157, 0.3); }
+        button:disabled { background: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .error { color: var(--danger-red); font-size: 0.9rem; margin-top: 15px; min-height: 20px; font-weight: bold; }
         
-        .error { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
-        .links { margin-top: 20px; font-size: 0.9rem; color: #aaa; }
-        .links a { color: #fff; text-decoration: none; border-bottom: 1px dashed #aaa; }
+        .links { margin-top: 25px; font-size: 0.9rem; color: #94a3b8; }
+        .links a { color: #fff; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.5); transition: 0.3s; }
+        .links a:hover { color: var(--neon-green); border-color: var(--neon-green); }
+
     </style>
 </head>
 <body>
 
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
     <div class="register-box">
         <h2><i class="fa-solid fa-user-plus"></i> 會員註冊</h2>
         
-        <input type="text" id="nickname" placeholder="指揮官代號 (暱稱)">
-        <input type="email" id="email" placeholder="電子信箱 (Email)">
-        <input type="password" id="password" placeholder="設定密碼 (6位以上)">
+        <div class="input-group">
+            <input type="text" id="nickname" placeholder="名稱">
+        </div>
+        <div class="input-group">
+            <input type="email" id="email" placeholder="電子信箱 (Email)">
+        </div>
+        <div class="input-group">
+            <input type="password" id="password" placeholder="設定密碼 (6位以上)">
+        </div>
         
-        <input type="text" id="inviteCode" placeholder="⚠️ 輸入入隊邀請碼" style="border-color: #f39c12; color:#f39c12; font-weight:bold; text-transform:uppercase;">
+        <div class="input-group">
+            <input type="text" id="inviteCode" placeholder="⚠️ 輸入入隊邀請碼" style="text-transform:uppercase;">
+        </div>
         
         <button onclick="handleRegister()" id="btnReg">確認註冊</button>
         <div class="error" id="errorMsg"></div>
@@ -89,12 +167,14 @@
             }
 
             btn.disabled = true;
-            btn.innerText = "驗證邀請碼...";
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證邀請碼...';
             errorDiv.innerText = "";
 
             try {
                 // 1. 驗證邀請碼
-                const codesRef = collection(db, "invite_codes");
+                // 注意：這裡假設您的邀請碼集合名稱為 "invitation_codes" (與您之前的 admin_invite.html 一致)
+                // 如果是 "invite_codes"，請自行修正下方字串
+                const codesRef = collection(db, "invitation_codes"); 
                 const q = query(codesRef, where("code", "==", codeInput));
                 const querySnapshot = await getDocs(q);
 
@@ -102,33 +182,36 @@
 
                 let codeDocId = null;
                 let isUsed = false;
+                let role = "member"; // 預設權限
 
                 querySnapshot.forEach((doc) => {
+                    const data = doc.data();
                     codeDocId = doc.id;
-                    isUsed = doc.data().isUsed;
+                    isUsed = data.isUsed;
+                    if(data.role) role = data.role; // 讀取邀請碼綁定的權限
                 });
 
                 if (isUsed) { throw new Error("此邀請碼已被使用"); }
 
                 // 2. 建立帳號
-                btn.innerText = "建立檔案中...";
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 建立檔案中...';
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
                 // 3. 更新使用者暱稱
                 await updateProfile(user, { displayName: nickname });
                 
-                // 4. 🔥 建立資料庫並給予 100 顆星星 🔥
+                // 4. 🔥 寫入資料庫 🔥
                 await setDoc(doc(db, "users", user.uid), {
                     email: email,
                     displayName: nickname,
-                    role: "member",
-                    stars: 100, // 新增點數欄位
+                    role: role, // 使用邀請碼指定的權限
+                    stars: 100, // 初始贈送
                     joinedAt: new Date()
                 });
 
                 // 5. 標記邀請碼為已使用
-                const codeDocRef = doc(db, "invite_codes", codeDocId);
+                const codeDocRef = doc(db, "invitation_codes", codeDocId);
                 await updateDoc(codeDocRef, {
                     isUsed: true,
                     usedBy: email 
@@ -141,7 +224,7 @@
                 console.error(error);
                 let msg = error.message;
                 if(msg.includes("auth/email-already-in-use")) msg = "此 Email 已被註冊";
-                if(msg.includes("auth/weak-password")) msg = "密碼強度不足";
+                if(msg.includes("auth/weak-password")) msg = "密碼強度不足 (需6位以上)";
                 errorDiv.innerText = "錯誤: " + msg;
                 btn.disabled = false;
                 btn.innerText = "確認註冊";

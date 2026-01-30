@@ -2,58 +2,147 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>登入 - 玉露寶庫</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" type="image/png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --neon-blue: #00f3ff; --neon-green: #00ff9d; }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
         body {
-            background: #0b1021; color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
-            background: radial-gradient(circle at center, #1a2c4e 0%, #000000 100%);
+            overflow: hidden; position: relative;
         }
+
+        /* --- ✨ 背景特效 (同步星維加斯) --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 登入卡片 --- */
         .login-box {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1);
-            padding: 40px; border-radius: 20px; width: 100%; max-width: 320px;
-            backdrop-filter: blur(10px); text-align: center;
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border);
+            padding: 40px 30px; border-radius: 20px; width: 90%; max-width: 360px;
+            backdrop-filter: blur(12px); text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeIn 0.8s ease-out;
         }
-        h2 { margin-bottom: 20px; color: var(--neon-blue); letter-spacing: 2px; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
+
+        h2 { 
+            margin-bottom: 25px; color: var(--main-gold); letter-spacing: 2px; font-size: 1.8rem; 
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); font-weight: 900;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+
+        /* 🔵 藍色星星樣式 */
+        .title-star {
+            color: var(--nebula-blue); font-size: 1.2rem;
+            filter: drop-shadow(0 0 8px var(--nebula-blue));
+            animation: pulseStar 2s infinite alternate;
+        }
+        @keyframes pulseStar { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
+
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 1.1rem; }
+        
         input {
-            width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(0,0,0,0.3);
-            border: 1px solid #444; border-radius: 5px; color: #fff; box-sizing: border-box;
+            width: 100%; padding: 14px 14px 14px 45px; background: rgba(0,0,0,0.3);
+            border: 1px solid #475569; border-radius: 10px; color: #fff; box-sizing: border-box;
+            font-size: 1rem; transition: 0.3s;
         }
-        input:focus { border-color: var(--neon-blue); outline: none; }
+        input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+
+        /* 按鈕樣式 */
         button {
-            width: 100%; padding: 12px; background: var(--neon-blue); color: #000;
-            border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;
-            transition: 0.3s;
+            width: 100%; padding: 14px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #0f172a; border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
+            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px;
         }
-        button:hover { box-shadow: 0 0 15px var(--neon-blue); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
         
         .register-btn {
-            background: transparent; border: 1px solid var(--neon-green); color: var(--neon-green); margin-top: 15px;
+            background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px;
         }
-        .register-btn:hover { background: rgba(0, 255, 157, 0.1); box-shadow: 0 0 15px var(--neon-green); }
+        .register-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 15px var(--nebula-blue); color: #fff; }
 
-        .error { color: #ff4757; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
+        .error { color: var(--danger-red); font-size: 0.9rem; margin-top: 15px; min-height: 20px; font-weight: bold; }
+        
+        .back-link { margin-top: 25px; display: block; font-size: 0.9rem; color: #64748b; text-decoration: none; transition: 0.3s; }
+        .back-link:hover { color: #fff; }
+
     </style>
 </head>
 <body>
 
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
     <div class="login-box">
-        <h2><i class="fa-solid fa-fingerprint"></i> 身份識別</h2>
-        <input type="email" id="email" placeholder="電子信箱">
-        <input type="password" id="password" placeholder="通行密碼">
-        <button onclick="handleLogin()">登入系統</button>
+        <h2>
+            <i class="fa-solid fa-star title-star"></i>
+            會員登入
+            <i class="fa-solid fa-star title-star"></i>
+        </h2>
+        
+        <div class="input-group">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="email" placeholder="電子信箱">
+        </div>
+        
+        <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="password" placeholder="密碼">
+        </div>
+
+        <button onclick="handleLogin()">
+            <i class="fa-solid fa-right-to-bracket"></i> 登入
+        </button>
         
         <button class="register-btn" onclick="location.href='register.html'">
-            <i class="fa-solid fa-user-plus"></i> 會員註冊
+            <i class="fa-solid fa-user-plus"></i> 加入星員
         </button>
 
         <div class="error" id="errorMsg"></div>
-        <div style="margin-top:20px; font-size:0.8rem; color:#888;">
-            <a href="index.html" style="color:#aaa; text-decoration:none;">返回首頁</a>
-        </div>
+        
+        <a href="index.html" class="back-link">
+            <i class="fa-solid fa-arrow-left"></i> 返回首頁
+        </a>
     </div>
 
     <script type="module">
@@ -77,13 +166,34 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMsg');
+            const btn = document.querySelector('button'); 
+
+            if(!email || !password) {
+                errorDiv.innerText = "請輸入帳號與密碼";
+                return;
+            }
+
+            // 按鈕 Loading 狀態
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
+            btn.disabled = true;
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
                     window.location.href = "vip_area.html";
                 })
                 .catch((error) => {
-                    errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
+                    // 還原按鈕
+                    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 登入';
+                    btn.disabled = false;
+                    
+                    // 錯誤處理
+                    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                        errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorDiv.innerText = "嘗試次數過多，請稍後再試";
+                    } else {
+                        errorDiv.innerText = "系統錯誤：" + error.message;
+                    }
                     console.error(error);
                 });
         }
