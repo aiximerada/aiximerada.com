@@ -24,7 +24,7 @@
             position: relative;
         }
 
-        /* --- 星空背景動畫 --- */
+        /* --- 星空背景 --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
         .stars-distant {
@@ -84,6 +84,39 @@
         .stage.loser-shake { animation: shake 0.4s ease-in-out; border-color: var(--danger-red); }
         @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 
+        /* --- 🎡 星之輪盤 (三角指針版) --- */
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
+        #wheelCanvas { width: 100%; height: 100%; transform-origin: 50% 50%; transition: transform 4s cubic-bezier(0.1, 0.99, 0.1, 0.99); }
+        
+        /* 🔥 金色倒三角指針 */
+        .wheel-pointer {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; z-index: 10;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 35px solid var(--main-gold); /* 指向下方的三角形 */
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.6));
+        }
+        
+        .wheel-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; background: radial-gradient(circle, #fff, var(--main-gold));
+            border-radius: 50%; box-shadow: 0 0 20px var(--main-gold);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; color: #000; font-size: 1.2rem; cursor: pointer; z-index: 5;
+            border: 4px solid #fff;
+        }
+        .wheel-center:active { transform: translate(-50%, -50%) scale(0.95); }
+
+        .cooldown-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9); border-radius: 50%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 20; backdrop-filter: blur(5px);
+            color: var(--main-gold);
+        }
+        .timer-text { font-size: 1.5rem; font-family: monospace; font-weight: bold; margin-top: 10px; }
+
         /* --- 🃏 卡牌區域 --- */
         .card-area { 
             display: flex; justify-content: center; gap: 15px; 
@@ -112,52 +145,18 @@
         .deal-anim { animation: dealSlide 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
         @keyframes dealSlide { 0% { opacity: 0; transform: translateY(-40px); } 100% { opacity: 1; transform: translateY(0); } }
 
-        /* --- 🎲 星運骰專區 --- */
-        .dice-container {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 200px; position: relative;
-        }
-        
-        .dice-glow {
-            position: absolute; width: 150px; height: 150px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(217, 70, 239, 0.3), transparent 70%);
-            animation: pulseGlow 2s infinite ease-in-out; pointer-events: none;
-        }
-        @keyframes pulseGlow { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
-
-        .dice-display {
-            font-size: 8rem; color: #fff; text-shadow: 0 0 40px rgba(217, 70, 239, 0.8);
-            z-index: 2; transition: 0.2s;
-        }
+        /* --- 🎲 骰子區域 --- */
+        .dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; position: relative; }
+        .dice-glow { position: absolute; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, rgba(217, 70, 239, 0.3), transparent 70%); animation: pulseGlow 2s infinite ease-in-out; pointer-events: none; }
+        .dice-display { font-size: 8rem; color: #fff; text-shadow: 0 0 40px rgba(217, 70, 239, 0.8); z-index: 2; transition: 0.2s; }
         .dice-rolling { animation: rollShake 0.3s infinite linear; color: var(--nebula-purple); }
         @keyframes rollShake { 0% { transform: rotate(0deg) scale(1); } 25% { transform: rotate(15deg) scale(1.1); } 50% { transform: rotate(-15deg) scale(0.9); } 75% { transform: rotate(5deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
-
-        /* 星運控制面板 */
-        .dice-control-panel {
-            background: rgba(217, 70, 239, 0.05); border: 1px solid rgba(217, 70, 239, 0.2);
-            border-radius: 16px; padding: 15px; margin-top: 25px;
-            display: flex; flex-direction: column; gap: 10px;
-        }
-
-        .dice-header {
-            color: var(--nebula-purple); font-weight: bold; font-size: 1rem; margin-bottom: 5px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            text-shadow: 0 0 10px rgba(217, 70, 239, 0.3);
-        }
-
+        .dice-control-panel { background: rgba(217, 70, 239, 0.05); border: 1px solid rgba(217, 70, 239, 0.2); border-radius: 16px; padding: 15px; margin-top: 25px; display: flex; flex-direction: column; gap: 10px; }
+        .dice-header { color: var(--nebula-purple); font-weight: bold; font-size: 1rem; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; text-shadow: 0 0 10px rgba(217, 70, 239, 0.3); }
         .dice-selector { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; z-index: 2; position: relative; }
-        
-        .dice-btn {
-            width: 50px; height: 50px; border-radius: 12px; border: 2px solid var(--nebula-purple);
-            background: rgba(0,0,0,0.3); color: var(--nebula-purple); font-size: 1.5rem; font-weight: bold;
-            cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 10px rgba(217, 70, 239, 0.1);
-        }
+        .dice-btn { width: 50px; height: 50px; border-radius: 12px; border: 2px solid var(--nebula-purple); background: rgba(0,0,0,0.3); color: var(--nebula-purple); font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(217, 70, 239, 0.1); }
         .dice-btn:hover { background: rgba(217, 70, 239, 0.2); transform: translateY(-3px); }
-        .dice-btn.selected { 
-            background: var(--nebula-purple); color: #fff; border-color: #fff;
-            box-shadow: 0 0 25px var(--nebula-purple); transform: scale(1.1); 
-        }
+        .dice-btn.selected { background: var(--nebula-purple); color: #fff; border-color: #fff; box-shadow: 0 0 25px var(--nebula-purple); transform: scale(1.1); }
 
         /* 按鈕與面板 */
         .game-tabs { display: flex; gap: 10px; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 50px; flex-wrap: wrap; justify-content: center; }
@@ -188,18 +187,10 @@
 
         .score-box { background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 6px; font-family: monospace; border: 1px solid rgba(255,255,255,0.2); }
 
-        /* 底部懸浮區 */
-        .bottom-float-bar {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 500px; z-index: 500;
-            display: flex; flex-direction: column; gap: 15px; pointer-events: none;
-        }
+        .bottom-float-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; z-index: 500; display: flex; flex-direction: column; gap: 15px; pointer-events: none; }
         .bottom-float-bar > * { pointer-events: auto; }
 
-        #btnReset {
-            width: 100%; background: rgba(30, 41, 59, 0.95); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:16px; 
-            border-radius: 50px; font-size:1.1rem; font-weight:bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none;
-        }
+        #btnReset { width: 100%; background: rgba(30, 41, 59, 0.95); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:16px; border-radius: 50px; font-size:1.1rem; font-weight:bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; }
 
         .double-up-panel { display: none; gap: 15px; width: 100%; }
         .btn-collect { background: linear-gradient(90deg, #10b981, #059669); flex: 1; padding: 15px; border-radius: 15px; font-weight:bold; border:none; font-size:1.1rem; color:#fff; }
@@ -210,29 +201,14 @@
         .btn-big { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .btn-small { background: linear-gradient(135deg, #06b6d4, #0891b2); }
 
-        .terms-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(20px);
-        }
-        .terms-box {
-            background: #0f172a; border: 1px solid var(--main-gold);
-            padding: 30px; border-radius: 24px; width: 85%; max-width: 450px;
-            text-align: center; box-shadow: 0 0 60px rgba(255, 215, 0, 0.15);
-        }
+        .terms-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(20px); }
+        .terms-box { background: #0f172a; border: 1px solid var(--main-gold); padding: 30px; border-radius: 24px; width: 85%; max-width: 450px; text-align: center; box-shadow: 0 0 60px rgba(255, 215, 0, 0.15); }
         .terms-title { font-size: 1.5rem; color: var(--main-gold); margin-bottom: 25px; font-weight: bold; }
         .terms-list { text-align: left; margin-bottom: 30px; color: #94a3b8; font-size: 1rem; line-height: 1.8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; list-style: none; }
         .terms-list li { margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
         .terms-list i { color: var(--main-gold); margin-top: 5px; }
         
-        .btn-agree {
-            background: linear-gradient(90deg, #FFD700, #FDB931) !important;
-            color: #000 !important;
-            border: 2px solid #fff; 
-            padding: 15px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; cursor: pointer; width: 100%;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-        }
+        .btn-agree { background: linear-gradient(90deg, #FFD700, #FDB931) !important; color: #000 !important; border: 2px solid #fff; padding: 15px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; cursor: pointer; width: 100%; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
         .btn-agree:active { transform: scale(0.95); }
 
     </style>
@@ -272,14 +248,15 @@
     </div>
 
     <div class="game-tabs">
-        <button class="tab-btn active" onclick="switchGame('highcard')">比大小</button>
+        <button class="tab-btn active" onclick="switchGame('wheel')">星之輪盤</button>
+        <button class="tab-btn" onclick="switchGame('highcard')">比大小</button>
         <button class="tab-btn" onclick="switchGame('blackjack')">21點</button>
         <button class="tab-btn" onclick="switchGame('dice')">星運骰</button>
     </div>
 
     <div class="stage" id="gameStage">
         
-        <div class="bet-panel" id="betPanel">
+        <div class="bet-panel" id="betPanel" style="display:none;">
             <div style="color:#94a3b8; margin-bottom:10px;">下注籌碼</div>
             <div class="bet-input-group">
                 <input type="number" id="betAmount" class="bet-input" value="100" min="1">
@@ -287,9 +264,7 @@
             </div>
             
             <div id="diceSelector" class="dice-control-panel" style="display:none;">
-                <div class="dice-header">
-                    <i class="fa-solid fa-meteor"></i> 選擇您的幸運星數
-                </div>
+                <div class="dice-header"><i class="fa-solid fa-meteor"></i> 選擇您的幸運星數</div>
                 <div class="dice-selector">
                     <button class="dice-btn" onclick="selectDiceNumber(1)">1</button>
                     <button class="dice-btn" onclick="selectDiceNumber(2)">2</button>
@@ -303,20 +278,34 @@
             <button class="btn-action" id="btnStart" onclick="startGame()">開始</button>
         </div>
 
-        <div id="gameHighCard" style="display:block;">
+        <div id="gameWheel" style="display:block;">
+            <div style="text-align:center; color:#94a3b8; margin-bottom:20px;">
+                <i class="fa-solid fa-gift"></i> 每日免費福利，人人有獎
+            </div>
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                
+                <canvas id="wheelCanvas" width="300" height="300"></canvas>
+                <button class="wheel-center" onclick="spinWheel()">GO</button>
+                
+                <div id="wheelCooldown" class="cooldown-overlay" style="display:none;">
+                    <i class="fa-solid fa-hourglass-half" style="font-size:3rem; margin-bottom:10px;"></i>
+                    <div>冷卻中</div>
+                    <div class="timer-text" id="cooldownTimer">00:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameHighCard" style="display:none;">
             <div style="display:flex; justify-content:space-around; align-items: center; flex-wrap: wrap;">
                 <div style="flex:1;">
                     <div style="margin-bottom:15px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">莊家 (基準)</div>
-                    <div class="card-area" id="hcHouseCard">
-                        <div class="poker-card card-back"></div>
-                    </div>
+                    <div class="card-area" id="hcHouseCard"><div class="poker-card card-back"></div></div>
                 </div>
                 <div style="font-size:1.5rem; font-weight:bold; color:#64748b; padding:0 10px; font-style:italic;">VS</div>
                 <div style="flex:1;">
                     <div style="margin-bottom:15px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">您 (猜下一張)</div>
-                    <div class="card-area" id="hcPlayerCard">
-                        <div class="poker-card card-back" style="opacity:0.5;"></div>
-                    </div>
+                    <div class="card-area" id="hcPlayerCard"><div class="poker-card card-back" style="opacity:0.5;"></div></div>
                 </div>
             </div>
             <div class="choice-panel" id="hcChoices">
@@ -328,8 +317,7 @@
         <div id="gameBlackjack" style="display:none;">
             <div style="margin-bottom:30px;">
                 <div style="color:#94a3b8; margin-bottom:10px; letter-spacing:1px;">
-                    <i class="fa-solid fa-user-secret"></i> 莊家 
-                    <span id="bjHouseScore" class="score-box" style="color:#fff;">?</span>
+                    <i class="fa-solid fa-user-secret"></i> 莊家 <span id="bjHouseScore" class="score-box" style="color:#fff;">?</span>
                 </div>
                 <div class="card-area" id="bjHouseArea">
                     <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
@@ -338,8 +326,7 @@
             </div>
             <div>
                 <div style="color:var(--main-gold); margin-bottom:10px; font-weight:bold; letter-spacing:1px;">
-                    <i class="fa-solid fa-user"></i> 您 
-                    <span id="bjPlayerScore" class="score-box" style="color:var(--main-gold);">0</span>
+                    <i class="fa-solid fa-user"></i> 您 <span id="bjPlayerScore" class="score-box" style="color:var(--main-gold);">0</span>
                 </div>
                 <div class="card-area" id="bjPlayerArea">
                     <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
@@ -355,9 +342,7 @@
         <div id="gameDice" style="display:none;">
             <div class="dice-container">
                 <div class="dice-glow"></div>
-                <div class="dice-display">
-                    <i class="fa-solid fa-dice-d6" id="diceIcon"></i>
-                </div>
+                <div class="dice-display"><i class="fa-solid fa-dice-d6" id="diceIcon"></i></div>
             </div>
             <div id="diceStatus" style="color:#d946ef; margin-top:20px; font-weight:bold; letter-spacing:1px;">等待星運降臨...</div>
         </div>
@@ -367,12 +352,8 @@
 
     <div class="bottom-float-bar">
         <div class="double-up-panel" id="doubleUpPanel">
-            <button class="btn-collect" onclick="collectWinnings()">
-                <i class="fa-solid fa-check"></i> 收下獎金
-            </button>
-            <button class="btn-double" onclick="doubleUp()">
-                <i class="fa-solid fa-bolt"></i> 加倍再戰
-            </button>
+            <button class="btn-collect" onclick="collectWinnings()"><i class="fa-solid fa-check"></i> 收下獎金</button>
+            <button class="btn-double" onclick="doubleUp()"><i class="fa-solid fa-bolt"></i> 加倍再戰</button>
         </div>
         <button id="btnReset" onclick="resetTable()">再來一局</button>
     </div>
@@ -380,7 +361,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, runTransaction, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, runTransaction, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -398,7 +379,7 @@
 
         let currentUser = null;
         let currentBalance = 0;
-        let currentGame = 'highcard'; 
+        let currentGame = 'wheel'; 
         let selectedDice = null;
         let gameState = { bet: 0, isAllIn: false, pendingWinnings: 0, dealerCard: null, bjPlayerCards: [], bjHouseCards: [], bjDeck: [], isPlayerTurn: true };
 
@@ -424,7 +405,12 @@
         window.closeTerms = () => { document.getElementById('termsOverlay').style.display = 'none'; }
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) { currentUser = user; updateBalanceDisplay(); } else { window.location.href = "login.html"; }
+            if (user) { 
+                currentUser = user; 
+                updateBalanceDisplay();
+                initWheel(); 
+                checkDailyStatus();
+            } else { window.location.href = "login.html"; }
         });
 
         async function updateBalanceDisplay() {
@@ -441,16 +427,194 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
             
+            // 切換顯示區域
             document.getElementById('gameHighCard').style.display = game === 'highcard' ? 'block' : 'none';
             document.getElementById('gameBlackjack').style.display = game === 'blackjack' ? 'block' : 'none';
             document.getElementById('gameDice').style.display = game === 'dice' ? 'block' : 'none';
+            document.getElementById('gameWheel').style.display = game === 'wheel' ? 'block' : 'none';
             
-            // 顯示/隱藏骰子選擇器
+            // 🔥 輪盤模式隱藏下注區
+            document.getElementById('betPanel').style.display = game === 'wheel' ? 'none' : 'block';
+            
+            // 骰子模式顯示選擇器
             document.getElementById('diceSelector').style.display = game === 'dice' ? 'flex' : 'none';
             
             resetTable();
         };
 
+        // --- 🎡 輪盤獎項配置 (12格) ---
+        const prizes = [
+            { text: "+100", value: 100, color: "#eab308" }, // 12點鐘
+            { text: "銘謝", value: 0, color: "#64748b" },
+            { text: "+1", value: 1, color: "#0ea5e9" },
+            { text: "+10", value: 10, color: "#10b981" },
+            { text: "+5", value: 5, color: "#0ea5e9" },
+            { text: "再轉", value: "spin", color: "#f97316" }, // 6點鐘
+            { text: "+50", value: 50, color: "#eab308" },
+            { text: "+1", value: 1, color: "#0ea5e9" },
+            { text: "+5", value: 5, color: "#10b981" },
+            { text: "-10", value: -10, color: "#ef4444" },
+            { text: "+20", value: 20, color: "#10b981" },
+            { text: "+200", value: 200, color: "#8b5cf6" } // 大獎
+        ];
+        
+        let wheelCtx;
+        function initWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            if(!canvas) return;
+            wheelCtx = canvas.getContext('2d');
+            drawWheel(0);
+        }
+
+        function drawWheel(angleOffset) {
+            const ctx = wheelCtx;
+            const centerX = 150;
+            const centerY = 150;
+            const radius = 145;
+            const step = (2 * Math.PI) / prizes.length;
+
+            ctx.clearRect(0, 0, 300, 300);
+            
+            // 外框
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
+            ctx.fillStyle = "#FFD700";
+            ctx.fill();
+
+            for (let i = 0; i < prizes.length; i++) {
+                // 調整起始角度 (-90度讓第一個獎項在正上方)
+                const angle = i * step + angleOffset - (Math.PI / 2);
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + step);
+                ctx.fillStyle = prizes[i].color;
+                ctx.fill();
+                ctx.stroke();
+
+                // 文字
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + step / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 14px Arial";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 2;
+                ctx.fillText(prizes[i].text, radius - 15, 5);
+                ctx.restore();
+            }
+        }
+
+        async function checkDailyStatus() {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if(docSnap.exists()) {
+                const lastSpin = docSnap.data().lastDailySpin ? docSnap.data().lastDailySpin.toDate().getTime() : 0;
+                const now = Date.now();
+                // 24小時冷卻
+                if (now - lastSpin < 24 * 60 * 60 * 1000) {
+                    lockWheel(lastSpin + 24 * 60 * 60 * 1000);
+                }
+            }
+        }
+
+        function lockWheel(targetTime) {
+            const overlay = document.getElementById('wheelCooldown');
+            const timer = document.getElementById('cooldownTimer');
+            overlay.style.display = 'flex';
+            
+            const updateTimer = () => {
+                const now = Date.now();
+                const diff = targetTime - now;
+                if (diff <= 0) {
+                    overlay.style.display = 'none';
+                    return;
+                }
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                timer.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                requestAnimationFrame(updateTimer);
+            };
+            updateTimer();
+        }
+
+        window.spinWheel = async () => {
+            const resultIndex = Math.floor(Math.random() * prizes.length); // 隨機結果
+            const spinDuration = 4500; // 4.5秒
+            
+            // 計算目標角度 (指針固定在上方 270度/-90度)
+            // 每個扇區 30度。要讓第i個扇區停在正上方，需旋轉: (圈數*360) + (360 - i*30) - 15(半個扇區修正)
+            const targetAngle = (360 * 5) + (360 - (resultIndex * (360/12))) - (360/24); 
+            
+            let startTime = null;
+
+            function animate(time) {
+                if (!startTime) startTime = time;
+                const progress = (time - startTime) / spinDuration;
+                
+                if (progress < 1) {
+                    // Cubic Ease Out
+                    const ease = 1 - Math.pow(1 - progress, 3);
+                    const currentAngle = targetAngle * ease;
+                    const rad = (currentAngle * Math.PI) / 180;
+                    drawWheel(rad);
+                    requestAnimationFrame(animate);
+                } else {
+                    const rad = (targetAngle * Math.PI) / 180;
+                    drawWheel(rad);
+                    handleWheelResult(prizes[resultIndex]);
+                }
+            }
+            requestAnimationFrame(animate);
+        };
+
+        async function handleWheelResult(prize) {
+            let msg = "";
+            let amount = 0;
+
+            if (prize.value === "spin") {
+                alert("運氣不錯！獲得「再轉一次」機會！");
+                return; // 不寫入冷卻
+            } else {
+                amount = prize.value;
+                if (amount > 0) {
+                    msg = `恭喜獲得 ${amount} 星星！`;
+                    createConfetti();
+                } else if (amount < 0) {
+                    msg = `哎呀！扣除 ${Math.abs(amount)} 星星`;
+                } else {
+                    msg = "銘謝惠顧，明天再來！";
+                }
+            }
+
+            alert(msg);
+
+            // 更新資料庫
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await runTransaction(db, async (t) => {
+                    const docSnap = await t.get(userRef);
+                    const current = docSnap.data().stars || 0;
+                    t.update(userRef, { 
+                        stars: current + amount,
+                        lastDailySpin: serverTimestamp() // 設定冷卻
+                    });
+                    
+                    t.set(doc(collection(db, "transactions")), {
+                        userId: currentUser.uid,
+                        action: "daily_spin",
+                        itemName: "星之輪盤",
+                        amount: amount,
+                        timestamp: serverTimestamp()
+                    });
+                });
+                updateBalanceDisplay();
+                lockWheel(Date.now() + 24 * 60 * 60 * 1000); // 鎖定
+            } catch(e) { console.error(e); }
+        }
+
+        // --- 共用邏輯 (維持不變) ---
         window.selectDiceNumber = (num) => {
             selectedDice = num;
             document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
@@ -472,7 +636,6 @@
 
             document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back" style="opacity:0.5;"></div>';
             document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back"></div>';
-
             document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
             document.getElementById('bjHouseArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
             document.getElementById('bjControls').style.display = 'none';
@@ -556,39 +719,25 @@
             else startDiceGame();
         };
 
-        // --- 🔥 星運骰邏輯 (修正為 30% 勝率 + 3倍賠率) ---
         function startDiceGame() {
             const diceIcon = document.getElementById('diceIcon');
             const status = document.getElementById('diceStatus');
-            
             diceIcon.className = 'fa-solid fa-dice-d6 dice-rolling';
             status.innerText = '星運流轉中...';
-
             let rollCount = 0;
             const rollAnim = setInterval(() => {
                 const randomFace = Math.floor(Math.random() * 6);
                 diceIcon.className = `fa-solid ${DICE_ICONS[randomFace]}`;
                 rollCount++;
-                if (rollCount > 15) {
-                    clearInterval(rollAnim);
-                    finalizeDice();
-                }
+                if (rollCount > 15) { clearInterval(rollAnim); finalizeDice(); }
             }, 100);
         }
 
         function finalizeDice() {
-            // 🔥 核心機率控制：30% 中獎
             const isWin = Math.random() < 0.3; 
             let result;
-
-            if (isWin) {
-                result = selectedDice; // 強制中獎
-            } else {
-                // 強制不中獎
-                do {
-                    result = Math.floor(Math.random() * 6) + 1;
-                } while (result === selectedDice);
-            }
+            if (isWin) { result = selectedDice; } 
+            else { do { result = Math.floor(Math.random() * 6) + 1; } while (result === selectedDice); }
 
             const diceIcon = document.getElementById('diceIcon');
             diceIcon.className = `fa-solid ${DICE_ICONS[result-1]}`;
@@ -596,7 +745,7 @@
             setTimeout(() => {
                 if (isWin) {
                     document.getElementById('diceStatus').innerText = `星運降臨！開出 ${result}！`;
-                    handleWin(3, "星運爆發！獲得3倍獎金！"); // 賠率 3 倍
+                    handleWin(3, "星運爆發！獲得3倍獎金！");
                 } else {
                     document.getElementById('diceStatus').innerText = `開出 ${result}，星運未到`;
                     handleLose(`開出 ${result}，挑戰失敗`);
@@ -604,17 +753,14 @@
             }, 500);
         }
 
-        // --- 比大小 & 21點 邏輯 (維持不變) ---
         function startHighCard() {
             setTimeout(() => {
                 const deck = createDeck();
                 gameState.bjDeck = deck;
                 gameState.dealerCard = deck.pop();
-                
                 const hArea = document.getElementById('hcHouseCard');
                 hArea.innerHTML = '';
                 hArea.appendChild(createCardElement(gameState.dealerCard));
-                
                 document.getElementById('resultMsg').innerText = "請猜測下一張牌...";
                 document.getElementById('hcChoices').style.display = 'flex';
             }, 500);
@@ -623,21 +769,17 @@
         window.guessHighCard = (choice) => {
             document.getElementById('hcChoices').style.display = 'none';
             let playerCard = gameState.bjDeck.pop();
-
             if (gameState.isAllIn && Math.random() > 0.001) {
                 if (choice === 'big') { while(playerCard.value >= gameState.dealerCard.value && gameState.bjDeck.length > 0) playerCard = gameState.bjDeck.pop(); }
                 else { while(playerCard.value <= gameState.dealerCard.value && gameState.bjDeck.length > 0) playerCard = gameState.bjDeck.pop(); }
             }
-
             const pArea = document.getElementById('hcPlayerCard');
             pArea.innerHTML = '';
             pArea.appendChild(createCardElement(playerCard));
-
             setTimeout(() => {
                 let win = false; let tie = false;
                 if (choice === 'big') { if (playerCard.value > gameState.dealerCard.value) win = true; else if (playerCard.value === gameState.dealerCard.value) tie = true; }
                 else { if (playerCard.value < gameState.dealerCard.value) win = true; else if (playerCard.value === gameState.dealerCard.value) tie = true; }
-
                 if (win) handleWin(2, "猜中！獲勝！"); else if (tie) handleWin(1, "平手"); else handleLose();
             }, 600);
         }
@@ -648,13 +790,11 @@
             gameState.bjHouseCards = [];
             document.getElementById('bjPlayerArea').innerHTML = ''; 
             document.getElementById('bjHouseArea').innerHTML = '';
-
             const dealSequence = async () => {
                 gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
                 gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
                 gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
                 gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false);
-
                 document.getElementById('bjControls').style.display = 'flex';
                 document.getElementById('resultMsg').innerText = "請選擇行動";
                 if(getBJScore(gameState.bjPlayerCards) === 21) bjStand();
@@ -668,7 +808,6 @@
             pDiv.innerHTML = '';
             gameState.bjPlayerCards.forEach(c => pDiv.appendChild(createCardElement(c)));
             document.getElementById('bjPlayerScore').innerText = getBJScore(gameState.bjPlayerCards);
-            
             hDiv.innerHTML = '';
             if (gameState.bjHouseCards.length > 0) {
                 if (!revealDealer && gameState.isPlayerTurn) {
@@ -702,7 +841,6 @@
         window.bjStand = () => {
             document.getElementById('bjControls').style.display = 'none';
             gameState.isPlayerTurn = false;
-            
             if(gameState.isAllIn && Math.random() > 0.001) {
                 const pScore = getBJScore(gameState.bjPlayerCards);
                 while(getBJScore(gameState.bjHouseCards) <= pScore && getBJScore(gameState.bjHouseCards) < 21 && gameState.bjHouseCards.length < 3) gameState.bjHouseCards.push(gameState.bjDeck.pop());
@@ -726,11 +864,8 @@
             resultDiv.innerText = msg; resultDiv.className = "result-msg win";
             document.getElementById('gameStage').classList.add('winner-glow');
             if(multiplier > 1) createConfetti();
-
             const totalWin = Math.floor(gameState.bet * multiplier);
             gameState.pendingWinnings = totalWin;
-
-            // 骰子模式不支援 Double Up，直接領獎
             if(multiplier === 1 || currentGame === 'dice') { collectWinnings(); } 
             else {
                 document.getElementById('doubleUpPanel').style.display = 'flex';
