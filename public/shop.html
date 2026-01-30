@@ -7,14 +7,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* 🎨 星際奢華配色 */
             --main-gold: #FFD700;       
             --accent-amber: #FDB931;    
             --deep-space: #0f172a;      
             --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
-            
-            /* 玻璃擬態 */
             --glass-bg: rgba(15, 23, 42, 0.75); 
             --glass-border: rgba(255, 255, 255, 0.1);
             --card-radius: 16px;
@@ -22,13 +19,12 @@
 
         body {
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
-            color: #e2e8f0;
-            font-family: 'Microsoft JhengHei', sans-serif;
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
             overflow-x: hidden; padding-bottom: 100px; position: relative;
         }
 
-        /* --- 背景星空動畫 --- */
+        /* --- 背景星空 --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
         .stars-distant {
@@ -47,13 +43,8 @@
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* --- 頂部導航 --- */
-        .header {
-            width: 100%; padding: 15px 20px; 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
-            display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
-        }
+        /* --- 介面樣式 --- */
+        .header { width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; position: sticky; top: 0; z-index: 100; }
         .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
         .back-btn:hover { color: #fff; }
         
@@ -65,18 +56,12 @@
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
         }
 
-        /* --- 標題 --- */
         .shop-title { text-align: center; margin: 30px 0 20px 0; }
-        .shop-title h1 {
-            margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900;
-            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
-            -webkit-background-clip: text; color: transparent;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
-        }
+        .shop-title h1 { margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900; background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
         .shop-title p { color: #64748b; margin-top: 5px; font-size: 0.95rem; letter-spacing: 3px; text-transform: uppercase; }
 
-        /* --- 篩選 Tabs (保留架構，但若無商品則無作用) --- */
-        .filter-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding: 5px; width: 90%; max-width: 800px; justify-content: center; }
+        /* 🔥 動態篩選 Tabs */
+        .filter-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding: 5px; width: 90%; max-width: 800px; justify-content: center; flex-wrap: wrap; }
         .filter-btn {
             background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #94a3b8;
             padding: 8px 20px; border-radius: 30px; cursor: pointer; white-space: nowrap; transition: 0.3s;
@@ -87,54 +72,30 @@
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
         }
 
-        /* --- 商品網格 --- */
-        .shop-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px; width: 90%; max-width: 1200px; padding-bottom: 50px;
-        }
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1200px; padding-bottom: 50px; }
+        
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; color: #64748b; font-size: 1.2rem; border: 1px dashed #444; border-radius: 20px; }
 
-        /* 空狀態 */
-        .empty-state {
-            grid-column: 1 / -1; text-align: center; padding: 50px;
-            color: #64748b; font-size: 1.2rem; border: 1px dashed #444; border-radius: 20px;
-        }
-
-        /* --- 商品卡片 --- */
+        /* 商品卡片 */
         .product-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: var(--card-radius); overflow: hidden;
-            display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            backdrop-filter: blur(10px); position: relative;
+            display: flex; flex-direction: column; transition: 0.4s; backdrop-filter: blur(10px); position: relative;
         }
-        .product-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--main-gold);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05);
-        }
+        .product-card:hover { transform: translateY(-8px); border-color: var(--main-gold); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
 
-        .img-container {
-            width: 100%; height: 200px; background: #0f172a; position: relative; overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
-        }
+        .img-container { width: 100%; height: 200px; background: #0f172a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .product-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; opacity: 0.8; }
         .product-card:hover .product-img { transform: scale(1.1); opacity: 1; }
         
-        .stock-tag {
-            position: absolute; top: 10px; right: 10px;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
-            color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+        .stock-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2); }
 
         .card-content { padding: 20px; flex: 1; display: flex; flex-direction: column; }
         .product-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; color: #fff; }
         .product-desc { font-size: 0.9rem; color: #94a3b8; margin-bottom: 15px; flex: 1; line-height: 1.5; }
         
         .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-        .price-tag { 
-            color: var(--main-gold); font-size: 1.3rem; font-weight: 900; 
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px;
-        }
+        .price-tag { color: var(--main-gold); font-size: 1.3rem; font-weight: 900; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; }
         
         .btn-redeem {
             background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
@@ -146,17 +107,8 @@
         .btn-redeem:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
 
         /* Modal */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-            display: none; justify-content: center; align-items: center; z-index: 1000;
-        }
-        .modal-box {
-            background: #1e293b; border: 1px solid var(--main-gold);
-            padding: 30px; border-radius: 20px; width: 90%; max-width: 400px;
-            text-align: center; box-shadow: 0 0 50px rgba(255, 215, 0, 0.15);
-            animation: popIn 0.3s ease;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: #1e293b; border: 1px solid var(--main-gold); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 0 50px rgba(255, 215, 0, 0.15); animation: popIn 0.3s ease; }
         @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
         
         .modal-img { width: 100px; height: 100px; border-radius: 15px; margin-bottom: 15px; object-fit: cover; border: 2px solid var(--main-gold); }
@@ -188,18 +140,14 @@
         <p>STAR REWARDS</p>
     </div>
 
-    <div class="filter-tabs">
+    <div class="filter-tabs" id="filterContainer">
         <button class="filter-btn active" onclick="filterProducts('all')">全部</button>
-        <button class="filter-btn" onclick="filterProducts('digital')">數位裝備</button>
-        <button class="filter-btn" onclick="filterProducts('physical')">實體物資</button>
-        <button class="filter-btn" onclick="filterProducts('special')">限定特權</button>
-    </div>
+        </div>
 
     <div id="loading" style="text-align:center; color:#94a3b8; font-size:1.2rem; margin-top:50px;">
         <i class="fa-solid fa-spinner fa-spin"></i> 物資庫存載入中...
     </div>
-    <div class="shop-grid" id="shopGrid">
-        </div>
+    <div class="shop-grid" id="shopGrid"></div>
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-box">
@@ -217,7 +165,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -242,6 +190,7 @@
             if (user) {
                 currentUser = user;
                 loadBalance();
+                loadCategories(); // 先載入分類
                 loadProducts();
             } else {
                 window.location.href = "login.html";
@@ -256,20 +205,38 @@
             }
         }
 
+        // 🔥 動態載入分類按鈕
+        async function loadCategories() {
+            try {
+                const q = query(collection(db, "categories"), orderBy("name"));
+                const snapshot = await getDocs(q);
+                const container = document.getElementById('filterContainer');
+                
+                // 保留「全部」按鈕，清除其他
+                container.innerHTML = `<button class="filter-btn active" onclick="filterProducts('all')">全部</button>`;
+                
+                snapshot.forEach(doc => {
+                    const cat = doc.data();
+                    const btn = document.createElement('button');
+                    btn.className = 'filter-btn';
+                    btn.innerText = cat.name;
+                    btn.onclick = () => filterProducts(cat.name);
+                    container.appendChild(btn);
+                });
+            } catch(e) { console.error(e); }
+        }
+
         async function loadProducts() {
             try {
                 const querySnapshot = await getDocs(collection(db, "products"));
                 allProducts = [];
                 querySnapshot.forEach((doc) => {
-                    if (doc.data().active !== false) {
-                        allProducts.push({ id: doc.id, ...doc.data() });
-                    }
+                    if (doc.data().active !== false) allProducts.push({ id: doc.id, ...doc.data() });
                 });
-                
                 document.getElementById('loading').style.display = 'none';
                 renderProducts(allProducts);
             } catch (e) {
-                console.error("Error loading products:", e);
+                console.error(e);
                 document.getElementById('loading').innerHTML = "載入失敗，請稍後再試";
             }
         }
@@ -278,14 +245,8 @@
             const grid = document.getElementById('shopGrid');
             grid.innerHTML = '';
             
-            // 🔥 重點：若無商品，顯示空狀態，不使用假資料
             if (products.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fa-solid fa-box-open" style="font-size:3rem; margin-bottom:10px; color:#475569;"></i>
-                        <br>庫存整備中，請稍候再訪...
-                    </div>
-                `;
+                grid.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open" style="font-size:3rem; margin-bottom:10px; color:#475569;"></i><br>目前沒有此類物資</div>`;
                 return;
             }
             
@@ -296,7 +257,7 @@
                 grid.innerHTML += `
                     <div class="product-card">
                         <div class="img-container">
-                            <span class="stock-tag">${p.stock !== undefined ? '剩餘: ' + p.stock : '無限量'}</span>
+                            <span class="stock-tag">${p.stock !== undefined && p.stock !== null ? '剩餘: ' + p.stock : '無限量'}</span>
                             <img src="${imgUrl}" class="product-img">
                         </div>
                         <div class="card-content">
@@ -314,9 +275,14 @@
             });
         }
 
+        // 修改篩選邏輯，讓點擊的按鈕變色
         window.filterProducts = (type) => {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // 找出點擊的按鈕並設為 active (因為按鈕是動態生成的，需要用 event.target)
+            // 如果是透過 JS 呼叫 (非點擊)，則不做 DOM 操作 (初始化時)
+            if(event) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+            }
 
             if (type === 'all') {
                 renderProducts(allProducts);
@@ -390,7 +356,6 @@
                 btn.disabled = false; btn.innerText = "確認兌換";
             }
         }
-
     </script>
 </body>
 </html>

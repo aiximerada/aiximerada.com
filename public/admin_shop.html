@@ -3,129 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>後勤補給管理 - 玉露寶庫</title>
+    <title>星兌換倉庫 - 指揮官後台</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.9); }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --success-green: #10b981;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.85); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --panel-bg: rgba(30, 41, 59, 0.6);
+        }
+
         body {
-            background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
-            color: #fff; font-family: 'Microsoft JhengHei', monospace;
-            padding: 20px; min-height: 100vh;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column;
+            overflow-x: hidden;
         }
 
-        h1 { color: var(--admin-gold); border-bottom: 2px solid var(--admin-gold); display: inline-block; padding-bottom: 10px; }
-        
-        .nav { margin-bottom: 30px; }
-        .nav a { color: #ccc; text-decoration: none; margin-right: 15px; border: 1px solid #555; padding: 5px 15px; border-radius: 20px; transition:0.3s; }
-        .nav a:hover { border-color: var(--admin-gold); color: #fff; }
-
-        /* 佈局 */
-        .container { display: flex; flex-wrap: wrap; gap: 20px; }
-        .section { flex: 1; min-width: 300px; background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 15px; }
-        
-        h2 { color: #00f3ff; margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
-
-        /* 表單 */
-        input, select, button { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; border-radius: 5px; border: 1px solid #555; background: rgba(0,0,0,0.3); color: #fff; }
-        select option { background: #000; }
-        button { background: var(--admin-gold); color: #000; font-weight: bold; cursor: pointer; border: none; }
-        button:hover { box-shadow: 0 0 15px rgba(242, 201, 76, 0.4); }
-
-        /* 分類管理區 */
-        .cat-manager { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .cat-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .cat-tag { 
-            background: #333; border: 1px solid #555; padding: 5px 10px; border-radius: 20px; 
-            font-size: 0.85rem; display: flex; align-items: center; gap: 5px; 
+        /* --- 背景星空 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
         }
-        .cat-del { cursor: pointer; color: #ff4757; }
-        .cat-del:hover { color: #fff; }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* 紀錄表格 */
-        .log-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        .log-table th { text-align: left; color: #888; padding: 10px; border-bottom: 1px solid #555; }
-        .log-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .log-plus { color: #00ff9d; }
-        .log-minus { color: #ff4757; }
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 30px; 
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 8px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
+        .header h1 { font-size: 1.5rem; margin: 0; color: var(--main-gold); letter-spacing: 2px; font-weight: 900; }
 
-        /* 獎品預覽 */
-        .prize-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 10px; border-radius: 8px; }
-        .prize-img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
-        .info-col { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-        .badge { font-size: 0.75rem; background: #00f3ff; color:#000; padding: 2px 6px; border-radius: 4px; width: fit-content; font-weight: bold; }
-        .btn-del { width: auto; padding: 5px 10px; background: #ff4757; margin: 0; font-size: 0.8rem; color: #fff; }
+        /* --- Grid 佈局 --- */
+        .admin-container {
+            display: grid; grid-template-columns: 3fr 1fr; 
+            gap: 20px; padding: 20px; height: calc(100vh - 70px); box-sizing: border-box;
+        }
+        @media (max-width: 900px) { .admin-container { grid-template-columns: 1fr; height: auto; } }
+
+        /* --- 左側：庫存管理 --- */
+        .inventory-section {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 20px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title { font-size: 1.2rem; color: #fff; font-weight: bold; border-left: 4px solid var(--nebula-blue); padding-left: 15px; }
+        
+        .btn-add {
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #000; border: none; padding: 10px 25px; border-radius: 30px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); transition: 0.3s;
+        }
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(255, 215, 0, 0.4); }
+
+        .product-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;
+            overflow-y: auto; padding-right: 10px; flex: 1;
+        }
+        
+        /* 商品卡片 */
+        .admin-card {
+            background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+            overflow: hidden; position: relative; transition: 0.3s;
+        }
+        .admin-card:hover { border-color: var(--main-gold); transform: translateY(-3px); }
+        
+        .card-img { width: 100%; height: 150px; object-fit: cover; opacity: 0.8; }
+        .card-body { padding: 15px; }
+        .card-title { font-weight: bold; color: #fff; margin-bottom: 5px; font-size: 1.1rem; }
+        .card-meta { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .card-price { color: var(--main-gold); font-weight: bold; }
+        
+        .card-actions { display: flex; gap: 10px; }
+        .btn-action { flex: 1; padding: 6px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; color: #fff; }
+        .btn-edit { background: #3b82f6; }
+        .btn-delete { background: #ef4444; }
+
+        /* --- 右側：紀錄 --- */
+        .log-section {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 20px; display: flex; flex-direction: column; overflow: hidden; max-height: 100%;
+        }
+        .log-list { overflow-y: auto; flex: 1; padding-right: 5px; }
+        
+        .log-item {
+            background: var(--panel-bg); border-left: 3px solid #64748b;
+            padding: 10px; margin-bottom: 10px; border-radius: 4px; font-size: 0.9rem;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .log-item.pending { border-left-color: var(--main-gold); background: rgba(255, 215, 0, 0.05); }
+        .log-item.completed { border-left-color: var(--success-green); opacity: 0.7; }
+        .log-item.rejected { border-left-color: var(--danger-red); opacity: 0.5; }
+
+        .log-header { display: flex; justify-content: space-between; color: #fff; font-weight: bold; }
+        .log-user { color: #94a3b8; font-size: 0.8rem; }
+        .log-time { color: #64748b; font-size: 0.75rem; text-align: right; }
+        
+        .log-actions { display: flex; gap: 5px; margin-top: 5px; }
+        .btn-log { flex: 1; padding: 4px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-size: 0.8rem; }
+        .btn-approve { background: var(--success-green); }
+        .btn-reject { background: var(--danger-red); }
+
+        /* Modal & Upload */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--main-gold);
+            padding: 30px; border-radius: 15px; width: 90%; max-width: 500px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.15); color: #fff;
+            max-height: 90vh; overflow-y: auto;
+        }
+        
+        /* 🔥 拖曳上傳區樣式 */
+        .drop-zone {
+            width: 100%; height: 150px; border: 2px dashed #475569; border-radius: 12px;
+            background: rgba(0,0,0,0.2); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer;
+            margin-bottom: 20px; transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .drop-zone:hover, .drop-zone.drag-active { border-color: var(--main-gold); background: rgba(255, 215, 0, 0.05); }
+        .drop-zone img { width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; opacity: 0.6; }
+        .drop-zone i { font-size: 2rem; color: #94a3b8; margin-bottom: 10px; z-index: 2; }
+        .drop-zone span { color: #94a3b8; font-size: 0.9rem; z-index: 2; }
+        .upload-spinner { position: absolute; z-index:10; font-size:2rem; color:var(--main-gold); display:none; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 0.9rem; }
+        .form-input {
+            width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid #475569;
+            color: #fff; border-radius: 8px; box-sizing: border-box;
+        }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        .btn-submit { background: var(--main-gold); color: #000; padding: 10px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-close { background: transparent; color: #aaa; border: 1px solid #555; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-right: 10px; }
+
     </style>
 </head>
 <body>
 
-    <div class="nav">
-        <a href="vip_area.html"><i class="fa-solid fa-chevron-left"></i> 會員總部</a>
-        <a href="admin_members.html">人員管理</a>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
     </div>
 
-    <h1><i class="fa-solid fa-warehouse"></i> 後勤補給管理</h1>
+    <div class="header">
+        <h1><i class="fa-solid fa-warehouse"></i> 星兌換倉庫</h1>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+    </div>
 
-    <div class="container">
-        <div class="section">
-            
-            <h2><i class="fa-solid fa-tags"></i> 分類管理</h2>
-            <div class="cat-manager">
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="newCatInput" placeholder="輸入新分類名稱 (如: 戰術裝備)" style="margin-bottom:0;">
-                    <button onclick="addCategory()" style="width: auto; margin-bottom:0; background:#00f3ff;"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <div class="cat-list" id="catListDisplay">
-                    </div>
+    <div class="admin-container">
+        
+        <div class="inventory-section">
+            <div class="section-header">
+                <div class="section-title">兌換倉庫 (Warehouse)</div>
+                <button class="btn-add" onclick="openModal()"><i class="fa-solid fa-plus"></i> 新增物品</button>
             </div>
-
-            <h2><i class="fa-solid fa-upload"></i> 新增補給項目</h2>
-            
-            <label style="font-size:0.8rem; color:#aaa;">選擇分類</label>
-            <select id="prizeCategory">
-                <option value="" disabled selected>-- 請先建立或選擇分類 --</option>
-                </select>
-
-            <input type="text" id="prizeName" placeholder="物資名稱">
-            
-            <div style="display: flex; gap: 10px;">
-                <input type="number" id="prizeCost" placeholder="所需星星 ⭐">
-                <input type="number" id="prizeQty" placeholder="庫存數量 📦">
+            <div class="product-grid" id="productGrid">
+                <div style="color:#64748b; text-align:center; grid-column:1/-1;">讀取中...</div>
             </div>
-
-            <label style="font-size:0.8rem; color:#aaa;">預覽圖 (自動壓縮)</label>
-            <input type="file" id="prizeImg" accept="image/*">
-            
-            <button onclick="addPrize()" id="btnUpload">上架補給品</button>
-
-            <div id="prizeList">
-                </div>
         </div>
 
-        <div class="section" style="flex: 2;">
-            <h2><i class="fa-solid fa-list-ul"></i> 點數異動與兌換紀錄</h2>
-            <div style="overflow-x:auto;">
-                <table class="log-table">
-                    <thead>
-                        <tr>
-                            <th>時間</th>
-                            <th>指揮官</th>
-                            <th>動作/物品</th>
-                            <th>點數</th>
-                            <th>備註</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logList">
-                        <tr><td colspan="5">載入中...</td></tr>
-                    </tbody>
-                </table>
+        <div class="log-section">
+            <div class="section-header">
+                <div class="section-title">兌換請求 (Logs)</div>
+            </div>
+            <div class="log-list" id="redemptionList">
+                <div style="color:#64748b; text-align:center;">尚無待辦事項</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="modal-overlay" id="productModal">
+        <div class="modal-box">
+            <h2 style="margin-top:0; color:var(--main-gold);" id="modalTitle">物資設定</h2>
+            <input type="hidden" id="editId">
+            <input type="hidden" id="uploadedImageUrl">
+            <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <img id="previewImg" style="display:none;">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>點擊拍照或拖曳圖片至此</span>
+                <i class="fa-solid fa-spinner fa-spin upload-spinner" id="uploadSpinner"></i>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">物品名稱</label>
+                <input type="text" id="pName" class="form-input" placeholder="例如：星際咖啡券">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">分類標籤 (自定義)</label>
+                <input type="text" id="pType" class="form-input" placeholder="例如：實體、數位、食品...">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">兌換價格 (星星)</label>
+                    <input type="number" id="pCost" class="form-input" value="100">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label class="form-label">庫存 (留空為無限)</label>
+                    <input type="number" id="pStock" class="form-input">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">描述</label>
+                <input type="text" id="pDesc" class="form-input" placeholder="簡短介紹...">
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-close" onclick="closeModal()">取消</button>
+                <button class="btn-submit" id="btnSubmit" onclick="saveProduct()">確認入庫</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, runTransaction, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -138,182 +265,216 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // --- 0. 圖片壓縮 ---
-        const compressImage = async (file) => {
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "login.html";
+            else {
+                loadProducts();
+                loadRedemptions();
+            }
+        });
+
+        function loadProducts() {
+            const q = query(collection(db, "products"), orderBy("cost"));
+            onSnapshot(q, (snapshot) => {
+                const grid = document.getElementById('productGrid');
+                grid.innerHTML = '';
+                
+                snapshot.forEach(docSnap => {
+                    const p = docSnap.data();
+                    const id = docSnap.id;
+                    if(p.active === false) return; // 忽略已刪除
+
+                    const stockText = p.stock ? `剩餘: ${p.stock}` : '無限量';
+                    
+                    grid.innerHTML += `
+                        <div class="admin-card">
+                            <img src="${p.image || 'https://via.placeholder.com/200?text=No+Image'}" class="card-img">
+                            <div class="card-body">
+                                <div class="card-title">${p.name}</div>
+                                <div class="card-meta">
+                                    <span class="card-price"><i class="fa-solid fa-star"></i> ${p.cost}</span>
+                                    <span>${stockText}</span>
+                                </div>
+                                <div style="font-size:0.8rem; color:#64748b; margin-bottom:10px;">分類: ${p.type || '未分類'}</div>
+                                <div class="card-actions">
+                                    <button class="btn-action btn-edit" onclick="editProduct('${id}')">編輯</button>
+                                    <button class="btn-action btn-delete" onclick="deleteProduct('${id}')">下架</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function loadRedemptions() {
+            const q = query(collection(db, "redemptions"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('redemptionList');
+                list.innerHTML = '';
+
+                snapshot.forEach(docSnap => {
+                    const r = docSnap.data();
+                    const id = docSnap.id;
+                    const time = r.timestamp ? new Date(r.timestamp.toDate()).toLocaleString() : '剛剛';
+                    
+                    let actionsHtml = '';
+                    if(r.status === 'pending') {
+                        actionsHtml = `
+                            <div class="log-actions">
+                                <button class="btn-log btn-approve" onclick="handleRedemption('${id}', 'approve')">核銷</button>
+                                <button class="btn-log btn-reject" onclick="handleRedemption('${id}', 'reject', ${r.cost}, '${r.userId}')">駁回</button>
+                            </div>
+                        `;
+                    }
+
+                    list.innerHTML += `
+                        <div class="log-item ${r.status}">
+                            <div class="log-header">
+                                <span>${r.productName}</span>
+                                <span style="color:var(--main-gold)">-${r.cost}</span>
+                            </div>
+                            <div class="log-user">${r.userEmail}</div>
+                            <div class="log-time">${time} • ${r.status.toUpperCase()}</div>
+                            ${actionsHtml}
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        // --- 圖片上傳邏輯 ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-active');
+            if(e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => { if(fileInput.files.length) handleFileUpload(fileInput.files[0]); });
+
+        async function handleFileUpload(file) {
+            if(!file.type.startsWith('image/')) return alert("請上傳圖片");
+            document.getElementById('uploadSpinner').style.display = 'block';
+            
+            try {
+                const compressedBlob = await compressImage(file);
+                const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, compressedBlob);
+                const url = await getDownloadURL(storageRef);
+                
+                document.getElementById('uploadedImageUrl').value = url;
+                const img = document.getElementById('previewImg');
+                img.src = url; img.style.display = 'block';
+            } catch(e) { alert("上傳失敗: " + e.message); } 
+            finally { document.getElementById('uploadSpinner').style.display = 'none'; }
+        }
+
+        function compressImage(file) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.src = URL.createObjectURL(file);
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; 
-                    const scaleSize = MAX_WIDTH / img.width;
-                    const newWidth = (scaleSize < 1) ? MAX_WIDTH : img.width;
-                    const newHeight = (scaleSize < 1) ? img.height * scaleSize : img.height;
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7); 
+                    const MAX = 800; 
+                    let w = img.width, h = img.height;
+                    if(w>h){ if(w>MAX){ h*=MAX/w; w=MAX; } } else { if(h>MAX){ w*=MAX/h; h=MAX; } }
+                    canvas.width = w; canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
                 };
-                img.onerror = (err) => reject(err);
+                img.onerror = reject;
             });
-        };
-
-        // --- 1. 分類管理 (Categories) ---
-        window.addCategory = async () => {
-            const name = document.getElementById('newCatInput').value.trim();
-            if(!name) return;
-            try {
-                await addDoc(collection(db, "shop_categories"), { name: name, createdAt: serverTimestamp() });
-                document.getElementById('newCatInput').value = '';
-            } catch(e) { alert("新增失敗:" + e.message); }
         }
 
-        window.deleteCategory = async (id) => {
-            if(confirm("確定刪除此分類？(已上架的商品分類標籤不會消失，但無法再選擇此分類)")) {
-                await deleteDoc(doc(db, "shop_categories", id));
-            }
-        }
-
-        // 監聽分類變化並更新 UI
-        onSnapshot(query(collection(db, "shop_categories"), orderBy("createdAt", "asc")), (snapshot) => {
-            const list = document.getElementById('catListDisplay');
-            const select = document.getElementById('prizeCategory');
+        // --- 商品 CRUD ---
+        window.openModal = (id = null) => {
+            document.getElementById('productModal').style.display = 'flex';
+            document.getElementById('btnSubmit').disabled = false;
             
-            list.innerHTML = '';
-            select.innerHTML = '<option value="" disabled selected>-- 選擇分類 --</option>';
-
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                // 更新標籤列表
-                list.innerHTML += `
-                    <div class="cat-tag">
-                        ${data.name} 
-                        <i class="fa-solid fa-xmark cat-del" onclick="deleteCategory('${docSnap.id}')"></i>
-                    </div>`;
-                // 更新下拉選單
-                select.innerHTML += `<option value="${data.name}">${data.name}</option>`;
-            });
-        });
-
-        // --- 2. 上架獎品 ---
-        window.addPrize = async () => {
-            const category = document.getElementById('prizeCategory').value;
-            const name = document.getElementById('prizeName').value;
-            const cost = parseInt(document.getElementById('prizeCost').value);
-            const qty = parseInt(document.getElementById('prizeQty').value);
-            const fileInput = document.getElementById('prizeImg');
-            const file = fileInput.files[0];
-            const btn = document.getElementById('btnUpload');
-
-            if(!category || !name || isNaN(cost) || isNaN(qty) || !file) return alert("請填寫完整資訊並選擇分類");
-
-            btn.disabled = true;
-            btn.innerText = "壓縮並上傳中...";
-
-            try {
-                const compressedFile = await compressImage(file);
-                const storageRef = ref(storage, `prizes/${Date.now()}_compressed.jpg`);
-                await uploadBytes(storageRef, compressedFile);
-                const url = await getDownloadURL(storageRef);
-
-                await addDoc(collection(db, "prizes"), {
-                    category: category,
-                    name: name,
-                    cost: cost,
-                    quantity: qty,
-                    imageUrl: url,
-                    active: true,
-                    createdAt: serverTimestamp()
-                });
-
-                alert("上架成功！");
-                // location.reload(); // 不需要重整，因為有監聽器或重新載入函式
-                loadPrizes(); // 手動重載列表
-                // 清空表單
-                document.getElementById('prizeName').value = '';
-                document.getElementById('prizeImg').value = '';
-
-            } catch(e) {
-                console.error(e);
-                alert("上架失敗: " + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "上架補給品";
+            if(!id) {
+                document.getElementById('modalTitle').innerText = "新增物品";
+                document.getElementById('editId').value = "";
+                document.getElementById('uploadedImageUrl').value = "";
+                document.getElementById('previewImg').style.display = 'none';
+                document.querySelectorAll('input:not([type=hidden])').forEach(i => i.value = "");
             }
         };
 
-        // --- 3. 載入現有獎品 ---
-        async function loadPrizes() {
-            const list = document.getElementById('prizeList');
-            const q = query(collection(db, "prizes"), orderBy("createdAt", "desc"));
-            const snapshot = await getDocs(q);
+        window.editProduct = async (id) => {
+            document.getElementById('productModal').style.display = 'flex';
+            document.getElementById('modalTitle').innerText = "編輯物品";
+            document.getElementById('editId').value = id;
             
-            list.innerHTML = '';
-            snapshot.forEach(docSnap => {
+            const docSnap = await getDoc(doc(db, "products", id));
+            if(docSnap.exists()) {
                 const data = docSnap.data();
-                list.innerHTML += `
-                    <div class="prize-item">
-                        <img src="${data.imageUrl}" class="prize-img">
-                        <div class="info-col">
-                            <div style="font-weight:bold;">${data.name}</div>
-                            <span class="badge">${data.category}</span>
-                            <div style="font-size:0.8rem; color:#ccc;">
-                                <span style="color:#f2c94c;">⭐ ${data.cost}</span> | 
-                                <span style="color:#00ff9d;">📦 剩餘: ${data.quantity}</span>
-                            </div>
-                        </div>
-                        <button class="btn-del" onclick="deletePrize('${docSnap.id}', '${data.imageUrl}')">刪除</button>
-                    </div>
-                `;
-            });
-        }
-
-        window.deletePrize = async (id, imgUrl) => {
-            if(confirm("確定永久刪除此商品？")) {
-                try {
-                    if(imgUrl) {
-                        const imgRef = ref(storage, imgUrl);
-                        await deleteObject(imgRef).catch(e => console.log('Image already gone'));
-                    }
-                    await deleteDoc(doc(db, "prizes", id));
-                    loadPrizes();
-                } catch(e) { alert("刪除錯誤:" + e.message); }
-            }
-        }
-
-        // --- 4. 載入全域日誌 ---
-        async function loadLogs() {
-            const tbody = document.getElementById('logList');
-            const q = query(collection(db, "transactions"), orderBy("timestamp", "desc"));
-            const snapshot = await getDocs(q);
-
-            tbody.innerHTML = '';
-            if(snapshot.empty) { tbody.innerHTML = '<tr><td colspan="5">暫無紀錄</td></tr>'; return; }
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知';
-                const colorClass = data.amount >= 0 ? 'log-plus' : 'log-minus';
-                const sign = data.amount >= 0 ? '+' : '';
+                document.getElementById('pName').value = data.name;
+                document.getElementById('pType').value = data.type || '';
+                document.getElementById('pCost').value = data.cost;
+                document.getElementById('pStock').value = data.stock || '';
+                document.getElementById('pDesc').value = data.desc || '';
                 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${date}</td>
-                        <td>${data.userName || data.userEmail}</td>
-                        <td>${data.itemName || data.action}</td>
-                        <td class="${colorClass}">${sign}${data.amount}</td>
-                        <td style="color:#aaa;">${data.note || '-'}</td>
-                    </tr>
-                `;
-            });
-        }
+                if(data.image) {
+                    document.getElementById('uploadedImageUrl').value = data.image;
+                    const img = document.getElementById('previewImg');
+                    img.src = data.image; img.style.display = 'block';
+                } else {
+                    document.getElementById('previewImg').style.display = 'none';
+                }
+            }
+        };
 
-        loadPrizes();
-        loadLogs();
+        window.closeModal = () => document.getElementById('productModal').style.display = 'none';
+
+        window.saveProduct = async () => {
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('pName').value,
+                image: document.getElementById('uploadedImageUrl').value,
+                type: document.getElementById('pType').value, // 自定義分類
+                cost: parseInt(document.getElementById('pCost').value),
+                stock: document.getElementById('pStock').value ? parseInt(document.getElementById('pStock').value) : null,
+                desc: document.getElementById('pDesc').value,
+                active: true
+            };
+
+            if(!data.name || !data.cost) return alert("請填寫名稱與價格");
+
+            try {
+                if(id) await updateDoc(doc(db, "products", id), data);
+                else await addDoc(collection(db, "products"), data);
+                closeModal();
+            } catch(e) { alert("儲存失敗"); }
+        };
+
+        window.deleteProduct = async (id) => {
+            if(confirm("確定要下架此商品嗎？")) await updateDoc(doc(db, "products", id), { active: false });
+        };
+
+        window.handleRedemption = async (rid, action, cost, uid) => {
+            if(!confirm(`確定要${action==='approve'?'核銷':'駁回'}？`)) return;
+            try {
+                await runTransaction(db, async (t) => {
+                    const rRef = doc(db, "redemptions", rid);
+                    if(action === 'reject') {
+                        const userRef = doc(db, "users", uid);
+                        const userDoc = await t.get(userRef);
+                        t.update(userRef, { stars: (userDoc.data().stars||0) + cost });
+                        t.set(doc(collection(db, "transactions")), { userId: uid, action: "admin_adjust", itemName: "兌換駁回退款", amount: cost, timestamp: serverTimestamp() });
+                    }
+                    t.update(rRef, { status: action === 'approve' ? 'completed' : 'rejected' });
+                });
+                alert("操作完成");
+            } catch(e) { alert("操作失敗"); }
+        };
     </script>
 </body>
 </html>
