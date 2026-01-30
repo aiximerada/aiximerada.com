@@ -7,71 +7,127 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --neon-gold: #f2c94c;
-            --neon-blue: #00f3ff;
-            --neon-green: #00ff9d;
-            --neon-red: #ff4757;
-            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
-        }
-        body {
-            background: var(--bg-gradient); color: #fff; font-family: 'Microsoft JhengHei', sans-serif;
-            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
-            background-attachment: fixed;
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --success-green: #10b981;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.65); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --item-bg: rgba(30, 41, 59, 0.6);
         }
 
-        .header {
-            width: 100%; padding: 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; position: sticky; top: 0; z-index: 10;
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 50px; position: relative;
         }
-        .back-btn { color: #fff; text-decoration: none; font-size: 1.1rem; }
+
+        /* --- 背景星空動畫 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 20px; 
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
         
         /* 總資產卡片 */
         .balance-card {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            width: 90%; max-width: 600px; padding: 25px; border-radius: 20px;
-            margin-top: 30px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            width: 90%; max-width: 600px; padding: 30px; border-radius: 20px;
+            margin-top: 30px; text-align: center; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px); position: relative; overflow: hidden;
         }
-        .balance-title { color: #aaa; font-size: 0.9rem; margin-bottom: 5px; }
-        .balance-val { font-size: 3rem; font-weight: bold; color: var(--neon-gold); text-shadow: 0 0 20px rgba(242, 201, 76, 0.3); }
+        /* 卡片光暈 */
+        .balance-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.05), transparent 60%);
+            pointer-events: none;
+        }
+
+        .balance-title { color: #94a3b8; font-size: 1rem; margin-bottom: 5px; letter-spacing: 2px; text-transform: uppercase; }
+        .balance-val { 
+            font-size: 3.5rem; font-weight: 900; color: var(--main-gold); 
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(to bottom, #fff, var(--main-gold));
+            -webkit-background-clip: text; color: transparent;
+        }
 
         /* 列表容器 */
-        .history-container { width: 90%; max-width: 600px; margin-top: 20px; padding-bottom: 50px; }
-        .section-title { color: var(--neon-blue); border-left: 4px solid var(--neon-blue); padding-left: 10px; margin-bottom: 15px; font-size: 1.1rem; }
+        .history-container { width: 90%; max-width: 600px; margin-top: 30px; padding-bottom: 50px; }
+        .section-title { 
+            color: var(--nebula-blue); border-left: 4px solid var(--nebula-blue); 
+            padding-left: 15px; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; letter-spacing: 1px;
+        }
 
+        /* 交易項目 */
         .tx-item {
-            background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding: 15px; display: flex; align-items: center; justify-content: space-between;
+            background: var(--item-bg); border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 18px 15px; display: flex; align-items: center; justify-content: space-between;
             transition: 0.3s;
         }
-        .tx-item:first-child { border-radius: 15px 15px 0 0; }
-        .tx-item:last-child { border-radius: 0 0 15px 15px; border-bottom: none; }
-        .tx-item:hover { background: rgba(255,255,255,0.08); }
+        .tx-item:first-child { border-radius: 16px 16px 0 0; }
+        .tx-item:last-child { border-radius: 0 0 16px 16px; border-bottom: none; }
+        .tx-item:hover { background: rgba(255,255,255,0.1); }
 
         .tx-icon {
-            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; margin-right: 15px; background: rgba(255,255,255,0.1);
+            width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; margin-right: 15px; background: rgba(0,0,0,0.3);
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.05);
         }
-        .tx-icon.plus { color: var(--neon-green); border: 1px solid var(--neon-green); }
-        .tx-icon.minus { color: var(--neon-red); border: 1px solid var(--neon-red); }
+        .tx-icon.plus { color: var(--success-green); border: 1px solid var(--success-green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+        .tx-icon.minus { color: var(--danger-red); border: 1px solid var(--danger-red); box-shadow: 0 0 10px rgba(255, 71, 87, 0.2); }
 
         .tx-info { flex: 1; }
-        .tx-name { font-weight: bold; font-size: 1rem; margin-bottom: 3px; }
-        .tx-date { font-size: 0.8rem; color: #888; }
+        .tx-name { font-weight: bold; font-size: 1.05rem; margin-bottom: 4px; color: #fff; }
+        .tx-date { font-size: 0.85rem; color: #64748b; }
         
-        .tx-amount { font-weight: bold; font-size: 1.1rem; }
-        .plus-amount { color: var(--neon-green); }
-        .minus-amount { color: var(--neon-red); }
+        .tx-amount { font-weight: bold; font-size: 1.2rem; font-family: monospace; }
+        .plus-amount { color: var(--success-green); text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+        .minus-amount { color: var(--danger-red); text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
 
-        #loading { margin-top: 50px; color: #aaa; }
+        #loading { margin-top: 50px; color: #94a3b8; text-align: center; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
     <div class="header">
         <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
-        <span style="color:#aaa; font-size:0.9rem;">星存摺</span>
+        <span style="color:#94a3b8; font-size:0.9rem; letter-spacing:1px;">STAR PASSBOOK</span>
     </div>
 
     <div class="balance-card">
@@ -81,7 +137,7 @@
 
     <div class="history-container">
         <div class="section-title">近期變動紀錄</div>
-        <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在下載數據鏈...</div>
+        <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在同步區塊鏈數據...</div>
         <div id="txList">
             </div>
     </div>
@@ -124,6 +180,25 @@
             } catch(e) { console.error("Balance Error", e); }
         }
 
+        // 🔥 核心：翻譯與顯示邏輯
+        function formatItemName(rawName, action) {
+            // 1. 字典對照
+            const dict = {
+                'highcard': '星維加斯 - 比大小',
+                'blackjack': '星維加斯 - 21點',
+            };
+
+            let name = dict[rawName] || rawName; // 如果有對應就翻譯，沒有就顯示原文(如 admin_adjust 的備註)
+
+            // 2. 判斷動作類型增加後綴
+            if (action === 'gamble_bet') name += ' (下注)';
+            else if (action === 'gamble_win') name += ' (獲勝)';
+            else if (action === 'redeem') name = '兌換: ' + name;
+            else if (action === 'admin_adjust') name = '系統調整: ' + name;
+
+            return name;
+        }
+
         async function loadTransactions(uid) {
             const list = document.getElementById('txList');
             const loading = document.getElementById('loading');
@@ -139,23 +214,24 @@
                 loading.style.display = 'none';
 
                 if (snapshot.empty) {
-                    list.innerHTML = '<div style="text-align:center; color:#555; padding:20px;">尚無任何紀錄</div>';
+                    list.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px; border:1px dashed #444; border-radius:10px;">尚無任何紀錄</div>';
                     return;
                 }
 
                 snapshot.forEach(docSnap => {
                     const data = docSnap.data();
                     const isIncome = data.amount >= 0;
+                    
+                    // 樣式設定
                     const amountClass = isIncome ? 'plus-amount' : 'minus-amount';
                     const iconClass = isIncome ? 'plus' : 'minus';
-                    const icon = isIncome ? 'fa-plus' : 'fa-minus';
+                    const icon = isIncome ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'; // 改用趨勢圖標
                     const sign = isIncome ? '+' : '';
                     
                     const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知時間';
                     
-                    let title = data.itemName || data.note || "點數變動";
-                    if (data.action === 'redeem') title = `兌換: ${data.itemName}`;
-                    if (data.action === 'admin_adjust') title = `系統調整: ${data.itemName}`;
+                    // 🔥 呼叫翻譯函式
+                    let title = formatItemName(data.itemName, data.action);
 
                     list.innerHTML += `
                         <div class="tx-item">

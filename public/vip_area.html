@@ -12,12 +12,12 @@
 
     <style>
         :root {
-            /* 🎨 星際奢華配色移植 */
-            --main-gold: #FFD700;       /* 純金 */
-            --accent-amber: #FDB931;    /* 琥珀金 */
-            --deep-space: #0f172a;      /* 深空藍黑 */
-            --nebula-blue: #00f3ff;     /* 星雲青 */
-            --danger-red: #ff4757;      /* 警示紅 */
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
             
             /* 玻璃擬態 */
             --glass-bg: rgba(15, 23, 42, 0.65); 
@@ -26,7 +26,6 @@
         }
 
         body {
-            /* 基底深空漸層 */
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
             color: #e2e8f0;
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -38,7 +37,7 @@
             overflow-x: hidden;
         }
 
-        /* --- 🔥 背景星空動畫 (與星維加斯同步) --- */
+        /* --- 背景星空動畫 --- */
         .space-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: -1; overflow: hidden; pointer-events: none;
@@ -78,11 +77,7 @@
             animation: occasionalFlash 12s ease-in-out infinite;
         }
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
-        @keyframes occasionalFlash { 
-            0%, 40%, 100% { opacity: 0; } 
-            55% { opacity: 1; filter: brightness(2) blur(1px); } 
-            85% { opacity: 0; } 
-        }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
         /* --- 頂部區域 --- */
         .logout-btn {
@@ -114,7 +109,6 @@
         }
         .user-id { color: var(--main-gold); font-weight: bold; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
 
-        /* 點數徽章 (移植版) */
         .stars-badge {
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1));
             border: 1px solid var(--accent-amber);
@@ -134,7 +128,7 @@
             position: relative; z-index: 2;
         }
 
-        /* --- 卡片樣式 (玻璃擬態 + 金色質感) --- */
+        /* --- 卡片樣式 --- */
         .secret-card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
@@ -147,7 +141,6 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         
-        /* 懸停特效 */
         .secret-card:hover { 
             transform: translateY(-8px); 
             background: var(--card-hover-bg); 
@@ -158,7 +151,6 @@
         .secret-card i { 
             font-size: 3rem; margin-bottom: 20px; transition: 0.4s; 
             filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
-            /* 預設顏色統一為銀灰色，特定卡片再覆蓋 */
             color: #cbd5e1; 
         }
         .secret-card:hover i { transform: scale(1.1) rotate(5deg); color: var(--main-gold) !important; filter: drop-shadow(0 0 15px var(--main-gold)); }
@@ -177,19 +169,13 @@
             font-weight: bold; color: #000; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
-        /* --- 特殊卡片顏色覆蓋 --- */
-        /* 讓不同功能的卡片在未懸停時也有微弱的識別色，但保持低調 */
+        /* 特定卡片顏色微調 */
         .card-vegas { border-bottom: 3px solid var(--main-gold); }
         .card-vegas i { color: var(--main-gold); }
-        
         .card-admin { border-bottom: 3px solid var(--danger-red); }
-        .card-admin i { color: #f87171; }
-
         .card-shop { border-bottom: 3px solid var(--accent-amber); }
-        
         .card-files { border-bottom: 3px solid var(--nebula-blue); }
 
-        /* --- 分隔線 --- */
         .admin-divider {
             grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px;
             display: flex; align-items: center; gap: 20px; 
@@ -232,15 +218,15 @@
     <div class="secret-grid">
         
         <a href="profile.html" class="secret-card">
-            <i class="fa-solid fa-id-card"></i>
-            <h3>檔案設定</h3>
-            <p>修改頭像、暱稱與個人化配色。</p>
+            <i class="fa-solid fa-user-pen"></i>
+            <h3>個人設定</h3>
+            <p>更改用戶名稱及頭像</p>
         </a>
 
         <a href="shop.html" class="secret-card card-shop">
-            <i class="fa-solid fa-store" style="color: var(--accent-amber);"></i>
-            <h3>星際補給站</h3>
-            <p>消耗能源兌換裝備與物資。</p>
+            <i class="fa-solid fa-gift" style="color: var(--accent-amber);"></i>
+            <h3>星星兌換</h3>
+            <p>利用星星兌換獎品</p>
         </a>
 
         <a href="point_history.html" class="secret-card">
@@ -252,26 +238,32 @@
         <a href="casino.html" class="secret-card card-vegas">
             <i class="fa-solid fa-dice" style="text-shadow: 0 0 15px var(--main-gold);"></i>
             <h3>星維加斯</h3>
-            <p>勇氣與運氣的終極試煉場。</p>
+            <p>以小博大，距離發財只有一步</p>
         </a>
 
         <a href="temp_share.html" class="secret-card card-files">
-            <i class="fa-solid fa-file-shield" style="color: var(--nebula-blue);"></i>
-            <h3>加密傳輸艙</h3>
-            <p>會員專屬加密通道，限時檔案傳輸。</p>
+            <i class="fa-solid fa-cloud-arrow-up" style="color: var(--nebula-blue);"></i>
+            <h3>資料傳輸</h3>
+            <p>限時加密資料傳輸功能</p>
         </a>
 
         <a href="whiteboard_lobby.html" class="secret-card">
             <span class="tag" style="background: var(--nebula-blue);">LIVE</span>
-            <i class="fa-solid fa-pen-to-square"></i>
-            <h3>星際白板</h3>
-            <p>多人即時協作，圖層與權限控管。</p>
+            <i class="fa-solid fa-paintbrush"></i>
+            <h3>星空繪圖板</h3>
+            <p>多人實時會畫功能</p>
         </a>
 
         <a href="upload_zone.html" class="secret-card">
-            <i class="fa-solid fa-toolbox"></i>
-            <h3>資源工具區</h3>
-            <p>圖庫上傳投稿與其他公開工具。</p>
+            <i class="fa-solid fa-image"></i>
+            <h3>圖片傳輸器</h3>
+            <p>壓縮圖片，提供暫存</p>
+        </a>
+
+        <a href="admin_gallery.html" class="secret-card card-files">
+            <i class="fa-solid fa-images" style="color: #e879f9;"></i>
+            <h3>圖庫</h3>
+            <p>已上傳圖片查看區</p>
         </a>
         
         <div class="admin-divider"><i class="fa-solid fa-user-shield"></i> 管理員後台</div>
@@ -302,13 +294,6 @@
             <i class="fa-solid fa-ticket"></i>
             <h3>邀請碼中心</h3>
             <p>生成與管理入隊邀請碼。</p>
-        </a>
-
-        <a href="admin_gallery.html" class="secret-card card-admin">
-            <span class="tag" style="background: var(--main-gold);">ADMIN</span>
-            <i class="fa-solid fa-images"></i>
-            <h3>圖庫管理</h3>
-            <p>檢視與下載所有投稿圖片。</p>
         </a>
 
         <a href="admin_transfers.html" class="secret-card card-admin">
@@ -375,7 +360,6 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         
-                        // 顯示點數
                         const stars = data.stars !== undefined ? data.stars : 0;
                         document.getElementById('star-count').innerText = stars;
 
@@ -386,7 +370,6 @@
                             userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
                             userAvatarEl.style.borderColor = data.themeColor;
                             userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
-                            // 標題改為金色，不隨個人主題色變動，保持統一奢華感
                         }
                     }
                 } catch(e) { console.log("Profile load error", e); }
