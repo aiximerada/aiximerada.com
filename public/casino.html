@@ -84,11 +84,10 @@
         .stage.loser-shake { animation: shake 0.4s ease-in-out; border-color: var(--danger-red); }
         @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 
-        /* --- 🎡 星之輪盤 (三角指針版) --- */
+        /* --- 🎡 星之輪盤樣式 --- */
         .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
         #wheelCanvas { width: 100%; height: 100%; transform-origin: 50% 50%; transition: transform 4s cubic-bezier(0.1, 0.99, 0.1, 0.99); }
         
-        /* 🔥 金色倒三角指針 */
         .wheel-pointer {
             position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
             width: 0; height: 0; z-index: 10;
@@ -361,7 +360,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, runTransaction, collection, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, runTransaction, collection, serverTimestamp, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -544,7 +543,6 @@
             const spinDuration = 4500; // 4.5秒
             
             // 計算目標角度 (指針固定在上方 270度/-90度)
-            // 每個扇區 30度。要讓第i個扇區停在正上方，需旋轉: (圈數*360) + (360 - i*30) - 15(半個扇區修正)
             const targetAngle = (360 * 5) + (360 - (resultIndex * (360/12))) - (360/24); 
             
             let startTime = null;
@@ -634,6 +632,11 @@
             document.getElementById('gameStage').classList.remove('winner-glow', 'loser-shake');
             document.getElementById('hcChoices').style.display = 'none';
 
+            // 清空骰子
+            document.getElementById('diceIcon').className = 'fa-solid fa-dice-d6';
+            document.getElementById('diceStatus').innerText = '等待星運降臨...';
+            
+            // 清空牌桌
             document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back" style="opacity:0.5;"></div>';
             document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back"></div>';
             document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
@@ -642,9 +645,6 @@
             document.getElementById('bjPlayerScore').innerText = '0';
             document.getElementById('bjHouseScore').innerText = '?';
 
-            document.getElementById('diceIcon').className = 'fa-solid fa-dice-d6';
-            document.getElementById('diceStatus').innerText = '等待星運降臨...';
-            
             gameState.pendingWinnings = 0;
         };
 
@@ -734,7 +734,7 @@
         }
 
         function finalizeDice() {
-            const isWin = Math.random() < 0.3; 
+            const isWin = Math.random() < 0.3; // 30%
             let result;
             if (isWin) { result = selectedDice; } 
             else { do { result = Math.floor(Math.random() * 6) + 1; } while (result === selectedDice); }
@@ -871,6 +871,18 @@
                 document.getElementById('doubleUpPanel').style.display = 'flex';
                 document.querySelector('.btn-collect').innerHTML = `<i class="fa-solid fa-sack-dollar"></i> 收下 ${totalWin}`;
                 document.querySelector('.btn-double').innerHTML = `<i class="fa-solid fa-bolt"></i> ${totalWin} 加倍再戰`;
+            }
+
+            // 🔥 自動發布榮譽榜 (Auto Honor)
+            if (totalWin >= 500) {
+                try {
+                    addDoc(collection(db, "bulletin_board"), {
+                        type: 'honor',
+                        content: `恭喜 ${currentUser.displayName} 在【${currentGame === 'dice' ? '星運骰' : (currentGame === 'highcard' ? '比大小' : '21點')}】贏得了 ${totalWin} 星星！`,
+                        authorId: 'system',
+                        timestamp: serverTimestamp()
+                    });
+                } catch(e) { console.log("Honor post failed", e); }
             }
         }
 

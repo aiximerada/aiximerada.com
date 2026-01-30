@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>星員公告欄 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* 🎨 星際配色 */
+            --main-gold: #FFD700;
+            --accent-amber: #FDB931;
+            --deep-space: #0f172a;
+            --nebula-blue: #00f3ff;
+            --danger-red: #ff4757;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 80px; position: relative;
+        }
+
+        /* --- ✨ 星維加斯同款背景特效 --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        
+        .stars-distant {
+            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
+            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
+        }
+        
+        .stars-mid {
+            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
+            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
+        }
+        
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+        }
+
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition: 0.3s; }
+        .back-btn:hover { color: #fff; }
+
+        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+        }
+        .page-title p { color: #64748b; margin-top: 5px; font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase; }
+
+        /* --- 分頁 Tabs --- */
+        .tabs-container {
+            width: 90%; max-width: 800px; display: flex; gap: 10px; margin-bottom: 20px;
+            background: rgba(255,255,255,0.05); padding: 5px; border-radius: 50px;
+        }
+        .tab {
+            flex: 1; padding: 12px; text-align: center; cursor: pointer; border-radius: 40px;
+            color: #94a3b8; transition: 0.3s; font-weight: bold; position: relative; overflow: hidden; white-space: nowrap;
+        }
+        .tab.active { color: #000; background: var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        .tab:hover:not(.active) { color: #fff; background: rgba(255,255,255,0.1); }
+
+        /* --- 內容列表 --- */
+        .feed-container { width: 90%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
+
+        /* 通用卡片樣式 */
+        .post-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 25px; position: relative;
+            backdrop-filter: blur(16px); animation: slideUp 0.4s ease;
+            display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        @keyframes slideUp { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
+
+        /* 系統公告樣式 */
+        .post-card.type-system { border-left: 4px solid var(--main-gold); }
+        .post-card.type-system .post-header { color: var(--main-gold); }
+        .post-card.type-system::after {
+            content: 'OFFICIAL'; position: absolute; top: 15px; right: 15px;
+            font-size: 0.7rem; color: var(--main-gold); border: 1px solid var(--main-gold);
+            padding: 2px 8px; border-radius: 4px; opacity: 0.8; font-weight: bold;
+        }
+
+        /* 榮譽榜單樣式 */
+        .post-card.type-honor {
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.6));
+        }
+        .post-card.type-honor .post-content { font-size: 1.1rem; color: #fff; text-align: center; font-weight: bold; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
+        .post-card.type-honor i { color: var(--main-gold); margin-right: 8px; font-size: 1.2rem; }
+
+        /* 許願池樣式 */
+        .post-card.type-feedback { border-left: 4px solid var(--nebula-blue); }
+        .post-card.type-feedback .post-header { color: var(--nebula-blue); display: flex; align-items: center; gap: 10px; }
+        .user-badge { font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; color: #ccc; }
+
+        .post-header { font-size: 1rem; font-weight: bold; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .post-content { color: #e2e8f0; line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; }
+        .post-footer { font-size: 0.8rem; color: #64748b; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .btn-delete { color: var(--danger-red); cursor: pointer; border: none; background: none; font-size: 0.85rem; transition: 0.3s; }
+        .btn-delete:hover { color: #fff; text-decoration: underline; }
+
+        /* 發文按鈕 (Admin) */
+        .fab-post {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #000; border: none; font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            display: none; align-items: center; justify-content: center;
+            transition: 0.3s; z-index: 50;
+        }
+        .fab-post:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
+
+        /* 許願輸入框 */
+        .feedback-input-area {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: rgba(15, 23, 42, 0.95); padding: 15px; box-sizing: border-box;
+            border-top: 1px solid var(--glass-border); display: none;
+            gap: 10px; z-index: 50; backdrop-filter: blur(10px);
+        }
+        .chat-input {
+            flex: 1; padding: 12px 20px; border-radius: 30px; border: 1px solid #475569;
+            background: rgba(0,0,0,0.5); color: #fff; outline: none; transition: 0.3s;
+        }
+        .chat-input:focus { border-color: var(--nebula-blue); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+        .btn-send {
+            background: var(--nebula-blue); color: #000; border: none;
+            width: 45px; height: 45px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-send:hover { transform: scale(1.1); box-shadow: 0 0 15px var(--nebula-blue); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--main-gold); padding: 30px;
+            border-radius: 20px; width: 90%; max-width: 500px; color: #fff;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.9rem; }
+        .form-input, textarea { 
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.3); 
+            border: 1px solid #475569; color: #fff; border-radius: 8px; box-sizing: border-box; 
+            font-size: 1rem; transition: 0.3s;
+        }
+        .form-input:focus, textarea:focus { border-color: var(--main-gold); outline: none; }
+        
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-modal { padding: 10px 25px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-confirm { background: var(--main-gold); color: #000; }
+        .btn-confirm:hover { box-shadow: 0 0 15px var(--main-gold); }
+        .btn-cancel { background: transparent; border: 1px solid #64748b; color: #ccc; }
+        .btn-cancel:hover { background: rgba(255,255,255,0.1); }
+
+        .empty-state { text-align: center; color: #64748b; padding: 50px; font-size: 1.1rem; }
+
+    </style>
+</head>
+<body>
+
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="star-field stars-mid"></div>
+        <div class="gold-twinklers"></div>
+    </div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+    </div>
+
+    <div class="page-title">
+        <h1>星員公告欄</h1>
+        <p>STAR BULLETIN & FEEDBACK</p>
+    </div>
+
+    <div class="tabs-container">
+        <div class="tab active" onclick="switchTab('system')">系統公告</div>
+        <div class="tab" onclick="switchTab('honor')">榮譽榜單</div>
+        <div class="tab" onclick="switchTab('feedback')">許願池</div>
+    </div>
+
+    <div class="feed-container" id="feedContainer">
+        <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i> 正在建立通訊...</div>
+    </div>
+
+    <button class="fab-post" id="adminPostBtn" onclick="openAdminModal()">
+        <i class="fa-solid fa-pen-nib"></i>
+    </button>
+
+    <div class="feedback-input-area" id="feedbackInputArea">
+        <input type="text" class="chat-input" id="feedbackInput" placeholder="許願新功能或回報問題..." onkeypress="if(event.key==='Enter') sendFeedback()">
+        <button class="btn-send" onclick="sendFeedback()"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-box">
+            <h3 style="color:var(--main-gold); margin-top:0;">發布系統公告</h3>
+            <div class="form-group">
+                <label class="form-label">公告內容</label>
+                <textarea id="adminContent" rows="5" placeholder="輸入更新日誌或維修通知..."></textarea>
+            </div>
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeModal()">取消</button>
+                <button class="btn-modal btn-confirm" onclick="postSystemAnnouncement()">發布</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, deleteDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentRole = 'member';
+        let currentTab = 'system';
+        let unsubscribe = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if(userDoc.exists()) {
+                    currentRole = userDoc.data().role || 'member';
+                }
+                loadPosts();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        window.switchTab = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const feedbackInput = document.getElementById('feedbackInputArea');
+            const adminBtn = document.getElementById('adminPostBtn');
+            
+            feedbackInput.style.display = (tab === 'feedback') ? 'flex' : 'none';
+            adminBtn.style.display = (tab === 'system' && currentRole === 'admin') ? 'flex' : 'none';
+
+            loadPosts();
+        };
+
+        function loadPosts() {
+            const container = document.getElementById('feedContainer');
+            if(unsubscribe) unsubscribe();
+
+            const q = query(
+                collection(db, "bulletin_board"), 
+                where("type", "==", currentTab), 
+                orderBy("timestamp", "desc")
+            );
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                if(snapshot.empty) {
+                    container.innerHTML = '<div class="empty-state">尚無資料</div>';
+                    return;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Just now';
+                    const isAuthor = currentUser && data.authorId === currentUser.uid;
+                    const canDelete = currentRole === 'admin' || isAuthor;
+
+                    let cardHtml = '';
+
+                    if (currentTab === 'system') {
+                        cardHtml = `
+                            <div class="post-card type-system">
+                                <div class="post-header"><i class="fa-solid fa-bullhorn"></i> 系統公告</div>
+                                <div class="post-content">${formatContent(data.content)}</div>
+                                <div class="post-footer">
+                                    <span>${date}</span>
+                                    ${canDelete ? `<button class="btn-delete" onclick="deletePost('${docSnap.id}')">刪除</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    } else if (currentTab === 'honor') {
+                        cardHtml = `
+                            <div class="post-card type-honor">
+                                <div class="post-content">
+                                    <i class="fa-solid fa-medal"></i> ${data.content}
+                                </div>
+                                <div class="post-footer" style="justify-content:center; margin-top:5px; opacity:0.7;">
+                                    ${date}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Feedback
+                        cardHtml = `
+                            <div class="post-card type-feedback">
+                                <div class="post-header">
+                                    <span>${data.authorName}</span>
+                                    <span class="user-badge">${data.authorRole === 'admin' ? '指揮官' : '星員'}</span>
+                                </div>
+                                <div class="post-content">${formatContent(data.content)}</div>
+                                <div class="post-footer">
+                                    <span>${date}</span>
+                                    ${canDelete ? `<button class="btn-delete" onclick="deletePost('${docSnap.id}')">刪除</button>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML += cardHtml;
+                });
+            });
+        }
+
+        function formatContent(text) {
+            return text.replace(/\n/g, '<br>');
+        }
+
+        window.postSystemAnnouncement = async () => {
+            const content = document.getElementById('adminContent').value;
+            if(!content) return;
+
+            try {
+                await addDoc(collection(db, "bulletin_board"), {
+                    type: 'system',
+                    content: content,
+                    authorId: currentUser.uid,
+                    authorName: '系統',
+                    timestamp: serverTimestamp()
+                });
+                closeModal();
+                document.getElementById('adminContent').value = '';
+            } catch(e) { alert("發布失敗"); }
+        };
+
+        window.sendFeedback = async () => {
+            const input = document.getElementById('feedbackInput');
+            const content = input.value;
+            if(!content) return;
+
+            try {
+                await addDoc(collection(db, "bulletin_board"), {
+                    type: 'feedback',
+                    content: content,
+                    authorId: currentUser.uid,
+                    authorName: currentUser.displayName || '匿名星員',
+                    authorRole: currentRole,
+                    timestamp: serverTimestamp()
+                });
+                input.value = '';
+            } catch(e) { alert("留言失敗"); }
+        };
+
+        window.deletePost = async (id) => {
+            if(confirm("確定刪除此則訊息？")) {
+                await deleteDoc(doc(db, "bulletin_board", id));
+            }
+        };
+
+        window.openAdminModal = () => document.getElementById('adminModal').style.display = 'flex';
+        window.closeModal = () => document.getElementById('adminModal').style.display = 'none';
+
+    </script>
+</body>
+</html>
