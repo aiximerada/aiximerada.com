@@ -9,6 +9,7 @@
         :root {
             --neon-gold: #f2c94c;
             --neon-blue: #00f3ff;
+            --neon-green: #00ff9d;
             --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2c4e 50%, #0b1021 100%);
         }
         body {
@@ -29,23 +30,31 @@
             color: var(--neon-gold); padding: 5px 15px; border-radius: 20px; font-weight: bold;
         }
 
-        /* 分類篩選器 */
+        /* 分頁切換 */
+        .tabs { 
+            display: flex; width: 90%; max-width: 800px; margin-top: 20px; 
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .tab { 
+            flex: 1; text-align: center; padding: 15px; cursor: pointer; color: #888; transition: 0.3s; 
+            font-size: 1.1rem;
+        }
+        .tab.active { color: var(--neon-blue); border-bottom: 3px solid var(--neon-blue); font-weight: bold; }
+        .tab:hover { color: #fff; }
+
+        /* --- 補給區樣式 --- */
         .filter-bar {
             margin-top: 20px; display: flex; gap: 10px; overflow-x: auto; padding: 10px; width: 90%; max-width: 800px;
-            justify-content: flex-start; /* 讓按鈕靠左，方便滑動 */
+            justify-content: flex-start;
         }
-        /* 隱藏滾動條 */
         .filter-bar::-webkit-scrollbar { display: none; }
         
         .filter-btn {
             background: rgba(255,255,255,0.1); border: 1px solid #555; color: #aaa;
-            padding: 8px 15px; border-radius: 20px; cursor: pointer; white-space: nowrap; transition: 0.3s;
-            flex-shrink: 0;
+            padding: 8px 15px; border-radius: 20px; cursor: pointer; white-space: nowrap; transition: 0.3s; flex-shrink: 0;
         }
         .filter-btn.active { background: var(--neon-blue); color: #000; border-color: var(--neon-blue); font-weight: bold; }
-        .filter-btn:hover { border-color: var(--neon-blue); color: #fff; }
 
-        /* 商品網格 */
         .shop-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 20px; width: 90%; max-width: 800px; margin-top: 20px; padding-bottom: 50px;
@@ -62,25 +71,32 @@
             position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); 
             color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;
         }
-
         .p-img { width: 100%; height: 160px; object-fit: cover; background: #000; }
         .p-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
         .p-name { font-size: 1rem; font-weight: bold; margin-bottom: 5px; }
-        
         .p-meta { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; display: flex; justify-content: space-between; }
         .p-cost { color: var(--neon-gold); font-weight: bold; }
         .p-qty { color: #00ff9d; }
-        .p-qty.out { color: #ff4757; }
-
+        
         .btn-buy {
             margin-top: auto; width: 100%; padding: 10px; border: none; border-radius: 8px;
-            background: var(--neon-blue); color: #000; font-weight: bold; cursor: pointer;
-            transition: 0.2s;
+            background: var(--neon-blue); color: #000; font-weight: bold; cursor: pointer; transition: 0.2s;
         }
         .btn-buy:hover { background: #fff; box-shadow: 0 0 10px #fff; }
-        .btn-buy:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
 
-        .loading { margin-top: 50px; color: #aaa; }
+        /* --- 倉庫區樣式 (歷史紀錄) --- */
+        .history-list { width: 90%; max-width: 800px; margin-top: 20px; }
+        .history-card {
+            background: rgba(255,255,255,0.05); border-left: 4px solid var(--neon-green);
+            padding: 15px; margin-bottom: 15px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .h-main { display: flex; flex-direction: column; gap: 5px; }
+        .h-name { font-size: 1.1rem; font-weight: bold; color: #fff; }
+        .h-time { font-size: 0.8rem; color: #888; }
+        .h-cost { font-weight: bold; color: var(--neon-gold); font-size: 1rem; }
+
+        .loading { margin-top: 50px; color: #aaa; text-align: center;}
     </style>
 </head>
 <body>
@@ -97,17 +113,28 @@
         <p style="color:#aaa; font-size:0.9rem;">消耗星際能源兌換裝備</p>
     </div>
 
-    <div class="filter-bar" id="filterBar">
-        <button class="filter-btn active" onclick="filterItems('all', this)">全部</button>
-        </div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('shop')"><i class="fa-solid fa-cart-shopping"></i> 補給列表</div>
+        <div class="tab" onclick="switchTab('history')"><i class="fa-solid fa-box-open"></i> 個人倉庫</div>
+    </div>
 
-    <div id="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描物資...</div>
-    <div class="shop-grid" id="grid"></div>
+    <div id="shopSection">
+        <div class="filter-bar" id="filterBar">
+            <button class="filter-btn active" onclick="filterItems('all', this)">全部</button>
+            </div>
+        <div id="loadingShop" class="loading"><i class="fa-solid fa-spinner fa-spin"></i> 正在掃描物資...</div>
+        <div class="shop-grid" id="grid"></div>
+    </div>
+
+    <div id="historySection" style="display:none; flex-direction:column; align-items:center;">
+        <div id="loadingHistory" class="loading" style="display:none;"><i class="fa-solid fa-spinner fa-spin"></i> 讀取紀錄中...</div>
+        <div class="history-list" id="historyList"></div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, runTransaction, query, orderBy, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, runTransaction, query, orderBy, where, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -129,8 +156,8 @@
             if (user) {
                 currentUser = user;
                 updateBalanceDisplay(user.uid);
-                await loadCategories(); // 先載入分類
-                await loadProducts();   // 再載入商品
+                await loadCategories();
+                await loadProducts();
             } else {
                 window.location.href = "login.html";
             }
@@ -143,16 +170,29 @@
             }
         }
 
-        // --- 1. 載入動態分類 ---
+        // --- UI 切換 ---
+        window.switchTab = (tabName) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if(tabName === 'shop') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('shopSection').style.display = 'block';
+                document.getElementById('historySection').style.display = 'none';
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('shopSection').style.display = 'none';
+                document.getElementById('historySection').style.display = 'flex';
+                loadMyHistory(); // 切換時讀取紀錄
+            }
+        }
+
+        // --- 1. 載入分類 ---
         async function loadCategories() {
             const filterBar = document.getElementById('filterBar');
             try {
                 const q = query(collection(db, "shop_categories"), orderBy("createdAt", "asc"));
                 const snapshot = await getDocs(q);
-                
                 snapshot.forEach(doc => {
                     const name = doc.data().name;
-                    // 新增按鈕
                     const btn = document.createElement('button');
                     btn.className = 'filter-btn';
                     btn.innerText = name;
@@ -172,16 +212,13 @@
                 allProducts.push({ id: doc.id, ...doc.data() });
             });
 
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loadingShop').style.display = 'none';
             renderGrid('all');
         }
 
-        // --- 3. 渲染與篩選 ---
         window.filterItems = (category, btnElement) => {
-            // 更新按鈕樣式
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             if(btnElement) btnElement.classList.add('active');
-            
             renderGrid(category);
         }
 
@@ -198,11 +235,10 @@
 
             items.forEach(data => {
                 const qty = data.quantity !== undefined ? data.quantity : 0;
-                const isOutOfStock = qty <= 0;
-                const qtyClass = isOutOfStock ? 'p-qty out' : 'p-qty';
-                const qtyText = isOutOfStock ? '補給耗盡' : `庫存: ${qty}`;
-                const btnState = isOutOfStock ? 'disabled' : '';
-                const btnText = isOutOfStock ? '缺貨中' : '立即兌換';
+                
+                // 因為我們現在有自動刪除機制，理論上這裡不會讀到 qty <= 0 的商品
+                // 但為了防呆 (例如手動修改資料庫)，還是保留檢查
+                if(qty <= 0) return; // 不顯示已售完的商品
 
                 grid.innerHTML += `
                     <div class="product-card">
@@ -212,10 +248,10 @@
                             <div class="p-name">${data.name}</div>
                             <div class="p-meta">
                                 <span class="p-cost">⭐ ${data.cost}</span>
-                                <span class="${qtyClass}">${qtyText}</span>
+                                <span class="p-qty">庫存: ${qty}</span>
                             </div>
-                            <button class="btn-buy" ${btnState} onclick="buyItem('${data.id}', '${data.name}', ${data.cost})">
-                                ${btnText}
+                            <button class="btn-buy" onclick="buyItem('${data.id}', '${data.name}', ${data.cost})">
+                                立即兌換
                             </button>
                         </div>
                     </div>
@@ -223,7 +259,7 @@
             });
         }
 
-        // --- 4. 購買邏輯 ---
+        // --- 3. 購買邏輯 (含自動刪除) ---
         window.buyItem = async (prizeId, prizeName, cost) => {
             if(!confirm(`確定要花費 ${cost} 點兌換「${prizeName}」嗎？`)) return;
 
@@ -240,23 +276,31 @@
 
                     const prizeRef = doc(db, "prizes", prizeId);
                     const prizeDoc = await transaction.get(prizeRef);
-                    if (!prizeDoc.exists()) throw "商品已下架";
+                    if (!prizeDoc.exists()) throw "該物資已被搶購一空！(已下架)";
 
                     const currentStars = userDoc.data().stars || 0;
                     const currentQty = prizeDoc.data().quantity !== undefined ? prizeDoc.data().quantity : 0;
 
                     if (currentStars < cost) throw "星際能源不足！";
-                    if (currentQty <= 0) throw "手慢了一步，補給已耗盡！";
+                    if (currentQty <= 0) throw "庫存不足"; // 雙重檢查
 
+                    // 執行扣款
                     transaction.update(userRef, { stars: currentStars - cost });
-                    transaction.update(prizeRef, { quantity: currentQty - 1 });
 
+                    // 🔥 自動刪除邏輯：如果只剩1個，買完變0，直接刪除文件
+                    if (currentQty - 1 <= 0) {
+                        transaction.delete(prizeRef);
+                    } else {
+                        transaction.update(prizeRef, { quantity: currentQty - 1 });
+                    }
+
+                    // 寫入交易日誌 (供歷史紀錄查詢)
                     const newLogRef = doc(collection(db, "transactions"));
                     transaction.set(newLogRef, {
                         userId: currentUser.uid,
                         userEmail: currentUser.email,
                         userName: currentUser.displayName,
-                        action: "redeem",
+                        action: "redeem", // 標記為兌換
                         itemName: prizeName,
                         amount: -cost,
                         note: "商城兌換",
@@ -264,17 +308,71 @@
                     });
                 });
 
-                alert(`兌換成功！\n已獲得：${prizeName}`);
+                alert(`兌換成功！\n已獲得：${prizeName}\n請至「個人倉庫」查看紀錄。`);
                 updateBalanceDisplay(currentUser.uid);
-                loadProducts(); // 重新載入以更新庫存
+                loadProducts(); // 重新載入 (會自動隱藏已刪除的商品)
                 
             } catch (e) {
                 console.error(e);
                 alert("交易失敗: " + e);
+            } finally {
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
         };
+
+        // --- 4. 歷史紀錄 (個人倉庫) ---
+        async function loadMyHistory() {
+            const list = document.getElementById('historyList');
+            const loader = document.getElementById('loadingHistory');
+            
+            list.innerHTML = '';
+            loader.style.display = 'block';
+
+            try {
+                // 查詢 transactions 集合，篩選 userId 和 action
+                // 注意：如果這行報錯需要建立索引，請按 F12 看 Console 的連結
+                const q = query(
+                    collection(db, "transactions"), 
+                    where("userId", "==", currentUser.uid),
+                    where("action", "==", "redeem"),
+                    orderBy("timestamp", "desc")
+                );
+                
+                const snapshot = await getDocs(q);
+                loader.style.display = 'none';
+
+                if (snapshot.empty) {
+                    list.innerHTML = '<div style="text-align:center; color:#888;">尚未兌換任何物品</div>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : '未知時間';
+                    
+                    list.innerHTML += `
+                        <div class="history-card">
+                            <div class="h-main">
+                                <div class="h-name"><i class="fa-solid fa-gift"></i> ${data.itemName}</div>
+                                <div class="h-time">${date}</div>
+                            </div>
+                            <div class="h-cost">-${Math.abs(data.amount)} ⭐</div>
+                        </div>
+                    `;
+                });
+
+            } catch(e) {
+                console.error(e);
+                loader.style.display = 'none';
+                // 處理索引錯誤的友善提示
+                if(e.message.includes("requires an index")) {
+                    list.innerHTML = '<div style="color:#ff4757; text-align:center;">系統正在建立索引中，請稍後再試...</div>';
+                } else {
+                    list.innerHTML = `<div style="color:#ff4757; text-align:center;">讀取錯誤: ${e.message}</div>`;
+                }
+            }
+        }
     </script>
 </body>
 </html>

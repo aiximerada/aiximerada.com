@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人員管理 V2 - 玉露寶庫</title>
+    <title>人員管理 V3 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.9); --neon-blue: #00f3ff; }
+        :root { --admin-gold: #f2c94c; --bg: #0b1021; --panel: rgba(20,30,50,0.95); --neon-blue: #00f3ff; --neon-red: #ff4757; }
         body {
             background: linear-gradient(135deg, #0a0510 0%, #1a0b2e 50%, #0b1021 100%);
             color: #fff; font-family: 'Microsoft JhengHei', monospace;
@@ -20,9 +20,7 @@
         .nav a:hover { border-color: var(--admin-gold); color: #fff; background: rgba(242, 201, 76, 0.1); }
 
         /* 搜尋列 */
-        .search-bar {
-            margin-bottom: 25px; display: flex; gap: 10px; max-width: 500px;
-        }
+        .search-bar { margin-bottom: 25px; display: flex; gap: 10px; max-width: 500px; }
         .search-input {
             flex: 1; padding: 12px; background: rgba(255,255,255,0.1); border: 1px solid #444; 
             color: #fff; border-radius: 8px; font-family: inherit;
@@ -33,13 +31,12 @@
         .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         
         .card {
-            background: var(--panel); border: 1px solid #444; padding: 20px; border-radius: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid #444; padding: 20px; border-radius: 12px;
             position: relative; transition: 0.3s;
         }
         .card:hover { border-color: var(--admin-gold); box-shadow: 0 0 15px rgba(242, 201, 76, 0.15); transform: translateY(-3px); }
         
         .card.is-admin { border: 1px solid #ff00ff; background: rgba(50, 0, 50, 0.6); }
-        .card.is-admin:hover { box-shadow: 0 0 15px rgba(255, 0, 255, 0.3); }
 
         .info-row { margin-bottom: 8px; font-size: 0.9rem; color: #ccc; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .info-row i { width: 20px; text-align: center; color: var(--admin-gold); }
@@ -66,25 +63,34 @@
         }
         .modal-box {
             background: #1a1a2e; border: 1px solid var(--admin-gold);
-            padding: 30px; border-radius: 15px; width: 90%; max-width: 450px;
+            padding: 30px; border-radius: 15px; width: 90%; max-width: 500px;
             box-shadow: 0 0 30px rgba(242, 201, 76, 0.2); position: relative;
+            max-height: 90vh; overflow-y: auto;
         }
         .modal-title { font-size: 1.5rem; color: var(--admin-gold); margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .modal-close { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; color: #aaa; }
         
-        .modal-group { margin-bottom: 15px; }
-        .modal-label { display: block; color: #888; margin-bottom: 5px; font-size: 0.9rem; }
+        /* 區塊分隔 */
+        .modal-section { margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; }
+        .sec-title { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; border-left: 3px solid var(--admin-gold); padding-left: 8px; }
+
+        .modal-label { display: block; color: #888; margin-bottom: 5px; font-size: 0.85rem; }
         .modal-input { 
             width: 100%; padding: 10px; background: rgba(0,0,0,0.3); 
-            border: 1px solid #555; color: #fff; border-radius: 5px; box-sizing: border-box;
+            border: 1px solid #555; color: #fff; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px;
         }
         .modal-input:focus { border-color: var(--admin-gold); outline: none; }
-        .modal-input[readonly] { color: #555; border-color: #333; cursor: not-allowed; }
+        .modal-input[readonly] { color: #666; border-color: #333; cursor: not-allowed; }
 
-        .modal-actions { margin-top: 25px; display: flex; gap: 10px; }
-        .btn-save { flex: 1; background: var(--admin-gold); color: #000; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-reset-pwd { flex: 1; background: transparent; color: #ff4757; border: 1px solid #ff4757; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-reset-pwd:hover { background: #ff4757; color: #fff; }
+        /* 按鈕群組 */
+        .btn-group { display: flex; gap: 10px; }
+        .btn-action { flex: 1; padding: 10px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; color:#000;}
+        
+        .btn-save { background: var(--neon-blue); width: 100%; margin-top: 5px;}
+        .btn-add { background: #00ff9d; }
+        .btn-sub { background: #ff4757; color: #fff; }
+        .btn-reset { background: transparent; border: 1px solid #ff4757; color: #ff4757; width: 100%; margin-top: 5px;}
+        .btn-reset:hover { background: #ff4757; color: #fff; }
 
         #loading { text-align: center; margin-top: 50px; color: #aaa; }
     </style>
@@ -115,43 +121,53 @@
     <div class="modal-overlay" id="editModal">
         <div class="modal-box">
             <i class="fa-solid fa-xmark modal-close" onclick="closeModal()"></i>
-            <div class="modal-title"><i class="fa-solid fa-user-pen"></i> 編輯檔案</div>
+            <div class="modal-title"><i class="fa-solid fa-user-pen"></i> 檔案管理</div>
             
             <input type="hidden" id="editUid">
             
-            <div class="modal-group">
-                <label class="modal-label">電子信箱 (不可修改)</label>
+            <div class="modal-section">
+                <div class="sec-title">基本資料</div>
+                <label class="modal-label">電子信箱</label>
                 <input type="text" id="editEmail" class="modal-input" readonly>
-            </div>
-
-            <div class="modal-group">
+                
                 <label class="modal-label">指揮官代號 (暱稱)</label>
                 <input type="text" id="editNickname" class="modal-input" placeholder="輸入新的代號">
+                <button class="btn-action btn-save" onclick="updateProfile()">更新暱稱</button>
             </div>
 
-            <div class="modal-group">
-                <label class="modal-label">星際能源 (點數)</label>
-                <input type="number" id="editStars" class="modal-input" placeholder="輸入數值">
+            <div class="modal-section" style="border-left: 2px solid var(--admin-gold);">
+                <div class="sec-title" style="color:var(--admin-gold);">星際能源調度</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span class="modal-label">目前持有:</span>
+                    <span id="displayStars" style="font-weight:bold; color:var(--admin-gold); font-size:1.2rem;">0</span>
+                </div>
+
+                <label class="modal-label">變動數值 (正整數)</label>
+                <input type="number" id="adjustAmount" class="modal-input" placeholder="例如: 50">
+                
+                <label class="modal-label">變動原因 (必填)</label>
+                <input type="text" id="adjustReason" class="modal-input" placeholder="例如: 參與活動獎勵 / 違規扣除">
+
+                <div class="btn-group">
+                    <button class="btn-action btn-add" onclick="handlePoints('add')"><i class="fa-solid fa-plus"></i> 配發能源</button>
+                    <button class="btn-action btn-sub" onclick="handlePoints('sub')"><i class="fa-solid fa-minus"></i> 扣除能源</button>
+                </div>
             </div>
 
-            <div class="modal-actions">
-                <button class="btn-reset-pwd" onclick="triggerResetPwd()">
-                    <i class="fa-solid fa-envelope-circle-check"></i> 發送密碼重置信
-                </button>
-                <button class="btn-save" onclick="saveChanges()">
-                    <i class="fa-solid fa-floppy-disk"></i> 儲存變更
+            <div class="modal-section" style="border-color: #ff4757;">
+                <div class="sec-title" style="color:#ff4757; border-color:#ff4757;">安全操作</div>
+                <button class="btn-action btn-reset" onclick="triggerResetPwd()">
+                    <i class="fa-solid fa-envelope"></i> 發送密碼重置信
                 </button>
             </div>
-            <div style="margin-top:10px; font-size:0.8rem; color:#666; text-align:center;">
-                * 密碼已加密，無法查看，僅能發送重置信供用戶修改。
-            </div>
+
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, runTransaction, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -167,7 +183,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let allMembers = []; // 儲存所有會員資料以便搜尋
+        let allMembers = [];
 
         // 載入資料
         async function loadData() {
@@ -175,7 +191,6 @@
             document.getElementById('loading').style.display = 'block';
             
             try {
-                // 抓取所有文件
                 const querySnapshot = await getDocs(collection(db, "users"));
                 document.getElementById('loading').style.display = 'none';
 
@@ -193,14 +208,11 @@
                     totalStars += (data.stars || 0);
                 });
 
-                // 預設排序
                 sortMembers(allMembers);
                 
-                // 更新統計
                 document.getElementById('totalCount').innerText = allMembers.length;
                 document.getElementById('totalStars').innerText = totalStars;
 
-                // 渲染
                 renderGrid(allMembers);
 
             } catch(e) {
@@ -219,7 +231,6 @@
             });
         }
 
-        // 渲染網格
         window.renderGrid = (list) => {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
@@ -259,7 +270,6 @@
             });
         }
 
-        // 搜尋功能
         window.filterMembers = () => {
             const val = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allMembers.filter(m => 
@@ -271,7 +281,6 @@
 
         // --- Modal 操作 ---
         
-        // 打開編輯視窗
         window.openModal = (uid) => {
             const user = allMembers.find(m => m.id === uid);
             if(!user) return;
@@ -279,49 +288,93 @@
             document.getElementById('editUid').value = uid;
             document.getElementById('editEmail').value = user.email;
             document.getElementById('editNickname').value = user.displayName || '';
-            document.getElementById('editStars').value = user.stars !== undefined ? user.stars : 0;
+            document.getElementById('displayStars').innerText = user.stars !== undefined ? user.stars : 0;
             
+            // 清空輸入框
+            document.getElementById('adjustAmount').value = '';
+            document.getElementById('adjustReason').value = '';
+
             document.getElementById('editModal').style.display = 'flex';
         }
 
-        // 關閉
         window.closeModal = () => {
             document.getElementById('editModal').style.display = 'none';
         }
 
-        // 儲存變更 (暱稱與點數)
-        window.saveChanges = async () => {
+        // 1. 更新暱稱
+        window.updateProfile = async () => {
             const uid = document.getElementById('editUid').value;
             const newName = document.getElementById('editNickname').value;
-            const newStars = parseInt(document.getElementById('editStars').value);
-            
-            if(isNaN(newStars)) return alert("點數格式錯誤");
+            if(!newName) return alert("請輸入暱稱");
 
             try {
-                await updateDoc(doc(db, "users", uid), {
-                    displayName: newName,
-                    stars: newStars
+                await updateDoc(doc(db, "users", uid), { displayName: newName });
+                alert("暱稱已更新");
+                loadData();
+            } catch(e) { alert("更新失敗: " + e.message); }
+        }
+
+        // 2. 處理點數 (交易 + 紀錄)
+        window.handlePoints = async (type) => {
+            const uid = document.getElementById('editUid').value;
+            const amountInput = document.getElementById('adjustAmount').value;
+            const reason = document.getElementById('adjustReason').value;
+
+            if(!amountInput || !reason) return alert("請填寫「變動數值」與「原因」！");
+            
+            const amount = parseInt(amountInput);
+            if(isNaN(amount) || amount <= 0) return alert("數值必須為正整數");
+
+            // 計算正負
+            const finalAmount = type === 'add' ? amount : -amount;
+            const actionText = type === 'add' ? '配發' : '扣除';
+
+            if(!confirm(`確定要「${actionText}」 ${amount} 點嗎？\n原因：${reason}`)) return;
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const userRef = doc(db, "users", uid);
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) throw "找不到使用者";
+
+                    const currentStars = userDoc.data().stars || 0;
+                    const newTotal = currentStars + finalAmount;
+
+                    // 1. 更新使用者點數
+                    transaction.update(userRef, { stars: newTotal });
+
+                    // 2. 寫入交易日誌 (Transactions)
+                    const logRef = doc(collection(db, "transactions"));
+                    transaction.set(logRef, {
+                        userId: uid,
+                        userEmail: document.getElementById('editEmail').value,
+                        userName: document.getElementById('editNickname').value,
+                        action: "admin_adjust", // 管理員調整
+                        itemName: reason,       // 原因作為項目名稱
+                        amount: finalAmount,
+                        note: `由管理員手動調整 (${actionText})`,
+                        timestamp: serverTimestamp()
+                    });
                 });
-                alert("資料已更新！");
+
+                alert("調整完成！");
                 closeModal();
                 loadData(); // 重新整理列表
+
             } catch(e) {
-                alert("更新失敗: " + e.message);
+                console.error(e);
+                alert("交易失敗: " + e);
             }
         }
 
-        // 發送密碼重置信
+        // 3. 發送重置信
         window.triggerResetPwd = async () => {
             const email = document.getElementById('editEmail').value;
-            if(!confirm(`確定要發送「密碼重置信」給 ${email} 嗎？\n使用者將收到 Email 並需自行設定新密碼。`)) return;
-
+            if(!confirm(`確定發送重置信給 ${email}？`)) return;
             try {
                 await sendPasswordResetEmail(auth, email);
-                alert(`發送成功！\n請通知該成員去信箱 (${email}) 收信設定新密碼。`);
-            } catch(e) {
-                console.error(e);
-                alert("發送失敗: " + e.message);
-            }
+                alert("已發送！");
+            } catch(e) { alert("發送失敗: " + e.message); }
         }
 
         loadData();
