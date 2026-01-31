@@ -2,988 +2,341 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>星維加斯 - 玉露寶庫</title>
-    <script src="theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星星兌獎 - 玉露寶庫</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%23FFD700' d='M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z'/%3E%3C/svg%3E">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --main-gold: #FFD700;       
             --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
-            --nebula-purple: #d946ef; 
-            --glass-bg: rgba(15, 23, 42, 0.85); 
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
             --card-radius: 16px;
         }
-        
+
         body {
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
-            color: #e2e8f0;
-            font-family: 'Microsoft JhengHei', sans-serif;
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden; touch-action: manipulation; padding-bottom: 160px;
-            position: relative;
+            overflow-x: hidden; padding-bottom: 100px; position: relative;
         }
 
-        /* --- 星空背景 --- */
-        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
-        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
-        .stars-distant {
-            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
-            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
-        }
-        .stars-mid {
-            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
-            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
-        }
-        .gold-twinklers {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
-            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
-        }
-        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
-        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+        /* 背景星空特效 */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle 3s infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 
-        #fxCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
-
-        /* --- 維護遮罩 --- */
-        .maintenance-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.98); z-index: 10000;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            backdrop-filter: blur(25px); text-align: center;
-        }
-        .maintenance-overlay.active { display: flex; animation: fadeIn 0.5s; }
-        
-        .m-icon { font-size: 6rem; color: var(--danger-red); margin-bottom: 25px; animation: pulse 1.5s infinite; filter: drop-shadow(0 0 20px rgba(255, 71, 87, 0.5)); }
-        .m-title { font-size: 2.5rem; color: #fff; font-weight: 900; margin-bottom: 10px; letter-spacing: 5px; }
-        .m-desc { color: #94a3b8; margin-bottom: 40px; font-size: 1.2rem; letter-spacing: 2px; }
-        
-        .btn-home { 
-            padding: 16px 50px; border-radius: 50px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); 
-            color: #000; text-decoration: none; font-weight: 900; font-size: 1.2rem;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); transition: 0.3s;
-        }
-        .btn-home:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(255, 215, 0, 0.6); }
-        @keyframes pulse { 0%{opacity:0.6; transform:scale(0.95);} 50%{opacity:1; transform:scale(1.05);} 100%{opacity:0.6; transform:scale(0.95);} }
-
-        /* --- 頂部導航 --- */
+        /* 頂部導航 */
         .header {
             width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box; position: sticky; top: 0; z-index: 100;
         }
-        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; font-weight: bold; }
         .balance-badge {
-            background: rgba(255, 215, 0, 0.1); border: 1px solid var(--accent-amber);
+            background: rgba(255, 215, 0, 0.15); border: 1px solid var(--main-gold);
             color: var(--main-gold); padding: 6px 15px; border-radius: 20px; font-weight: bold;
             display: flex; align-items: center; gap: 8px; font-size: 1rem;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
         }
-        .balance-update { animation: popGold 0.5s ease; }
-        @keyframes popGold { 50%{transform:scale(1.2); color:#000; background:var(--main-gold);} }
 
-        .vegas-title { text-align: center; margin: 30px 0 20px 0; }
-        .vegas-title h1 {
-            margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900;
+        .shop-title { text-align: center; margin: 30px 0 20px 0; }
+        .shop-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 2px; font-weight: 900;
             background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
             -webkit-background-clip: text; color: transparent;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
         }
-        .vegas-title p { color: #64748b; margin-top: 5px; font-size: 0.95rem; letter-spacing: 3px; text-transform: uppercase; }
+        .shop-title p { color: #64748b; margin-top: 5px; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* --- 遊戲舞台 --- */
-        .stage {
-            width: 95%; max-width: 800px;
-            background: var(--glass-bg); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 24px; padding: 30px 20px; text-align: center;
-            position: relative; min-height: 460px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            backdrop-filter: blur(16px);
-            display: flex; flex-direction: column; transition: 0.3s;
+        /* 商品列表 */
+        .products-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px; width: 90%; max-width: 800px; padding: 10px;
         }
-        .stage.winner-glow { border-color: var(--main-gold); box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); }
-        .stage.loser-shake { animation: shake 0.4s ease-in-out; border-color: var(--danger-red); }
-        @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
 
-        /* --- 🎡 星之輪盤樣式 --- */
-        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
-        #wheelCanvas { width: 100%; height: 100%; transform-origin: 50% 50%; transition: transform 4s cubic-bezier(0.1, 0.99, 0.1, 0.99); }
+        .product-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius); padding: 15px; text-align: center;
+            backdrop-filter: blur(10px); transition: 0.3s; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: space-between; height: 260px;
+        }
+        .product-card:hover { transform: translateY(-5px); border-color: var(--main-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .product-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 60%);
+            opacity: 0; transition: 0.5s; pointer-events: none;
+        }
+        .product-card:hover::before { opacity: 1; }
+
+        .prod-icon { font-size: 3.5rem; color: var(--nebula-blue); margin: 15px 0; text-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+        .prod-name { color: #fff; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; line-height: 1.3; }
+        .prod-desc { color: #94a3b8; font-size: 0.8rem; margin-bottom: 10px; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
         
-        .wheel-pointer {
-            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; z-index: 10;
-            border-left: 18px solid transparent;
-            border-right: 18px solid transparent;
-            border-top: 35px solid var(--main-gold);
-            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.6));
-        }
+        .prod-price { color: var(--main-gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; }
         
-        .wheel-center {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 60px; height: 60px; background: radial-gradient(circle, #fff, var(--main-gold));
-            border-radius: 50%; box-shadow: 0 0 20px var(--main-gold);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 900; color: #000; font-size: 1.2rem; cursor: pointer; z-index: 5;
-            border: 4px solid #fff;
-            transition: all 0.3s ease;
+        .btn-buy {
+            background: linear-gradient(90deg, #3b82f6, #2563eb); border: none; color: white;
+            padding: 10px 0; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;
+            transition: 0.2s; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
-        .wheel-center:active { transform: translate(-50%, -50%) scale(0.95); }
-        .wheel-center:disabled {
-            filter: grayscale(100%);
-            cursor: not-allowed;
-            transform: translate(-50%, -50%) !important;
-            box-shadow: none;
-            border-color: #94a3b8;
-            color: #64748b;
+        .btn-buy:hover { filter: brightness(1.2); transform: scale(1.02); }
+        .btn-buy:disabled { background: #334155; cursor: not-allowed; filter: grayscale(1); }
+
+        /* 模態框 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(5px);
         }
-
-        .cooldown-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.9); border-radius: 50%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 20; backdrop-filter: blur(5px);
-            color: var(--main-gold);
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--glass-border);
+            width: 85%; max-width: 350px; padding: 25px; border-radius: 20px;
+            text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .timer-text { font-size: 1.5rem; font-family: monospace; font-weight: bold; margin-top: 10px; }
+        @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
 
-        /* --- 🃏 卡牌區域 --- */
-        .card-area { 
-            display: flex; justify-content: center; gap: 15px; 
-            margin: 15px 0; perspective: 1000px; flex-wrap: wrap; min-height: 150px; align-items: center;
+        .modal-title { font-size: 1.3rem; color: #fff; font-weight: bold; margin-bottom: 15px; }
+        .modal-info { color: #cbd5e1; margin-bottom: 25px; line-height: 1.6; font-size: 0.95rem; }
+        .modal-btns { display: flex; gap: 10px; }
+        .btn-confirm { flex: 1; padding: 12px; border-radius: 10px; border:none; font-weight:bold; cursor:pointer; background: var(--main-gold); color: #000; }
+        .btn-cancel { flex: 1; padding: 12px; border-radius: 10px; border:1px solid #475569; font-weight:bold; cursor:pointer; background: transparent; color: #94a3b8; }
+
+        /* 購買成功動畫 */
+        .success-anim {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 2000; pointer-events: none;
         }
-        .poker-card {
-            width: 100px; height: 145px; border-radius: var(--card-radius); 
-            position: relative; font-family: 'Courier New', Courier, monospace; font-weight: bold; 
-            background-color: transparent; box-shadow: none; opacity: 1; transform: none; 
-        }
-        .poker-card.card-red, .poker-card.card-black { background-color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #ccc; }
-        .card-corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: 1; font-size: 1.3rem; }
-        .top-left { top: 6px; left: 6px; }
-        .bottom-right { bottom: 6px; right: 6px; transform: rotate(180deg); }
-        .card-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3.5rem; }
-        .card-red .card-corner, .card-red .card-center { color: #c0392b !important; }
-        .card-black .card-corner, .card-black .card-center { color: #2c3e50 !important; }
-        .card-back {
-            background-color: #1e293b;
-            background-image: radial-gradient(circle, #334155 2px, transparent 2.5px);
-            background-size: 16px 16px;
-            border: 3px solid #fff; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-        }
-        .card-back::after { content: '✦'; color: var(--main-gold); font-size: 3.5rem; text-shadow: 0 0 15px var(--main-gold); }
-        .deal-anim { animation: dealSlide 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
-        @keyframes dealSlide { 0% { opacity: 0; transform: translateY(-40px); } 100% { opacity: 1; transform: translateY(0); } }
-
-        /* --- 🎲 骰子區域 --- */
-        .dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; position: relative; }
-        .dice-glow { position: absolute; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, rgba(217, 70, 239, 0.3), transparent 70%); animation: pulseGlow 2s infinite ease-in-out; pointer-events: none; }
-        .dice-display { font-size: 8rem; color: #fff; text-shadow: 0 0 40px rgba(217, 70, 239, 0.8); z-index: 2; transition: 0.2s; }
-        .dice-rolling { animation: rollShake 0.3s infinite linear; color: var(--nebula-purple); }
-        @keyframes rollShake { 0% { transform: rotate(0deg) scale(1); } 25% { transform: rotate(15deg) scale(1.1); } 50% { transform: rotate(-15deg) scale(0.9); } 75% { transform: rotate(5deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
-        .dice-control-panel { background: rgba(217, 70, 239, 0.05); border: 1px solid rgba(217, 70, 239, 0.2); border-radius: 16px; padding: 15px; margin-top: 25px; display: flex; flex-direction: column; gap: 10px; }
-        .dice-header { color: var(--nebula-purple); font-weight: bold; font-size: 1rem; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; text-shadow: 0 0 10px rgba(217, 70, 239, 0.3); }
-        .dice-selector { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; z-index: 2; position: relative; }
-        .dice-btn { width: 50px; height: 50px; border-radius: 12px; border: 2px solid var(--nebula-purple); background: rgba(0,0,0,0.3); color: var(--nebula-purple); font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(217, 70, 239, 0.1); }
-        .dice-btn:hover { background: rgba(217, 70, 239, 0.2); transform: translateY(-3px); }
-        .dice-btn.selected { background: var(--nebula-purple); color: #fff; border-color: #fff; box-shadow: 0 0 25px var(--nebula-purple); transform: scale(1.1); }
-
-        /* 按鈕與面板 */
-        .game-tabs { display: flex; gap: 10px; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 50px; flex-wrap: wrap; justify-content: center; }
-        .tab-btn { background: transparent; border: none; color: #64748b; padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: bold; transition: 0.3s; white-space: nowrap; }
-        .tab-btn.active { background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color: #0f172a; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
-
-        .bet-panel { margin-bottom: 25px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .bet-input-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
-        .bet-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #475569; color: var(--main-gold); padding: 12px; border-radius: 12px; width: 140px; text-align: center; font-size: 1.5rem; font-weight: bold; }
-        .btn-all-in { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; padding: 0 25px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-
-        .btn-action {
-            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); 
-            color: #0f172a; border: none; padding: 16px 50px;
-            border-radius: 50px; font-size: 1.3rem; cursor: pointer; margin-top: 25px;
-            font-weight: 900; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.25); width: 85%; max-width: 350px;
-        }
-        .btn-action:disabled { background: #334155; color:#64748b; cursor: not-allowed; box-shadow: none; }
-
-        .result-msg { font-size: 1.6rem; margin-top: 25px; font-weight: bold; min-height: 40px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); opacity: 0; transition: 0.5s; }
-        .result-msg.show { opacity: 1; transform: scale(1.1); }
-        .win { color: var(--main-gold); } .lose { color: var(--danger-red); }
-
-        .bj-controls { display: none; gap: 20px; justify-content: center; margin-top: 30px; }
-        .btn-bj { padding: 15px 35px; border-radius: 30px; font-size: 1.1rem; border: none; cursor: pointer; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 8px; }
-        .btn-hit { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .btn-stand { background: linear-gradient(135deg, #ef4444, #dc2626); }
-
-        .score-box { background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 6px; font-family: monospace; border: 1px solid rgba(255,255,255,0.2); }
-
-        .bottom-float-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; z-index: 500; display: flex; flex-direction: column; gap: 15px; pointer-events: none; }
-        .bottom-float-bar > * { pointer-events: auto; }
-
-        #btnReset { width: 100%; background: rgba(30, 41, 59, 0.95); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:16px; border-radius: 50px; font-size:1.1rem; font-weight:bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; }
-
-        .double-up-panel { display: none; gap: 15px; width: 100%; }
-        .btn-collect { background: linear-gradient(90deg, #10b981, #059669); flex: 1; padding: 15px; border-radius: 15px; font-weight:bold; border:none; font-size:1.1rem; color:#fff; }
-        .btn-double { background: linear-gradient(90deg, var(--main-gold), #e17055); flex: 1; padding: 15px; border-radius: 15px; font-weight:bold; border:none; font-size:1.1rem; color:#fff; }
-
-        .choice-panel { display: none; gap: 20px; justify-content: center; margin-top: 25px; }
-        .btn-choice { padding: 20px 40px; border-radius: 20px; border: none; font-size: 1.3rem; font-weight: bold; color: #fff; cursor: pointer; }
-        .btn-big { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-small { background: linear-gradient(135deg, #06b6d4, #0891b2); }
-
-        .terms-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(20px); }
-        .terms-box { background: #0f172a; border: 1px solid var(--main-gold); padding: 30px; border-radius: 24px; width: 85%; max-width: 450px; text-align: center; box-shadow: 0 0 60px rgba(255, 215, 0, 0.15); }
-        .terms-title { font-size: 1.5rem; color: var(--main-gold); margin-bottom: 25px; font-weight: bold; }
-        .terms-list { text-align: left; margin-bottom: 30px; color: #94a3b8; font-size: 1rem; line-height: 1.8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; list-style: none; }
-        .terms-list li { margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
-        .terms-list i { color: var(--main-gold); margin-top: 5px; }
-        
-        .btn-agree { background: linear-gradient(90deg, #FFD700, #FDB931) !important; color: #000 !important; border: 2px solid #fff; padding: 15px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; cursor: pointer; width: 100%; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); }
-        .btn-agree:active { transform: scale(0.95); }
 
     </style>
 </head>
 <body>
 
-    <div id="maintenanceOverlay" class="maintenance-overlay">
-        <i class="fa-solid fa-screwdriver-wrench m-icon"></i>
-        <div class="m-title">維修中</div>
-        <div class="m-desc">請稍後再試</div>
-        <a href="vip_area.html" class="btn-home">返回大廳</a>
-    </div>
-
-    <div class="space-container">
-        <div class="star-field stars-distant"></div>
-        <div class="star-field stars-mid"></div>
-        <div class="gold-twinklers"></div>
-    </div>
-    
-    <canvas id="fxCanvas"></canvas>
-
-    <div class="terms-overlay" id="termsOverlay">
-        <div class="terms-box">
-            <div class="terms-title"><i class="fa-solid fa-scale-balanced"></i> 星星公約</div>
-            <ul class="terms-list">
-                <li><i class="fa-solid fa-coins"></i> 點數僅供本站娛樂，嚴禁現金交易。</li>
-                <li><i class="fa-solid fa-dice-d20"></i> 賭博有賺有賠，請衡量自身能力。</li>
-                <li><i class="fa-solid fa-gavel"></i> 下注即視為同意交易，系統將立即扣款，無法退回。</li>
-            </ul>
-            <button class="btn-agree" onclick="closeTerms()">我同意並已知悉</button>
-        </div>
-    </div>
+    <div class="stars-bg" id="starsBg"></div>
 
     <div class="header">
-        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 大廳</a>
-        <div class="balance-badge" id="balanceBadge">
-            <i class="fa-solid fa-star"></i> <span id="userStars">--</span>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> VIP 大廳</a>
+        <div class="balance-badge">
+            <i class="fa-solid fa-star"></i> <span id="userBalance">--</span>
         </div>
     </div>
 
-    <div class="vegas-title">
-        <h1>星維加斯</h1>
-        <p>STAR VEGAS CASINO</p>
+    <div class="shop-title">
+        <h1>星星兌獎</h1>
+        <p>REDEEM CENTER</p>
     </div>
 
-    <div class="game-tabs">
-        <button class="tab-btn active" onclick="switchGame('wheel')">星之輪盤</button>
-        <button class="tab-btn" onclick="switchGame('highcard')">比大小</button>
-        <button class="tab-btn" onclick="switchGame('blackjack')">21點</button>
-        <button class="tab-btn" onclick="switchGame('dice')">星運骰</button>
+    <div class="products-grid" id="productsContainer">
+        <div style="grid-column: 1/-1; text-align:center; color:#64748b; padding: 50px;">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>載入寶庫中...
+        </div>
     </div>
 
-    <div class="stage" id="gameStage">
-        
-        <div class="bet-panel" id="betPanel" style="display:none;">
-            <div style="color:#94a3b8; margin-bottom:10px;">下注籌碼</div>
-            <div class="bet-input-group">
-                <input type="number" id="betAmount" class="bet-input" value="100" min="1">
-                <button class="btn-all-in" onclick="setAllIn()">全押</button>
-            </div>
-            
-            <div id="diceSelector" class="dice-control-panel" style="display:none;">
-                <div class="dice-header"><i class="fa-solid fa-meteor"></i> 選擇您的幸運星數</div>
-                <div class="dice-selector">
-                    <button class="dice-btn" onclick="selectDiceNumber(1)">1</button>
-                    <button class="dice-btn" onclick="selectDiceNumber(2)">2</button>
-                    <button class="dice-btn" onclick="selectDiceNumber(3)">3</button>
-                    <button class="dice-btn" onclick="selectDiceNumber(4)">4</button>
-                    <button class="dice-btn" onclick="selectDiceNumber(5)">5</button>
-                    <button class="dice-btn" onclick="selectDiceNumber(6)">6</button>
-                </div>
-            </div>
-
-            <button class="btn-action" id="btnStart" onclick="startGame()">開始</button>
-        </div>
-
-        <div id="gameWheel" style="display:block;">
-            <div style="text-align:center; color:#94a3b8; margin-bottom:20px;">
-                <i class="fa-solid fa-gift"></i> 每日免費福利，早上9點更新
-            </div>
-            <div class="wheel-container">
-                <div class="wheel-pointer"></div>
-                
-                <canvas id="wheelCanvas" width="300" height="300"></canvas>
-                <button class="wheel-center" id="btnSpin" onclick="spinWheel()" disabled>GO</button>
-                
-                <div id="wheelCooldown" class="cooldown-overlay" style="display:none;">
-                    <i class="fa-solid fa-hourglass-half" style="font-size:3rem; margin-bottom:10px;"></i>
-                    <div>冷卻中</div>
-                    <div class="timer-text" id="cooldownTimer">00:00:00</div>
-                </div>
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <div class="modal-title">確認兌換</div>
+            <div class="modal-info" id="modalContent"></div>
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeModal()">取消</button>
+                <button class="btn-confirm" id="btnConfirmBuy" onclick="executePurchase()">確認兌換</button>
             </div>
         </div>
-
-        <div id="gameHighCard" style="display:none;">
-            <div style="display:flex; justify-content:space-around; align-items: center; flex-wrap: wrap;">
-                <div style="flex:1;">
-                    <div style="margin-bottom:15px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">莊家 (基準)</div>
-                    <div class="card-area" id="hcHouseCard"><div class="poker-card card-back"></div></div>
-                </div>
-                <div style="font-size:1.5rem; font-weight:bold; color:#64748b; padding:0 10px; font-style:italic;">VS</div>
-                <div style="flex:1;">
-                    <div style="margin-bottom:15px; color:#94a3b8; font-weight:bold; letter-spacing:1px;">您 (猜下一張)</div>
-                    <div class="card-area" id="hcPlayerCard"><div class="poker-card card-back" style="opacity:0.5;"></div></div>
-                </div>
-            </div>
-            <div class="choice-panel" id="hcChoices">
-                <button class="btn-choice btn-big" onclick="guessHighCard('big')"><i class="fa-solid fa-arrow-trend-up"></i> 大 BIG</button>
-                <button class="btn-choice btn-small" onclick="guessHighCard('small')"><i class="fa-solid fa-arrow-trend-down"></i> 小 SMALL</button>
-            </div>
-        </div>
-
-        <div id="gameBlackjack" style="display:none;">
-            <div style="margin-bottom:30px;">
-                <div style="color:#94a3b8; margin-bottom:10px; letter-spacing:1px;">
-                    <i class="fa-solid fa-user-secret"></i> 莊家 <span id="bjHouseScore" class="score-box" style="color:#fff;">?</span>
-                </div>
-                <div class="card-area" id="bjHouseArea">
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                </div>
-            </div>
-            <div>
-                <div style="color:var(--main-gold); margin-bottom:10px; font-weight:bold; letter-spacing:1px;">
-                    <i class="fa-solid fa-user"></i> 您 <span id="bjPlayerScore" class="score-box" style="color:var(--main-gold);">0</span>
-                </div>
-                <div class="card-area" id="bjPlayerArea">
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                </div>
-            </div>
-            <div class="bj-controls" id="bjControls">
-                <button class="btn-bj btn-hit" onclick="bjHit()"><i class="fa-solid fa-plus"></i> 叫牌</button>
-                <button class="btn-bj btn-stand" onclick="bjStand()"><i class="fa-solid fa-hand"></i> 停牌</button>
-            </div>
-        </div>
-
-        <div id="gameDice" style="display:none;">
-            <div class="dice-container">
-                <div class="dice-glow"></div>
-                <div class="dice-display"><i class="fa-solid fa-dice-d6" id="diceIcon"></i></div>
-            </div>
-            <div id="diceStatus" style="color:#d946ef; margin-top:20px; font-weight:bold; letter-spacing:1px;">等待星運降臨...</div>
-        </div>
-
-        <div id="resultMsg" class="result-msg"></div>
-    </div>
-
-    <div class="bottom-float-bar">
-        <div class="double-up-panel" id="doubleUpPanel">
-            <button class="btn-collect" onclick="collectWinnings()"><i class="fa-solid fa-check"></i> 收下獎金</button>
-            <button class="btn-double" onclick="doubleUp()"><i class="fa-solid fa-bolt"></i> 加倍再戰</button>
-        </div>
-        <button id="btnReset" onclick="resetTable()">再來一局</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, runTransaction, collection, serverTimestamp, setDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
-            authDomain: "yulubox.firebaseapp.com",
-            projectId: "yulubox",
-            storageBucket: "yulubox.firebasestorage.app",
-            messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
-        };
+        import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, runTransaction, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { firebaseConfig } from './js/firebase-config.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUser = null;
-        let currentBalance = 0;
-        let currentGame = 'wheel'; 
-        let selectedDice = null;
-        let gameState = { bet: 0, isAllIn: false, pendingWinnings: 0, dealerCard: null, bjPlayerCards: [], bjHouseCards: [], bjDeck: [], isPlayerTurn: true };
+        let selectedProduct = null;
+        let allProducts = [];
 
-        const canvas = document.getElementById('fxCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function createConfetti() {
-            particles = [];
-            for(let i=0; i<120; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height - canvas.height, vx: Math.random()*4-2, vy: Math.random()*5+2, color: `hsl(${Math.random()*50+40},100%,60%)`, size: Math.random()*8+4 });
-            animateConfetti();
-        }
-        function animateConfetti() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let active = false;
-            particles.forEach(p => { p.x += p.vx; p.y += p.vy; if(p.y < canvas.height) { active = true; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); } });
-            if(active) requestAnimationFrame(animateConfetti);
+        // 背景星星特效
+        const bg = document.getElementById('starsBg');
+        for(let i=0; i<50; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            s.style.top = Math.random()*100 + '%';
+            s.style.left = Math.random()*100 + '%';
+            s.style.width = Math.random()*3 + 'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = Math.random()*3 + 's';
+            bg.appendChild(s);
         }
 
-        window.closeTerms = () => { document.getElementById('termsOverlay').style.display = 'none'; }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) { 
-                currentUser = user; 
-                updateBalanceDisplay();
-                initWheel(); 
-                checkDailyStatus();
-                listenCasinoStatus(); 
-            } else { window.location.href = "login.html"; }
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadBalance();
+                loadProducts();
+            } else {
+                window.location.href = "login.html";
+            }
         });
 
-        // 監聽系統設定
-        function listenCasinoStatus() {
-            onSnapshot(doc(db, "system_settings", "global_config"), (docSnap) => {
-                const overlay = document.getElementById('maintenanceOverlay');
-                if(docSnap.exists() && docSnap.data().isCasinoOpen === false) {
-                    overlay.classList.add('active');
-                } else {
-                    overlay.classList.remove('active');
-                }
-            });
-        }
-
-        async function updateBalanceDisplay() {
-            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-            if(docSnap.exists()) {
-                currentBalance = docSnap.data().stars || 0;
-                document.getElementById('userStars').innerText = currentBalance;
-                const c = document.getElementById('balanceBadge'); c.classList.remove('balance-update'); void c.offsetWidth; c.classList.add('balance-update');
+        async function loadBalance() {
+            if (!currentUser) return;
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const bal = docSnap.data().stars || 0;
+                document.getElementById('userBalance').innerText = bal;
             }
         }
 
-        window.switchGame = (game) => {
-            currentGame = game;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('gameHighCard').style.display = game === 'highcard' ? 'block' : 'none';
-            document.getElementById('gameBlackjack').style.display = game === 'blackjack' ? 'block' : 'none';
-            document.getElementById('gameDice').style.display = game === 'dice' ? 'block' : 'none';
-            document.getElementById('gameWheel').style.display = game === 'wheel' ? 'block' : 'none';
-            
-            // ⭐️ 關鍵設定：切換到輪盤時，隱藏下注面板 (betPanel)
-            document.getElementById('betPanel').style.display = game === 'wheel' ? 'none' : 'block';
-            document.getElementById('diceSelector').style.display = game === 'dice' ? 'flex' : 'none';
-            
-            resetTable();
-        };
-
-        // --- 🎡 輪盤獎項配置 (12格) - 已移除負分選項 ---
-        const prizes = [
-            { text: "+100", value: 100, color: "#eab308" }, 
-            { text: "銘謝", value: 0, color: "#64748b" },
-            { text: "+1", value: 1, color: "#0ea5e9" },
-            { text: "+10", value: 10, color: "#10b981" },
-            { text: "+5", value: 5, color: "#0ea5e9" },
-            { text: "再轉", value: "spin", color: "#f97316" }, 
-            { text: "+50", value: 50, color: "#eab308" },
-            { text: "+1", value: 1, color: "#0ea5e9" },
-            { text: "+5", value: 5, color: "#10b981" },
-            { text: "+2", value: 2, color: "#0ea5e9" }, // ⭐️ 修正：原本是 -10，改成 +2
-            { text: "+20", value: 20, color: "#10b981" },
-            { text: "+200", value: 200, color: "#8b5cf6" } 
-        ];
-        
-        let wheelCtx;
-        function initWheel() {
-            const canvas = document.getElementById('wheelCanvas');
-            if(!canvas) return;
-            wheelCtx = canvas.getContext('2d');
-            drawWheel(0);
-        }
-
-        function drawWheel(angleOffset) {
-            const ctx = wheelCtx;
-            const centerX = 150;
-            const centerY = 150;
-            const radius = 145;
-            const step = (2 * Math.PI) / prizes.length;
-
-            ctx.clearRect(0, 0, 300, 300);
-            
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius + 2, 0, 2 * Math.PI);
-            ctx.fillStyle = "#FFD700";
-            ctx.fill();
-
-            for (let i = 0; i < prizes.length; i++) {
-                const angle = i * step + angleOffset - (Math.PI / 2);
+        async function loadProducts() {
+            const container = document.getElementById('productsContainer');
+            try {
+                // 只抓取上架中 (active == true) 的商品，並按價格排序
+                const q = query(collection(db, "products"), where("active", "==", true), orderBy("cost", "asc"));
+                const querySnapshot = await getDocs(q);
                 
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, angle, angle + step);
-                ctx.fillStyle = prizes[i].color;
-                ctx.fill();
-                ctx.stroke();
+                allProducts = [];
+                querySnapshot.forEach((doc) => {
+                    allProducts.push({ id: doc.id, ...doc.data() });
+                });
 
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(angle + step / 2);
-                ctx.textAlign = "right";
-                ctx.fillStyle = "#fff";
-                ctx.font = "bold 14px Arial";
-                ctx.shadowColor = "rgba(0,0,0,0.5)";
-                ctx.shadowBlur = 2;
-                ctx.fillText(prizes[i].text, radius - 15, 5);
-                ctx.restore();
+                renderProducts(allProducts);
+
+            } catch (error) {
+                console.error("Error loading products:", error);
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#ef4444;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 載入失敗，請稍後再試
+                </div>`;
             }
         }
 
-        async function checkDailyStatus() {
-            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-            if(docSnap.exists()) {
-                const lastSpin = docSnap.data().lastDailySpin ? docSnap.data().lastDailySpin.toDate().getTime() : 0;
-                
-                const now = new Date();
-                let lastResetPoint = new Date(now);
-                lastResetPoint.setHours(9, 0, 0, 0); // ⭐️ 每日早上 9 點重置
-                if (now < lastResetPoint) {
-                    lastResetPoint.setDate(lastResetPoint.getDate() - 1);
-                }
-
-                if (lastSpin > lastResetPoint.getTime()) {
-                    let nextReset = new Date(now);
-                    nextReset.setHours(9, 0, 0, 0);
-                    if (now >= nextReset) {
-                        nextReset.setDate(nextReset.getDate() + 1);
-                    }
-                    lockWheel(nextReset.getTime());
-                } else {
-                    document.getElementById('btnSpin').disabled = false;
-                }
+        function renderProducts(products) {
+            const container = document.getElementById('productsContainer');
+            if (products.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b;">暫無商品上架</div>';
+                return;
             }
+
+            container.innerHTML = products.map(p => {
+                // 根據商品類型顯示不同 Icon
+                let iconClass = "fa-gift";
+                if (p.name.includes("卡")) iconClass = "fa-ticket";
+                if (p.name.includes("VIP")) iconClass = "fa-crown";
+                if (p.name.includes("優惠")) iconClass = "fa-tags";
+
+                return `
+                <div class="product-card">
+                    <div>
+                        <i class="fa-solid ${iconClass} prod-icon"></i>
+                        <div class="prod-name">${p.name}</div>
+                        <div class="prod-desc">${p.description || "無描述"}</div>
+                    </div>
+                    <div>
+                        <div class="prod-price"><i class="fa-solid fa-star"></i> ${p.cost}</div>
+                        <button class="btn-buy" onclick="openBuyModal('${p.id}')">立即兌換</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
         }
 
-        function lockWheel(targetTime) {
-            const overlay = document.getElementById('wheelCooldown');
-            const timer = document.getElementById('cooldownTimer');
-            overlay.style.display = 'flex';
-            
-            const updateTimer = () => {
-                const now = Date.now();
-                const diff = targetTime - now;
-                if (diff <= 0) {
-                    overlay.style.display = 'none';
-                    document.getElementById('btnSpin').disabled = false;
-                    return;
-                }
-                const h = Math.floor(diff / 3600000);
-                const m = Math.floor((diff % 3600000) / 60000);
-                const s = Math.floor((diff % 60000) / 1000);
-                timer.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                requestAnimationFrame(updateTimer);
-            };
-            updateTimer();
-        }
+        window.openBuyModal = (productId) => {
+            selectedProduct = allProducts.find(p => p.id === productId);
+            if (!selectedProduct) return;
 
-        window.spinWheel = async () => {
-            const btn = document.getElementById('btnSpin');
-            
-            // ⭐️ 防連點與禁用檢查
-            if (btn.disabled) return;
-            btn.disabled = true;
+            const bal = parseInt(document.getElementById('userBalance').innerText);
+            const canAfford = bal >= selectedProduct.cost;
 
-            const resultIndex = Math.floor(Math.random() * prizes.length); 
-            const spinDuration = 4500; 
-            
-            const targetAngle = (360 * 5) + (360 - (resultIndex * (360/12))) - (360/24); 
-            
-            let startTime = null;
+            document.getElementById('modalContent').innerHTML = `
+                您即將兌換：<br>
+                <span style="color:#fff; font-weight:bold; font-size:1.1rem;">${selectedProduct.name}</span><br>
+                <br>
+                花費：<span style="color:var(--main-gold);">${selectedProduct.cost} 星星</span><br>
+                當前餘額：${bal}
+                ${!canAfford ? '<br><br><span style="color:#ff4757; font-weight:bold;">⚠️ 餘額不足</span>' : ''}
+            `;
 
-            function animate(time) {
-                if (!startTime) startTime = time;
-                const progress = (time - startTime) / spinDuration;
-                
-                if (progress < 1) {
-                    const ease = 1 - Math.pow(1 - progress, 3);
-                    const currentAngle = targetAngle * ease;
-                    const rad = (currentAngle * Math.PI) / 180;
-                    drawWheel(rad);
-                    requestAnimationFrame(animate);
-                } else {
-                    const rad = (targetAngle * Math.PI) / 180;
-                    drawWheel(rad);
-                    handleWheelResult(prizes[resultIndex]);
-                }
-            }
-            requestAnimationFrame(animate);
-        };
-
-        async function handleWheelResult(prize) {
-            let msg = "";
-            let amount = 0;
-            const btn = document.getElementById('btnSpin');
-
-            if (prize.value === "spin") {
-                alert("運氣不錯！獲得「再轉一次」機會！");
-                btn.disabled = false;
-                return; 
+            const confirmBtn = document.getElementById('btnConfirmBuy');
+            if (canAfford) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = "1";
+                confirmBtn.innerText = "確認兌換";
             } else {
-                amount = prize.value;
-                if (amount > 0) {
-                    msg = `恭喜獲得 ${amount} 星星！`;
-                    createConfetti();
-                } else {
-                    // ⭐️ 由於移除了負分，這裡只會剩下 0 分的情況
-                    msg = "銘謝惠顧，明天再來！";
-                }
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = "0.5";
+                confirmBtn.innerText = "餘額不足";
             }
 
-            alert(msg);
+            document.getElementById('confirmModal').style.display = 'flex';
+        };
+
+        window.closeModal = () => {
+            document.getElementById('confirmModal').style.display = 'none';
+            selectedProduct = null;
+        };
+
+        window.executePurchase = async () => {
+            if (!selectedProduct || !currentUser) return;
+
+            const btn = document.getElementById('btnConfirmBuy');
+            btn.disabled = true;
+            btn.innerText = "處理中...";
 
             try {
-                const userRef = doc(db, "users", currentUser.uid);
-                await runTransaction(db, async (t) => {
-                    const docSnap = await t.get(userRef);
-                    const current = docSnap.data().stars || 0;
-                    t.update(userRef, { 
-                        stars: current + amount,
-                        lastDailySpin: serverTimestamp() 
+                await runTransaction(db, async (transaction) => {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) throw "用戶不存在";
+
+                    const newBalance = (userDoc.data().stars || 0) - selectedProduct.cost;
+                    if (newBalance < 0) throw "餘額不足";
+
+                    transaction.update(userRef, { stars: newBalance });
+
+                    // 1. 寫入兌換紀錄 (需人工審核或自動發放)
+                    const recordRef = doc(collection(db, "redemptions"));
+                    transaction.set(recordRef, {
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                        productId: selectedProduct.id,
+                        productName: selectedProduct.name,
+                        cost: selectedProduct.cost,
+                        status: 'pending', // 待處理
+                        timestamp: serverTimestamp()
                     });
                     
-                    // 紀錄為 daily_spin，不扣除任何費用
-                    t.set(doc(collection(db, "transactions")), {
+                    // 2. 寫入交易明細
+                    const txRef = doc(collection(db, "transactions"));
+                    transaction.set(txRef, {
                         userId: currentUser.uid,
-                        action: "daily_spin",
-                        itemName: "星之輪盤",
-                        amount: amount,
+                        action: "redeem",
+                        itemName: selectedProduct.name,
+                        amount: -selectedProduct.cost,
                         timestamp: serverTimestamp()
                     });
                 });
-                updateBalanceDisplay();
-                
-                const now = new Date();
-                let nextReset = new Date(now);
-                nextReset.setHours(9, 0, 0, 0);
-                if (now >= nextReset) { nextReset.setDate(nextReset.getDate() + 1); }
-                lockWheel(nextReset.getTime());
-            } catch(e) { 
-                console.error(e); 
-                btn.disabled = false;
+
+                alert("兌換成功！請至「星存摺」或 Email 查看紀錄。");
+                closeModal();
+                loadBalance(); 
+                renderProducts(allProducts); 
+
+            } catch (e) {
+                alert("兌換失敗: " + e);
+            } finally {
+                btn.disabled = false; btn.innerText = "確認兌換";
             }
         }
-
-        // --- 以下為其他遊戲邏輯 (維持不變) ---
-        window.selectDiceNumber = (num) => {
-            selectedDice = num;
-            document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll('.dice-btn')[num-1].classList.add('selected');
-        }
-
-        window.setAllIn = () => { document.getElementById('betAmount').value = currentBalance; };
-
-        window.resetTable = () => {
-            document.getElementById('betPanel').style.display = 'block';
-            document.getElementById('btnStart').disabled = false;
-            document.getElementById('btnReset').style.display = 'none';
-            document.getElementById('doubleUpPanel').style.display = 'none';
-            document.getElementById('resultMsg').innerText = '';
-            document.getElementById('resultMsg').className = 'result-msg';
-            document.getElementById('betAmount').disabled = false;
-            document.getElementById('gameStage').classList.remove('winner-glow', 'loser-shake');
-            document.getElementById('hcChoices').style.display = 'none';
-
-            document.getElementById('diceIcon').className = 'fa-solid fa-dice-d6';
-            document.getElementById('diceStatus').innerText = '等待星運降臨...';
-            
-            document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back" style="opacity:0.5;"></div>';
-            document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back"></div>';
-            document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
-            document.getElementById('bjHouseArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
-            document.getElementById('bjControls').style.display = 'none';
-            document.getElementById('bjPlayerScore').innerText = '0';
-            document.getElementById('bjHouseScore').innerText = '?';
-
-            gameState.pendingWinnings = 0;
-        };
-
-        const SUITS = ['♠', '♥', '♦', '♣'];
-        const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        const DICE_ICONS = ['fa-dice-one', 'fa-dice-two', 'fa-dice-three', 'fa-dice-four', 'fa-dice-five', 'fa-dice-six'];
-
-        function createDeck() {
-            let deck = [];
-            for(let s of SUITS) {
-                for(let i=0; i<VALUES.length; i++) {
-                    deck.push({ suit: s, text: VALUES[i], value: i + 2, bjValue: (i >= 8 && i <= 11) ? 10 : (i===12 ? 11 : i+2) });
-                }
-            }
-            return deck.sort(() => Math.random() - 0.5);
-        }
-
-        function createCardElement(card) {
-            const colorClass = (card.suit === '♥' || card.suit === '♦') ? 'card-red' : 'card-black';
-            const div = document.createElement('div');
-            div.className = `poker-card ${colorClass} deal-anim`;
-            div.innerHTML = `
-                <div class="card-corner top-left"><div>${card.text}</div><div>${card.suit}</div></div>
-                <div class="card-center">${card.suit}</div>
-                <div class="card-corner bottom-right"><div>${card.text}</div><div>${card.suit}</div></div>
-            `;
-            return div;
-        }
-
-        function createCardBack() {
-            const div = document.createElement('div');
-            div.className = 'poker-card card-back deal-anim';
-            return div;
-        }
-
-        window.startGame = async (isDoubleUp = false) => {
-            const betInput = document.getElementById('betAmount');
-            let bet = parseInt(betInput.value);
-            if(isDoubleUp && gameState.pendingWinnings > 0) bet = gameState.pendingWinnings;
-
-            if(isNaN(bet) || bet <= 0) return alert("請輸入有效金額");
-            
-            if(currentGame === 'dice' && !selectedDice && !isDoubleUp) return alert("請先預測星運點數！");
-
-            if(!isDoubleUp) {
-                if(bet > currentBalance) return alert("餘額不足！");
-                try {
-                    await runTransaction(db, async (transaction) => {
-                        const userRef = doc(db, "users", currentUser.uid);
-                        const userDoc = await transaction.get(userRef);
-                        const bal = userDoc.data().stars || 0;
-                        if(bal < bet) throw "餘額不足";
-                        transaction.update(userRef, { stars: bal - bet });
-                        transaction.set(doc(collection(db, "transactions")), { userId: currentUser.uid, action: "gamble_bet", itemName: currentGame, amount: -bet, timestamp: serverTimestamp() });
-                    });
-                    updateBalanceDisplay();
-                } catch(e) { alert("交易失敗: " + e); return; }
-            }
-
-            gameState.bet = bet;
-            gameState.isAllIn = (bet === currentBalance);
-            gameState.isPlayerTurn = true;
-            gameState.pendingWinnings = 0;
-
-            document.getElementById('betPanel').style.display = 'none';
-            document.getElementById('doubleUpPanel').style.display = 'none';
-            document.getElementById('resultMsg').innerText = "遊戲進行中...";
-            document.getElementById('gameStage').classList.remove('winner-glow', 'loser-shake');
-
-            if(currentGame === 'highcard') startHighCard();
-            else if(currentGame === 'blackjack') startBlackjack();
-            else startDiceGame();
-        };
-
-        function startDiceGame() {
-            const diceIcon = document.getElementById('diceIcon');
-            const status = document.getElementById('diceStatus');
-            diceIcon.className = 'fa-solid fa-dice-d6 dice-rolling';
-            status.innerText = '星運流轉中...';
-            let rollCount = 0;
-            const rollAnim = setInterval(() => {
-                const randomFace = Math.floor(Math.random() * 6);
-                diceIcon.className = `fa-solid ${DICE_ICONS[randomFace]}`;
-                rollCount++;
-                if (rollCount > 15) { clearInterval(rollAnim); finalizeDice(); }
-            }, 100);
-        }
-
-        function finalizeDice() {
-            const isWin = Math.random() < 0.3; // 30%
-            let result;
-            if (isWin) { result = selectedDice; } 
-            else { do { result = Math.floor(Math.random() * 6) + 1; } while (result === selectedDice); }
-
-            const diceIcon = document.getElementById('diceIcon');
-            diceIcon.className = `fa-solid ${DICE_ICONS[result-1]}`;
-            
-            setTimeout(() => {
-                if (isWin) {
-                    document.getElementById('diceStatus').innerText = `星運降臨！開出 ${result}！`;
-                    handleWin(3, "星運爆發！獲得3倍獎金！");
-                } else {
-                    document.getElementById('diceStatus').innerText = `開出 ${result}，星運未到`;
-                    handleLose(`開出 ${result}，挑戰失敗`);
-                }
-            }, 500);
-        }
-
-        function startHighCard() {
-            setTimeout(() => {
-                const deck = createDeck();
-                gameState.bjDeck = deck;
-                gameState.dealerCard = deck.pop();
-                const hArea = document.getElementById('hcHouseCard');
-                hArea.innerHTML = '';
-                hArea.appendChild(createCardElement(gameState.dealerCard));
-                document.getElementById('resultMsg').innerText = "請猜測下一張牌...";
-                document.getElementById('hcChoices').style.display = 'flex';
-            }, 500);
-        }
-
-        window.guessHighCard = (choice) => {
-            document.getElementById('hcChoices').style.display = 'none';
-            let playerCard = gameState.bjDeck.pop();
-            if (gameState.isAllIn && Math.random() > 0.001) {
-                if (choice === 'big') { while(playerCard.value >= gameState.dealerCard.value && gameState.bjDeck.length > 0) playerCard = gameState.bjDeck.pop(); }
-                else { while(playerCard.value <= gameState.dealerCard.value && gameState.bjDeck.length > 0) playerCard = gameState.bjDeck.pop(); }
-            }
-            const pArea = document.getElementById('hcPlayerCard');
-            pArea.innerHTML = '';
-            pArea.appendChild(createCardElement(playerCard));
-            setTimeout(() => {
-                let win = false; let tie = false;
-                if (choice === 'big') { if (playerCard.value > gameState.dealerCard.value) win = true; else if (playerCard.value === gameState.dealerCard.value) tie = true; }
-                else { if (playerCard.value < gameState.dealerCard.value) win = true; else if (playerCard.value === gameState.dealerCard.value) tie = true; }
-                if (win) handleWin(2, "猜中！獲勝！"); else if (tie) handleWin(1, "平手"); else handleLose();
-            }, 600);
-        }
-
-        function startBlackjack() {
-            gameState.bjDeck = createDeck();
-            gameState.bjPlayerCards = [];
-            gameState.bjHouseCards = [];
-            document.getElementById('bjPlayerArea').innerHTML = ''; 
-            document.getElementById('bjHouseArea').innerHTML = '';
-            const dealSequence = async () => {
-                gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
-                gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
-                gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false); await new Promise(r => setTimeout(r, 400));
-                gameState.bjHouseCards.push(gameState.bjDeck.pop()); renderBJ(false);
-                document.getElementById('bjControls').style.display = 'flex';
-                document.getElementById('resultMsg').innerText = "請選擇行動";
-                if(getBJScore(gameState.bjPlayerCards) === 21) bjStand();
-            };
-            dealSequence();
-        }
-
-        function renderBJ(revealDealer = false) {
-            const pDiv = document.getElementById('bjPlayerArea');
-            const hDiv = document.getElementById('bjHouseArea');
-            pDiv.innerHTML = '';
-            gameState.bjPlayerCards.forEach(c => pDiv.appendChild(createCardElement(c)));
-            document.getElementById('bjPlayerScore').innerText = getBJScore(gameState.bjPlayerCards);
-            hDiv.innerHTML = '';
-            if (gameState.bjHouseCards.length > 0) {
-                if (!revealDealer && gameState.isPlayerTurn) {
-                    hDiv.appendChild(createCardElement(gameState.bjHouseCards[0])); 
-                    hDiv.appendChild(createCardBack()); 
-                    document.getElementById('bjHouseScore').innerText = "?";
-                } else {
-                    gameState.bjHouseCards.forEach(c => hDiv.appendChild(createCardElement(c)));
-                    document.getElementById('bjHouseScore').innerText = getBJScore(gameState.bjHouseCards);
-                }
-            }
-        }
-
-        function getBJScore(cards) {
-            let score = 0; let aces = 0;
-            for(let c of cards) { score += c.bjValue; if(c.text === 'A') aces++; }
-            while(score > 21 && aces > 0) { score -= 10; aces--; }
-            return score;
-        }
-
-        window.bjHit = () => {
-            if(gameState.bjPlayerCards.length >= 3) return alert("已達3張上限");
-            gameState.bjPlayerCards.push(gameState.bjDeck.pop()); renderBJ(false);
-            if(getBJScore(gameState.bjPlayerCards) > 21) {
-                gameState.isPlayerTurn = false; renderBJ(true);
-                handleLose("爆牌！您輸了");
-                document.getElementById('bjControls').style.display = 'none';
-            } else if (gameState.bjPlayerCards.length === 3) bjStand();
-        };
-
-        window.bjStand = () => {
-            document.getElementById('bjControls').style.display = 'none';
-            gameState.isPlayerTurn = false;
-            if(gameState.isAllIn && Math.random() > 0.001) {
-                const pScore = getBJScore(gameState.bjPlayerCards);
-                while(getBJScore(gameState.bjHouseCards) <= pScore && getBJScore(gameState.bjHouseCards) < 21 && gameState.bjHouseCards.length < 3) gameState.bjHouseCards.push(gameState.bjDeck.pop());
-                if(getBJScore(gameState.bjHouseCards) < pScore) { let last = gameState.bjHouseCards[gameState.bjHouseCards.length-1]; last.bjValue = 10; last.text = "K"; }
-            } else {
-                while(getBJScore(gameState.bjHouseCards) < 17 && gameState.bjHouseCards.length < 3) gameState.bjHouseCards.push(gameState.bjDeck.pop());
-            }
-            renderBJ(true);
-            const pScore = getBJScore(gameState.bjPlayerCards);
-            const hScore = getBJScore(gameState.bjHouseCards);
-            setTimeout(() => {
-                if (hScore > 21) handleWin(2, "莊家爆牌！您贏了！");
-                else if (pScore > hScore) handleWin(2, "您贏了！");
-                else if (pScore < hScore) handleLose("莊家獲勝");
-                else handleWin(1, "平手，退回");
-            }, 600);
-        };
-
-        function handleWin(multiplier, msg) {
-            const resultDiv = document.getElementById('resultMsg');
-            resultDiv.innerText = msg; resultDiv.className = "result-msg win";
-            document.getElementById('gameStage').classList.add('winner-glow');
-            if(multiplier > 1) createConfetti();
-            const totalWin = Math.floor(gameState.bet * multiplier);
-            gameState.pendingWinnings = totalWin;
-            if(multiplier === 1 || currentGame === 'dice') { collectWinnings(); } 
-            else {
-                document.getElementById('doubleUpPanel').style.display = 'flex';
-                document.querySelector('.btn-collect').innerHTML = `<i class="fa-solid fa-sack-dollar"></i> 收下 ${totalWin}`;
-                document.querySelector('.btn-double').innerHTML = `<i class="fa-solid fa-bolt"></i> ${totalWin} 加倍再戰`;
-            }
-
-            if (totalWin >= 500) {
-                try {
-                    addDoc(collection(db, "bulletin_board"), {
-                        type: 'honor',
-                        content: `恭喜 ${currentUser.displayName} 在【${currentGame === 'dice' ? '星運骰' : (currentGame === 'highcard' ? '比大小' : '21點')}】贏得了 ${totalWin} 星星！`,
-                        authorId: 'system',
-                        timestamp: serverTimestamp()
-                    });
-                } catch(e) { console.log("Honor post failed", e); }
-            }
-        }
-
-        function handleLose(msg = "挑戰失敗") {
-            document.getElementById('resultMsg').innerText = msg;
-            document.getElementById('resultMsg').className = "result-msg lose";
-            document.getElementById('gameStage').classList.add('loser-shake');
-            document.getElementById('btnReset').style.display = 'block';
-            gameState.pendingWinnings = 0;
-        }
-
-        window.collectWinnings = async () => {
-            document.getElementById('doubleUpPanel').style.display = 'none';
-            const winAmount = gameState.pendingWinnings;
-            if (winAmount > 0) {
-                try {
-                    await runTransaction(db, async (transaction) => {
-                        const userRef = doc(db, "users", currentUser.uid);
-                        const userDoc = await transaction.get(userRef);
-                        const bal = userDoc.data().stars || 0;
-                        transaction.update(userRef, { stars: bal + winAmount });
-                        transaction.set(doc(collection(db, "transactions")), { userId: currentUser.uid, action: "gamble_win", itemName: currentGame, amount: winAmount, timestamp: serverTimestamp() });
-                    });
-                    updateBalanceDisplay();
-                    if(currentGame !== 'dice') alert(`已將 ${winAmount} 星星存入帳戶！`);
-                } catch(e) { console.error(e); }
-            }
-            if(currentGame === 'dice') document.getElementById('btnReset').style.display = 'block';
-            else resetTable();
-        };
-
-        window.doubleUp = () => { startGame(true); };
     </script>
 </body>
 </html>

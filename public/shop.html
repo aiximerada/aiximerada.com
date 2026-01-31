@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星星兌獎 - 玉露寶庫</title>
+    
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%23FFD700' d='M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z'/%3E%3C/svg%3E">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -24,112 +27,103 @@
             overflow-x: hidden; padding-bottom: 100px; position: relative;
         }
 
-        /* --- 背景星空 --- */
-        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
-        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
-        .stars-distant {
-            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
-            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
-        }
-        .stars-mid {
-            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
-            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
-        }
-        .gold-twinklers {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
-            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
-        }
-        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
-        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+        /* 背景星空特效 */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle 3s infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 
-        /* --- 介面樣式 --- */
-        .header { width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; position: sticky; top: 0; z-index: 100; }
-        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
-        .back-btn:hover { color: #fff; }
-        
+        /* 頂部導航 */
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; font-weight: bold; }
         .balance-badge {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1));
-            border: 1px solid var(--accent-amber);
+            background: rgba(255, 215, 0, 0.15); border: 1px solid var(--main-gold);
             color: var(--main-gold); padding: 6px 15px; border-radius: 20px; font-weight: bold;
             display: flex; align-items: center; gap: 8px; font-size: 1rem;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
         }
 
         .shop-title { text-align: center; margin: 30px 0 20px 0; }
-        .shop-title h1 { margin: 0; font-size: 3rem; letter-spacing: 5px; font-weight: 900; background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); }
-        .shop-title p { color: #64748b; margin-top: 5px; font-size: 0.95rem; letter-spacing: 3px; text-transform: uppercase; }
-
-        /* 🔥 動態篩選 Tabs */
-        .filter-tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding: 5px; width: 90%; max-width: 800px; justify-content: center; flex-wrap: wrap; }
-        .filter-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #94a3b8;
-            padding: 8px 20px; border-radius: 30px; cursor: pointer; white-space: nowrap; transition: 0.3s;
+        .shop-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 2px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
         }
-        .filter-btn.active, .filter-btn:hover {
-            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
-            color: #0f172a; font-weight: bold; border-color: transparent;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        .shop-title p { color: #64748b; margin-top: 5px; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; }
+
+        /* 商品列表 */
+        .products-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px; width: 90%; max-width: 800px; padding: 10px;
         }
 
-        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1200px; padding-bottom: 50px; }
-        
-        .empty-state { grid-column: 1 / -1; text-align: center; padding: 50px; color: #64748b; font-size: 1.2rem; border: 1px dashed #444; border-radius: 20px; }
-
-        /* 商品卡片 */
         .product-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: var(--card-radius); overflow: hidden;
-            display: flex; flex-direction: column; transition: 0.4s; backdrop-filter: blur(10px); position: relative;
+            border-radius: var(--card-radius); padding: 15px; text-align: center;
+            backdrop-filter: blur(10px); transition: 0.3s; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: space-between; height: 260px;
         }
-        .product-card:hover { transform: translateY(-8px); border-color: var(--main-gold); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
-
-        .img-container { width: 100%; height: 200px; background: #0f172a; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        .product-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; opacity: 0.8; }
-        .product-card:hover .product-img { transform: scale(1.1); opacity: 1; }
-        
-        .stock-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.2); }
-
-        .card-content { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-        .product-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; color: #fff; }
-        .product-desc { font-size: 0.9rem; color: #94a3b8; margin-bottom: 15px; flex: 1; line-height: 1.5; }
-        
-        .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-        .price-tag { color: var(--main-gold); font-size: 1.3rem; font-weight: 900; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 5px; }
-        
-        .btn-redeem {
-            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
-            color: #0f172a; border: none; padding: 10px 20px; border-radius: 30px;
-            font-weight: bold; cursor: pointer; transition: 0.3s;
-            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+        .product-card:hover { transform: translateY(-5px); border-color: var(--main-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .product-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 60%);
+            opacity: 0; transition: 0.5s; pointer-events: none;
         }
-        .btn-redeem:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4); }
-        .btn-redeem:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
+        .product-card:hover::before { opacity: 1; }
 
-        /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: #1e293b; border: 1px solid var(--main-gold); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 0 50px rgba(255, 215, 0, 0.15); animation: popIn 0.3s ease; }
-        @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
+        .prod-icon { font-size: 3.5rem; color: var(--nebula-blue); margin: 15px 0; text-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+        .prod-name { color: #fff; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; line-height: 1.3; }
+        .prod-desc { color: #94a3b8; font-size: 0.8rem; margin-bottom: 10px; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
         
-        .modal-img { width: 100px; height: 100px; border-radius: 15px; margin-bottom: 15px; object-fit: cover; border: 2px solid var(--main-gold); }
-        .modal-title { font-size: 1.4rem; color: #fff; margin-bottom: 10px; }
-        .modal-price { color: var(--main-gold); font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
-        .modal-actions { display: flex; gap: 10px; }
-        .btn-confirm { background: linear-gradient(90deg, #10b981, #059669); color: #fff; flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: #334155; color: #fff; flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .prod-price { color: var(--main-gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; }
+        
+        .btn-buy {
+            background: linear-gradient(90deg, #3b82f6, #2563eb); border: none; color: white;
+            padding: 10px 0; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;
+            transition: 0.2s; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+        }
+        .btn-buy:hover { filter: brightness(1.2); transform: scale(1.02); }
+        .btn-buy:disabled { background: #334155; cursor: not-allowed; filter: grayscale(1); }
+
+        /* 模態框 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; display: none;
+            justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--glass-border);
+            width: 85%; max-width: 350px; padding: 25px; border-radius: 20px;
+            text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from {transform: scale(0.8); opacity: 0;} to {transform: scale(1); opacity: 1;} }
+
+        .modal-title { font-size: 1.3rem; color: #fff; font-weight: bold; margin-bottom: 15px; }
+        .modal-info { color: #cbd5e1; margin-bottom: 25px; line-height: 1.6; font-size: 0.95rem; }
+        .modal-btns { display: flex; gap: 10px; }
+        .btn-confirm { flex: 1; padding: 12px; border-radius: 10px; border:none; font-weight:bold; cursor:pointer; background: var(--main-gold); color: #000; }
+        .btn-cancel { flex: 1; padding: 12px; border-radius: 10px; border:1px solid #475569; font-weight:bold; cursor:pointer; background: transparent; color: #94a3b8; }
+
+        /* 購買成功動畫 */
+        .success-anim {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 2000; pointer-events: none;
+        }
 
     </style>
 </head>
 <body>
 
-    <div class="space-container">
-        <div class="star-field stars-distant"></div>
-        <div class="star-field stars-mid"></div>
-        <div class="gold-twinklers"></div>
-    </div>
+    <div class="stars-bg" id="starsBg"></div>
 
     <div class="header">
-        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回總部</a>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> VIP 大廳</a>
         <div class="balance-badge">
             <i class="fa-solid fa-star"></i> <span id="userBalance">--</span>
         </div>
@@ -137,27 +131,22 @@
 
     <div class="shop-title">
         <h1>星星兌獎</h1>
-        <p>STAR REWARDS</p>
+        <p>REDEEM CENTER</p>
     </div>
 
-    <div class="filter-tabs" id="filterContainer">
-        <button class="filter-btn active" onclick="filterProducts('all')">全部</button>
+    <div class="products-grid" id="productsContainer">
+        <div style="grid-column: 1/-1; text-align:center; color:#64748b; padding: 50px;">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>載入寶庫中...
         </div>
-
-    <div id="loading" style="text-align:center; color:#94a3b8; font-size:1.2rem; margin-top:50px;">
-        <i class="fa-solid fa-spinner fa-spin"></i> 物資庫存載入中...
     </div>
-    <div class="shop-grid" id="shopGrid"></div>
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-box">
-            <img src="" id="modalImg" class="modal-img">
-            <h3 id="modalTitle" class="modal-title"></h3>
-            <div id="modalPrice" class="modal-price"></div>
-            <p style="color:#aaa; margin-bottom:20px;">確定要消耗星星兌換此項目嗎？</p>
-            <div class="modal-actions">
+            <div class="modal-title">確認兌換</div>
+            <div class="modal-info" id="modalContent"></div>
+            <div class="modal-btns">
                 <button class="btn-cancel" onclick="closeModal()">取消</button>
-                <button class="btn-confirm" id="btnConfirmRedeem">確認兌換</button>
+                <button class="btn-confirm" id="btnConfirmBuy" onclick="executePurchase()">確認兌換</button>
             </div>
         </div>
     </div>
@@ -165,32 +154,34 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, runTransaction, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
-            authDomain: "yulubox.firebaseapp.com",
-            projectId: "yulubox",
-            storageBucket: "yulubox.firebasestorage.app",
-            messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
-        };
+        import { getFirestore, doc, getDoc, updateDoc, collection, addDoc, serverTimestamp, runTransaction, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { firebaseConfig } from './js/firebase-config.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUser = null;
-        let currentBalance = 0;
-        let allProducts = [];
         let selectedProduct = null;
+        let allProducts = [];
 
-        onAuthStateChanged(auth, async (user) => {
+        // 背景星星特效
+        const bg = document.getElementById('starsBg');
+        for(let i=0; i<50; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            s.style.top = Math.random()*100 + '%';
+            s.style.left = Math.random()*100 + '%';
+            s.style.width = Math.random()*3 + 'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = Math.random()*3 + 's';
+            bg.appendChild(s);
+        }
+
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
                 loadBalance();
-                loadCategories(); // 先載入分類
                 loadProducts();
             } else {
                 window.location.href = "login.html";
@@ -198,132 +189,121 @@
         });
 
         async function loadBalance() {
-            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (!currentUser) return;
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                currentBalance = docSnap.data().stars || 0;
-                document.getElementById('userBalance').innerText = currentBalance;
+                const bal = docSnap.data().stars || 0;
+                document.getElementById('userBalance').innerText = bal;
             }
-        }
-
-        // 🔥 動態載入分類按鈕
-        async function loadCategories() {
-            try {
-                const q = query(collection(db, "categories"), orderBy("name"));
-                const snapshot = await getDocs(q);
-                const container = document.getElementById('filterContainer');
-                
-                // 保留「全部」按鈕，清除其他
-                container.innerHTML = `<button class="filter-btn active" onclick="filterProducts('all')">全部</button>`;
-                
-                snapshot.forEach(doc => {
-                    const cat = doc.data();
-                    const btn = document.createElement('button');
-                    btn.className = 'filter-btn';
-                    btn.innerText = cat.name;
-                    btn.onclick = () => filterProducts(cat.name);
-                    container.appendChild(btn);
-                });
-            } catch(e) { console.error(e); }
         }
 
         async function loadProducts() {
+            const container = document.getElementById('productsContainer');
             try {
-                const querySnapshot = await getDocs(collection(db, "products"));
+                // 只抓取上架中 (active == true) 的商品，並按價格排序
+                const q = query(collection(db, "products"), where("active", "==", true), orderBy("cost", "asc"));
+                const querySnapshot = await getDocs(q);
+                
                 allProducts = [];
                 querySnapshot.forEach((doc) => {
-                    if (doc.data().active !== false) allProducts.push({ id: doc.id, ...doc.data() });
+                    allProducts.push({ id: doc.id, ...doc.data() });
                 });
-                document.getElementById('loading').style.display = 'none';
+
                 renderProducts(allProducts);
-            } catch (e) {
-                console.error(e);
-                document.getElementById('loading').innerHTML = "載入失敗，請稍後再試";
+
+            } catch (error) {
+                console.error("Error loading products:", error);
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#ef4444;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 載入失敗，請稍後再試
+                </div>`;
             }
         }
 
-        window.renderProducts = (products) => {
-            const grid = document.getElementById('shopGrid');
-            grid.innerHTML = '';
-            
+        function renderProducts(products) {
+            const container = document.getElementById('productsContainer');
             if (products.length === 0) {
-                grid.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open" style="font-size:3rem; margin-bottom:10px; color:#475569;"></i><br>目前沒有此類物資</div>`;
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#64748b;">暫無商品上架</div>';
                 return;
             }
-            
-            products.forEach(p => {
-                const imgUrl = p.image || 'https://via.placeholder.com/300x200?text=NO+IMAGE';
-                const canAfford = currentBalance >= p.cost;
-                
-                grid.innerHTML += `
-                    <div class="product-card">
-                        <div class="img-container">
-                            <span class="stock-tag">${p.stock !== undefined && p.stock !== null ? '剩餘: ' + p.stock : '無限量'}</span>
-                            <img src="${imgUrl}" class="product-img">
-                        </div>
-                        <div class="card-content">
-                            <div class="product-title">${p.name}</div>
-                            <div class="product-desc">${p.desc || '暫無描述'}</div>
-                            <div class="card-footer">
-                                <div class="price-tag"><i class="fa-solid fa-star"></i> ${p.cost}</div>
-                                <button class="btn-redeem" onclick="openRedeem('${p.id}')" ${canAfford ? '' : 'disabled'}>
-                                    ${canAfford ? '立即兌換' : '餘額不足'}
-                                </button>
-                            </div>
-                        </div>
+
+            container.innerHTML = products.map(p => {
+                // 根據商品類型顯示不同 Icon
+                let iconClass = "fa-gift";
+                if (p.name.includes("卡")) iconClass = "fa-ticket";
+                if (p.name.includes("VIP")) iconClass = "fa-crown";
+                if (p.name.includes("優惠")) iconClass = "fa-tags";
+
+                return `
+                <div class="product-card">
+                    <div>
+                        <i class="fa-solid ${iconClass} prod-icon"></i>
+                        <div class="prod-name">${p.name}</div>
+                        <div class="prod-desc">${p.description || "無描述"}</div>
                     </div>
+                    <div>
+                        <div class="prod-price"><i class="fa-solid fa-star"></i> ${p.cost}</div>
+                        <button class="btn-buy" onclick="openBuyModal('${p.id}')">立即兌換</button>
+                    </div>
+                </div>
                 `;
-            });
+            }).join('');
         }
 
-        // 修改篩選邏輯，讓點擊的按鈕變色
-        window.filterProducts = (type) => {
-            // 找出點擊的按鈕並設為 active (因為按鈕是動態生成的，需要用 event.target)
-            // 如果是透過 JS 呼叫 (非點擊)，則不做 DOM 操作 (初始化時)
-            if(event) {
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                event.target.classList.add('active');
-            }
+        window.openBuyModal = (productId) => {
+            selectedProduct = allProducts.find(p => p.id === productId);
+            if (!selectedProduct) return;
 
-            if (type === 'all') {
-                renderProducts(allProducts);
+            const bal = parseInt(document.getElementById('userBalance').innerText);
+            const canAfford = bal >= selectedProduct.cost;
+
+            document.getElementById('modalContent').innerHTML = `
+                您即將兌換：<br>
+                <span style="color:#fff; font-weight:bold; font-size:1.1rem;">${selectedProduct.name}</span><br>
+                <br>
+                花費：<span style="color:var(--main-gold);">${selectedProduct.cost} 星星</span><br>
+                當前餘額：${bal}
+                ${!canAfford ? '<br><br><span style="color:#ff4757; font-weight:bold;">⚠️ 餘額不足</span>' : ''}
+            `;
+
+            const confirmBtn = document.getElementById('btnConfirmBuy');
+            if (canAfford) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = "1";
+                confirmBtn.innerText = "確認兌換";
             } else {
-                const filtered = allProducts.filter(p => p.type === type);
-                renderProducts(filtered);
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = "0.5";
+                confirmBtn.innerText = "餘額不足";
             }
-        }
 
-        window.openRedeem = (pid) => {
-            selectedProduct = allProducts.find(p => p.id === pid);
-            if(!selectedProduct) return;
-
-            document.getElementById('modalImg').src = selectedProduct.image || '';
-            document.getElementById('modalTitle').innerText = selectedProduct.name;
-            document.getElementById('modalPrice').innerHTML = `<i class="fa-solid fa-star"></i> ${selectedProduct.cost}`;
             document.getElementById('confirmModal').style.display = 'flex';
-            document.getElementById('btnConfirmRedeem').onclick = handleRedeem;
-        }
+        };
 
         window.closeModal = () => {
             document.getElementById('confirmModal').style.display = 'none';
             selectedProduct = null;
-        }
+        };
 
-        async function handleRedeem() {
-            if(!selectedProduct || !currentUser) return;
-            const btn = document.getElementById('btnConfirmRedeem');
-            btn.disabled = true; btn.innerText = "處理中...";
+        window.executePurchase = async () => {
+            if (!selectedProduct || !currentUser) return;
+
+            const btn = document.getElementById('btnConfirmBuy');
+            btn.disabled = true;
+            btn.innerText = "處理中...";
 
             try {
                 await runTransaction(db, async (transaction) => {
                     const userRef = doc(db, "users", currentUser.uid);
                     const userDoc = await transaction.get(userRef);
-                    if (!userDoc.exists()) throw "User not found";
-                    
+                    if (!userDoc.exists()) throw "用戶不存在";
+
                     const newBalance = (userDoc.data().stars || 0) - selectedProduct.cost;
                     if (newBalance < 0) throw "餘額不足";
 
                     transaction.update(userRef, { stars: newBalance });
 
+                    // 1. 寫入兌換紀錄 (需人工審核或自動發放)
                     const recordRef = doc(collection(db, "redemptions"));
                     transaction.set(recordRef, {
                         userId: currentUser.uid,
@@ -331,10 +311,11 @@
                         productId: selectedProduct.id,
                         productName: selectedProduct.name,
                         cost: selectedProduct.cost,
-                        status: 'pending', 
+                        status: 'pending', // 待處理
                         timestamp: serverTimestamp()
                     });
                     
+                    // 2. 寫入交易明細
                     const txRef = doc(collection(db, "transactions"));
                     transaction.set(txRef, {
                         userId: currentUser.uid,
