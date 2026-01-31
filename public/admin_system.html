@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星際系統中樞 - 玉露寶庫</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --main-gold: #FFD700;
+            --accent-amber: #FDB931;
+            --deep-space: #0f172a;
+            --danger-red: #ff4757;
+            --success-green: #10b981;
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .gold-twinklers {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
+            background-size: 100% 100%; opacity: 0.5; animation: twinkle 5s infinite;
+        }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
+        .back-btn:hover { color: #fff; }
+
+        .page-title { text-align: center; margin: 40px 0; }
+        .page-title h1 {
+            margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
+            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
+            -webkit-background-clip: text; color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+        }
+        .page-title p { color: #64748b; margin-top: 5px; letter-spacing: 3px; text-transform: uppercase; }
+
+        /* 控制卡片 */
+        .control-grid { display: grid; gap: 20px; width: 90%; max-width: 600px; }
+        
+        .control-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            padding: 25px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center;
+            backdrop-filter: blur(16px); transition: 0.3s;
+        }
+        .control-card:hover { border-color: var(--main-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1); }
+
+        .info h3 { margin: 0 0 5px 0; font-size: 1.2rem; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .info p { margin: 0; color: #94a3b8; font-size: 0.9rem; }
+
+        /* 開關樣式 */
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--success-green); box-shadow: 0 0 15px var(--success-green); }
+        input:focus + .slider { box-shadow: 0 0 1px var(--success-green); }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        /* 關閉狀態特別樣式 */
+        .slider.closed { background-color: var(--danger-red); }
+        input:not(:checked) + .slider.closed { box-shadow: 0 0 15px var(--danger-red); }
+
+        .status-text { font-weight: bold; margin-left: 10px; font-size: 0.9rem; }
+        .status-open { color: var(--success-green); }
+        .status-closed { color: var(--danger-red); }
+
+    </style>
+</head>
+<body>
+
+    <div class="space-container"><div class="gold-twinklers"></div></div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+    </div>
+
+    <div class="page-title">
+        <h1>星際系統中樞</h1>
+        <p>SYSTEM CONTROL CENTER</p>
+    </div>
+
+    <div class="control-grid">
+        <div class="control-card">
+            <div class="info">
+                <h3><i class="fa-solid fa-dice"></i> 星維加斯狀態</h3>
+                <p>關閉時，所有玩家將無法進入遊戲頁面。</p>
+            </div>
+            <div style="display:flex; align-items:center;">
+                <label class="switch">
+                    <input type="checkbox" id="casinoToggle" onchange="toggleCasino()">
+                    <span class="slider round"></span>
+                </label>
+                <span id="casinoStatusText" class="status-text">讀取中...</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 權限檢查
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "login.html";
+            // 這裡可以加強判斷 user.role === 'admin'
+        });
+
+        const casinoToggle = document.getElementById('casinoToggle');
+        const statusText = document.getElementById('casinoStatusText');
+
+        // 監聽設定
+        const configRef = doc(db, "system_settings", "global_config");
+        onSnapshot(configRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const isOpen = data.isCasinoOpen !== false; // 預設為 true
+                
+                casinoToggle.checked = isOpen;
+                updateStatusUI(isOpen);
+            } else {
+                // 如果文檔不存在，預設開啟
+                casinoToggle.checked = true;
+                updateStatusUI(true);
+            }
+        });
+
+        function updateStatusUI(isOpen) {
+            if(isOpen) {
+                statusText.innerText = "營業中";
+                statusText.className = "status-text status-open";
+                document.querySelector('.slider').classList.remove('closed');
+            } else {
+                statusText.innerText = "維護中";
+                statusText.className = "status-text status-closed";
+                document.querySelector('.slider').classList.add('closed');
+            }
+        }
+
+        window.toggleCasino = async () => {
+            const isOpen = casinoToggle.checked;
+            try {
+                await setDoc(configRef, { isCasinoOpen: isOpen }, { merge: true });
+            } catch(e) {
+                alert("設定失敗：" + e.message);
+                casinoToggle.checked = !isOpen; // 回復狀態
+            }
+        };
+    </script>
+</body>
+</html>
