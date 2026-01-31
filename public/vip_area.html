@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星員專區 - 玉露寶庫</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --glass-bg: rgba(15, 23, 42, 0.85); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 100px;
+        }
+
+        /* 背景星空 */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: twinkle 3s infinite; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+        /* 頂部導航 */
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .logout-btn { color: var(--danger-red); text-decoration: none; font-size: 0.9rem; border: 1px solid var(--danger-red); padding: 5px 15px; border-radius: 20px; transition: 0.3s; }
+        .logout-btn:hover { background: var(--danger-red); color: #fff; }
+
+        /* 個人資訊卡 */
+        .profile-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            padding: 30px; width: 85%; max-width: 600px; margin-top: 30px;
+            text-align: center; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .avatar {
+            width: 80px; height: 80px; background: var(--main-gold); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto;
+            font-size: 2.5rem; color: #000; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        .user-name { font-size: 1.8rem; font-weight: 900; margin-bottom: 5px; color: #fff; letter-spacing: 1px; }
+        .user-role { color: var(--nebula-blue); font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+        
+        .stats-row { display: flex; justify-content: center; gap: 40px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+        .stat-item .val { font-size: 1.5rem; font-weight: bold; color: var(--main-gold); }
+        .stat-item .label { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+
+        /* 功能網格 */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            width: 90%; max-width: 600px; margin-top: 30px;
+        }
+
+        .menu-btn {
+            background: rgba(30, 41, 59, 0.6); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 25px 15px; text-decoration: none;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .menu-btn:hover { transform: translateY(-3px); background: rgba(30, 41, 59, 0.9); border-color: var(--main-gold); }
+        .menu-btn i { font-size: 2rem; color: #fff; transition: 0.3s; }
+        .menu-btn:hover i { color: var(--main-gold); transform: scale(1.1); }
+        .menu-btn span { color: #cbd5e1; font-weight: bold; font-size: 1rem; }
+
+        /* 特殊按鈕樣式 */
+        .btn-vegas { grid-column: 1 / -1; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.4)); border-color: var(--main-gold); }
+        .btn-vegas i { color: var(--main-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
+
+        /* 管理員專區標題 */
+        .admin-section-title {
+            width: 90%; max-width: 600px; margin: 40px 0 15px 0;
+            color: var(--danger-red); font-weight: bold; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 10px; letter-spacing: 1px;
+        }
+        .admin-section-title::after { content: ''; flex: 1; height: 1px; background: rgba(255, 71, 87, 0.3); }
+
+        /* 管理員按鈕 */
+        .btn-admin { border-color: rgba(255, 71, 87, 0.3); }
+        .btn-admin:hover { border-color: var(--danger-red); background: rgba(255, 71, 87, 0.1); }
+        .btn-admin i { color: var(--danger-red); }
+        
+        /* 載入中遮罩 */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; z-index: 9999; display: flex; justify-content: center; align-items: center;
+            color: var(--main-gold); font-size: 1.5rem; flex-direction: column; gap: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader" class="loading-overlay">
+        <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+        <div>身分驗證中...</div>
+    </div>
+
+    <div class="stars-bg" id="starsBg"></div>
+
+    <div class="header">
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-house"></i> 首頁</a>
+        <button id="btnLogout" class="logout-btn">登出</button>
+    </div>
+
+    <div class="profile-card">
+        <div class="avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+        <div class="user-name" id="displayName">Loading...</div>
+        <div class="user-role" id="displayRole">MEMBER</div>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="val" id="starBalance">--</div>
+                <div class="label">星幣餘額</div>
+            </div>
+            <div class="stat-item">
+                <div class="val">--</div> <div class="label">榮譽點數</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <a href="profile.html" class="menu-btn">
+            <i class="fa-solid fa-gear"></i>
+            <span>個人設定</span>
+        </a>
+        <a href="shop.html" class="menu-btn">
+            <i class="fa-solid fa-store"></i>
+            <span>星際商城</span>
+        </a>
+        
+        <a href="casino.html" class="menu-btn btn-vegas">
+            <i class="fa-solid fa-dice"></i>
+            <span>星維加斯</span>
+        </a>
+
+        <a href="point_history.html" class="menu-btn">
+            <i class="fa-solid fa-wallet"></i>
+            <span>星存摺</span>
+        </a>
+        <a href="tools.html" class="menu-btn">
+            <i class="fa-solid fa-toolbox"></i>
+            <span>傳輸工具</span>
+        </a>
+        <a href="chat.html" class="menu-btn">
+            <i class="fa-solid fa-comments"></i>
+            <span>通訊室</span>
+        </a>
+        <a href="bulletin.html" class="menu-btn">
+            <i class="fa-solid fa-scroll"></i>
+            <span>公告欄</span>
+        </a>
+    </div>
+
+    <div id="adminControls" style="display: none;">
+        <div class="admin-section-title">
+            <i class="fa-solid fa-shield-halved"></i> 系統中樞
+        </div>
+        <div class="grid-container" style="margin-top: 0;">
+            <a href="admin_system.html" class="menu-btn btn-admin">
+                <i class="fa-solid fa-server"></i>
+                <span>系統開關</span>
+            </a>
+            <a href="admin_shop.html" class="menu-btn btn-admin">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>兌換倉</span>
+            </a>
+            <a href="admin_invite.html" class="menu-btn btn-admin">
+                <i class="fa-solid fa-ticket"></i>
+                <span>邀請中心</span>
+            </a>
+            <a href="admin_members.html" class="menu-btn btn-admin">
+                <i class="fa-solid fa-users-gear"></i>
+                <span>檔案庫</span>
+            </a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { firebaseConfig } from './js/firebase-config.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 背景星星
+        const bg = document.getElementById('starsBg');
+        for(let i=0; i<50; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            s.style.top = Math.random()*100 + '%';
+            s.style.left = Math.random()*100 + '%';
+            s.style.width = Math.random()*3 + 'px';
+            s.style.height = s.style.width;
+            s.style.animationDelay = Math.random()*3 + 's';
+            bg.appendChild(s);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            const loader = document.getElementById('loader');
+            
+            if (user) {
+                // 讀取使用者資料
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+
+                    if (userSnap.exists()) {
+                        const data = userSnap.data();
+                        
+                        // 1. 更新介面
+                        document.getElementById('displayName').innerText = data.displayName || "指揮官";
+                        document.getElementById('displayRole').innerText = (data.role || "MEMBER").toUpperCase();
+                        document.getElementById('starBalance').innerText = data.stars || 0;
+
+                        // 2. 🔒 關鍵邏輯：檢查是否為管理員
+                        if (data.role === 'admin') {
+                            document.getElementById('adminControls').style.display = 'block';
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching user data:", error);
+                    alert("資料讀取失敗，請重新整理");
+                }
+                
+                // 關閉遮罩
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+
+            } else {
+                // 未登入，踢回首頁或登入頁
+                window.location.href = "login.html";
+            }
+        });
+
+        // 登出功能
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            if(confirm("確定要登出系統嗎？")) {
+                signOut(auth).then(() => {
+                    window.location.href = "index.html";
+                });
+            }
+        });
+    </script>
+</body>
+</html>
