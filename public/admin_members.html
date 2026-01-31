@@ -3,183 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星員檔案庫 - 指揮官後台</title>
+    <title>星員檔案庫 - 玉露寶庫</title>
+    
+    <script src="theme.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            /* 🎨 星際奢華配色 */
-            --main-gold: #FFD700;       
-            --accent-amber: #FDB931;    
-            --deep-space: #0f172a;      
-            --nebula-blue: #00f3ff;     
-            --danger-red: #ff4757;      
+            /* 🎨 星際奢華配色 (同步星維加斯) */
+            --main-gold: #FFD700;
+            --accent-amber: #FDB931;
+            --deep-space: #0f172a;
+            --nebula-blue: #00f3ff;
+            --danger-red: #ff4757;
             --success-green: #10b981;
             
             /* 玻璃擬態 */
-            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-bg: rgba(15, 23, 42, 0.85); 
             --glass-border: rgba(255, 255, 255, 0.1);
-            --card-radius: 16px;
+            --card-hover-bg: rgba(30, 41, 59, 0.9);
         }
 
         body {
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
             color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden; padding-bottom: 80px; position: relative;
+            overflow-x: hidden; padding-bottom: 80px;
         }
 
-        /* --- 背景星空 --- */
+        /* --- ✨ 星空背景特效 --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        
         .stars-distant {
             background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
             background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
         }
+        
         .stars-mid {
             background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
             background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
         }
+        
         .gold-twinklers {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
             background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
         }
+
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* --- 頂部導航 --- */
+        /* --- Header --- */
         .header {
-            width: 100%; padding: 15px 20px; 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
-            display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; position: sticky; top: 0; z-index: 100;
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;
+            position: sticky; top: 0; z-index: 10;
         }
         .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; transition:0.3s; }
-        .back-btn:hover { color: #fff; }
+        .back-btn:hover { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
 
-        /* --- 標題 --- */
         .page-title { text-align: center; margin: 40px 0 30px 0; }
         .page-title h1 {
             margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
             background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
             -webkit-background-clip: text; color: transparent;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
         }
-        .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
+        .page-title p { color: #64748b; margin-top: 5px; letter-spacing: 3px; text-transform: uppercase; font-size: 0.9rem; }
 
-        /* --- 控制列 --- */
-        .toolbar {
-            width: 90%; max-width: 1000px; display: flex; gap: 15px; margin-bottom: 30px;
-            flex-wrap: wrap; justify-content: center;
-        }
-        .search-box {
-            flex: 1; position: relative; min-width: 250px;
-        }
+        /* --- 搜尋欄 --- */
+        .search-container { width: 90%; max-width: 800px; margin-bottom: 30px; position: relative; }
         .search-input {
-            width: 100%; padding: 15px 20px 15px 50px; background: var(--glass-bg);
-            border: 1px solid var(--glass-border); border-radius: 50px; color: #fff;
-            font-size: 1rem; box-sizing: border-box; transition: 0.3s;
+            width: 100%; padding: 16px 20px 16px 55px; background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border); border-radius: 50px; color: #fff; font-size: 1.1rem;
+            box-sizing: border-box; outline: none; transition: 0.3s; backdrop-filter: blur(5px);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
         }
-        .search-input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
-        .search-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #64748b; }
+        .search-input:focus { border-color: var(--main-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); background: rgba(15, 23, 42, 0.8); }
+        .search-icon { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); color: var(--main-gold); font-size: 1.2rem; }
 
-        .btn-group { display: flex; gap: 10px; }
+        /* --- 會員列表 --- */
+        .member-list { width: 90%; max-width: 800px; display: flex; flex-direction: column; gap: 15px; }
         
-        .btn-add {
-            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
-            color: #0f172a; border: none; padding: 0 25px; border-radius: 50px;
-            font-weight: 900; font-size: 1rem; cursor: pointer; transition: 0.3s;
-            display: flex; align-items: center; gap: 8px; white-space: nowrap; height: 50px;
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2);
-        }
-        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4); }
-
-        .btn-batch {
-            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--nebula-blue);
-            color: var(--nebula-blue); padding: 0 25px; border-radius: 50px;
-            font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s;
-            display: flex; align-items: center; gap: 8px; white-space: nowrap; height: 50px;
-        }
-        .btn-batch:hover { background: var(--nebula-blue); color: #000; box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
-
-        /* --- 人員列表 (Grid) --- */
-        .member-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px; width: 90%; max-width: 1000px;
-        }
-
-        /* 人員卡片 */
         .member-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: var(--card-radius); padding: 25px;
-            position: relative; overflow: hidden; transition: 0.3s;
-            backdrop-filter: blur(12px); display: flex; align-items: center; gap: 20px;
+            padding: 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .member-card::before {
-            content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%;
-            background: var(--nebula-blue); box-shadow: 0 0 15px var(--nebula-blue);
-        }
-        /* 管理員樣式 */
-        .member-card.is-admin { border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05); }
-        .member-card.is-admin::before { background: var(--main-gold); box-shadow: 0 0 15px var(--main-gold); }
-        
-        .member-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.8); border-color: rgba(255,255,255,0.2); }
-
-        .avatar {
-            width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
-            border: 2px solid var(--glass-border); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .member-info { flex: 1; overflow: hidden; }
-        .member-name { font-weight: bold; font-size: 1.1rem; color: #fff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
-        .admin-badge { background: var(--main-gold); color: #000; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: 900; }
-        
-        .member-email { font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .stars-tag {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: rgba(255, 215, 0, 0.1); border: 1px solid var(--accent-amber);
-            color: var(--main-gold); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;
+        .member-card:hover { 
+            transform: translateY(-5px) scale(1.01); 
+            border-color: var(--main-gold); 
+            background: var(--card-hover-bg);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05); 
         }
 
-        .btn-manage {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 8px 15px; border-radius: 10px; cursor: pointer;
-            transition: 0.2s; white-space: nowrap;
+        .member-info { display: flex; align-items: center; gap: 20px; flex: 1; overflow: hidden; }
+        .avatar { 
+            width: 55px; height: 55px; border-radius: 50%; object-fit: cover; 
+            border: 2px solid var(--glass-border); box-shadow: 0 0 15px rgba(0,0,0,0.3);
         }
-        .btn-manage:hover { background: #fff; color: #000; }
+        
+        .details { display: flex; flex-direction: column; overflow: hidden; gap: 4px; }
+        .name { font-weight: bold; color: #fff; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        
+        .role-tag { 
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; 
+            background: rgba(255,255,255,0.1); color: #94a3b8; 
+            text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
+        }
+        .role-tag.admin { 
+            background: linear-gradient(135deg, var(--main-gold), #f59e0b); 
+            color: #000; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); 
+        }
+        
+        .email { font-size: 0.9rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Modal */
+        .stars-display { 
+            font-family: 'Courier New', monospace; font-size: 1.3rem; 
+            color: var(--main-gold); font-weight: bold; margin-right: 20px;
+            display: flex; align-items: center; gap: 8px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .action-btn {
+            width: 45px; height: 45px; border-radius: 50%; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            transition: 0.3s; background: rgba(0, 243, 255, 0.1); color: var(--nebula-blue); 
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+        .action-btn:hover { 
+            background: var(--nebula-blue); color: #000; 
+            box-shadow: 0 0 20px var(--nebula-blue); transform: rotate(15deg);
+        }
+
+        /* --- Modal (深空風格) --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-            display: none; justify-content: center; align-items: center; z-index: 1000;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(8px);
         }
         .modal-box {
-            background: #1e293b; border: 1px solid var(--main-gold);
-            padding: 30px; border-radius: 20px; width: 90%; max-width: 450px;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.15); color: #fff;
-            animation: popIn 0.3s ease;
+            background: #0f172a; border: 1px solid var(--main-gold); padding: 35px;
+            border-radius: 24px; width: 90%; max-width: 450px; color: #fff;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.15); 
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden;
         }
-        @keyframes popIn { from{transform:scale(0.9); opacity:0;} to{transform:scale(1); opacity:1;} }
+        /* Modal 背景光暈 */
+        .modal-box::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.05), transparent 60%);
+            pointer-events: none;
+        }
 
-        .modal-header { font-size: 1.3rem; font-weight: bold; color: var(--main-gold); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
+
+        .modal-header { 
+            font-size: 1.5rem; font-weight: 900; color: var(--main-gold); 
+            margin-bottom: 25px; text-align: center; letter-spacing: 2px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
         
-        .form-group { margin-bottom: 15px; }
-        .form-label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 0.9rem; }
-        .form-input, select {
-            width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid #475569;
-            color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 1rem;
+        .form-group { margin-bottom: 20px; position: relative; z-index: 1; }
+        .form-label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 0.9rem; font-weight: bold; }
+        .form-input { 
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.4); border: 1px solid #334155; 
+            color: #fff; border-radius: 12px; box-sizing: border-box; font-size: 1.1rem;
+            transition: 0.3s;
         }
-        .form-input:focus { border-color: var(--main-gold); outline: none; }
+        .form-input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
 
-        .modal-footer { margin-top: 25px; text-align: right; display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-submit { background: var(--main-gold); color: #000; padding: 10px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: transparent; color: #aaa; border: 1px solid #555; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        /* 切換按鈕樣式 */
+        .adjust-toggle { display: flex; gap: 15px; margin-bottom: 15px; }
+        .toggle-btn {
+            flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #334155;
+            background: rgba(0,0,0,0.3); color: #64748b; font-weight: bold; cursor: pointer; transition: 0.3s;
+            font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .toggle-btn.active-add { 
+            background: linear-gradient(135deg, var(--success-green), #059669); 
+            color: #000; border-color: transparent; 
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); 
+        }
+        .toggle-btn.active-sub { 
+            background: linear-gradient(135deg, var(--danger-red), #b91c1c); 
+            color: #fff; border-color: transparent; 
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.4); 
+        }
 
-        .loading-text { color: #64748b; text-align: center; grid-column: 1/-1; padding: 30px; }
+        .current-stars { 
+            font-size: 2rem; color: var(--main-gold); font-weight: bold; 
+            margin-bottom: 5px; font-family: monospace; 
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
 
-        /* 批量進度 */
-        #batchProgress { margin-top: 10px; font-size: 0.9rem; color: var(--nebula-blue); text-align: center; display: none; }
+        .modal-btns { display: flex; gap: 15px; justify-content: flex-end; margin-top: 35px; position: relative; z-index: 1; }
+        .btn-modal { padding: 12px 30px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 1rem; }
+        .btn-confirm { 
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); 
+            color: #000; font-weight: 900;
+        }
+        .btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(255, 215, 0, 0.4); }
+        .btn-cancel { background: transparent; border: 1px solid #64748b; color: #94a3b8; }
+        .btn-cancel:hover { border-color: #fff; color: #fff; }
+
+        .loading-state { text-align: center; color: #64748b; padding: 50px; font-size: 1.2rem; }
+        
+        .role-select {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.4); border: 1px solid #334155;
+            color: #fff; border-radius: 12px; font-size: 1rem; outline: none; appearance: none;
+        }
+        .role-select option { background: #0f172a; color: #fff; }
 
     </style>
 </head>
@@ -197,135 +234,66 @@
 
     <div class="page-title">
         <h1>星員檔案庫</h1>
-        <p>STAR MEMBER ARCHIVES</p>
+        <p>MEMBER DATABASE</p>
     </div>
 
-    <div class="toolbar">
-        <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" class="search-input" id="searchInput" placeholder="搜尋暱稱、信箱..." onkeyup="filterMembers()">
-        </div>
-        <div class="btn-group">
-            <button class="btn-batch" onclick="openBatchModal()">
-                <i class="fa-solid fa-users"></i> 批量徵招
-            </button>
-            <button class="btn-add" onclick="openCreateModal()">
-                <i class="fa-solid fa-user-plus"></i> 新增
-            </button>
-        </div>
+    <div class="search-container">
+        <i class="fa-solid fa-search search-icon"></i>
+        <input type="text" class="search-input" id="searchInput" placeholder="搜尋名稱或 Email..." onkeyup="filterMembers()">
     </div>
 
-    <div class="member-grid" id="memberGrid">
-        <div class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> 正在讀取檔案...</div>
+    <div class="member-list" id="memberList">
+        <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> 正在讀取星員資料...</div>
     </div>
 
-    <div class="modal-overlay" id="manageModal">
+    <div class="modal-overlay" id="editModal">
         <div class="modal-box">
-            <div class="modal-header"><i class="fa-solid fa-user-gear"></i> 管理星員</div>
-            <input type="hidden" id="editUserId">
+            <div class="modal-header"><i class="fa-solid fa-user-gear"></i> 編輯星員資料</div>
+            
+            <input type="hidden" id="editUid">
             
             <div class="form-group">
-                <label class="form-label">暱稱</label>
-                <input type="text" id="editName" class="form-input" disabled>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">星星數量 (直接修改)</label>
-                <input type="number" id="editStars" class="form-input">
+                <label class="form-label">目前星際能源</label>
+                <div id="currentStarsDisplay" class="current-stars">0</div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">身份權限</label>
-                <select id="editRole" class="form-input">
+                <label class="form-label">調整方式</label>
+                <div class="adjust-toggle">
+                    <button type="button" class="toggle-btn active-add" id="btnTypeAdd" onclick="setAdjustType('add')"><i class="fa-solid fa-plus"></i> 增加 (Add)</button>
+                    <button type="button" class="toggle-btn" id="btnTypeSub" onclick="setAdjustType('sub')"><i class="fa-solid fa-minus"></i> 扣除 (Sub)</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">變動數量</label>
+                <input type="number" id="adjustAmount" class="form-input" placeholder="輸入數量 (正整數)" min="1">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="color:var(--main-gold);">調整原因 (必填)</label>
+                <input type="text" id="adjustReason" class="form-input" placeholder="例如：活動獎勵、違規扣除、系統補償...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">權限設定</label>
+                <select id="editRole" class="role-select">
                     <option value="member">一般星員 (Member)</option>
                     <option value="admin">指揮官 (Admin)</option>
                 </select>
             </div>
 
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeModal('manageModal')">取消</button>
-                <button class="btn-submit" onclick="saveMemberChanges()">儲存變更</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="createModal">
-        <div class="modal-box">
-            <div class="modal-header"><i class="fa-solid fa-user-plus"></i> 建立單一檔案</div>
-            
-            <div class="form-group">
-                <label class="form-label">電子信箱</label>
-                <input type="email" id="newEmail" class="form-input" placeholder="user@example.com">
-            </div>
-            <div class="form-group">
-                <label class="form-label">預設密碼</label>
-                <input type="text" id="newPassword" class="form-input" placeholder="至少6位數">
-            </div>
-            <div class="form-group">
-                <label class="form-label">暱稱 (Nickname)</label>
-                <input type="text" id="newName" class="form-input" placeholder="例如：新進星員01">
-            </div>
-            <div class="form-group">
-                <label class="form-label">初始星星</label>
-                <input type="number" id="newStars" class="form-input" value="100">
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeModal('createModal')">取消</button>
-                <button class="btn-submit" id="btnCreate" onclick="createNewUser()">立即建立</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="batchModal">
-        <div class="modal-box">
-            <div class="modal-header" style="color:var(--nebula-blue);"><i class="fa-solid fa-users-viewfinder"></i> 批量徵招星員</div>
-            
-            <div style="font-size:0.9rem; color:#aaa; margin-bottom:20px;">
-                系統將自動生成一系列連續帳號。
-                <br>例如：前綴 <code>user</code>, 起始 <code>1</code> => <code>user1@domain.com</code>
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">帳號前綴</label>
-                    <input type="text" id="batchPrefix" class="form-input" placeholder="例如: team">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">信箱網域</label>
-                    <input type="text" id="batchDomain" class="form-input" value="@star.com">
-                </div>
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">起始編號</label>
-                    <input type="number" id="batchStart" class="form-input" value="1" min="1">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label class="form-label">建立數量 (Max 10)</label>
-                    <input type="number" id="batchCount" class="form-input" value="5" min="1" max="10">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">統一預設密碼</label>
-                <input type="text" id="batchPassword" class="form-input" value="123456">
-            </div>
-
-            <div id="batchProgress">準備中...</div>
-
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeModal('batchModal')">取消</button>
-                <button class="btn-submit" id="btnBatch" onclick="batchCreateUsers()" style="background:var(--nebula-blue);">開始徵招</button>
+            <div class="modal-btns">
+                <button class="btn-modal btn-cancel" onclick="closeModal()">取消</button>
+                <button class="btn-modal btn-confirm" onclick="saveChanges()">確認變更</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, serverTimestamp, addDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -342,72 +310,75 @@
         const db = getFirestore(app);
 
         let allMembers = [];
+        let currentAdminUid = null;
+        let currentAdjustType = 'add'; // 預設增加
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                loadMembers();
+                currentAdminUid = user.uid;
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    loadMembers();
+                } else {
+                    alert("權限不足：您不是指揮官");
+                    window.location.href = "vip_area.html";
+                }
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        // 載入與排序 (Admin 置頂)
         async function loadMembers() {
+            const list = document.getElementById('memberList');
             try {
                 const querySnapshot = await getDocs(collection(db, "users"));
                 allMembers = [];
                 querySnapshot.forEach((doc) => {
                     allMembers.push({ id: doc.id, ...doc.data() });
                 });
-
-                // 🔥 排序邏輯：Admin 優先，其次按星星數排序
-                allMembers.sort((a, b) => {
-                    if (a.role === 'admin' && b.role !== 'admin') return -1;
-                    if (a.role !== 'admin' && b.role === 'admin') return 1;
-                    return (b.stars || 0) - (a.stars || 0);
-                });
-
-                renderMembers(allMembers);
+                renderList(allMembers);
             } catch (e) {
                 console.error(e);
-                document.getElementById('memberGrid').innerHTML = '<div class="loading-text">讀取失敗</div>';
+                list.innerHTML = '<div class="loading-state">讀取失敗，請重新整理</div>';
             }
         }
 
-        window.renderMembers = (members) => {
-            const grid = document.getElementById('memberGrid');
-            grid.innerHTML = '';
+        function renderList(data) {
+            const list = document.getElementById('memberList');
+            list.innerHTML = '';
+            
+            data.sort((a, b) => {
+                if (a.role === 'admin' && b.role !== 'admin') return -1;
+                if (a.role !== 'admin' && b.role === 'admin') return 1;
+                return (b.stars || 0) - (a.stars || 0);
+            });
 
-            if (members.length === 0) {
-                grid.innerHTML = '<div class="loading-text">沒有符合的資料</div>';
-                return;
-            }
-
-            members.forEach(m => {
-                const isAdmin = m.role === 'admin';
-                const cardClass = isAdmin ? 'is-admin' : '';
-                const avatar = m.photoURL || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-                const name = m.displayName || '未命名星員';
-                const stars = m.stars !== undefined ? m.stars : 0;
+            data.forEach(user => {
+                const avatar = user.photoURL || 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png';
+                const roleBadge = user.role === 'admin' ? '<span class="role-tag admin"><i class="fa-solid fa-crown"></i> ADMIN</span>' : '<span class="role-tag">MEMBER</span>';
                 
-                // Admin 標章
-                const adminBadge = isAdmin ? '<span class="admin-badge">ADMIN</span>' : '';
-
-                grid.innerHTML += `
-                    <div class="member-card ${cardClass}">
-                        <img src="${avatar}" class="avatar">
+                const html = `
+                    <div class="member-card">
                         <div class="member-info">
-                            <div class="member-name">${name} ${adminBadge}</div>
-                            <div class="member-email">${m.email}</div>
-                            <div class="stars-tag">
-                                <i class="fa-solid fa-star"></i> ${stars}
+                            <img src="${avatar}" class="avatar">
+                            <div class="details">
+                                <div class="name">
+                                    ${user.displayName || '未命名'} ${roleBadge}
+                                </div>
+                                <div class="email">${user.email}</div>
                             </div>
                         </div>
-                        <button class="btn-manage" onclick="openManageModal('${m.id}')">管理</button>
+                        <div class="stars-display">
+                            <i class="fa-solid fa-star"></i> ${user.stars !== undefined ? user.stars : 0}
+                        </div>
+                        <button class="action-btn btn-edit" onclick="openEditModal('${user.id}')">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
                     </div>
                 `;
+                list.innerHTML += html;
             });
-        };
+        }
 
         window.filterMembers = () => {
             const term = document.getElementById('searchInput').value.toLowerCase();
@@ -415,156 +386,96 @@
                 (m.displayName && m.displayName.toLowerCase().includes(term)) || 
                 (m.email && m.email.toLowerCase().includes(term))
             );
-            renderMembers(filtered);
+            renderList(filtered);
         };
 
-        // --- 編輯功能 ---
-        window.openManageModal = (id) => {
-            const member = allMembers.find(m => m.id === id);
-            if(!member) return;
-
-            document.getElementById('editUserId').value = id;
-            document.getElementById('editName').value = member.displayName || '無';
-            document.getElementById('editStars').value = member.stars || 0;
-            document.getElementById('editRole').value = member.role || 'member';
+        // --- 編輯邏輯 ---
+        window.setAdjustType = (type) => {
+            currentAdjustType = type;
+            const btnAdd = document.getElementById('btnTypeAdd');
+            const btnSub = document.getElementById('btnTypeSub');
             
-            document.getElementById('manageModal').style.display = 'flex';
+            if(type === 'add') {
+                btnAdd.classList.add('active-add');
+                btnSub.classList.remove('active-sub');
+            } else {
+                btnAdd.classList.remove('active-add');
+                btnSub.classList.add('active-sub');
+            }
         };
 
-        window.saveMemberChanges = async () => {
-            const id = document.getElementById('editUserId').value;
-            const newStars = parseInt(document.getElementById('editStars').value);
+        window.openEditModal = (uid) => {
+            const user = allMembers.find(m => m.id === uid);
+            if (!user) return;
+
+            document.getElementById('editUid').value = user.id;
+            document.getElementById('currentStarsDisplay').innerText = user.stars !== undefined ? user.stars : 0;
+            
+            // 重置表單
+            document.getElementById('adjustAmount').value = '';
+            document.getElementById('adjustReason').value = '';
+            setAdjustType('add'); // 預設加分
+
+            document.getElementById('editRole').value = user.role || 'member';
+            const roleSelect = document.getElementById('editRole');
+            if (user.id === currentAdminUid) roleSelect.disabled = true;
+            else roleSelect.disabled = false;
+
+            document.getElementById('editModal').style.display = 'flex';
+        };
+
+        window.closeModal = () => {
+            document.getElementById('editModal').style.display = 'none';
+        };
+
+        window.saveChanges = async () => {
+            const uid = document.getElementById('editUid').value;
+            const amountInput = document.getElementById('adjustAmount').value;
+            const reason = document.getElementById('adjustReason').value.trim();
             const newRole = document.getElementById('editRole').value;
 
+            // 驗證
+            if (!amountInput || parseInt(amountInput) < 0) return alert("請輸入有效的數量 (正整數)");
+            if (!reason) return alert("請輸入調整原因 (必填)");
+
+            const amount = parseInt(amountInput);
+            const delta = currentAdjustType === 'add' ? amount : -amount;
+
+            const btn = document.querySelector('.btn-confirm');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
+            btn.disabled = true;
+
             try {
-                await updateDoc(doc(db, "users", id), {
-                    stars: newStars,
+                // 1. 更新使用者資料 (使用 increment 確保原子性)
+                const userRef = doc(db, "users", uid);
+                await updateDoc(userRef, {
+                    stars: increment(delta),
                     role: newRole
                 });
-                alert("更新成功");
-                closeModal('manageModal');
-                loadMembers();
-            } catch(e) { alert("更新失敗: " + e.message); }
-        };
 
-        // --- 單一新增 (二次實例化技巧) ---
-        window.openCreateModal = () => document.getElementById('createModal').style.display = 'flex';
-
-        window.createNewUser = async () => {
-            const email = document.getElementById('newEmail').value;
-            const pwd = document.getElementById('newPassword').value;
-            const name = document.getElementById('newName').value;
-            const stars = parseInt(document.getElementById('newStars').value);
-            const btn = document.getElementById('btnCreate');
-
-            if(!email || !pwd || !name) return alert("請填寫完整資訊");
-
-            btn.disabled = true;
-            btn.innerText = "建立中...";
-
-            try {
-                // 初始化第二個 App 實例 (避免登出目前的管理員)
-                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
-                const secondaryAuth = getAuth(secondaryApp);
-
-                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pwd);
-                const newUser = userCredential.user;
-
-                await updateProfile(newUser, { displayName: name });
-
-                await setDoc(doc(db, "users", newUser.uid), {
-                    email: email,
-                    displayName: name,
-                    photoURL: "",
-                    role: "member",
-                    stars: stars,
-                    createdAt: new Date()
+                // 2. 寫入交易紀錄 (含原因)
+                await addDoc(collection(db, "transactions"), {
+                    userId: uid,
+                    action: "admin_adjust",
+                    itemName: "管理員調整",
+                    amount: delta,
+                    note: reason, // 🔥 記錄原因
+                    adminId: currentAdminUid,
+                    timestamp: serverTimestamp()
                 });
 
-                await signOut(secondaryAuth); // 登出臨時身分
+                alert("變更成功！");
+                closeModal();
+                loadMembers(); // 重新整理列表
 
-                alert(`成功建立帳號：${email}`);
-                closeModal('createModal');
-                loadMembers();
-
-            } catch(e) {
+            } catch (e) {
                 console.error(e);
-                alert("建立失敗: " + e.message);
+                alert("更新失敗：" + e.message);
             } finally {
+                btn.innerHTML = "確認變更";
                 btn.disabled = false;
-                btn.innerText = "立即建立";
             }
         };
-
-        // --- 🔥 批量新增功能 ---
-        window.openBatchModal = () => document.getElementById('batchModal').style.display = 'flex';
-
-        window.batchCreateUsers = async () => {
-            const prefix = document.getElementById('batchPrefix').value.trim();
-            const domain = document.getElementById('batchDomain').value.trim();
-            const start = parseInt(document.getElementById('batchStart').value);
-            const count = parseInt(document.getElementById('batchCount').value);
-            const pwd = document.getElementById('batchPassword').value;
-            const btn = document.getElementById('btnBatch');
-            const progress = document.getElementById('batchProgress');
-
-            if(!prefix || !domain || !pwd) return alert("請填寫前綴、網域與密碼");
-            if(count > 10) return alert("為確保系統穩定，單次批量限制最多 10 個");
-
-            btn.disabled = true;
-            progress.style.display = 'block';
-            progress.innerText = '初始化排程...';
-
-            // 初始化 Secondary App
-            const secondaryApp = initializeApp(firebaseConfig, "BatchApp");
-            const secondaryAuth = getAuth(secondaryApp);
-
-            let successCount = 0;
-
-            for(let i = 0; i < count; i++) {
-                const num = start + i;
-                const email = `${prefix}${num}${domain}`;
-                const name = `${prefix}_${num}`;
-                
-                progress.innerText = `正在建立 (${i+1}/${count}): ${email}`;
-
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pwd);
-                    const newUser = userCredential.user;
-                    
-                    await updateProfile(newUser, { displayName: name });
-                    
-                    await setDoc(doc(db, "users", newUser.uid), {
-                        email: email,
-                        displayName: name,
-                        photoURL: "",
-                        role: "member",
-                        stars: 100, // 預設星星
-                        createdAt: new Date()
-                    });
-                    
-                    // 登出該用戶，準備下一個循環
-                    await signOut(secondaryAuth);
-                    successCount++;
-
-                } catch(e) {
-                    console.error(`Failed to create ${email}:`, e);
-                    // 失敗則跳過，繼續下一個
-                }
-            }
-
-            // 完成
-            progress.innerText = `完成！成功建立 ${successCount} 個帳號`;
-            alert(`批量作業結束，成功：${successCount}，失敗：${count - successCount}`);
-            
-            closeModal('batchModal');
-            loadMembers();
-            
-            btn.disabled = false;
-            progress.style.display = 'none';
-        };
-
-        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
 
     </script>
 </body>
