@@ -37,6 +37,7 @@
             padding-bottom: 80px;
             position: relative;
             overflow-x: hidden;
+            cursor: default; /* 配合拖尾 */
         }
 
         /* --- 背景星空動畫 --- */
@@ -67,6 +68,40 @@
         }
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* 🔥 新增：流星特效 (Meteor) */
+        .meteor {
+            position: absolute; top: 50%; left: 50%; height: 2px;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,215,0,1) 100%);
+            opacity: 0; transform: rotate(-45deg);
+            animation: meteor-fall 3s linear infinite;
+            filter: drop-shadow(0 0 5px var(--main-gold));
+            pointer-events: none; z-index: -1;
+        }
+        .meteor::before {
+            content: ''; position: absolute; top: 50%; transform: translateY(-50%);
+            width: 4px; height: 4px; border-radius: 50%; background: #fff;
+            box-shadow: 0 0 10px #fff, 0 0 20px var(--main-gold);
+        }
+        @keyframes meteor-fall {
+            0% { opacity: 0; transform: rotate(-45deg) translateX(200px); }
+            10% { opacity: 1; }
+            20% { opacity: 0; transform: rotate(-45deg) translateX(-800px); }
+            100% { opacity: 0; }
+        }
+
+        /* 🔥 新增：滑鼠星塵拖尾 (Mouse Trail) */
+        .trail-particle {
+            position: absolute; width: 6px; height: 6px;
+            background: var(--main-gold); border-radius: 50%;
+            pointer-events: none; transform: translate(-50%, -50%);
+            z-index: 9999; box-shadow: 0 0 10px var(--main-gold);
+            animation: particle-fade 0.8s ease-out forwards;
+        }
+        @keyframes particle-fade {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0) translateY(20px); }
+        }
 
         /* --- 頂部區域 --- */
         .logout-btn {
@@ -347,11 +382,9 @@
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         
-                        // 更新星星數
                         const stars = data.stars !== undefined ? data.stars : 0;
                         document.getElementById('star-count').innerText = stars;
 
-                        // 更新主題色
                         if (data.themeColor) {
                             const userIdEl = document.querySelector('.user-id');
                             const userAvatarEl = document.querySelector('.user-avatar');
@@ -379,6 +412,32 @@
                 window.location.href = 'index.html';
             }).catch((error) => { console.error(error); });
         }
+
+        // 🔥 流星雨產生器
+        function initMeteors() {
+            setInterval(() => {
+                const meteor = document.createElement('div');
+                meteor.className = 'meteor';
+                meteor.style.top = Math.random() * 50 + '%';
+                meteor.style.left = Math.random() * 80 + 20 + '%';
+                meteor.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(meteor);
+                setTimeout(() => meteor.remove(), 4000);
+            }, 3000);
+        }
+        initMeteors();
+
+        // 🔥 滑鼠星塵拖尾
+        document.addEventListener('mousemove', (e) => {
+            if(Math.random() > 0.5) return;
+            const star = document.createElement('div');
+            star.className = 'trail-particle';
+            star.style.left = e.pageX + 'px';
+            star.style.top = e.pageY + 'px';
+            document.body.appendChild(star);
+            setTimeout(() => star.remove(), 800);
+        });
+
     </script>
 </body>
 </html>
