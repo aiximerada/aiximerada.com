@@ -20,6 +20,7 @@
             --deep-space: #0f172a;      
             --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
+            --neon-green: #00ff9d;
             
             /* 玻璃擬態 */
             --glass-bg: rgba(15, 23, 42, 0.65); 
@@ -37,191 +38,128 @@
             padding-bottom: 80px;
             position: relative;
             overflow-x: hidden;
-            cursor: default; /* 配合拖尾 */
+            cursor: default;
         }
 
-        /* --- 背景星空動畫 --- */
+        /* --- 背景特效 --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
-        .stars-distant {
-            background-image: 
-                radial-gradient(1px 1px at 10% 15%, #fff, transparent),
-                radial-gradient(1px 1px at 30% 60%, #ddd, transparent),
-                radial-gradient(1px 1px at 70% 20%, #eee, transparent);
-            background-size: 300px 300px;
-            animation-name: rotateSpace; animation-duration: 240s;
-        }
-        .stars-mid {
-            background-image: 
-                radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent),
-                radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
-            background-size: 400px 400px; opacity: 0.6;
-            animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
-        }
-        .gold-twinklers {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image:
-                radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent),
-                radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
-            background-size: 100% 100%; opacity: 0;
-            animation: occasionalFlash 12s ease-in-out infinite;
-        }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s; }
+        .stars-mid { background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent); background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse; }
+        .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent); background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite; }
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* 🔥 新增：流星特效 (Meteor) */
-        .meteor {
-            position: absolute; top: 50%; left: 50%; height: 2px;
-            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,215,0,1) 100%);
-            opacity: 0; transform: rotate(-45deg);
-            animation: meteor-fall 3s linear infinite;
-            filter: drop-shadow(0 0 5px var(--main-gold));
-            pointer-events: none; z-index: -1;
-        }
-        .meteor::before {
-            content: ''; position: absolute; top: 50%; transform: translateY(-50%);
-            width: 4px; height: 4px; border-radius: 50%; background: #fff;
-            box-shadow: 0 0 10px #fff, 0 0 20px var(--main-gold);
-        }
-        @keyframes meteor-fall {
-            0% { opacity: 0; transform: rotate(-45deg) translateX(200px); }
-            10% { opacity: 1; }
-            20% { opacity: 0; transform: rotate(-45deg) translateX(-800px); }
-            100% { opacity: 0; }
-        }
+        /* 流星 */
+        .meteor { position: absolute; top: 50%; left: 50%; height: 2px; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,215,0,1) 100%); opacity: 0; transform: rotate(-45deg); animation: meteor-fall 3s linear infinite; filter: drop-shadow(0 0 5px var(--main-gold)); pointer-events: none; z-index: -1; }
+        .meteor::before { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #fff, 0 0 20px var(--main-gold); }
+        @keyframes meteor-fall { 0% { opacity: 0; transform: rotate(-45deg) translateX(200px); } 10% { opacity: 1; } 20% { opacity: 0; transform: rotate(-45deg) translateX(-800px); } 100% { opacity: 0; } }
 
-        /* 🔥 新增：滑鼠星塵拖尾 (Mouse Trail) */
-        .trail-particle {
-            position: absolute; width: 6px; height: 6px;
-            background: var(--main-gold); border-radius: 50%;
-            pointer-events: none; transform: translate(-50%, -50%);
-            z-index: 9999; box-shadow: 0 0 10px var(--main-gold);
-            animation: particle-fade 0.8s ease-out forwards;
-        }
-        @keyframes particle-fade {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0) translateY(20px); }
-        }
+        /* 滑鼠拖尾 */
+        .trail-particle { position: absolute; width: 6px; height: 6px; background: var(--main-gold); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); z-index: 9999; box-shadow: 0 0 10px var(--main-gold); animation: particle-fade 0.8s ease-out forwards; }
+        @keyframes particle-fade { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0) translateY(20px); } }
 
         /* --- 頂部區域 --- */
-        .logout-btn {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2);
-            color: #94a3b8; padding: 8px 15px; border-radius: 20px; cursor: pointer;
-            transition: 0.3s; z-index: 20; display: flex; align-items: center; gap: 8px;
-            backdrop-filter: blur(5px); font-size: 0.9rem;
-        }
+        .logout-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 8px 15px; border-radius: 20px; cursor: pointer; transition: 0.3s; z-index: 20; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px); font-size: 0.9rem; }
         .logout-btn:hover { background: var(--danger-red); border-color: var(--danger-red); color: #fff; box-shadow: 0 0 15px rgba(255, 71, 87, 0.4); }
 
         .header { text-align: center; margin-top: 60px; margin-bottom: 40px; position: relative; z-index: 2; }
+        h1 { font-size: 3.5rem; margin: 0 0 15px 0; letter-spacing: 5px; font-weight: 900; background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4)); }
         
-        h1 { 
-            font-size: 3.5rem; margin: 0 0 15px 0; letter-spacing: 5px; font-weight: 900;
-            background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
-            -webkit-background-clip: text; color: transparent;
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
-        }
-        
-        .user-greeting { 
-            color: #94a3b8; font-size: 1.1rem; letter-spacing: 2px; 
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .user-avatar { 
-            width: 40px; height: 40px; border-radius: 50%; object-fit: cover; 
-            border: 2px solid var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-            background: #000;
-        }
-        .user-id { 
-            color: var(--main-gold); font-weight: bold; font-size: 1.3rem; 
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); 
-        }
+        .user-greeting { color: #94a3b8; font-size: 1.1rem; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); background: #000; }
+        .user-id { color: var(--main-gold); font-weight: bold; font-size: 1.3rem; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
 
-        .stars-badge {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1));
-            border: 1px solid var(--accent-amber);
-            color: var(--main-gold); padding: 8px 20px; border-radius: 30px;
-            margin-top: 20px; display: inline-flex; align-items: center; gap: 10px;
-            font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
-            cursor: pointer; transition: 0.3s; text-decoration: none;
-        }
+        .stars-badge { background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1)); border: 1px solid var(--accent-amber); color: var(--main-gold); padding: 8px 20px; border-radius: 30px; margin-top: 20px; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); cursor: pointer; transition: 0.3s; text-decoration: none; }
         .stars-badge:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.2); }
         .stars-badge i { animation: rotateStar 4s infinite linear; }
         @keyframes rotateStar { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
 
         /* --- 網格佈局 --- */
-        .secret-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px; width: 90%; max-width: 1100px;
-            position: relative; z-index: 2;
-        }
+        .secret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1100px; position: relative; z-index: 2; }
 
         /* --- 卡片樣式 --- */
-        .secret-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            padding: 30px; border-radius: 20px;
-            text-decoration: none; color: #fff;
-            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            position: relative; overflow: hidden;
-            display: flex; flex-direction: column; align-items: center; text-align: center;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        
-        .secret-card:hover { 
-            transform: translateY(-8px); 
-            background: var(--card-hover-bg); 
-            border-color: var(--main-gold);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05); 
-        }
-        
-        .secret-card i { 
-            font-size: 3rem; margin-bottom: 20px; transition: 0.4s; 
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
-            color: #cbd5e1; 
-        }
+        .secret-card { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 30px; border-radius: 20px; text-decoration: none; color: #fff; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .secret-card:hover { transform: translateY(-8px); background: var(--card-hover-bg); border-color: var(--main-gold); box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05); }
+        .secret-card i { font-size: 3rem; margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.1)); color: #cbd5e1; }
         .secret-card:hover i { transform: scale(1.1) rotate(5deg); color: var(--main-gold) !important; filter: drop-shadow(0 0 15px var(--main-gold)); }
-        
-        .secret-card h3 { 
-            margin: 0 0 10px 0; font-size: 1.4rem; letter-spacing: 1px; color: #fff;
-            transition: 0.3s; 
-        }
+        .secret-card h3 { margin: 0 0 10px 0; font-size: 1.4rem; letter-spacing: 1px; color: #fff; transition: 0.3s; }
         .secret-card:hover h3 { color: var(--main-gold); }
-
         .secret-card p { color: #94a3b8; font-size: 0.95rem; margin: 0; line-height: 1.6; }
-        
-        .tag { 
-            position: absolute; top: 15px; right: 15px; 
-            font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; 
-            font-weight: bold; color: #000; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
+        .tag { position: absolute; top: 15px; right: 15px; font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; color: #000; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 
-        /* 特定卡片顏色微調 */
         .card-vegas { border-bottom: 3px solid var(--main-gold); }
         .card-vegas i { color: var(--main-gold); }
         .card-admin { border-bottom: 3px solid var(--danger-red); }
         .card-shop { border-bottom: 3px solid var(--accent-amber); }
         .card-files { border-bottom: 3px solid var(--nebula-blue); }
+        
+        /* 🆕 簽到卡片 (高亮顯示) */
+        .card-checkin { border-bottom: 3px solid var(--neon-green); }
+        .card-checkin i { color: var(--neon-green); }
 
-        .admin-divider {
-            grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px;
-            display: flex; align-items: center; gap: 20px; 
-            color: var(--danger-red); font-weight: bold; letter-spacing: 3px; font-size: 1.2rem;
-            text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
-        }
-        .admin-divider::before, .admin-divider::after { 
-            content: ''; flex: 1; height: 1px; 
-            background: linear-gradient(90deg, transparent, var(--danger-red), transparent); 
-            opacity: 0.5;
-        }
-
-        /* 🔥 管理員隱藏類 (預設不顯示) */
+        .admin-divider { grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; color: var(--danger-red); font-weight: bold; letter-spacing: 3px; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
+        .admin-divider::before, .admin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--danger-red), transparent); opacity: 0.5; }
         .admin-hidden { display: none !important; }
+
+        /* --- 📅 簽到 Modal --- */
+        .checkin-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
+            z-index: 1000; backdrop-filter: blur(10px);
+        }
+        .checkin-box {
+            background: #0f172a; border: 1px solid var(--main-gold); padding: 30px;
+            border-radius: 24px; width: 90%; max-width: 500px; color: #fff;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
+
+        .checkin-steps {
+            display: flex; justify-content: space-between; gap: 5px; margin: 25px 0;
+            position: relative;
+        }
+        /* 進度條連線 */
+        .checkin-steps::before {
+            content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px;
+            background: rgba(255,255,255,0.1); z-index: 0;
+        }
+
+        .step-item {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1;
+            opacity: 0.5; transition: 0.3s;
+        }
+        .step-circle {
+            width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
+            color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .step-reward { font-size: 0.7rem; color: var(--main-gold); }
+        .step-label { font-size: 0.7rem; color: #94a3b8; }
+        
+        /* 已簽到樣式 */
+        .step-item.active { opacity: 1; }
+        .step-item.active .step-circle { background: var(--main-gold); border-color: #fff; color: #000; box-shadow: 0 0 15px var(--main-gold); }
+        
+        /* 巨大獎勵 */
+        .step-item.grand .step-circle { width: 45px; height: 45px; border-color: var(--nebula-purple); }
+        .step-item.grand.active .step-circle { background: var(--nebula-purple); box-shadow: 0 0 20px var(--nebula-purple); color: #fff; }
+
+        .btn-checkin {
+            background: linear-gradient(135deg, var(--neon-green), #059669);
+            color: #000; border: none; padding: 12px 40px; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 900; cursor: pointer; margin-top: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); width: 100%;
+        }
+        .btn-checkin:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
 
     </style>
 </head>
 <body>
 
+    <div id="meteorContainer" class="space-container"></div>
     <div class="space-container">
         <div class="star-field stars-distant"></div>
         <div class="star-field stars-mid"></div>
@@ -246,6 +184,12 @@
 
     <div class="secret-grid">
         
+        <div onclick="openCheckIn()" class="secret-card card-checkin" style="cursor:pointer;">
+            <i class="fa-solid fa-calendar-check"></i>
+            <h3>每日簽到</h3>
+            <p>累積登入領取更多星星</p>
+        </div>
+
         <a href="profile.html" class="secret-card">
             <i class="fa-solid fa-user-pen"></i>
             <h3>個人設定</h3>
@@ -345,10 +289,22 @@
         </a>
     </div>
 
+    <div id="checkinModal" class="checkin-overlay" onclick="closeCheckIn(event)">
+        <div class="checkin-box">
+            <h2 style="color:var(--main-gold); margin:0 0 10px 0;">每日簽到簿</h2>
+            <p style="color:#94a3b8; font-size:0.9rem;">連續登入 7 天可獲得大獎！</p>
+            
+            <div class="checkin-steps" id="checkinSteps">
+                </div>
+
+            <button id="btnCheckIn" class="btn-checkin" onclick="performCheckIn()">立即簽到</button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, runTransaction, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -364,11 +320,15 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🔥 全域預設頭像 (星星)
+        let currentUser = null;
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
+        
+        // 簽到獎勵設定
+        const CHECKIN_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                currentUser = user;
                 document.body.style.opacity = "1";
                 const name = user.displayName || user.email.split('@')[0];
                 document.getElementById('current-user').innerText = name;
@@ -377,43 +337,180 @@
                 avatar.src = user.photoURL || DEFAULT_STAR_AVATAR;
                 avatar.style.display = 'block';
 
-                try {
-                    const docSnap = await getDoc(doc(db, "users", user.uid));
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        
-                        const stars = data.stars !== undefined ? data.stars : 0;
-                        document.getElementById('star-count').innerText = stars;
-
-                        if (data.themeColor) {
-                            const userIdEl = document.querySelector('.user-id');
-                            const userAvatarEl = document.querySelector('.user-avatar');
-                            userIdEl.style.color = data.themeColor;
-                            userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
-                            userAvatarEl.style.borderColor = data.themeColor;
-                            userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
-                        }
-
-                        // 🔥 權限判斷：如果是管理員，解除隱藏
-                        if (data.role === 'admin') {
-                            document.querySelectorAll('.admin-hidden').forEach(el => {
-                                el.classList.remove('admin-hidden');
-                            });
-                        }
-                    }
-                } catch(e) { console.log("Profile load error", e); }
+                await loadUserData();
+                checkAutoPopUp(); // 🔥 檢查是否自動彈出簽到
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        window.handleLogout = function() {
-            signOut(auth).then(() => {
-                window.location.href = 'index.html';
-            }).catch((error) => { console.error(error); });
+        async function loadUserData() {
+            try {
+                const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('star-count').innerText = data.stars !== undefined ? data.stars : 0;
+
+                    if (data.themeColor) {
+                        const userIdEl = document.querySelector('.user-id');
+                        const userAvatarEl = document.querySelector('.user-avatar');
+                        userIdEl.style.color = data.themeColor;
+                        userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
+                        userAvatarEl.style.borderColor = data.themeColor;
+                        userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
+                    }
+                    if (data.role === 'admin') {
+                        document.querySelectorAll('.admin-hidden').forEach(el => el.classList.remove('admin-hidden'));
+                    }
+                }
+            } catch(e) { console.log("Profile load error", e); }
         }
 
-        // 🔥 流星雨產生器
+        // --- 📅 簽到邏輯 ---
+        window.openCheckIn = async () => {
+            const modal = document.getElementById('checkinModal');
+            modal.style.display = 'flex';
+            await renderCheckInUI();
+        };
+
+        window.closeCheckIn = (e) => {
+            if(e.target.id === 'checkinModal') {
+                document.getElementById('checkinModal').style.display = 'none';
+            }
+        };
+
+        async function checkAutoPopUp() {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if(!docSnap.exists()) return;
+            const data = docSnap.data();
+            const lastDate = data.lastCheckInDate || ""; // "YYYY-MM-DD"
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (lastDate !== today) {
+                openCheckIn();
+            }
+        }
+
+        async function renderCheckInUI() {
+            const stepsContainer = document.getElementById('checkinSteps');
+            const btn = document.getElementById('btnCheckIn');
+            stepsContainer.innerHTML = '<div style="color:#aaa;">讀取中...</div>';
+            
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (!docSnap.exists()) return;
+            const data = docSnap.data();
+
+            const today = new Date().toISOString().split('T')[0];
+            const lastDate = data.lastCheckInDate || "";
+            let streak = data.checkInStreak || 0;
+
+            // 判斷是否斷簽 (昨天的日期)
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (lastDate !== today && lastDate !== yesterdayStr) {
+                streak = 0; // 斷簽重置
+            }
+
+            const isSignedToday = (lastDate === today);
+            
+            // 產生 UI
+            stepsContainer.innerHTML = '';
+            for(let i=0; i<7; i++) {
+                const dayNum = i + 1;
+                let isActive = false;
+                if (isSignedToday) {
+                    if (i < streak) isActive = true;
+                } else {
+                    if (i < streak) isActive = true; 
+                }
+
+                let isPending = (!isSignedToday && i === streak);
+                const isGrand = (i === 6);
+                const reward = CHECKIN_REWARDS[i];
+                
+                const html = `
+                    <div class="step-item ${isActive ? 'active' : ''} ${isGrand ? 'grand' : ''}" style="${isPending ? 'opacity:1; transform:scale(1.1);' : ''}">
+                        <div class="step-circle">${isGrand ? '<i class="fa-solid fa-gift"></i>' : `+${reward}`}</div>
+                        <div class="step-label">Day ${dayNum}</div>
+                    </div>
+                `;
+                stepsContainer.innerHTML += html;
+            }
+
+            if (isSignedToday) {
+                btn.innerText = "今日已簽到";
+                btn.disabled = true;
+            } else {
+                btn.innerText = `領取 Day ${streak + 1} 獎勵`;
+                btn.disabled = false;
+            }
+        }
+
+        window.performCheckIn = async () => {
+            const btn = document.getElementById('btnCheckIn');
+            btn.disabled = true;
+            btn.innerText = "處理中...";
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                const today = new Date().toISOString().split('T')[0];
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                await runTransaction(db, async (t) => {
+                    const docSnap = await t.get(userRef);
+                    if (!docSnap.exists()) throw "User not found";
+                    const data = docSnap.data();
+                    
+                    const lastDate = data.lastCheckInDate || "";
+                    if (lastDate === today) throw "Checked In";
+
+                    let streak = data.checkInStreak || 0;
+                    if (lastDate !== yesterdayStr) {
+                        streak = 0;
+                    }
+
+                    const currentReward = CHECKIN_REWARDS[streak % 7];
+                    const newStars = (data.stars || 0) + currentReward;
+                    let nextStreak = streak + 1;
+                    if (nextStreak > 7) nextStreak = 1; // 滿7天後重置回 Day 1
+
+                    t.update(userRef, {
+                        stars: newStars,
+                        lastCheckInDate: today,
+                        checkInStreak: nextStreak
+                    });
+
+                    t.set(doc(collection(db, "transactions")), {
+                        userId: currentUser.uid,
+                        action: "daily_checkin",
+                        amount: currentReward,
+                        desc: `Day ${streak + 1} 簽到獎勵`,
+                        timestamp: serverTimestamp()
+                    });
+                });
+
+                alert("簽到成功！");
+                await loadUserData();
+                renderCheckInUI();
+                
+            } catch (e) {
+                console.error(e);
+                if (e === "Checked In") {
+                    alert("今日已簽到過");
+                    renderCheckInUI();
+                } else {
+                    alert("簽到失敗，請稍後再試");
+                    btn.disabled = false;
+                    btn.innerText = "立即簽到";
+                }
+            }
+        };
+
+        // 🔥 流星產生
         function initMeteors() {
             setInterval(() => {
                 const meteor = document.createElement('div');
@@ -427,7 +524,7 @@
         }
         initMeteors();
 
-        // 🔥 滑鼠星塵拖尾
+        // 🔥 滑鼠拖尾
         document.addEventListener('mousemove', (e) => {
             if(Math.random() > 0.5) return;
             const star = document.createElement('div');
@@ -438,6 +535,11 @@
             setTimeout(() => star.remove(), 800);
         });
 
+        window.handleLogout = function() {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => { console.error(error); });
+        }
     </script>
 </body>
 </html>
