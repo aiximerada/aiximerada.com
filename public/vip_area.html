@@ -95,19 +95,30 @@
         .btn-admin:hover { border-color: var(--danger-red); background: rgba(255, 71, 87, 0.1); }
         .btn-admin i { color: var(--danger-red); }
         
-        /* 載入中遮罩 */
+        /* 優化後的載入遮罩 */
         .loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0f172a; z-index: 9999; display: flex; justify-content: center; align-items: center;
             color: var(--main-gold); font-size: 1.5rem; flex-direction: column; gap: 15px;
+            transition: opacity 0.5s;
         }
+        
+        .retry-btn {
+            padding: 8px 25px; border-radius: 20px; border: 1px solid var(--main-gold);
+            background: transparent; color: var(--main-gold); font-weight: bold;
+            cursor: pointer; margin-top: 10px; font-size: 1rem; display: none;
+            animation: fadeIn 0.5s;
+        }
+        .retry-btn:hover { background: var(--main-gold); color: #000; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div id="loader" class="loading-overlay">
         <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
-        <div>身分驗證中...</div>
+        <div id="loaderText">正在建立安全連線...</div>
+        <button class="retry-btn" onclick="location.reload()">重新整理</button>
     </div>
 
     <div class="stars-bg" id="starsBg"></div>
@@ -128,7 +139,8 @@
                 <div class="label">星幣餘額</div>
             </div>
             <div class="stat-item">
-                <div class="val">--</div> <div class="label">榮譽點數</div>
+                <div class="val">--</div> 
+                <div class="label">榮譽點數</div>
             </div>
         </div>
     </div>
@@ -200,7 +212,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 背景星星
+        // 背景特效
         const bg = document.getElementById('starsBg');
         for(let i=0; i<50; i++) {
             const s = document.createElement('div');
@@ -215,9 +227,21 @@
 
         onAuthStateChanged(auth, async (user) => {
             const loader = document.getElementById('loader');
+            const loaderText = document.getElementById('loaderText');
+            const retryBtn = document.querySelector('.retry-btn');
             
+            // ⏰ 安全計時器：如果超過 5 秒還沒跑完，顯示重試按鈕
+            const safetyTimer = setTimeout(() => {
+                if(loader.style.display !== 'none') {
+                    loaderText.innerText = "連線回應較慢...";
+                    retryBtn.style.display = 'block';
+                }
+            }, 5000);
+
             if (user) {
-                // 讀取使用者資料
+                // 更新狀態文字
+                loaderText.innerText = "讀取指揮官檔案...";
+
                 try {
                     const userRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userRef);
@@ -225,32 +249,31 @@
                     if (userSnap.exists()) {
                         const data = userSnap.data();
                         
-                        // 1. 更新介面
                         document.getElementById('displayName').innerText = data.displayName || "指揮官";
                         document.getElementById('displayRole').innerText = (data.role || "MEMBER").toUpperCase();
                         document.getElementById('starBalance').innerText = data.stars || 0;
 
-                        // 2. 🔒 關鍵邏輯：檢查是否為管理員
+                        // 🔒 權限檢查
                         if (data.role === 'admin') {
                             document.getElementById('adminControls').style.display = 'block';
                         }
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
-                    alert("資料讀取失敗，請重新整理");
+                    // 發生錯誤時，不要卡住畫面，直接進入並顯示預設值
                 }
                 
-                // 關閉遮罩
+                // 成功載入，清除計時器並關閉遮罩
+                clearTimeout(safetyTimer);
                 loader.style.opacity = '0';
                 setTimeout(() => loader.style.display = 'none', 500);
 
             } else {
-                // 未登入，踢回首頁或登入頁
+                // 未登入，轉跳登入頁
                 window.location.href = "login.html";
             }
         });
 
-        // 登出功能
         document.getElementById('btnLogout').addEventListener('click', () => {
             if(confirm("確定要登出系統嗎？")) {
                 signOut(auth).then(() => {
