@@ -46,24 +46,26 @@
 
         #fxCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
 
-        /* --- 維護遮罩 (新增) --- */
+        /* --- 維護遮罩 --- */
         .maintenance-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.95); z-index: 10000;
+            background: rgba(15, 23, 42, 0.98); z-index: 10000;
             display: none; flex-direction: column; justify-content: center; align-items: center;
-            backdrop-filter: blur(20px); text-align: center;
+            backdrop-filter: blur(25px); text-align: center;
         }
         .maintenance-overlay.active { display: flex; animation: fadeIn 0.5s; }
-        .m-icon { font-size: 5rem; color: var(--danger-red); margin-bottom: 20px; animation: pulse 2s infinite; }
-        .m-title { font-size: 2rem; color: #fff; font-weight: 900; margin-bottom: 10px; }
-        .m-desc { color: #94a3b8; margin-bottom: 30px; letter-spacing: 1px; }
+        
+        .m-icon { font-size: 6rem; color: var(--danger-red); margin-bottom: 25px; animation: pulse 1.5s infinite; filter: drop-shadow(0 0 20px rgba(255, 71, 87, 0.5)); }
+        .m-title { font-size: 2.5rem; color: #fff; font-weight: 900; margin-bottom: 10px; letter-spacing: 5px; }
+        .m-desc { color: #94a3b8; margin-bottom: 40px; font-size: 1.2rem; letter-spacing: 2px; }
+        
         .btn-home { 
-            padding: 15px 40px; border-radius: 50px; background: var(--main-gold); color: #000; 
-            text-decoration: none; font-weight: bold; font-size: 1.2rem;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); transition: 0.3s;
+            padding: 16px 50px; border-radius: 50px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); 
+            color: #000; text-decoration: none; font-weight: 900; font-size: 1.2rem;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); transition: 0.3s;
         }
-        .btn-home:hover { transform: scale(1.05); }
-        @keyframes pulse { 0%{opacity:0.5;} 50%{opacity:1;} 100%{opacity:0.5;} }
+        .btn-home:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(255, 215, 0, 0.6); }
+        @keyframes pulse { 0%{opacity:0.6; transform:scale(0.95);} 50%{opacity:1; transform:scale(1.05);} 100%{opacity:0.6; transform:scale(0.95);} }
 
         /* --- 頂部導航 --- */
         .header {
@@ -113,7 +115,7 @@
             width: 0; height: 0; z-index: 10;
             border-left: 18px solid transparent;
             border-right: 18px solid transparent;
-            border-top: 35px solid var(--main-gold); /* 指向下方的三角形 */
+            border-top: 35px solid var(--main-gold);
             filter: drop-shadow(0 4px 4px rgba(0,0,0,0.6));
         }
         
@@ -235,9 +237,9 @@
 <body>
 
     <div id="maintenanceOverlay" class="maintenance-overlay">
-        <i class="fa-solid fa-ban m-icon"></i>
-        <div class="m-title">賭場暫時關閉</div>
-        <div class="m-desc">STAR VEGAS IS CURRENTLY CLOSED</div>
+        <i class="fa-solid fa-screwdriver-wrench m-icon"></i>
+        <div class="m-title">維修中</div>
+        <div class="m-desc">請稍後再試</div>
         <a href="vip_area.html" class="btn-home">返回大廳</a>
     </div>
 
@@ -549,10 +551,26 @@
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
             if(docSnap.exists()) {
                 const lastSpin = docSnap.data().lastDailySpin ? docSnap.data().lastDailySpin.toDate().getTime() : 0;
-                const now = Date.now();
-                // 24小時冷卻
-                if (now - lastSpin < 24 * 60 * 60 * 1000) {
-                    lockWheel(lastSpin + 24 * 60 * 60 * 1000);
+                
+                // 固定於每日 09:00 重置
+                const now = new Date();
+                
+                // 計算「最近一次」的 09:00
+                let lastResetPoint = new Date(now);
+                lastResetPoint.setHours(9, 0, 0, 0);
+                if (now < lastResetPoint) {
+                    lastResetPoint.setDate(lastResetPoint.getDate() - 1);
+                }
+
+                // 如果上次轉動時間晚於「最近一次重置」，代表今天已經轉過了
+                if (lastSpin > lastResetPoint.getTime()) {
+                    // 計算「下一次」的 09:00
+                    let nextReset = new Date(now);
+                    nextReset.setHours(9, 0, 0, 0);
+                    if (now >= nextReset) {
+                        nextReset.setDate(nextReset.getDate() + 1);
+                    }
+                    lockWheel(nextReset.getTime());
                 }
             }
         }
@@ -648,7 +666,12 @@
                     });
                 });
                 updateBalanceDisplay();
-                lockWheel(Date.now() + 24 * 60 * 60 * 1000); // 鎖定
+                // 鎖定直到明天早上9點
+                const now = new Date();
+                let nextReset = new Date(now);
+                nextReset.setHours(9, 0, 0, 0);
+                if (now >= nextReset) { nextReset.setDate(nextReset.getDate() + 1); }
+                lockWheel(nextReset.getTime());
             } catch(e) { console.error(e); }
         }
 
