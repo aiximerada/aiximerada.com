@@ -103,19 +103,51 @@
             z-index: 200; display: none; flex-direction: column;
         }
         #canvas-container { width: 100%; height: 100%; flex: 1; }
+        
         .viewer-controls {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px;
+            display: flex; flex-direction: column; gap: 15px; align-items: center;
+            width: 90%; max-width: 400px;
         }
+        
+        .button-group {
+            display: flex; gap: 10px; justify-content: center; width: 100%;
+        }
+
         .v-btn {
             background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
             color: #fff; padding: 10px 20px; border-radius: 30px; cursor: pointer;
             backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            white-space: nowrap;
         }
         .v-btn:hover { background: #fff; color: #000; }
         .v-btn.download { border-color: var(--main-gold); color: var(--main-gold); }
         .v-btn.download:hover { background: var(--main-gold); color: #000; }
+        
         .close-viewer { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; z-index: 210; }
+        .viewer-hint {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.5); font-size: 0.9rem; pointer-events: none;
+        }
+
+        /* 🔥 Z軸旋轉控制條 */
+        .range-container {
+            display: flex; align-items: center; gap: 10px; 
+            background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;
+        }
+        .range-label { color: #94a3b8; font-size: 0.9rem; white-space: nowrap; }
+        input[type=range] {
+            flex: 1; -webkit-appearance: none; background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: #334155; border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: var(--main-gold); margin-top: -6px; cursor: pointer;
+            box-shadow: 0 0 10px var(--main-gold);
+        }
 
         /* Progress Bar */
         .progress-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
@@ -162,11 +194,23 @@
 
     <div id="viewerOverlay" class="viewer-overlay">
         <div class="close-viewer" onclick="closeViewer()">&times;</div>
+        <div class="viewer-hint"><i class="fa-solid fa-hand-pointer"></i> 拖曳旋轉 / 滾輪縮放</div>
         <div id="canvas-container"></div>
+        
         <div class="viewer-controls">
-            <button class="v-btn download" id="downloadBtn" onclick="downloadCurrentModel()">
-                <i class="fa-solid fa-download"></i> 下載模型
-            </button>
+            <div class="range-container">
+                <span class="range-label"><i class="fa-solid fa-arrows-rotate"></i> Z軸</span>
+                <input type="range" id="rotateZ" min="0" max="360" value="0" oninput="updateRotation(this.value)">
+            </div>
+            
+            <div class="button-group">
+                <button class="v-btn" onclick="resetView()">
+                    <i class="fa-solid fa-rotate-left"></i> 重置
+                </button>
+                <button class="v-btn download" id="downloadBtn" onclick="downloadCurrentModel()">
+                    <i class="fa-solid fa-download"></i> 下載
+                </button>
+            </div>
         </div>
     </div>
 
@@ -305,7 +349,6 @@
                 async () => {
                     const url = await getDownloadURL(uploadTask.snapshot.ref);
                     
-                    // 寫入 Firestore
                     await addDoc(collection(db, "3d_models"), {
                         name: fileName,
                         url: url,
@@ -326,6 +369,9 @@
             currentModelUrl = url;
             currentModelName = name;
             
+            // 重置旋轉拉桿
+            document.getElementById('rotateZ').value = 0;
+
             if (!viewerInitialized) {
                 initThreeJS();
                 viewerInitialized = true;
@@ -343,11 +389,34 @@
             }
         };
 
+        window.resetView = () => {
+            if (controls) {
+                controls.reset();
+                controls.autoRotate = true; // 重置時恢復自動旋轉
+            }
+            if (mesh) {
+                mesh.rotation.x = -Math.PI / 2; // STL 預設修正
+                mesh.rotation.y = 0;
+                mesh.rotation.z = 0;
+                document.getElementById('rotateZ').value = 0;
+            }
+        };
+
+        // 🔥 更新 Z 軸旋轉
+        window.updateRotation = (val) => {
+            if (mesh) {
+                const rad = THREE.MathUtils.degToRad(val);
+                mesh.rotation.z = rad;
+                // 拖動拉桿時也停止自動旋轉
+                controls.autoRotate = false;
+            }
+        }
+
         window.downloadCurrentModel = () => {
             if (!currentModelUrl) return;
             const a = document.createElement('a');
             a.href = currentModelUrl;
-            a.download = currentModelName + ".stl"; // 嘗試強制檔名 (瀏覽器可能會忽略跨域)
+            a.download = currentModelName + ".stl"; 
             a.target = "_blank";
             document.body.appendChild(a);
             a.click();
@@ -374,7 +443,13 @@
 
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
             controls.autoRotate = true;
+
+            // 🔥 拖曳時停止自動旋轉
+            controls.addEventListener('start', () => {
+                controls.autoRotate = false;
+            });
 
             const grid = new THREE.GridHelper(200, 20, 0x444444, 0x222222);
             scene.add(grid);
@@ -393,8 +468,9 @@
             loader.load(url, (geometry) => {
                 if (mesh) scene.remove(mesh);
 
+                // 🔥 預設材質改為白色
                 const material = new THREE.MeshStandardMaterial({ 
-                    color: 0x00f3ff, 
+                    color: 0xffffff, 
                     roughness: 0.4, 
                     metalness: 0.6 
                 });
@@ -410,7 +486,10 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const scale = 50 / maxDim;
                 mesh.scale.set(scale, scale, scale);
-                mesh.position.y = 10; // 稍微浮起
+                
+                // STL 預設通常是平躺的，轉正
+                mesh.rotation.x = -Math.PI / 2;
+                mesh.position.y = 10; 
 
                 scene.add(mesh);
             });
