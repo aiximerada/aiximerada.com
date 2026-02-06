@@ -93,66 +93,32 @@
         .card-admin { border-bottom: 3px solid var(--danger-red); }
         .card-shop { border-bottom: 3px solid var(--accent-amber); }
         .card-files { border-bottom: 3px solid var(--nebula-blue); }
-        
-        /* 🆕 簽到卡片 (高亮顯示) */
         .card-checkin { border-bottom: 3px solid var(--neon-green); }
         .card-checkin i { color: var(--neon-green); }
+        
+        /* 3D 模型卡片顏色 */
+        .card-3d { border-bottom: 3px solid #d946ef; } 
+        .card-3d i { color: #d946ef; }
 
         .admin-divider { grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; color: var(--danger-red); font-weight: bold; letter-spacing: 3px; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
         .admin-divider::before, .admin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--danger-red), transparent); opacity: 0.5; }
         .admin-hidden { display: none !important; }
 
         /* --- 📅 簽到 Modal --- */
-        .checkin-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
-            z-index: 1000; backdrop-filter: blur(10px);
-        }
-        .checkin-box {
-            background: #0f172a; border: 1px solid var(--main-gold); padding: 30px;
-            border-radius: 24px; width: 90%; max-width: 500px; color: #fff;
-            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); text-align: center;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-        }
+        .checkin-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px); }
+        .checkin-box { background: #0f172a; border: 1px solid var(--main-gold); padding: 30px; border-radius: 24px; width: 90%; max-width: 500px; color: #fff; box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); text-align: center; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
         @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
-
-        .checkin-steps {
-            display: flex; justify-content: space-between; gap: 5px; margin: 25px 0;
-            position: relative;
-        }
-        /* 進度條連線 */
-        .checkin-steps::before {
-            content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px;
-            background: rgba(255,255,255,0.1); z-index: 0;
-        }
-
-        .step-item {
-            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1;
-            opacity: 0.5; transition: 0.3s;
-        }
-        .step-circle {
-            width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b;
-            display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
-            color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
+        .checkin-steps { display: flex; justify-content: space-between; gap: 5px; margin: 25px 0; position: relative; }
+        .checkin-steps::before { content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.1); z-index: 0; }
+        .step-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1; opacity: 0.5; transition: 0.3s; }
+        .step-circle { width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
         .step-reward { font-size: 0.7rem; color: var(--main-gold); }
         .step-label { font-size: 0.7rem; color: #94a3b8; }
-        
-        /* 已簽到樣式 */
         .step-item.active { opacity: 1; }
         .step-item.active .step-circle { background: var(--main-gold); border-color: #fff; color: #000; box-shadow: 0 0 15px var(--main-gold); }
-        
-        /* 巨大獎勵 */
         .step-item.grand .step-circle { width: 45px; height: 45px; border-color: var(--nebula-purple); }
         .step-item.grand.active .step-circle { background: var(--nebula-purple); box-shadow: 0 0 20px var(--nebula-purple); color: #fff; }
-
-        .btn-checkin {
-            background: linear-gradient(135deg, var(--neon-green), #059669);
-            color: #000; border: none; padding: 12px 40px; border-radius: 50px;
-            font-size: 1.1rem; font-weight: 900; cursor: pointer; margin-top: 15px;
-            box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); width: 100%;
-        }
+        .btn-checkin { background: linear-gradient(135deg, var(--neon-green), #059669); color: #000; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.1rem; font-weight: 900; cursor: pointer; margin-top: 15px; box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); width: 100%; }
         .btn-checkin:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
 
     </style>
@@ -212,6 +178,13 @@
             <i class="fa-solid fa-dice" style="text-shadow: 0 0 15px var(--main-gold);"></i>
             <h3>星維加斯</h3>
             <p>以小博大，距離發財只有一步</p>
+        </a>
+
+        <a href="stl_gallery.html" class="secret-card card-3d">
+            <span class="tag" style="background: #d946ef; color:#fff;">3D</span>
+            <i class="fa-solid fa-cubes"></i>
+            <h3>星際模型庫</h3>
+            <p>上傳、分享與預覽 STL 模型</p>
         </a>
 
         <a href="temp_share.html" class="secret-card card-files">
@@ -338,7 +311,7 @@
                 avatar.style.display = 'block';
 
                 await loadUserData();
-                checkAutoPopUp(); // 🔥 檢查是否自動彈出簽到
+                checkAutoPopUp(); 
             } else {
                 window.location.href = "login.html";
             }
@@ -366,7 +339,6 @@
             } catch(e) { console.log("Profile load error", e); }
         }
 
-        // --- 📅 簽到邏輯 ---
         window.openCheckIn = async () => {
             const modal = document.getElementById('checkinModal');
             modal.style.display = 'flex';
@@ -383,12 +355,9 @@
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
             if(!docSnap.exists()) return;
             const data = docSnap.data();
-            const lastDate = data.lastCheckInDate || ""; // "YYYY-MM-DD"
+            const lastDate = data.lastCheckInDate || ""; 
             const today = new Date().toISOString().split('T')[0];
-            
-            if (lastDate !== today) {
-                openCheckIn();
-            }
+            if (lastDate !== today) { openCheckIn(); }
         }
 
         async function renderCheckInUI() {
@@ -399,33 +368,20 @@
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
             if (!docSnap.exists()) return;
             const data = docSnap.data();
-
             const today = new Date().toISOString().split('T')[0];
             const lastDate = data.lastCheckInDate || "";
             let streak = data.checkInStreak || 0;
-
-            // 判斷是否斷簽 (昨天的日期)
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            if (lastDate !== today && lastDate !== yesterdayStr) {
-                streak = 0; // 斷簽重置
-            }
-
+            if (lastDate !== today && lastDate !== yesterdayStr) { streak = 0; }
             const isSignedToday = (lastDate === today);
             
-            // 產生 UI
             stepsContainer.innerHTML = '';
             for(let i=0; i<7; i++) {
                 const dayNum = i + 1;
                 let isActive = false;
-                if (isSignedToday) {
-                    if (i < streak) isActive = true;
-                } else {
-                    if (i < streak) isActive = true; 
-                }
-
+                if (isSignedToday) { if (i < streak) isActive = true; } else { if (i < streak) isActive = true; }
                 let isPending = (!isSignedToday && i === streak);
                 const isGrand = (i === 6);
                 const reward = CHECKIN_REWARDS[i];
@@ -456,61 +412,37 @@
             try {
                 const userRef = doc(db, "users", currentUser.uid);
                 const today = new Date().toISOString().split('T')[0];
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
                 const yesterdayStr = yesterday.toISOString().split('T')[0];
 
                 await runTransaction(db, async (t) => {
                     const docSnap = await t.get(userRef);
                     if (!docSnap.exists()) throw "User not found";
                     const data = docSnap.data();
-                    
                     const lastDate = data.lastCheckInDate || "";
                     if (lastDate === today) throw "Checked In";
 
                     let streak = data.checkInStreak || 0;
-                    if (lastDate !== yesterdayStr) {
-                        streak = 0;
-                    }
+                    if (lastDate !== yesterdayStr) { streak = 0; }
 
                     const currentReward = CHECKIN_REWARDS[streak % 7];
                     const newStars = (data.stars || 0) + currentReward;
                     let nextStreak = streak + 1;
-                    if (nextStreak > 7) nextStreak = 1; // 滿7天後重置回 Day 1
+                    if (nextStreak > 7) nextStreak = 1;
 
-                    t.update(userRef, {
-                        stars: newStars,
-                        lastCheckInDate: today,
-                        checkInStreak: nextStreak
-                    });
-
-                    t.set(doc(collection(db, "transactions")), {
-                        userId: currentUser.uid,
-                        action: "daily_checkin",
-                        amount: currentReward,
-                        desc: `Day ${streak + 1} 簽到獎勵`,
-                        timestamp: serverTimestamp()
-                    });
+                    t.update(userRef, { stars: newStars, lastCheckInDate: today, checkInStreak: nextStreak });
+                    t.set(doc(collection(db, "transactions")), { userId: currentUser.uid, action: "daily_checkin", amount: currentReward, desc: `Day ${streak + 1} 簽到獎勵`, timestamp: serverTimestamp() });
                 });
 
                 alert("簽到成功！");
                 await loadUserData();
                 renderCheckInUI();
-                
             } catch (e) {
-                console.error(e);
-                if (e === "Checked In") {
-                    alert("今日已簽到過");
-                    renderCheckInUI();
-                } else {
-                    alert("簽到失敗，請稍後再試");
-                    btn.disabled = false;
-                    btn.innerText = "立即簽到";
-                }
+                if (e === "Checked In") { alert("今日已簽到過"); renderCheckInUI(); } 
+                else { alert("簽到失敗"); btn.disabled = false; btn.innerText = "立即簽到"; }
             }
         };
 
-        // 🔥 流星產生
         function initMeteors() {
             setInterval(() => {
                 const meteor = document.createElement('div');
@@ -524,7 +456,6 @@
         }
         initMeteors();
 
-        // 🔥 滑鼠拖尾
         document.addEventListener('mousemove', (e) => {
             if(Math.random() > 0.5) return;
             const star = document.createElement('div');
@@ -536,9 +467,7 @@
         });
 
         window.handleLogout = function() {
-            signOut(auth).then(() => {
-                window.location.href = 'index.html';
-            }).catch((error) => { console.error(error); });
+            signOut(auth).then(() => { window.location.href = 'index.html'; });
         }
     </script>
 </body>

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>星際模型庫 - 玉露寶庫</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --main-gold: #FFD700;
+            --accent-amber: #FDB931;
+            --deep-space: #0f172a;
+            --nebula-purple: #d946ef;
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden; padding-bottom: 80px;
+        }
+
+        /* 背景 */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation: rotateSpace 240s linear infinite; }
+        @keyframes rotateSpace { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* 頂部 */
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 50;
+        }
+        .back-btn { color: #94a3b8; text-decoration: none; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
+        .page-title { color: var(--main-gold); font-weight: 900; letter-spacing: 2px; font-size: 1.2rem; }
+        
+        .upload-trigger {
+            background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #000; border: none; padding: 8px 15px; border-radius: 20px;
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); transition: 0.3s;
+        }
+        .upload-trigger:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(255, 215, 0, 0.5); }
+
+        /* 模型列表 */
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px; width: 90%; max-width: 1000px; margin-top: 30px;
+        }
+        
+        .model-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 16px; overflow: hidden; transition: 0.3s;
+            display: flex; flex-direction: column; cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+        .model-card:hover { transform: translateY(-5px); border-color: var(--nebula-purple); box-shadow: 0 10px 30px rgba(217, 70, 239, 0.2); }
+        
+        .model-preview {
+            height: 120px; background: #0f172a; display: flex; align-items: center; justify-content: center;
+            color: #64748b; font-size: 3rem; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .model-info { padding: 15px; }
+        .model-name { font-weight: bold; color: #fff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .model-meta { font-size: 0.8rem; color: #94a3b8; display: flex; justify-content: space-between; }
+
+        /* 上傳 Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
+            z-index: 100; backdrop-filter: blur(5px);
+        }
+        .modal-box {
+            background: #1e293b; border: 1px solid var(--main-gold); padding: 30px;
+            border-radius: 20px; width: 90%; max-width: 400px; text-align: center;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5); animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { from{transform:scale(0.9); opacity:0;} to{transform:scale(1); opacity:1;} }
+        
+        .upload-area {
+            border: 2px dashed #475569; border-radius: 15px; padding: 40px 20px;
+            margin: 20px 0; color: #94a3b8; cursor: pointer; transition: 0.3s;
+        }
+        .upload-area:hover, .upload-area.dragover { border-color: var(--main-gold); background: rgba(255, 215, 0, 0.05); color: #fff; }
+        
+        .form-input { 
+            width: 100%; padding: 12px; background: #0f172a; border: 1px solid #475569; 
+            color: #fff; border-radius: 8px; box-sizing: border-box; margin-bottom: 15px;
+        }
+        .btn-confirm { background: var(--main-gold); color: #000; border: none; padding: 10px 30px; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn-cancel { background: transparent; border: none; color: #94a3b8; margin-top: 10px; cursor: pointer; }
+
+        /* 3D Viewer Overlay */
+        .viewer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1e293b 0%, #000 100%);
+            z-index: 200; display: none; flex-direction: column;
+        }
+        #canvas-container { width: 100%; height: 100%; flex: 1; }
+        .viewer-controls {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px;
+        }
+        .v-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 10px 20px; border-radius: 30px; cursor: pointer;
+            backdrop-filter: blur(5px); transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .v-btn:hover { background: #fff; color: #000; }
+        .v-btn.download { border-color: var(--main-gold); color: var(--main-gold); }
+        .v-btn.download:hover { background: var(--main-gold); color: #000; }
+        .close-viewer { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem; cursor: pointer; z-index: 210; }
+
+        /* Progress Bar */
+        .progress-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
+        .progress-fill { height: 100%; background: var(--main-gold); width: 0%; transition: 0.3s; }
+    </style>
+</head>
+<body>
+
+    <div class="space-container"><div class="star-field stars-distant"></div></div>
+
+    <div class="header">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 星員區</a>
+        <div class="page-title">星際模型庫</div>
+        <button class="upload-trigger" onclick="openUploadModal()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 上傳
+        </button>
+    </div>
+
+    <div class="gallery-grid" id="galleryGrid">
+        <div style="grid-column: 1/-1; text-align:center; color:#64748b; margin-top:50px;">
+            <i class="fa-solid fa-spinner fa-spin"></i> 正在掃描星際訊號...
+        </div>
+    </div>
+
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:var(--main-gold); margin-top:0;">上傳 STL 模型</h3>
+            
+            <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-cube" style="font-size:2rem; margin-bottom:10px;"></i><br>
+                點擊或拖曳 STL 檔案至此
+            </div>
+            <input type="file" id="fileInput" accept=".stl" style="display:none">
+            <div id="fileName" style="margin-bottom:15px; color:#fff; font-size:0.9rem;"></div>
+
+            <input type="text" id="modelName" class="form-input" placeholder="輸入模型名稱 (選填)">
+            
+            <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+
+            <button class="btn-confirm" onclick="uploadModel()">開始傳輸</button>
+            <button class="btn-cancel" onclick="closeUploadModal()">取消</button>
+        </div>
+    </div>
+
+    <div id="viewerOverlay" class="viewer-overlay">
+        <div class="close-viewer" onclick="closeViewer()">&times;</div>
+        <div id="canvas-container"></div>
+        <div class="viewer-controls">
+            <button class="v-btn download" id="downloadBtn" onclick="downloadCurrentModel()">
+                <i class="fa-solid fa-download"></i> 下載模型
+            </button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import * as THREE from 'three';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        let currentUser = null;
+        let currentModelUrl = "";
+        let currentModelName = "";
+
+        // Three.js 變數
+        let scene, camera, renderer, controls, mesh;
+        let viewerInitialized = false;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadModels();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // --- 1. 模型列表邏輯 ---
+        function loadModels() {
+            const q = query(collection(db, "3d_models"), orderBy("timestamp", "desc"));
+            const grid = document.getElementById('galleryGrid');
+
+            onSnapshot(q, (snapshot) => {
+                grid.innerHTML = "";
+                if (snapshot.empty) {
+                    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#64748b;">尚無模型，成為第一個上傳者吧！</div>';
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const card = document.createElement('div');
+                    card.className = 'model-card';
+                    card.onclick = () => openViewer(data.url, data.name);
+                    
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'Just now';
+
+                    card.innerHTML = `
+                        <div class="model-preview"><i class="fa-solid fa-cube"></i></div>
+                        <div class="model-info">
+                            <div class="model-name">${data.name}</div>
+                            <div class="model-meta">
+                                <span>${data.uploaderName}</span>
+                                <span>${date}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        // --- 2. 上傳邏輯 ---
+        window.openUploadModal = () => document.getElementById('uploadModal').style.display = 'flex';
+        window.closeUploadModal = () => {
+            document.getElementById('uploadModal').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileName').innerText = '';
+            document.getElementById('modelName').value = '';
+            document.getElementById('progressBar').style.display = 'none';
+        };
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files[0]) document.getElementById('fileName').innerText = e.target.files[0].name;
+        });
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files[0]) {
+                fileInput.files = e.dataTransfer.files;
+                document.getElementById('fileName').innerText = e.dataTransfer.files[0].name;
+            }
+        });
+
+        window.uploadModel = () => {
+            const file = fileInput.files[0];
+            if (!file) return alert("請選擇 STL 檔案");
+            if (!file.name.toLowerCase().endsWith('.stl')) return alert("僅支援 .stl 格式");
+
+            const customName = document.getElementById('modelName').value.trim();
+            const fileName = customName || file.name;
+
+            const storageRef = ref(storage, `stl_models/${Date.now()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            document.getElementById('progressBar').style.display = 'block';
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    document.getElementById('progressFill').style.width = progress + '%';
+                }, 
+                (error) => { console.error(error); alert("上傳失敗"); }, 
+                async () => {
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // 寫入 Firestore
+                    await addDoc(collection(db, "3d_models"), {
+                        name: fileName,
+                        url: url,
+                        uploaderId: currentUser.uid,
+                        uploaderName: currentUser.displayName || "匿名星員",
+                        timestamp: serverTimestamp()
+                    });
+
+                    alert("上傳成功！");
+                    closeUploadModal();
+                }
+            );
+        };
+
+        // --- 3. 3D Viewer 邏輯 (Three.js) ---
+        window.openViewer = (url, name) => {
+            document.getElementById('viewerOverlay').style.display = 'flex';
+            currentModelUrl = url;
+            currentModelName = name;
+            
+            if (!viewerInitialized) {
+                initThreeJS();
+                viewerInitialized = true;
+            }
+            loadSTL(url);
+        };
+
+        window.closeViewer = () => {
+            document.getElementById('viewerOverlay').style.display = 'none';
+            if (mesh) {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                mesh.material.dispose();
+                mesh = null;
+            }
+        };
+
+        window.downloadCurrentModel = () => {
+            if (!currentModelUrl) return;
+            const a = document.createElement('a');
+            a.href = currentModelUrl;
+            a.download = currentModelName + ".stl"; // 嘗試強制檔名 (瀏覽器可能會忽略跨域)
+            a.target = "_blank";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(50, 50, 50);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // 燈光
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+            dirLight.position.set(0, 50, 50);
+            scene.add(dirLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+
+            const grid = new THREE.GridHelper(200, 20, 0x444444, 0x222222);
+            scene.add(grid);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            animate();
+        }
+
+        function loadSTL(url) {
+            const loader = new STLLoader();
+            loader.load(url, (geometry) => {
+                if (mesh) scene.remove(mesh);
+
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: 0x00f3ff, 
+                    roughness: 0.4, 
+                    metalness: 0.6 
+                });
+                
+                mesh = new THREE.Mesh(geometry, material);
+
+                // 自動置中與縮放
+                geometry.computeBoundingBox();
+                const center = geometry.boundingBox.getCenter(new THREE.Vector3());
+                geometry.translate(-center.x, -center.y, -center.z);
+
+                const size = geometry.boundingBox.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 50 / maxDim;
+                mesh.scale.set(scale, scale, scale);
+                mesh.position.y = 10; // 稍微浮起
+
+                scene.add(mesh);
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+    </script>
+</body>
+</html>
