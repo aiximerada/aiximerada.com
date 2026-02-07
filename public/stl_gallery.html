@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>星際模型庫 - 玉露寶庫</title>
+    <title>3D模型庫 - 玉露寶庫</title>
     <script src="theme.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -14,6 +14,7 @@
             --nebula-purple: #d946ef;
             --glass-bg: rgba(15, 23, 42, 0.75);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --danger-red: #ff4757;
         }
 
         body {
@@ -58,7 +59,8 @@
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: 16px; overflow: hidden; transition: 0.3s;
             display: flex; flex-direction: column; cursor: pointer;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px); 
+            position: relative; /* 重要：讓絕對定位的按鈕參考此容器 */
         }
         .model-card:hover { transform: translateY(-5px); border-color: var(--nebula-purple); box-shadow: 0 10px 30px rgba(217, 70, 239, 0.2); }
         
@@ -69,6 +71,20 @@
         .model-info { padding: 15px; }
         .model-name { font-weight: bold; color: #fff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .model-meta { font-size: 0.8rem; color: #94a3b8; display: flex; justify-content: space-between; }
+
+        /* 🔥 刪除按鈕樣式 (層級提高) */
+        .delete-btn {
+            position: absolute; top: 10px; right: 10px;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--danger-red); color: #fff;
+            border: 2px solid #fff; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; 
+            z-index: 50; /* 確保在最上層 */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .delete-btn:hover { transform: scale(1.1); background: #ff0000; }
+        .delete-btn:active { transform: scale(0.9); }
 
         /* 上傳 Modal */
         .modal-overlay {
@@ -107,7 +123,7 @@
         .viewer-controls {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             display: flex; flex-direction: column; gap: 15px; align-items: center;
-            width: 90%; max-width: 400px;
+            width: 90%; max-width: 400px; z-index: 205;
         }
         
         .button-group {
@@ -130,24 +146,15 @@
             color: rgba(255,255,255,0.5); font-size: 0.9rem; pointer-events: none;
         }
 
-        /* 🔥 Z軸旋轉控制條 */
         .range-container {
             display: flex; align-items: center; gap: 10px; 
             background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 20px;
             border: 1px solid rgba(255,255,255,0.1); width: 100%; box-sizing: border-box;
         }
         .range-label { color: #94a3b8; font-size: 0.9rem; white-space: nowrap; }
-        input[type=range] {
-            flex: 1; -webkit-appearance: none; background: transparent;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; background: #334155; border-radius: 2px;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
-            background: var(--main-gold); margin-top: -6px; cursor: pointer;
-            box-shadow: 0 0 10px var(--main-gold);
-        }
+        input[type=range] { flex: 1; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--main-gold); margin-top: -6px; cursor: pointer; box-shadow: 0 0 10px var(--main-gold); }
 
         /* Progress Bar */
         .progress-bar { width: 100%; height: 6px; background: #334155; border-radius: 3px; margin-top: 10px; overflow: hidden; display: none; }
@@ -160,7 +167,7 @@
 
     <div class="header">
         <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 星員區</a>
-        <div class="page-title">星際模型庫</div>
+        <div class="page-title">3D模型庫</div>
         <button class="upload-trigger" onclick="openUploadModal()">
             <i class="fa-solid fa-cloud-arrow-up"></i> 上傳
         </button>
@@ -226,8 +233,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, getDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import * as THREE from 'three';
         import { STLLoader } from 'three/addons/loaders/STLLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -248,16 +255,30 @@
         const storage = getStorage(app);
 
         let currentUser = null;
+        let isAdmin = false; 
         let currentModelUrl = "";
         let currentModelName = "";
+
+        // 🔥 開發者測試開關：設為 true 則每個人都看得到刪除鈕
+        const FORCE_ADMIN_MODE = false; 
 
         // Three.js 變數
         let scene, camera, renderer, controls, mesh;
         let viewerInitialized = false;
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
+                // 檢查權限
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    isAdmin = (userDoc.data().role === 'admin');
+                }
+                
+                console.log("Current User:", currentUser.uid);
+                console.log("Is Admin:", isAdmin);
+                console.log("Force Admin Mode:", FORCE_ADMIN_MODE);
+
                 loadModels();
             } else {
                 window.location.href = "login.html";
@@ -272,19 +293,30 @@
             onSnapshot(q, (snapshot) => {
                 grid.innerHTML = "";
                 if (snapshot.empty) {
-                    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#64748b;">尚無模型，成為第一個上傳者吧！</div>';
+                    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#64748b; padding:50px;">尚無模型，成為第一個上傳者吧！</div>';
                     return;
                 }
 
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
+                snapshot.forEach((documentSnapshot) => {
+                    const data = documentSnapshot.data();
+                    const docId = documentSnapshot.id;
                     const card = document.createElement('div');
                     card.className = 'model-card';
                     card.onclick = () => openViewer(data.url, data.name);
                     
                     const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'Just now';
 
+                    // 🔥 生成刪除按鈕 (權限判斷)
+                    // 條件：是管理員 OR 是上傳者本人 OR 開啟強制測試模式
+                    let deleteBtn = '';
+                    const isUploader = (data.uploaderId === currentUser.uid);
+                    
+                    if (FORCE_ADMIN_MODE || isAdmin || isUploader) {
+                        deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteModel('${docId}', '${data.url}')"><i class="fa-solid fa-trash"></i></button>`;
+                    }
+
                     card.innerHTML = `
+                        ${deleteBtn}
                         <div class="model-preview"><i class="fa-solid fa-cube"></i></div>
                         <div class="model-info">
                             <div class="model-name">${data.name}</div>
@@ -297,6 +329,28 @@
                     grid.appendChild(card);
                 });
             });
+        }
+
+        // 🔥 刪除功能 (需綁定到 window)
+        window.deleteModel = async (id, url) => {
+            if(!confirm("確定要刪除此模型嗎？此動作無法復原。")) return;
+            try {
+                // 1. 刪除 Storage 檔案 (需要 try-catch 因為檔案可能已經不存在)
+                try {
+                    const fileRef = ref(storage, url);
+                    await deleteObject(fileRef);
+                } catch(err) {
+                    console.warn("Storage file not found or already deleted:", err);
+                }
+                
+                // 2. 刪除 Firestore 紀錄
+                await deleteDoc(doc(db, "3d_models", id));
+                
+                alert("模型已刪除");
+            } catch (e) {
+                console.error(e);
+                alert("刪除失敗：" + e.message);
+            }
         }
 
         // --- 2. 上傳邏輯 ---
@@ -369,7 +423,6 @@
             currentModelUrl = url;
             currentModelName = name;
             
-            // 重置旋轉拉桿
             document.getElementById('rotateZ').value = 0;
 
             if (!viewerInitialized) {
@@ -392,22 +445,20 @@
         window.resetView = () => {
             if (controls) {
                 controls.reset();
-                controls.autoRotate = true; // 重置時恢復自動旋轉
+                controls.autoRotate = true; 
             }
             if (mesh) {
-                mesh.rotation.x = -Math.PI / 2; // STL 預設修正
+                mesh.rotation.x = -Math.PI / 2; 
                 mesh.rotation.y = 0;
                 mesh.rotation.z = 0;
                 document.getElementById('rotateZ').value = 0;
             }
         };
 
-        // 🔥 更新 Z 軸旋轉
         window.updateRotation = (val) => {
             if (mesh) {
                 const rad = THREE.MathUtils.degToRad(val);
                 mesh.rotation.z = rad;
-                // 拖動拉桿時也停止自動旋轉
                 controls.autoRotate = false;
             }
         }
@@ -434,7 +485,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            // 燈光
             const ambientLight = new THREE.AmbientLight(0x404040, 2);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 2);
@@ -446,7 +496,6 @@
             controls.dampingFactor = 0.05;
             controls.autoRotate = true;
 
-            // 🔥 拖曳時停止自動旋轉
             controls.addEventListener('start', () => {
                 controls.autoRotate = false;
             });
@@ -468,7 +517,6 @@
             loader.load(url, (geometry) => {
                 if (mesh) scene.remove(mesh);
 
-                // 🔥 預設材質改為白色
                 const material = new THREE.MeshStandardMaterial({ 
                     color: 0xffffff, 
                     roughness: 0.4, 
@@ -477,7 +525,6 @@
                 
                 mesh = new THREE.Mesh(geometry, material);
 
-                // 自動置中與縮放
                 geometry.computeBoundingBox();
                 const center = geometry.boundingBox.getCenter(new THREE.Vector3());
                 geometry.translate(-center.x, -center.y, -center.z);
@@ -486,10 +533,8 @@
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const scale = 50 / maxDim;
                 mesh.scale.set(scale, scale, scale);
-                
-                // STL 預設通常是平躺的，轉正
-                mesh.rotation.x = -Math.PI / 2;
                 mesh.position.y = 10; 
+                mesh.rotation.x = -Math.PI / 2;
 
                 scene.add(mesh);
             });
