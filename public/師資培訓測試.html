@@ -35,6 +35,10 @@
         
         /* 批量選取時的選中樣式 */
         .selected-card { border-color: #3b82f6; background-color: #eff6ff; }
+
+        /* 級數選單展開動畫 */
+        .level-header { transition: background-color 0.2s; }
+        .level-header:hover { background-color: #f1f5f9; }
     </style>
 </head>
 <body>
@@ -46,12 +50,10 @@
 
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        // 🔥 新增 signInWithCustomToken 以支援預覽環境
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // 🔥 設定 Firebase Config
-        // 優先使用環境變數 (解決 Auth Error)，若無則使用硬編碼設定 (下載後使用)
         let firebaseConfig;
         let appId = 'trainer-resource-hub';
 
@@ -75,11 +77,12 @@
         const db = getFirestore(app);
         
         // --- Constants ---
-        // 預設攜帶物品清單
         const PRESET_MATERIALS = [
             '乒乓球', '充電馬達', '動力馬達', '主機', '15mm塑膠球', 
             '橡皮筋', '棉線', '水性筆', 'A4紙'
         ];
+        
+        const LEVEL_OPTIONS = Array.from({length: 16}, (_, i) => `第${i+1}級`);
 
         // --- Helper: 圖片壓縮 ---
         const compressImage = (file) => {
@@ -181,6 +184,9 @@
             // 批量管理狀態
             const [isBatchMode, setIsBatchMode] = useState(false);
             const [selectedItems, setSelectedItems] = useState(new Set());
+
+            // 級數展開狀態
+            const [expandedLevels, setExpandedLevels] = useState({});
             
             const [formData, setFormData] = useState({
                 title: '', level: '第1級', adaptation: '', adaptationImage: '',
@@ -198,7 +204,7 @@
                 }
             }, []);
 
-            // Auth (Updated for better compatibility)
+            // Auth
             useEffect(() => {
                 const initAuth = async () => { 
                     try { 
@@ -220,7 +226,7 @@
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'lessons'));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // 排序邏輯
+                    // 排序：先按級別，再按建立時間
                     data.sort((a, b) => {
                         const la = parseInt((a.level||'').replace(/\D/g,'')) || 0;
                         const lb = parseInt((b.level||'').replace(/\D/g,'')) || 0;
@@ -229,7 +235,6 @@
                     });
                     setLessons(data);
                     setLoading(false);
-                    // 同步更新當前檢視的課程（若在編輯或詳細頁）
                     if (currentLesson) {
                         const updated = data.find(l => l.id === currentLesson.id);
                         if (updated) setCurrentLesson(updated); else setView('list');
@@ -240,6 +245,28 @@
                 });
                 return () => unsubscribe();
             }, [user, currentLesson]);
+
+            // 當搜尋關鍵字改變時，自動展開包含結果的級別
+            useEffect(() => {
+                if (searchTerm) {
+                    const newExpanded = {};
+                    LEVEL_OPTIONS.forEach(level => {
+                        const hasMatch = lessons.some(l => 
+                            l.level === level && l.title.toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+                        if (hasMatch) newExpanded[level] = true;
+                    });
+                    // 檢查未分類
+                    const hasUncategorized = lessons.some(l => 
+                        !LEVEL_OPTIONS.includes(l.level) && l.title.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                    if (hasUncategorized) newExpanded['Uncategorized'] = true;
+                    
+                    setExpandedLevels(newExpanded);
+                } else {
+                    // 搜尋清空時，可以選擇全關閉或保持現狀，這裡選擇保持現狀，或可設為 {} 全關閉
+                }
+            }, [searchTerm, lessons]);
 
             // Excel Export
             const handleDownloadTemplate = () => {
@@ -265,11 +292,9 @@
                     if(confirm(`確認匯入 ${jsonData.length} 筆資料？`)) {
                         setLoading(true);
                         const ref = collection(db, 'artifacts', appId, 'public', 'data', 'lessons');
-                        const batch = writeBatch(db); // 使用 Batch 優化
-                        
-                        // 簡單分批處理，避免超過 batch 500 上限 (這裡做簡單處理，假設不超過500)
+                        const batch = writeBatch(db); 
                         for (const row of jsonData) {
-                            const newDocRef = doc(ref); // 自動生成 ID
+                            const newDocRef = doc(ref);
                             batch.set(newDocRef, {
                                 title: row['課程名稱'] || '未命名',
                                 level: row['級別'] || '第1級',
@@ -293,66 +318,45 @@
                 reader.readAsArrayBuffer(file);
             };
 
-            // 新增/編輯 提交處理
             const handleFormSubmit = async (e) => {
                 e.preventDefault();
                 setLoading(true);
                 try {
                     const ref = collection(db, 'artifacts', appId, 'public', 'data', 'lessons');
-                    
                     if (formMode === 'edit' && currentLesson) {
-                        // 編輯模式
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', currentLesson.id), {
-                            ...formData,
-                            updatedAt: new Date().toISOString()
+                            ...formData, updatedAt: new Date().toISOString()
                         });
                         alert("更新成功！");
-                        setView('detail'); // 回到詳細頁
+                        setView('detail');
                     } else {
-                        // 新增模式
                         await addDoc(ref, {
-                            ...formData, 
-                            createdAt: new Date().toISOString(), 
-                            authorId: user.uid
+                            ...formData, createdAt: new Date().toISOString(), authorId: user.uid
                         });
                         alert("新增成功！");
-                        setView('list'); // 回到列表頁
+                        setView('list'); 
                         setFormData({ title: '', level: '第1級', adaptation: '', adaptationImage: '', activities: '', activityImage: '', activityVideo: '', materials: '', precautions: '', codeSnippet: '', codeImage: '' });
                     }
-                } catch(e) { 
-                    console.error(e);
-                    alert("儲存失敗"); 
-                }
+                } catch(e) { console.error(e); alert("儲存失敗"); }
                 setLoading(false);
             };
 
-            // 開始編輯
             const startEdit = (lesson) => {
                 setFormData({
-                    title: lesson.title || '',
-                    level: lesson.level || '第1級',
-                    adaptation: lesson.adaptation || '',
-                    adaptationImage: lesson.adaptationImage || '',
-                    activities: lesson.activities || '',
-                    activityImage: lesson.activityImage || '',
-                    activityVideo: lesson.activityVideo || '',
-                    materials: lesson.materials || '',
-                    precautions: lesson.precautions || '',
-                    codeSnippet: lesson.codeSnippet || '',
-                    codeImage: lesson.codeImage || ''
+                    title: lesson.title || '', level: lesson.level || '第1級',
+                    adaptation: lesson.adaptation || '', adaptationImage: lesson.adaptationImage || '',
+                    activities: lesson.activities || '', activityImage: lesson.activityImage || '', activityVideo: lesson.activityVideo || '',
+                    materials: lesson.materials || '', precautions: lesson.precautions || '',
+                    codeSnippet: lesson.codeSnippet || '', codeImage: lesson.codeImage || ''
                 });
-                setFormMode('edit');
-                setView('form');
+                setFormMode('edit'); setView('form');
             };
 
-            // 開始新增
             const startAdd = () => {
                 setFormData({ title: '', level: '第1級', adaptation: '', adaptationImage: '', activities: '', activityImage: '', activityVideo: '', materials: '', precautions: '', codeSnippet: '', codeImage: '' });
-                setFormMode('add');
-                setView('form');
+                setFormMode('add'); setView('form');
             };
 
-            // 單筆刪除
             const handleDelete = async (id) => {
                 if(confirm("確定刪除？此動作無法復原。")) {
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id));
@@ -360,41 +364,32 @@
                 }
             };
 
-            // 批量操作：切換選取
             const toggleSelection = (id) => {
                 const newSet = new Set(selectedItems);
-                if (newSet.has(id)) newSet.delete(id);
-                else newSet.add(id);
+                if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
                 setSelectedItems(newSet);
             };
 
-            // 批量操作：全選/取消全選
-            const toggleSelectAll = () => {
-                if (selectedItems.size === filteredLessons.length) {
+            const toggleSelectAll = (targetLessons) => {
+                if (selectedItems.size === targetLessons.length) {
                     setSelectedItems(new Set());
                 } else {
-                    setSelectedItems(new Set(filteredLessons.map(l => l.id)));
+                    setSelectedItems(new Set(targetLessons.map(l => l.id)));
                 }
             };
 
-            // 批量操作：刪除
             const handleBatchDelete = async () => {
                 if (selectedItems.size === 0) return alert("請先選取課程");
                 if (confirm(`確定要刪除選取的 ${selectedItems.size} 堂課程嗎？`)) {
                     setLoading(true);
                     const batch = writeBatch(db);
-                    selectedItems.forEach(id => {
-                        batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id));
-                    });
+                    selectedItems.forEach(id => batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id)));
                     await batch.commit();
-                    setSelectedItems(new Set());
-                    setIsBatchMode(false);
-                    setLoading(false);
+                    setSelectedItems(new Set()); setIsBatchMode(false); setLoading(false);
                     alert("批量刪除完成");
                 }
             };
 
-            // 批量操作：修改級別
             const handleBatchUpdateLevel = async (level) => {
                 if (selectedItems.size === 0) return alert("請先選取課程");
                 if (confirm(`確定將 ${selectedItems.size} 堂課程設為 ${level} 嗎？`)) {
@@ -405,24 +400,21 @@
                         batch.update(ref, { level: level });
                     });
                     await batch.commit();
-                    setSelectedItems(new Set());
-                    setIsBatchMode(false);
-                    setLoading(false);
+                    setSelectedItems(new Set()); setIsBatchMode(false); setLoading(false);
                     alert("批量修改完成");
                 }
             };
 
-            // 輔助功能：增加預設物品到文字框
             const addMaterial = (item) => {
                 setFormData(prev => {
                     const current = prev.materials || '';
-                    // 簡單判斷避免重複 (選填)
                     if (current.includes(item)) return prev; 
                     const newValue = current ? `${current}、${item}` : item;
                     return { ...prev, materials: newValue };
                 });
             };
-
+            
+            // 全局篩選過的課程 (用於計算數量等)
             const filteredLessons = lessons.filter(l => l.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
             if (loading) return <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500"><i className="fa-solid fa-spinner fa-spin text-3xl mb-4"></i><p>載入中...</p></div>;
@@ -453,11 +445,9 @@
                                 ) : (
                                     <button onClick={() => setView('list')} className="text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i className="fa-solid fa-arrow-left"></i> 返回列表</button>
                                 )}
-                                {/* 回到主站 */}
                                 <a href="vip_area.html" className="text-slate-400 hover:text-slate-800 ml-4"><i className="fa-solid fa-right-from-bracket"></i></a>
                             </div>
 
-                            {/* Mobile Menu */}
                             <div className="md:hidden flex gap-3">
                                 {view !== 'list' && <button onClick={() => setView('list')}><i className="fa-solid fa-arrow-left text-xl text-slate-600"></i></button>}
                                 {view === 'list' && <button onClick={() => setShowMobileMenu(!showMobileMenu)}><i className="fa-solid fa-bars text-xl text-slate-600"></i></button>}
@@ -493,67 +483,153 @@
 
                                 {/* 批量操作工具列 */}
                                 {isBatchMode && (
-                                    <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex flex-wrap items-center gap-4 animate-pulse">
+                                    <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex flex-wrap items-center gap-4 animate-pulse sticky top-20 z-20 shadow-md">
                                         <span className="font-bold text-orange-800"><i className="fa-solid fa-check-double"></i> 已選取 {selectedItems.size} 項</span>
-                                        <button onClick={toggleSelectAll} className="text-sm bg-white border border-orange-200 px-3 py-1 rounded-lg hover:bg-orange-100">
+                                        <button onClick={() => toggleSelectAll(filteredLessons)} className="text-sm bg-white border border-orange-200 px-3 py-1 rounded-lg hover:bg-orange-100">
                                             {selectedItems.size === filteredLessons.length ? '取消全選' : '全選'}
                                         </button>
                                         <div className="flex-1"></div>
                                         <div className="flex gap-2">
                                             <select onChange={(e) => { if(e.target.value) handleBatchUpdateLevel(e.target.value); e.target.value=''; }} className="text-sm border border-orange-200 rounded-lg px-2 py-1 bg-white">
                                                 <option value="">批量修改級別...</option>
-                                                {Array.from({length: 16}, (_, i) => <option key={i} value={`第${i+1}級`}>{`第${i+1}級`}</option>)}
+                                                {LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
                                             </select>
                                             <button onClick={handleBatchDelete} className="bg-red-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-red-600 font-bold"><i className="fa-solid fa-trash"></i> 刪除選取</button>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {filteredLessons.map(lesson => (
-                                        <div key={lesson.id} className="relative group">
-                                            {/* 批量選取 Checkbox */}
-                                            {isBatchMode && (
-                                                <div className="absolute top-3 right-3 z-20">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        checked={selectedItems.has(lesson.id)}
-                                                        onChange={() => toggleSelection(lesson.id)}
-                                                        className="w-6 h-6 accent-blue-600 cursor-pointer shadow-sm"
-                                                    />
-                                                </div>
-                                            )}
-                                            
-                                            <article 
-                                                onClick={() => { 
-                                                    if(isBatchMode) toggleSelection(lesson.id);
-                                                    else { setCurrentLesson(lesson); setView('detail'); }
-                                                }} 
-                                                className={`bg-white rounded-2xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-lg transition-all flex flex-col h-full relative ${isBatchMode && selectedItems.has(lesson.id) ? 'selected-card ring-2 ring-blue-500' : 'border-slate-200'}`}
-                                            >
-                                                <div className="absolute top-3 left-3 z-10"><span className="bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1"><i className="fa-solid fa-tag"></i> {lesson.level || '第1級'}</span></div>
-                                                <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                                                    {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
-                                                        <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
-                                                    ) : (
-                                                        <div className="flex flex-col items-center gap-2 text-slate-300"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
+                                {filteredLessons.length === 0 ? (
+                                    <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-slate-300">
+                                        <i className="fa-solid fa-box-open text-4xl text-slate-300 mb-4"></i>
+                                        <h3 className="text-lg font-bold text-slate-700">找不到符合的課程</h3>
+                                        <p className="text-slate-500">試試其他關鍵字，或新增課程。</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {/* 根據級數分組顯示 */}
+                                        {LEVEL_OPTIONS.map(level => {
+                                            const levelLessons = filteredLessons.filter(l => l.level === level);
+                                            // 該級別無課程則隱藏，除非使用者正在批量操作(方便查看) 或 需求是「只顯示有點開的」
+                                            // 這裡邏輯：若該級別無課程，直接不渲染該區塊
+                                            if (levelLessons.length === 0) return null;
+
+                                            const isExpanded = expandedLevels[level];
+
+                                            return (
+                                                <div key={level} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                                    {/* Accordion Header */}
+                                                    <button 
+                                                        onClick={() => setExpandedLevels(prev => ({...prev, [level]: !prev[level]}))}
+                                                        className="w-full px-6 py-4 flex items-center justify-between level-header text-left outline-none"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
+                                                                {level.replace('第','').replace('級','')}
+                                                            </div>
+                                                            <span className="font-bold text-lg text-slate-800">{level}</span>
+                                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
+                                                                {levelLessons.length} 堂課
+                                                            </span>
+                                                        </div>
+                                                        <i className={`fa-solid fa-chevron-down text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}></i>
+                                                    </button>
+                                                    
+                                                    {/* Accordion Body */}
+                                                    {isExpanded && (
+                                                        <div className="p-6 border-t border-slate-200 bg-slate-50/50">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                                {levelLessons.map(lesson => (
+                                                                    <div key={lesson.id} className="relative group">
+                                                                        {isBatchMode && (
+                                                                            <div className="absolute top-3 right-3 z-20">
+                                                                                <input type="checkbox" checked={selectedItems.has(lesson.id)} onChange={() => toggleSelection(lesson.id)} className="w-6 h-6 accent-blue-600 cursor-pointer shadow-sm" />
+                                                                            </div>
+                                                                        )}
+                                                                        <article onClick={() => { if(isBatchMode) toggleSelection(lesson.id); else { setCurrentLesson(lesson); setView('detail'); } }} className={`bg-white rounded-2xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-lg transition-all flex flex-col h-full relative ${isBatchMode && selectedItems.has(lesson.id) ? 'selected-card ring-2 ring-blue-500' : 'border-slate-200'}`}>
+                                                                            <div className="h-40 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+                                                                                {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
+                                                                                    <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
+                                                                                ) : (
+                                                                                    <div className="flex flex-col items-center gap-2 text-slate-300"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="p-4 flex-1 flex flex-col">
+                                                                                <h2 className="text-lg font-bold mb-2 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{lesson.title}</h2>
+                                                                                <p className="text-slate-600 text-sm line-clamp-2 mb-3 flex-1">{lesson.adaptation || "暫無說明"}</p>
+                                                                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
+                                                                                    <div className="flex gap-2">
+                                                                                        {lesson.activityVideo && <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded"><i className="fa-solid fa-video"></i></span>}
+                                                                                        {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded"><i className="fa-solid fa-code"></i></span>}
+                                                                                    </div>
+                                                                                    <span className="text-blue-500 text-xs font-bold">詳情 <i className="fa-solid fa-arrow-right"></i></span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </article>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <div className="p-5 flex-1 flex flex-col">
-                                                    <h2 className="text-lg font-bold mb-2 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{lesson.title}</h2>
-                                                    <p className="text-slate-600 text-sm line-clamp-2 mb-4 flex-1">{lesson.adaptation || "暫無說明"}</p>
-                                                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                                                        <div className="flex gap-2">
-                                                            {lesson.activityVideo && <span className="text-xs font-semibold px-2 py-1 bg-red-50 text-red-600 rounded flex items-center gap-1"><i className="fa-solid fa-video"></i> 影片</span>}
-                                                            {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-600 rounded flex items-center gap-1"><i className="fa-solid fa-code"></i> 程式</span>}
+                                            );
+                                        })}
+
+                                        {/* 未分類 / 其他 */}
+                                        {(() => {
+                                            const otherLessons = filteredLessons.filter(l => !LEVEL_OPTIONS.includes(l.level));
+                                            if (otherLessons.length === 0) return null;
+                                            const isExpanded = expandedLevels['Uncategorized'];
+                                            return (
+                                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                                    <button onClick={() => setExpandedLevels(prev => ({...prev, 'Uncategorized': !prev['Uncategorized']}))} className="w-full px-6 py-4 flex items-center justify-between level-header text-left outline-none">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="bg-slate-400 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">?</div>
+                                                            <span className="font-bold text-lg text-slate-800">未分類 / 其他</span>
+                                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">{otherLessons.length} 堂課</span>
                                                         </div>
-                                                        <span className="text-blue-500 text-xs flex items-center gap-1 font-bold group-hover:translate-x-1 transition-transform">查看詳情 <i className="fa-solid fa-arrow-right"></i></span>
-                                                    </div>
+                                                        <i className={`fa-solid fa-chevron-down text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}></i>
+                                                    </button>
+                                                    {isExpanded && (
+                                                        <div className="p-6 border-t border-slate-200 bg-slate-50/50">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                                {otherLessons.map(lesson => (
+                                                                    <div key={lesson.id} className="relative group">
+                                                                        {isBatchMode && (
+                                                                            <div className="absolute top-3 right-3 z-20">
+                                                                                <input type="checkbox" checked={selectedItems.has(lesson.id)} onChange={() => toggleSelection(lesson.id)} className="w-6 h-6 accent-blue-600 cursor-pointer shadow-sm" />
+                                                                            </div>
+                                                                        )}
+                                                                        <article onClick={() => { if(isBatchMode) toggleSelection(lesson.id); else { setCurrentLesson(lesson); setView('detail'); } }} className={`bg-white rounded-2xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-lg transition-all flex flex-col h-full relative ${isBatchMode && selectedItems.has(lesson.id) ? 'selected-card ring-2 ring-blue-500' : 'border-slate-200'}`}>
+                                                                            <div className="h-40 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+                                                                                {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
+                                                                                    <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
+                                                                                ) : (
+                                                                                    <div className="flex flex-col items-center gap-2 text-slate-300"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="p-4 flex-1 flex flex-col">
+                                                                                <h2 className="text-lg font-bold mb-2 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{lesson.title}</h2>
+                                                                                <p className="text-slate-600 text-sm line-clamp-2 mb-3 flex-1">{lesson.adaptation || "暫無說明"}</p>
+                                                                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
+                                                                                    <div className="flex gap-2">
+                                                                                        {lesson.activityVideo && <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded"><i className="fa-solid fa-video"></i></span>}
+                                                                                        {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded"><i className="fa-solid fa-code"></i></span>}
+                                                                                    </div>
+                                                                                    <span className="text-blue-500 text-xs font-bold">詳情 <i className="fa-solid fa-arrow-right"></i></span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </article>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </article>
-                                        </div>
-                                    ))}
-                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -597,7 +673,7 @@
                                         <div className="md:col-span-1">
                                             <label className="block font-bold text-sm text-slate-700 mb-2">級別</label>
                                             <select className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={formData.level} onChange={e => setFormData({...formData, level: e.target.value})}>
-                                                {Array.from({length: 16}, (_, i) => <option key={i} value={`第${i+1}級`}>{`第${i+1}級`}</option>)}
+                                                {LEVEL_OPTIONS.map(level => <option key={level} value={level}>{level}</option>)}
                                             </select>
                                         </div>
                                     </div>
@@ -624,7 +700,7 @@
                                         <div>
                                             <label className="block font-bold text-sm text-slate-700 mb-2 flex items-center gap-2"><i className="fa-solid fa-box text-amber-600"></i> 攜帶物品</label>
                                             
-                                            {/* 預設攜帶物品選單 (新增功能) */}
+                                            {/* 預設攜帶物品選單 */}
                                             <div className="flex flex-wrap gap-2 mb-3">
                                                 {PRESET_MATERIALS.map(item => (
                                                     <button 
