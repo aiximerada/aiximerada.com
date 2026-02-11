@@ -32,37 +32,54 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* 批量選取時的選中樣式 */
+        .selected-card { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- 🔥 關鍵修正：加入 data-type="module" 讓瀏覽器處理 import -->
     <script type="text/babel" data-type="module">
         const { useState, useEffect } = React;
         const { createRoot } = ReactDOM;
 
-        // --- Firebase Imports (使用 CDN 模組) ---
+        // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔥 新增 signInWithCustomToken 以支援預覽環境
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 設定您的 Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
-            authDomain: "yulubox.firebaseapp.com",
-            projectId: "yulubox",
-            storageBucket: "yulubox.firebasestorage.app",
-            messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
-        };
+        // 🔥 設定 Firebase Config
+        // 優先使用環境變數 (解決 Auth Error)，若無則使用硬編碼設定 (下載後使用)
+        let firebaseConfig;
+        let appId = 'trainer-resource-hub';
+
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+            if (typeof __app_id !== 'undefined') appId = __app_id;
+        } else {
+            firebaseConfig = {
+                apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+                authDomain: "yulubox.firebaseapp.com",
+                projectId: "yulubox",
+                storageBucket: "yulubox.firebasestorage.app",
+                messagingSenderId: "256466567852",
+                appId: "1:256466567852:web:233b74668908ffcb9b9509",
+                measurementId: "G-YPCY41EKWX"
+            };
+        }
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        const appId = 'trainer-resource-hub'; 
+        // --- Constants ---
+        // 預設攜帶物品清單
+        const PRESET_MATERIALS = [
+            '乒乓球', '充電馬達', '動力馬達', '主機', '15mm塑膠球', 
+            '橡皮筋', '棉線', '水性筆', 'A4紙'
+        ];
 
         // --- Helper: 圖片壓縮 ---
         const compressImage = (file) => {
@@ -154,11 +171,16 @@
             const [user, setUser] = useState(null);
             const [lessons, setLessons] = useState([]);
             const [loading, setLoading] = useState(true);
-            const [view, setView] = useState('list');
+            const [view, setView] = useState('list'); // list, detail, form
+            const [formMode, setFormMode] = useState('add'); // add, edit
             const [currentLesson, setCurrentLesson] = useState(null);
             const [searchTerm, setSearchTerm] = useState('');
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [xlsxReady, setXlsxReady] = useState(false);
+            
+            // 批量管理狀態
+            const [isBatchMode, setIsBatchMode] = useState(false);
+            const [selectedItems, setSelectedItems] = useState(new Set());
             
             const [formData, setFormData] = useState({
                 title: '', level: '第1級', adaptation: '', adaptationImage: '',
@@ -176,10 +198,16 @@
                 }
             }, []);
 
-            // Auth
+            // Auth (Updated for better compatibility)
             useEffect(() => {
                 const initAuth = async () => { 
-                    try { await signInAnonymously(auth); } catch(e) { console.error(e); }
+                    try { 
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth); 
+                        }
+                    } catch(e) { console.error("Auth failed:", e); }
                 };
                 initAuth();
                 const unsubscribe = onAuthStateChanged(auth, setUser);
@@ -201,6 +229,7 @@
                     });
                     setLessons(data);
                     setLoading(false);
+                    // 同步更新當前檢視的課程（若在編輯或詳細頁）
                     if (currentLesson) {
                         const updated = data.find(l => l.id === currentLesson.id);
                         if (updated) setCurrentLesson(updated); else setView('list');
@@ -236,8 +265,12 @@
                     if(confirm(`確認匯入 ${jsonData.length} 筆資料？`)) {
                         setLoading(true);
                         const ref = collection(db, 'artifacts', appId, 'public', 'data', 'lessons');
+                        const batch = writeBatch(db); // 使用 Batch 優化
+                        
+                        // 簡單分批處理，避免超過 batch 500 上限 (這裡做簡單處理，假設不超過500)
                         for (const row of jsonData) {
-                            await addDoc(ref, {
+                            const newDocRef = doc(ref); // 自動生成 ID
+                            batch.set(newDocRef, {
                                 title: row['課程名稱'] || '未命名',
                                 level: row['級別'] || '第1級',
                                 adaptation: row['改造方向'] || '',
@@ -251,6 +284,7 @@
                                 adaptationImage: '', activityImage: '', codeImage: ''
                             });
                         }
+                        await batch.commit();
                         setLoading(false);
                         alert("匯入成功！");
                     }
@@ -259,24 +293,134 @@
                 reader.readAsArrayBuffer(file);
             };
 
-            const handleAddSubmit = async (e) => {
+            // 新增/編輯 提交處理
+            const handleFormSubmit = async (e) => {
                 e.preventDefault();
                 setLoading(true);
                 try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'lessons'), {
-                        ...formData, createdAt: new Date().toISOString(), authorId: user.uid
-                    });
-                    setFormData({ title: '', level: '第1級', adaptation: '', adaptationImage: '', activities: '', activityImage: '', activityVideo: '', materials: '', precautions: '', codeSnippet: '', codeImage: '' });
-                    setView('list');
-                } catch(e) { alert("儲存失敗"); }
+                    const ref = collection(db, 'artifacts', appId, 'public', 'data', 'lessons');
+                    
+                    if (formMode === 'edit' && currentLesson) {
+                        // 編輯模式
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', currentLesson.id), {
+                            ...formData,
+                            updatedAt: new Date().toISOString()
+                        });
+                        alert("更新成功！");
+                        setView('detail'); // 回到詳細頁
+                    } else {
+                        // 新增模式
+                        await addDoc(ref, {
+                            ...formData, 
+                            createdAt: new Date().toISOString(), 
+                            authorId: user.uid
+                        });
+                        alert("新增成功！");
+                        setView('list'); // 回到列表頁
+                        setFormData({ title: '', level: '第1級', adaptation: '', adaptationImage: '', activities: '', activityImage: '', activityVideo: '', materials: '', precautions: '', codeSnippet: '', codeImage: '' });
+                    }
+                } catch(e) { 
+                    console.error(e);
+                    alert("儲存失敗"); 
+                }
                 setLoading(false);
             };
 
+            // 開始編輯
+            const startEdit = (lesson) => {
+                setFormData({
+                    title: lesson.title || '',
+                    level: lesson.level || '第1級',
+                    adaptation: lesson.adaptation || '',
+                    adaptationImage: lesson.adaptationImage || '',
+                    activities: lesson.activities || '',
+                    activityImage: lesson.activityImage || '',
+                    activityVideo: lesson.activityVideo || '',
+                    materials: lesson.materials || '',
+                    precautions: lesson.precautions || '',
+                    codeSnippet: lesson.codeSnippet || '',
+                    codeImage: lesson.codeImage || ''
+                });
+                setFormMode('edit');
+                setView('form');
+            };
+
+            // 開始新增
+            const startAdd = () => {
+                setFormData({ title: '', level: '第1級', adaptation: '', adaptationImage: '', activities: '', activityImage: '', activityVideo: '', materials: '', precautions: '', codeSnippet: '', codeImage: '' });
+                setFormMode('add');
+                setView('form');
+            };
+
+            // 單筆刪除
             const handleDelete = async (id) => {
-                if(confirm("確定刪除？")) {
+                if(confirm("確定刪除？此動作無法復原。")) {
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id));
                     if(currentLesson?.id === id) setView('list');
                 }
+            };
+
+            // 批量操作：切換選取
+            const toggleSelection = (id) => {
+                const newSet = new Set(selectedItems);
+                if (newSet.has(id)) newSet.delete(id);
+                else newSet.add(id);
+                setSelectedItems(newSet);
+            };
+
+            // 批量操作：全選/取消全選
+            const toggleSelectAll = () => {
+                if (selectedItems.size === filteredLessons.length) {
+                    setSelectedItems(new Set());
+                } else {
+                    setSelectedItems(new Set(filteredLessons.map(l => l.id)));
+                }
+            };
+
+            // 批量操作：刪除
+            const handleBatchDelete = async () => {
+                if (selectedItems.size === 0) return alert("請先選取課程");
+                if (confirm(`確定要刪除選取的 ${selectedItems.size} 堂課程嗎？`)) {
+                    setLoading(true);
+                    const batch = writeBatch(db);
+                    selectedItems.forEach(id => {
+                        batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id));
+                    });
+                    await batch.commit();
+                    setSelectedItems(new Set());
+                    setIsBatchMode(false);
+                    setLoading(false);
+                    alert("批量刪除完成");
+                }
+            };
+
+            // 批量操作：修改級別
+            const handleBatchUpdateLevel = async (level) => {
+                if (selectedItems.size === 0) return alert("請先選取課程");
+                if (confirm(`確定將 ${selectedItems.size} 堂課程設為 ${level} 嗎？`)) {
+                    setLoading(true);
+                    const batch = writeBatch(db);
+                    selectedItems.forEach(id => {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'lessons', id);
+                        batch.update(ref, { level: level });
+                    });
+                    await batch.commit();
+                    setSelectedItems(new Set());
+                    setIsBatchMode(false);
+                    setLoading(false);
+                    alert("批量修改完成");
+                }
+            };
+
+            // 輔助功能：增加預設物品到文字框
+            const addMaterial = (item) => {
+                setFormData(prev => {
+                    const current = prev.materials || '';
+                    // 簡單判斷避免重複 (選填)
+                    if (current.includes(item)) return prev; 
+                    const newValue = current ? `${current}、${item}` : item;
+                    return { ...prev, materials: newValue };
+                });
             };
 
             const filteredLessons = lessons.filter(l => l.title.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -288,7 +432,7 @@
                     {/* Navigation */}
                     <nav className="bg-white shadow-sm sticky top-0 z-30 border-b border-slate-200">
                         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80" onClick={() => { setView('list'); setSearchTerm(''); }}>
+                            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80" onClick={() => { setView('list'); setSearchTerm(''); setIsBatchMode(false); }}>
                                 <div className="bg-blue-600 p-2 rounded-lg text-white"><i className="fa-solid fa-book-open"></i></div>
                                 <div><div className="font-bold text-lg">覓謎爾</div><div className="text-xs text-slate-500">師資培訓中心</div></div>
                             </div>
@@ -296,12 +440,15 @@
                             <div className="hidden md:flex items-center gap-3">
                                 {view === 'list' ? (
                                     <>
+                                        <button onClick={() => setIsBatchMode(!isBatchMode)} className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors ${isBatchMode ? 'bg-orange-100 text-orange-700' : 'text-slate-600 hover:bg-slate-100'}`}>
+                                            <i className="fa-solid fa-list-check"></i> {isBatchMode ? '退出管理' : '批量管理'}
+                                        </button>
                                         <button onClick={handleDownloadTemplate} className="text-slate-600 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i className="fa-solid fa-download"></i> 下載範本</button>
                                         <label className={`cursor-pointer bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 ${!xlsxReady ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                             <i className="fa-solid fa-file-excel"></i> 匯入 Excel
                                             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={handleExcelImport} disabled={!xlsxReady} />
                                         </label>
-                                        <button onClick={() => setView('add')} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center gap-2"><i className="fa-solid fa-plus"></i> 新增課程</button>
+                                        <button onClick={startAdd} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center gap-2"><i className="fa-solid fa-plus"></i> 新增課程</button>
                                     </>
                                 ) : (
                                     <button onClick={() => setView('list')} className="text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i className="fa-solid fa-arrow-left"></i> 返回列表</button>
@@ -317,8 +464,9 @@
                             </div>
                         </div>
                         {showMobileMenu && view === 'list' && (
-                            <div className="md:hidden border-t bg-white absolute w-full shadow-lg p-4 flex flex-col gap-3">
-                                <button onClick={() => { setView('add'); setShowMobileMenu(false); }} className="bg-blue-600 text-white w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2"><i className="fa-solid fa-plus"></i> 新增課程</button>
+                            <div className="md:hidden border-t bg-white absolute w-full shadow-lg p-4 flex flex-col gap-3 z-40">
+                                <button onClick={() => { startAdd(); setShowMobileMenu(false); }} className="bg-blue-600 text-white w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2"><i className="fa-solid fa-plus"></i> 新增課程</button>
+                                <button onClick={() => { setIsBatchMode(!isBatchMode); setShowMobileMenu(false); }} className="bg-orange-50 text-orange-700 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2"><i className="fa-solid fa-list-check"></i> {isBatchMode ? '退出批量管理' : '批量管理'}</button>
                                 <div className="flex gap-2">
                                     <button onClick={handleDownloadTemplate} className="flex-1 bg-slate-100 py-3 rounded-xl flex items-center justify-center gap-2 text-slate-600 font-bold"><i className="fa-solid fa-download"></i> 下載範本</button>
                                     <label className={`flex-1 bg-emerald-50 text-emerald-700 py-3 rounded-xl text-center font-bold flex items-center justify-center gap-2 ${!xlsxReady ? 'opacity-50' : ''}`}>
@@ -329,39 +477,81 @@
                         )}
                     </nav>
 
-                    <main className="max-w-6xl mx-auto px-4 py-8">
+                    <main className="max-w-6xl mx-auto px-4 py-8 relative">
                         {view === 'list' && (
                             <div>
                                 <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                                    <div><h1 className="text-3xl font-extrabold text-slate-900">課程培訓</h1><p className="text-slate-500">共 {lessons.length} 堂課程</p></div>
+                                    <div>
+                                        <h1 className="text-3xl font-extrabold text-slate-900">課程培訓</h1>
+                                        <p className="text-slate-500">共 {lessons.length} 堂課程</p>
+                                    </div>
                                     <div className="relative w-full md:w-80">
                                         <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                                         <input type="text" placeholder="搜尋課程..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </header>
+
+                                {/* 批量操作工具列 */}
+                                {isBatchMode && (
+                                    <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex flex-wrap items-center gap-4 animate-pulse">
+                                        <span className="font-bold text-orange-800"><i className="fa-solid fa-check-double"></i> 已選取 {selectedItems.size} 項</span>
+                                        <button onClick={toggleSelectAll} className="text-sm bg-white border border-orange-200 px-3 py-1 rounded-lg hover:bg-orange-100">
+                                            {selectedItems.size === filteredLessons.length ? '取消全選' : '全選'}
+                                        </button>
+                                        <div className="flex-1"></div>
+                                        <div className="flex gap-2">
+                                            <select onChange={(e) => { if(e.target.value) handleBatchUpdateLevel(e.target.value); e.target.value=''; }} className="text-sm border border-orange-200 rounded-lg px-2 py-1 bg-white">
+                                                <option value="">批量修改級別...</option>
+                                                {Array.from({length: 16}, (_, i) => <option key={i} value={`第${i+1}級`}>{`第${i+1}級`}</option>)}
+                                            </select>
+                                            <button onClick={handleBatchDelete} className="bg-red-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-red-600 font-bold"><i className="fa-solid fa-trash"></i> 刪除選取</button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     {filteredLessons.map(lesson => (
-                                        <article key={lesson.id} onClick={() => { setCurrentLesson(lesson); setView('detail'); }} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer hover:shadow-lg transition-all group flex flex-col h-full relative">
-                                            <div className="absolute top-3 left-3 z-10"><span className="bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1"><i className="fa-solid fa-tag"></i> {lesson.level || '第1級'}</span></div>
-                                            <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                                                {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
-                                                    <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-2 text-slate-300"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
-                                                )}
-                                            </div>
-                                            <div className="p-5 flex-1 flex flex-col">
-                                                <h2 className="text-lg font-bold mb-2 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{lesson.title}</h2>
-                                                <p className="text-slate-600 text-sm line-clamp-2 mb-4 flex-1">{lesson.adaptation || "暫無說明"}</p>
-                                                <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
-                                                    <div className="flex gap-2">
-                                                        {lesson.activityVideo && <span className="text-xs font-semibold px-2 py-1 bg-red-50 text-red-600 rounded flex items-center gap-1"><i className="fa-solid fa-video"></i> 影片</span>}
-                                                        {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-600 rounded flex items-center gap-1"><i className="fa-solid fa-code"></i> 程式</span>}
-                                                    </div>
-                                                    <span className="text-blue-500 text-xs flex items-center gap-1 font-bold group-hover:translate-x-1 transition-transform">查看詳情 <i className="fa-solid fa-arrow-right"></i></span>
+                                        <div key={lesson.id} className="relative group">
+                                            {/* 批量選取 Checkbox */}
+                                            {isBatchMode && (
+                                                <div className="absolute top-3 right-3 z-20">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedItems.has(lesson.id)}
+                                                        onChange={() => toggleSelection(lesson.id)}
+                                                        className="w-6 h-6 accent-blue-600 cursor-pointer shadow-sm"
+                                                    />
                                                 </div>
-                                            </div>
-                                        </article>
+                                            )}
+                                            
+                                            <article 
+                                                onClick={() => { 
+                                                    if(isBatchMode) toggleSelection(lesson.id);
+                                                    else { setCurrentLesson(lesson); setView('detail'); }
+                                                }} 
+                                                className={`bg-white rounded-2xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-lg transition-all flex flex-col h-full relative ${isBatchMode && selectedItems.has(lesson.id) ? 'selected-card ring-2 ring-blue-500' : 'border-slate-200'}`}
+                                            >
+                                                <div className="absolute top-3 left-3 z-10"><span className="bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1"><i className="fa-solid fa-tag"></i> {lesson.level || '第1級'}</span></div>
+                                                <div className="h-48 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+                                                    {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
+                                                        <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2 text-slate-300"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
+                                                    )}
+                                                </div>
+                                                <div className="p-5 flex-1 flex flex-col">
+                                                    <h2 className="text-lg font-bold mb-2 text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{lesson.title}</h2>
+                                                    <p className="text-slate-600 text-sm line-clamp-2 mb-4 flex-1">{lesson.adaptation || "暫無說明"}</p>
+                                                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
+                                                        <div className="flex gap-2">
+                                                            {lesson.activityVideo && <span className="text-xs font-semibold px-2 py-1 bg-red-50 text-red-600 rounded flex items-center gap-1"><i className="fa-solid fa-video"></i> 影片</span>}
+                                                            {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs font-semibold px-2 py-1 bg-slate-100 text-slate-600 rounded flex items-center gap-1"><i className="fa-solid fa-code"></i> 程式</span>}
+                                                        </div>
+                                                        <span className="text-blue-500 text-xs flex items-center gap-1 font-bold group-hover:translate-x-1 transition-transform">查看詳情 <i className="fa-solid fa-arrow-right"></i></span>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -377,7 +567,10 @@
                                         </div>
                                         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">{currentLesson.title}</h1>
                                     </div>
-                                    <button onClick={() => handleDelete(currentLesson.id)} className="text-red-500 bg-red-50 px-4 py-2 rounded-full font-bold hover:bg-red-100 flex items-center gap-2 transition-colors border border-red-100"><i className="fa-solid fa-trash"></i> 刪除此課程</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => startEdit(currentLesson)} className="text-blue-600 bg-blue-50 px-4 py-2 rounded-full font-bold hover:bg-blue-100 flex items-center gap-2 transition-colors border border-blue-100"><i className="fa-solid fa-pen-to-square"></i> 編輯</button>
+                                        <button onClick={() => handleDelete(currentLesson.id)} className="text-red-500 bg-red-50 px-4 py-2 rounded-full font-bold hover:bg-red-100 flex items-center gap-2 transition-colors border border-red-100"><i className="fa-solid fa-trash"></i> 刪除</button>
+                                    </div>
                                 </div>
                                 <div className="space-y-6">
                                     <SectionCard title="課程改造" iconClass="fa-solid fa-wrench" content={currentLesson.adaptation} image={currentLesson.adaptationImage} colorClass="bg-emerald-500" />
@@ -389,10 +582,13 @@
                             </div>
                         )}
 
-                        {view === 'add' && (
+                        {view === 'form' && (
                             <div className="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-8">
-                                <h2 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2"><i className="fa-solid fa-plus text-blue-600"></i> 新增培訓課程</h2>
-                                <form onSubmit={handleAddSubmit} className="space-y-8">
+                                <h2 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+                                    <i className={`fa-solid ${formMode === 'add' ? 'fa-plus' : 'fa-pen-to-square'} text-blue-600`}></i> 
+                                    {formMode === 'add' ? '新增培訓課程' : '編輯課程內容'}
+                                </h2>
+                                <form onSubmit={handleFormSubmit} className="space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                         <div className="md:col-span-3">
                                             <label className="block text-sm font-bold text-slate-700 mb-2">課程名稱 <span className="text-red-500">*</span></label>
@@ -425,7 +621,25 @@
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div><label className="block font-bold text-sm text-slate-700 mb-2 flex items-center gap-2"><i className="fa-solid fa-box text-amber-600"></i> 攜帶物品</label><textarea className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows="3" value={formData.materials} onChange={e => setFormData({...formData, materials: e.target.value})} placeholder="- 電腦 x1&#10;- 擴充板 x1"></textarea></div>
+                                        <div>
+                                            <label className="block font-bold text-sm text-slate-700 mb-2 flex items-center gap-2"><i className="fa-solid fa-box text-amber-600"></i> 攜帶物品</label>
+                                            
+                                            {/* 預設攜帶物品選單 (新增功能) */}
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                {PRESET_MATERIALS.map(item => (
+                                                    <button 
+                                                        type="button" 
+                                                        key={item}
+                                                        onClick={() => addMaterial(item)}
+                                                        className="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs text-slate-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors"
+                                                    >
+                                                        + {item}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <textarea className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows="3" value={formData.materials} onChange={e => setFormData({...formData, materials: e.target.value})} placeholder="- 電腦 x1&#10;- 擴充板 x1"></textarea>
+                                        </div>
                                         <div><label className="block font-bold text-sm text-slate-700 mb-2 flex items-center gap-2"><i className="fa-solid fa-triangle-exclamation text-rose-600"></i> 注意事項</label><textarea className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" rows="3" value={formData.precautions} onChange={e => setFormData({...formData, precautions: e.target.value})} placeholder="場地需要插座..."></textarea></div>
                                     </div>
 
@@ -439,7 +653,7 @@
                                     </div>
 
                                     <div className="flex gap-4 pt-4">
-                                        <button type="button" onClick={() => setView('list')} className="flex-1 py-3 px-6 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors">取消</button>
+                                        <button type="button" onClick={() => { setView(formMode === 'add' ? 'list' : 'detail'); }} className="flex-1 py-3 px-6 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors">取消</button>
                                         <button type="submit" className="flex-[2] py-3 px-6 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-md hover:shadow-lg transition-all active:scale-95">確認儲存</button>
                                     </div>
                                 </form>
