@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 雙向同步編輯器 Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 基礎捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+
+        /* 編輯器區域設定 */
+        .code-area {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5; /* 21px */
+        }
+
+        /* 行號欄 */
+        .line-numbers {
+            text-align: right;
+            color: #6b7280;
+            padding-right: 12px;
+            padding-left: 8px;
+            user-select: none;
+            background-color: #1e1e1e;
+            border-right: 1px solid #374151;
+        }
+
+        /* 實際輸入框 */
+        textarea.editor {
+            background-color: transparent;
+            color: #d4d4d4;
+            caret-color: #fff;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: scroll;
+            tab-size: 2;
+            outline: none;
+            resize: none;
+        }
+
+        /* 預覽區的高亮效果 */
+        .preview-highlight {
+            outline: 2px dashed #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            transition: all 0.2s;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col bg-gray-900 text-white overflow-hidden">
+
+    <!-- 頂部工具列 -->
+    <header class="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 shadow-md z-20">
+        <div class="flex items-center space-x-3">
+            <div class="p-1.5 bg-blue-600 rounded-lg">
+                <i data-lucide="code-2" class="text-white w-5 h-5"></i>
+            </div>
+            <h1 class="text-lg font-bold tracking-wide hidden sm:block">HTML Live Editor <span class="text-xs font-normal text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded ml-2">Pro</span></h1>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <input type="file" id="fileInput" accept=".html,.htm,.txt" class="hidden">
+            
+            <button onclick="document.getElementById('fileInput').click()" 
+                    class="flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded transition border border-gray-600"
+                    title="上傳檔案">
+                <i data-lucide="upload" class="w-4 h-4 sm:mr-2"></i> <span class="hidden sm:inline">上傳</span>
+            </button>
+
+            <!-- 檔名輸入框 -->
+            <input type="text" id="fileNameInput" value="index.html" 
+                   class="bg-gray-900 text-gray-300 text-xs px-2 py-1.5 rounded border border-gray-600 w-24 sm:w-32 focus:outline-none focus:border-blue-500 focus:bg-gray-800 transition text-center placeholder-gray-600"
+                   placeholder="檔名.html"
+                   title="設定匯出檔名">
+
+            <button onclick="downloadCode()" 
+                    class="flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-500 rounded transition border border-blue-500 shadow-sm"
+                    title="匯出 HTML">
+                <i data-lucide="download" class="w-4 h-4 sm:mr-2"></i> <span class="hidden sm:inline">匯出</span>
+            </button>
+
+            <div class="h-8 w-px bg-gray-600 mx-1"></div>
+
+            <button onclick="triggerSync()" 
+                    class="flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded transition"
+                    title="強制重新整理預覽">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主工作區：手機版垂直排列，桌面版水平排列 -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <!-- 左側：預覽區 -->
+        <div class="flex-1 md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-gray-700 bg-white relative h-1/2 md:h-full">
+            <div class="absolute top-0 left-0 bg-blue-600 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-br z-10 shadow-sm opacity-90 tracking-wider">
+                Preview
+            </div>
+            <iframe id="previewFrame" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-modals"></iframe>
+        </div>
+
+        <!-- 右側：程式碼編輯區 -->
+        <div class="flex-1 md:w-1/2 flex flex-col bg-[#1e1e1e] relative h-1/2 md:h-full min-h-0">
+            <div class="absolute top-0 right-0 bg-gray-700 text-gray-300 text-[10px] uppercase font-bold px-2 py-1 rounded-bl z-10 opacity-80 tracking-wider">
+                Source Code
+            </div>
+            
+            <!-- 編輯器容器：包含行號與 Textarea -->
+            <div class="flex flex-1 relative overflow-hidden code-area">
+                <!-- 行號 -->
+                <div id="lineNumbers" class="line-numbers pt-4 w-12 flex-shrink-0 font-mono text-gray-500 bg-[#1e1e1e] overflow-hidden">
+                    1
+                </div>
+                
+                <!-- 代碼輸入框 -->
+                <textarea id="codeEditor" 
+                          class="editor flex-1 h-full w-full p-4 pl-2 bg-transparent border-none resize-none focus:ring-0"
+                          placeholder="請在此輸入 HTML..."
+                          spellcheck="false"></textarea>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 狀態列 -->
+    <footer class="bg-gray-800 text-gray-400 text-xs px-4 py-1.5 flex justify-between items-center border-t border-gray-700 shrink-0">
+        <div class="flex items-center">
+            <div id="syncStatus" class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+            <span id="statusMsg">Ready</span>
+        </div>
+        <div class="font-mono">
+            Ln <span id="cursorLine" class="text-white">1</span>, Col <span id="cursorCol">1</span>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // DOM 元素
+        const editor = document.getElementById('codeEditor');
+        const lineNumbers = document.getElementById('lineNumbers');
+        const previewFrame = document.getElementById('previewFrame');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameInput = document.getElementById('fileNameInput'); // 新增
+        const cursorLineDisplay = document.getElementById('cursorLine');
+        const cursorColDisplay = document.getElementById('cursorCol');
+        const statusMsg = document.getElementById('statusMsg');
+        const syncStatus = document.getElementById('syncStatus');
+
+        // 預設範例
+        const initialCode = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 40px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        h1 { 
+            color: #2d3748; 
+            font-size: 24px; 
+            margin-bottom: 10px;
+            border-bottom: 2px solid #4299e1;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        p { 
+            color: #718096; 
+            line-height: 1.6; 
+        }
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #3182ce; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <h1>雙向同步預覽</h1>
+            <p>試著修改這裡的文字，左邊會即時更新。</p>
+            <p>或者點擊左邊的元素，右邊編輯器會跳轉。</p>
+        </div>
+
+        <div class="card">
+            <h2>互動測試</h2>
+            <p>現在試試看把游標移動到這一行...</p>
+            <p>注意看左邊的預覽畫面也會跟著高亮喔！</p>
+            <button class="btn" onclick="alert('Hello Code!')">點擊我</button>
+        </div>
+    </div>
+
+</body>
+</html>`;
+
+        // === 1. 編輯器核心功能 (行號、同步滾動、Tab鍵) ===
+
+        function updateLineNumbers() {
+            const lines = editor.value.split('\n').length;
+            lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
+        }
+
+        // 同步捲動：當編輯器捲動時，行號欄也要跟著捲動
+        editor.addEventListener('scroll', () => {
+            lineNumbers.scrollTop = editor.scrollTop;
+        });
+
+        // 支援 Tab 鍵縮排
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                // 插入 2 個空白
+                editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+                // 恢復游標位置
+                editor.selectionStart = editor.selectionEnd = start + 2;
+                // 觸發 input 事件以更新預覽
+                editor.dispatchEvent(new Event('input'));
+            }
+        });
+
+        // 游標位置與狀態更新
+        function updateCursorInfo() {
+            const text = editor.value.substr(0, editor.selectionStart);
+            const lines = text.split('\n');
+            const currentLine = lines.length;
+            const currentCol = lines[lines.length - 1].length + 1;
+
+            cursorLineDisplay.textContent = currentLine;
+            cursorColDisplay.textContent = currentCol;
+
+            // 觸發編輯器到預覽的同步 (Editor -> Preview)
+            syncPreviewHighlight(currentLine);
+        }
+
+        editor.addEventListener('click', updateCursorInfo);
+        editor.addEventListener('keyup', updateCursorInfo);
+
+        // === 2. 雙向同步邏輯 ===
+
+        // 更新預覽畫面 (Debounced)
+        let debounceTimer;
+        function triggerSync() {
+            clearTimeout(debounceTimer);
+            syncStatus.classList.remove('bg-green-500');
+            syncStatus.classList.add('bg-yellow-500'); // 處理中
+            statusMsg.textContent = "Updating...";
+
+            debounceTimer = setTimeout(() => {
+                renderPreview();
+                updateLineNumbers();
+                syncStatus.classList.remove('bg-yellow-500');
+                syncStatus.classList.add('bg-green-500'); // 完成
+                statusMsg.textContent = "Synced";
+            }, 300);
+        }
+
+        editor.addEventListener('input', triggerSync);
+
+        function renderPreview() {
+            const rawCode = editor.value;
+            const lines = rawCode.split('\n');
+            let injectedCode = '';
+
+            // 注入 data-source-line 標記
+            lines.forEach((line, index) => {
+                const lineNumber = index + 1;
+                // 簡單正則：只匹配開頭標籤，避開閉合標籤
+                let processedLine = line;
+                if (line.match(/<[a-zA-Z][^>]*>/)) {
+                    // 排除 <script> 內部的干擾，但這裡做簡單處理
+                    processedLine = line.replace(/(<[a-zA-Z0-9\-]+)(\s|>)/, `$1 data-source-line="${lineNumber}"$2`);
+                }
+                injectedCode += processedLine + '\n';
+            });
+
+            // 注入互動腳本 (用於 Preview -> Editor 同步與高亮接收)
+            const scriptToInject = `
+                <script>
+                    // 1. 點擊同步：Preview -> Editor
+                    document.addEventListener('click', function(e) {
+                        const target = e.target.closest('[data-source-line]');
+                        if (target) {
+                            const line = target.getAttribute('data-source-line');
+                            window.parent.postMessage({ type: 'preview-click', line: line }, '*');
+                        }
+                    }, true);
+
+                    // 2. 接收外部指令：Editor -> Preview
+                    window.addEventListener('message', (event) => {
+                        if (event.data && event.data.type === 'highlight-line') {
+                            const line = event.data.line;
+                            highlightElement(line);
+                        }
+                    });
+
+                    let currentHighlight = null;
+
+                    function highlightElement(line) {
+                        // 尋找最近的標籤 (當前行或往上找)
+                        let target = null;
+                        for (let i = line; i > 0; i--) {
+                            const found = document.querySelector('[data-source-line="' + i + '"]');
+                            if (found) {
+                                target = found;
+                                break;
+                            }
+                        }
+
+                        if (target) {
+                            // 移除舊的高亮
+                            if (currentHighlight) {
+                                currentHighlight.classList.remove('preview-highlight');
+                            }
+                            
+                            // 新增高亮
+                            target.classList.add('preview-highlight');
+                            currentHighlight = target;
+
+                            // 捲動到視圖中 (如果是點擊編輯器觸發，使用平滑捲動)
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                        }
+                    }
+                    
+                    // 注入樣式
+                    const style = document.createElement('style');
+                    style.textContent = '.preview-highlight { outline: 2px dashed #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; transition: all 0.2s; }';
+                    document.head.appendChild(style);
+                <\/script>
+            `;
+
+            let finalHtml = injectedCode;
+            if (finalHtml.includes('</body>')) {
+                finalHtml = finalHtml.replace('</body>', scriptToInject + '</body>');
+            } else {
+                finalHtml += scriptToInject;
+            }
+
+            previewFrame.srcdoc = finalHtml;
+        }
+
+        // 處理 Editor -> Preview 的同步
+        function syncPreviewHighlight(line) {
+            // 發送訊息給 iframe
+            if(previewFrame.contentWindow) {
+                previewFrame.contentWindow.postMessage({ type: 'highlight-line', line: line }, '*');
+            }
+        }
+
+        // 處理 Preview -> Editor 的同步 (接收 postMessage)
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'preview-click') {
+                const lineNum = parseInt(event.data.line);
+                jumpToLine(lineNum);
+            }
+        });
+
+        function jumpToLine(lineNum) {
+            if (!lineNum) return;
+            
+            const lines = editor.value.split('\n');
+            let charIndex = 0;
+            for (let i = 0; i < lineNum - 1; i++) {
+                charIndex += lines[i].length + 1; 
+            }
+            
+            // 聚焦並選取
+            editor.focus();
+            const lineLength = lines[lineNum - 1] ? lines[lineNum - 1].length : 0;
+            editor.setSelectionRange(charIndex, charIndex + lineLength);
+            
+            // 計算捲動位置 (置中)
+            const lineHeight = 21; 
+            const scrollPos = (lineNum - 1) * lineHeight;
+            const editorHeight = editor.clientHeight;
+            
+            editor.scrollTop = scrollPos - (editorHeight / 2);
+            
+            // 更新狀態
+            statusMsg.textContent = `Jump to Line ${lineNum}`;
+            updateCursorInfo(); // 同步回右下角顯示
+        }
+
+        // === 3. 檔案處理 ===
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 自動更新檔名輸入框
+            fileNameInput.value = file.name;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                editor.value = e.target.result;
+                triggerSync();
+                statusMsg.textContent = "Loaded: " + file.name;
+            };
+            reader.readAsText(file);
+        });
+        
+        // === 4. 匯出功能 (支援自訂檔名) ===
+        function downloadCode() {
+            // 取得編輯器中的原始碼
+            const code = editor.value;
+            
+            // 取得使用者輸入的檔名，若無則預設為 index.html
+            let fileName = fileNameInput.value.trim() || 'index.html';
+            
+            // 如果使用者沒有輸入副檔名，自動補上 .html
+            if (!fileName.endsWith('.html') && !fileName.endsWith('.htm')) {
+                fileName += '.html';
+            }
+
+            // 建立 Blob 物件
+            const blob = new Blob([code], { type: 'text/html' });
+            
+            // 建立下載連結
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName; // 使用自訂檔名
+            document.body.appendChild(a);
+            
+            // 觸發點擊並清理
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // 更新狀態提示
+            statusMsg.textContent = `已匯出檔案: ${fileName}`;
+            setTimeout(() => {
+                if (statusMsg.textContent.includes("匯出")) {
+                    statusMsg.textContent = "Ready";
+                }
+            }, 3000);
+        }
+
+        // 初始化
+        editor.value = initialCode;
+        triggerSync();
+
+    </script>
+</body>
+</html>
