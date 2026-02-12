@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>課程分析圖表 - STEAM 學習歷程分析</title>
+    <!-- 引入 Tailwind CSS 用於快速且響應式的排版 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Chart.js 用於繪製圖表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 280px; 
+            transition: all 0.3s ease;
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container { height: 320px; }
+            .line-chart-container { height: 450px; }
+        }
+
+        /* 隱藏原生 Checkbox，客製化膠囊按鈕樣式 */
+        .filter-toggle { display: none; }
+        
+        .filter-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-width: 2px;
+            opacity: 0.5;
+            filter: grayscale(0.8);
+            background-color: white;
+        }
+
+        .filter-toggle:checked + .filter-btn {
+            opacity: 1;
+            filter: grayscale(0);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn:hover {
+            opacity: 0.8;
+            filter: grayscale(0.4);
+        }
+        .filter-toggle:checked + .filter-btn:hover {
+            opacity: 1;
+        }
+
+        /* 自訂圖表區域的卡片懸停效果 */
+        .chart-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .chart-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+    </style>
+</head>
+<body class="text-slate-700 antialiased p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        
+        <!-- 頁面標題區塊 -->
+        <header class="text-center mb-12 pt-4">
+            <div class="inline-block bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide mb-4 shadow-sm border border-indigo-100">
+                STEAM 學習歷程分析
+            </div>
+            <!-- 更新標題為：課程分析圖表 -->
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-500 mb-3 tracking-tight">
+                課程分析圖表
+            </h1>
+            <p class="text-slate-500 text-lg md:text-xl font-light">能力分佈與操作時間紀錄儀表板</p>
+        </header>
+
+        <!-- 上半部：STEAM 圖表分析區 -->
+        <section class="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 px-8 py-5 flex items-center">
+                <div class="bg-indigo-100 p-2 rounded-xl mr-4 shadow-sm">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 tracking-wide">能力分佈指標</h2>
+            </div>
+            
+            <div class="p-6 md:p-8 relative">
+                <!-- 中間的分隔線 (僅在大螢幕顯示) -->
+                <div class="hidden lg:block absolute left-1/2 top-10 bottom-10 w-px bg-slate-200 -translate-x-1/2"></div>
+
+                <!-- 左右對比排版 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+                    
+                    <!-- 左半邊：課程基礎 -->
+                    <div class="space-y-8">
+                        <div class="flex flex-col items-center justify-center text-center mb-6">
+                            <span class="bg-pink-50 text-pink-600 px-4 py-1.5 rounded-full text-sm font-bold tracking-widest border border-pink-100 mb-2 uppercase">基準</span>
+                            <h3 class="text-2xl font-bold text-slate-700">課程基礎設定</h3>
+                        </div>
+                        
+                        <!-- 課程基礎組成 (圓餅圖) -->
+                        <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
+                            <div class="absolute top-4 left-6 flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-pink-400"></span>
+                                <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">比例組成</h3>
+                            </div>
+                            <div class="chart-container mt-6">
+                                <canvas id="pieChart1"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 課程基礎雷達 -->
+                        <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
+                            <div class="absolute top-4 left-6 flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-pink-400"></span>
+                                <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">能力多邊形</h3>
+                            </div>
+                            <div class="chart-container mt-6">
+                                <canvas id="radarChart1"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右半邊：學生表現 -->
+                    <div class="space-y-8">
+                        <div class="flex flex-col items-center justify-center text-center mb-6">
+                            <span class="bg-emerald-50 text-emerald-600 px-4 py-1.5 rounded-full text-sm font-bold tracking-widest border border-emerald-100 mb-2 uppercase">實際</span>
+                            <h3 class="text-2xl font-bold text-slate-700">學生表現指標</h3>
+                        </div>
+                        
+                        <!-- 學生表現比例 (圓餅圖) -->
+                        <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
+                            <div class="absolute top-4 left-6 flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">表現比例</h3>
+                            </div>
+                            <div class="chart-container mt-6">
+                                <canvas id="pieChart2"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- 學生 vs 課程對比雷達 -->
+                        <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
+                             <div class="absolute top-4 left-6 flex items-center space-x-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">學生與課程差異</h3>
+                            </div>
+                            <div class="chart-container mt-6">
+                                <canvas id="radarChart2"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 下半部：時間紀錄區 -->
+        <section class="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 px-8 py-5 flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="bg-emerald-100 p-2 rounded-xl mr-4 shadow-sm">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-wide">操作時間紀錄</h2>
+                </div>
+                
+                <button id="showAllBtn" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-md hover:shadow-lg transition-all text-sm font-semibold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    顯示全部
+                </button>
+            </div>
+            
+            <div class="p-8">
+                <!-- 自訂圖例與過濾控制項 -->
+                <div class="mb-8 flex flex-wrap items-center justify-center gap-3">
+                    
+                    <label class="cursor-pointer relative">
+                        <input type="checkbox" class="filter-toggle dataset-toggle" value="0" checked>
+                        <!-- 更新為「黃郁俊」 -->
+                        <div class="filter-btn px-4 py-2 rounded-full flex items-center gap-2 font-medium text-slate-700" style="border-color: #A9D0F5; background-color: #f0f7ff;">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: #A9D0F5;"></span>
+                            黃郁俊
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer relative">
+                        <input type="checkbox" class="filter-toggle dataset-toggle" value="1" checked>
+                        <div class="filter-btn px-4 py-2 rounded-full flex items-center gap-2 font-medium text-slate-700" style="border-color: #fca5a5; background-color: #fef2f2;">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: #fca5a5;"></span>
+                            王xx
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer relative">
+                        <input type="checkbox" class="filter-toggle dataset-toggle" value="2" checked>
+                        <div class="filter-btn px-4 py-2 rounded-full flex items-center gap-2 font-medium text-slate-700" style="border-color: #84cc16; background-color: #f7fee7;">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: #84cc16;"></span>
+                            高xx
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer relative">
+                        <input type="checkbox" class="filter-toggle dataset-toggle" value="3" checked>
+                        <div class="filter-btn px-4 py-2 rounded-full flex items-center gap-2 font-medium text-slate-700" style="border-color: #c084fc; background-color: #faf5ff;">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: #c084fc;"></span>
+                            陳xx
+                        </div>
+                    </label>
+
+                     <label class="cursor-pointer relative">
+                        <input type="checkbox" class="filter-toggle dataset-toggle" value="4" checked>
+                        <div class="filter-btn px-4 py-2 rounded-full flex items-center gap-2 font-medium text-slate-700" style="border-color: #fde047; background-color: #fefce8;">
+                            <span class="w-3 h-3 rounded-full shadow-sm" style="background-color: #fde047;"></span>
+                            林xx
+                        </div>
+                    </label>
+
+                </div>
+
+                <!-- 折線圖容器 -->
+                <div class="chart-container line-chart-container w-full">
+                    <canvas id="timeLineChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        /**
+         * ==========================================
+         * 系統自動生成資料區塊 (後端只需修改此處 JSON)
+         * ==========================================
+         */
+        const chartData = {
+            labels: ['科學', '技術', '工程', '藝術', '數學'],
+            colors: {
+                science: '#fca5a5', 
+                tech: '#fde047',    
+                eng: '#93c5fd',     
+                art: '#c084fc',     
+                math: '#94a3b8'     
+            },
+            baseData: [2, 4.5, 3, 2, 2.5],
+            studentData: [1.5, 3, 4, 1.5, 2],
+            timeLineXMax: 6000,
+            timeLineDatasets: [
+                {
+                    label: '黃郁俊', // 從實體教具更新為黃郁俊
+                    borderColor: '#93c5fd',
+                    backgroundColor: 'rgba(147, 197, 253, 0.2)',
+                    borderDash: [], 
+                    data: [ {x:0, y:0}, {x:50, y:10}, {x:100, y:2}, {x:800, y:5}, {x:1000, y:10}, {x:1500, y:2} ]
+                },
+                {
+                    label: '王xx',
+                    borderColor: '#fca5a5',
+                    backgroundColor: 'rgba(252, 165, 165, 0.2)',
+                    borderDash: [5, 5], 
+                    data: [ {x:0, y:0}, {x:1500, y:10}, {x:1800, y:0}, {x:2200, y:50}, {x:2800, y:55}, {x:3100, y:100}, {x:3300, y:150}, {x:3500, y:152}, {x:3500, y:0} ]
+                },
+                {
+                    label: '高xx',
+                    borderColor: '#84cc16', 
+                    backgroundColor: 'rgba(132, 204, 22, 0.2)',
+                    borderDash: [5, 5],
+                    data: [ {x:0, y:0}, {x:800, y:3}, {x:1200, y:5}, {x:2000, y:0}, {x:2100, y:50}, {x:2500, y:52}, {x:3000, y:58}, {x:3100, y:105}, {x:3700, y:110}, {x:3800, y:0} ]
+                },
+                {
+                    label: '陳xx',
+                    borderColor: '#c084fc', 
+                    backgroundColor: 'rgba(192, 132, 252, 0.2)',
+                    borderDash: [5, 5],
+                    data: [ {x:2300, y:0}, {x:2350, y:52}, {x:2800, y:56}, {x:3100, y:110}, {x:3600, y:105}, {x:3700, y:150}, {x:4500, y:150}, {x:4800, y:152}, {x:4850, y:108}, {x:5100, y:105}, {x:5100, y:0} ]
+                },
+                {
+                    label: '林xx',
+                    borderColor: '#fde047', 
+                    backgroundColor: 'rgba(253, 224, 71, 0.2)',
+                    borderDash: [5, 5],
+                    data: [ {x:2000, y:0}, {x:2200, y:50}, {x:3000, y:51}, {x:3100, y:50}, {x:3800, y:53}, {x:4000, y:55}, {x:4700, y:58}, {x:4750, y:0}, {x:4800, y:53}, {x:5400, y:51}, {x:5500, y:55}, {x:5500, y:0} ]
+                }
+            ]
+        };
+        /** ================= 系統自動生成資料區塊結束 ================= */
+
+        // 共用設定
+        const bgColors = [chartData.colors.science, chartData.colors.tech, chartData.colors.eng, chartData.colors.art, chartData.colors.math];
+        Chart.defaults.font.family = "'Noto Sans TC', sans-serif";
+        Chart.defaults.color = '#94a3b8'; 
+        Chart.defaults.scale.grid.color = '#f1f5f9'; 
+
+        const tooltipOptions = {
+            backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+            titleFont: { size: 14, family: "'Noto Sans TC', sans-serif", weight: 'bold' },
+            bodyFont: { size: 13, family: "'Noto Sans TC', sans-serif" },
+            padding: 12,
+            cornerRadius: 8,
+            boxPadding: 6
+        };
+
+        // --- 繪製圓餅圖 1 (基礎) ---
+        new Chart(document.getElementById('pieChart1'), {
+            type: 'doughnut', 
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    data: chartData.baseData,
+                    backgroundColor: bgColors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 8 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '40%', 
+                plugins: { 
+                    legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } },
+                    tooltip: tooltipOptions
+                }
+            }
+        });
+
+        // --- 繪製雷達圖 1 (基礎) ---
+        new Chart(document.getElementById('radarChart1'), {
+            type: 'radar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: '課程基礎',
+                    data: chartData.baseData,
+                    backgroundColor: 'rgba(251, 113, 133, 0.15)', 
+                    borderColor: '#fb7185',     
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#fb7185',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false }, 
+                    tooltip: tooltipOptions
+                },
+                scales: {
+                    r: { 
+                        min: 0, max: 5, 
+                        ticks: { stepSize: 1, backdropColor: 'transparent', color: '#cbd5e1' },
+                        grid: { color: '#f1f5f9' },
+                        angleLines: { color: '#f1f5f9' },
+                        pointLabels: { font: { size: 13, weight: '500' }, color: '#64748b' }
+                    }
+                }
+            }
+        });
+
+        // --- 繪製圓餅圖 2 (學生) ---
+        new Chart(document.getElementById('pieChart2'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    data: chartData.studentData,
+                    backgroundColor: bgColors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '40%',
+                plugins: { 
+                    legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } },
+                    tooltip: tooltipOptions
+                }
+            }
+        });
+
+        // --- 繪製雷達圖 2 (學生對比基礎) ---
+        new Chart(document.getElementById('radarChart2'), {
+            type: 'radar',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: '學生表現',
+                        data: chartData.studentData,
+                        backgroundColor: 'rgba(52, 211, 153, 0.2)', 
+                        borderColor: '#34d399',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#34d399',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: '課程基礎',
+                        data: chartData.baseData,
+                        backgroundColor: 'transparent',
+                        borderColor: '#cbd5e1', 
+                        borderDash: [5, 5],
+                        pointBackgroundColor: '#cbd5e1',
+                        pointRadius: 2,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } },
+                    tooltip: tooltipOptions
+                },
+                scales: {
+                    r: { 
+                        min: 0, max: 5, 
+                        ticks: { stepSize: 1, backdropColor: 'transparent', display: false }, 
+                        grid: { color: '#f1f5f9' },
+                        angleLines: { color: '#f1f5f9' },
+                        pointLabels: { font: { size: 13, weight: '500' }, color: '#64748b' }
+                    }
+                }
+            }
+        });
+
+        // --- 繪製折線圖 (操作時間) ---
+        const lineDatasets = chartData.timeLineDatasets.map(ds => ({
+            label: ds.label,
+            data: ds.data,
+            borderColor: ds.borderColor,
+            backgroundColor: ds.backgroundColor,
+            borderDash: ds.borderDash,
+            borderWidth: 2.5,
+            pointRadius: 2, 
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: ds.borderColor,
+            pointBorderWidth: 2,
+            tension: 0, 
+            stepped: false 
+        }));
+
+        const timeLineChart = new Chart(document.getElementById('timeLineChart'), {
+            type: 'line',
+            data: { datasets: lineDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index', 
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        ...tooltipOptions,
+                        callbacks: {
+                            title: (items) => `時間: ${items[0].parsed.x}`,
+                            label: (context) => ` ${context.dataset.label}: ${context.parsed.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: chartData.timeLineXMax,
+                        ticks: { stepSize: 1000, color: '#94a3b8', font: {family: "'Noto Sans TC', sans-serif"} },
+                        grid: { color: '#f8fafc', drawBorder: false },
+                        title: { display: true, text: '操作時間軸 (ms/s)', color: '#cbd5e1', font: {size: 13} }
+                    },
+                    y: {
+                        min: 0,
+                        max: 175,
+                        ticks: { stepSize: 25, color: '#94a3b8', font: {family: "'Noto Sans TC', sans-serif"} },
+                        grid: { color: '#f1f5f9', drawBorder: false },
+                    }
+                }
+            }
+        });
+
+        // --- 綁定自訂 HTML 圖例互動 ---
+        const checkboxes = document.querySelectorAll('.dataset-toggle');
+        const showAllBtn = document.getElementById('showAllBtn');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const datasetIndex = parseInt(this.value);
+                timeLineChart.setDatasetVisibility(datasetIndex, this.checked);
+                timeLineChart.update();
+            });
+        });
+
+        showAllBtn.addEventListener('click', () => {
+            checkboxes.forEach(cb => { cb.checked = true; });
+            chartData.timeLineDatasets.forEach((_, index) => {
+                timeLineChart.setDatasetVisibility(index, true);
+            });
+            timeLineChart.update();
+        });
+
+    </script>
+</body>
+</html>
