@@ -101,7 +101,7 @@
         const LEVEL_OPTIONS = Array.from({length: 16}, (_, i) => `第${i+1}級`);
         const PRESET_PRINCIPLES = ['槓桿原理', '滑輪應用', '齒輪傳動', '摩擦力', '重心與平衡', '電路串並聯', '紅外線感測', '超音波原理', '邏輯判斷', '迴圈結構', '變數應用', '廣播通訊'];
 
-        // --- Helper: Image Compression ---
+        // --- Helper: Image Compression (優化版本) ---
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -111,14 +111,40 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800;
+                        // 進一步降低最大解析度以確保圖片容量極小，提升上傳成功率
+                        const MAX_WIDTH = 600;
+                        const MAX_HEIGHT = 600;
                         let width = img.width;
                         let height = img.height;
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                        canvas.width = width; canvas.height = height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.5));
+                        
+                        // 首次嘗試壓縮 (品質 0.6)
+                        let dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        
+                        // 檢查 Base64 長度估算大小，若超過約 250KB，進行二次強力壓縮
+                        // (Firestore 文件上限 1MB，三張圖片加起來需保持在安全範圍)
+                        const sizeInKB = (dataUrl.length * 0.75) / 1024;
+                        if (sizeInKB > 250) {
+                            dataUrl = canvas.toDataURL('image/jpeg', 0.3);
+                        }
+                        
+                        resolve(dataUrl);
                     };
                     img.onerror = (err) => reject(err);
                 };
@@ -129,13 +155,30 @@
         // --- Components ---
         const ImageUploader = ({ label, currentImage, onImageChange, id, height = "h-40" }) => {
             const [isDragging, setIsDragging] = useState(false);
-            const handleFile = async (file) => {
-                if (!file) return;
-                if (!file.type.startsWith('image/')) return alert("請上傳圖片檔案");
+            const [isProcessing, setIsProcessing] = useState(false); // 新增處理中狀態
+
+            const handleFile = async (file, inputElement = null) => {
+                if (!file) {
+                    if(inputElement) inputElement.value = '';
+                    return;
+                }
+                if (!file.type.startsWith('image/')) {
+                    alert("請上傳圖片檔案 (JPG/PNG等)");
+                    if(inputElement) inputElement.value = '';
+                    return;
+                }
+                
+                setIsProcessing(true);
                 try {
                     const compressed = await compressImage(file);
                     onImageChange(compressed);
-                } catch (err) { alert("圖片處理失敗"); }
+                } catch (err) { 
+                    alert("圖片處理失敗，請嘗試另一張圖片"); 
+                } finally {
+                    setIsProcessing(false);
+                    // 清空 input 讓下次可以選取同一張圖片
+                    if(inputElement) inputElement.value = ''; 
+                }
             };
 
             return (
@@ -153,12 +196,18 @@
                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                             onDragLeave={() => setIsDragging(false)}
                             onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }}
-                            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${isDragging ? 'border-blue-500 bg-blue-50 dark:bg-slate-800' : 'border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                            className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${isDragging ? 'border-blue-500 bg-blue-50 dark:bg-slate-800' : 'border-slate-300 dark:border-slate-600 hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                         >
-                            <input type="file" id={id} className="hidden" accept="image/*" onChange={(e) => handleFile(e.target.files[0])} />
+                            <input type="file" id={id} className="hidden" accept="image/*" onChange={(e) => handleFile(e.target.files[0], e.target)} />
                             <label htmlFor={id} className="cursor-pointer flex flex-col items-center gap-2">
-                                <i className={`fa-solid fa-cloud-arrow-up text-2xl ${isDragging ? 'text-blue-500' : 'text-slate-400 dark:text-slate-500'}`}></i>
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">點擊或拖曳上傳</span>
+                                {isProcessing ? (
+                                    <i className="fa-solid fa-circle-notch fa-spin text-2xl text-blue-500"></i>
+                                ) : (
+                                    <i className={`fa-solid fa-cloud-arrow-up text-2xl ${isDragging ? 'text-blue-500' : 'text-slate-400 dark:text-slate-500'}`}></i>
+                                )}
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                    {isProcessing ? '圖片處理中...' : '點擊或拖曳上傳'}
+                                </span>
                             </label>
                         </div>
                     )}
@@ -247,18 +296,25 @@
                 return () => unsubscribe();
             }, []);
 
-            // Data Sync
+            // Data Sync & 智慧排序邏輯
             useEffect(() => {
                 if (!user) return;
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'lessons'));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
                     data.sort((a, b) => {
+                        // 1. 先比較級別大小
                         const la = parseInt((a.level||'').replace(/\D/g,'')) || 0;
                         const lb = parseInt((b.level||'').replace(/\D/g,'')) || 0;
                         if(la !== lb) return la - lb;
-                        return (b.createdAt || '').localeCompare(a.createdAt || '');
+                        
+                        // 2. 級別相同時，根據名稱 (首字筆畫 或 數字) 固定由小到大排列
+                        // 使用 zh-TW-u-co-stroke 參數可以精準按照繁體中文筆畫排序
+                        // numeric: true 確保例如 "2" 會排在 "10" 的前面
+                        return (a.title || '').localeCompare((b.title || ''), 'zh-TW-u-co-stroke', { numeric: true });
                     });
+                    
                     setLessons(data);
                     setLoading(false);
                     if (currentLesson) {
@@ -281,7 +337,7 @@
                 }
             }, [searchTerm, lessons]);
 
-            // Excel Export (Updated with new fields)
+            // Excel Export
             const handleDownloadTemplate = () => {
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet([
@@ -311,8 +367,8 @@
                             batch.set(newDocRef, {
                                 title: row['課程名稱'] || '未命名',
                                 level: row['級別'] || '第1級',
-                                principle: row['科學原理'] || row['Principle'] || '', // New
-                                origin: row['典故由來'] || row['Origin'] || '',     // New
+                                principle: row['科學原理'] || row['Principle'] || '', 
+                                origin: row['典故由來'] || row['Origin'] || '',     
                                 adaptation: row['改造方向'] || '',
                                 activities: row['互動玩法'] || '',
                                 materials: row['攜帶物品'] || '',
@@ -352,7 +408,7 @@
                         setView('list'); 
                         resetForm();
                     }
-                } catch(e) { console.error(e); alert("儲存失敗"); }
+                } catch(e) { console.error(e); alert("儲存失敗，請檢查網路連線或確認圖片未超過上限。"); }
                 setLoading(false);
             };
 
@@ -578,7 +634,61 @@
                                                 </div>
                                             );
                                         })}
-                                        {/* Uncategorized section omitted for brevity but logic remains same */}
+                                        
+                                        {/* Uncategorized section */}
+                                        {(() => {
+                                            const otherLessons = filteredLessons.filter(l => !LEVEL_OPTIONS.includes(l.level));
+                                            if (otherLessons.length === 0) return null;
+                                            const isExpanded = expandedLevels['Uncategorized'];
+                                            return (
+                                                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors">
+                                                    <button onClick={() => setExpandedLevels(prev => ({...prev, 'Uncategorized': !prev['Uncategorized']}))} className="w-full px-6 py-4 flex items-center justify-between level-header text-left outline-none cursor-pointer">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="bg-slate-400 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">?</div>
+                                                            <span className="font-bold text-lg text-slate-800 dark:text-slate-100">未分類 / 其他</span>
+                                                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-600">{otherLessons.length} 堂課</span>
+                                                        </div>
+                                                        <i className={`fa-solid fa-chevron-down text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}></i>
+                                                    </button>
+                                                    
+                                                    {isExpanded && (
+                                                        <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                                {otherLessons.map(lesson => (
+                                                                    <div key={lesson.id} className="relative group">
+                                                                        {isBatchMode && (
+                                                                            <div className="absolute top-3 right-3 z-20">
+                                                                                <input type="checkbox" checked={selectedItems.has(lesson.id)} onChange={() => toggleSelection(lesson.id)} className="w-6 h-6 accent-blue-600 cursor-pointer shadow-sm" />
+                                                                            </div>
+                                                                        )}
+                                                                        <article onClick={() => { if(isBatchMode) toggleSelection(lesson.id); else { setCurrentLesson(lesson); setView('detail'); } }} className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border overflow-hidden cursor-pointer hover:shadow-lg transition-all flex flex-col h-full relative ${isBatchMode && selectedItems.has(lesson.id) ? 'selected-card ring-2 ring-blue-500' : 'border-slate-200 dark:border-slate-700'}`}>
+                                                                            <div className="h-40 bg-slate-100 dark:bg-slate-700 relative overflow-hidden flex items-center justify-center">
+                                                                                {(lesson.adaptationImage || lesson.activityImage || lesson.codeImage) ? (
+                                                                                    <img src={lesson.adaptationImage || lesson.activityImage || lesson.codeImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display='none'; }} />
+                                                                                ) : (
+                                                                                    <div className="flex flex-col items-center gap-2 text-slate-300 dark:text-slate-500"><i className="fa-regular fa-image text-3xl"></i><span className="text-xs">無圖片</span></div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="p-4 flex-1 flex flex-col">
+                                                                                <h2 className="text-lg font-bold mb-2 text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{lesson.title}</h2>
+                                                                                <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 mb-3 flex-1">{lesson.adaptation || "暫無說明"}</p>
+                                                                                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-auto">
+                                                                                    <div className="flex gap-2">
+                                                                                        {lesson.activityVideo && <span className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded"><i className="fa-solid fa-video"></i></span>}
+                                                                                        {(lesson.codeSnippet || lesson.codeImage) && <span className="text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded"><i className="fa-solid fa-code"></i></span>}
+                                                                                    </div>
+                                                                                    <span className="text-blue-500 dark:text-blue-400 text-xs font-bold">詳情 <i className="fa-solid fa-arrow-right"></i></span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </article>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                             </div>
@@ -661,14 +771,14 @@
                                     <div className="bg-emerald-50 dark:bg-emerald-900/20 p-5 rounded-xl border border-emerald-100 dark:border-emerald-900">
                                         <h3 className="font-bold text-emerald-800 dark:text-emerald-300 mb-4 flex items-center gap-2"><i className="fa-solid fa-wrench"></i> 課程改造</h3>
                                         <textarea className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-700 dark:text-white mb-4" rows="3" value={formData.adaptation} onChange={e => setFormData({...formData, adaptation: e.target.value})} placeholder="這堂課可以怎麼變化？適合什麼樣的對象調整？"></textarea>
-                                        <ImageUploader label="上傳改造示意圖 (選填)" currentImage={formData.adaptationImage} onImageChange={d => setFormData({...formData, adaptationImage: d})} />
+                                        <ImageUploader id="adaptationImage" label="上傳改造示意圖 (選填)" currentImage={formData.adaptationImage} onImageChange={d => setFormData({...formData, adaptationImage: d})} />
                                     </div>
                                     
                                     <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-900">
                                         <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2"><i className="fa-solid fa-gamepad"></i> 互動玩法</h3>
                                         <textarea className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-700 dark:text-white mb-4" rows="4" value={formData.activities} onChange={e => setFormData({...formData, activities: e.target.value})} placeholder="詳細描述遊戲規則或互動方式..."></textarea>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <ImageUploader label="上傳玩法示意圖 (選填)" currentImage={formData.activityImage} onImageChange={d => setFormData({...formData, activityImage: d})} height="h-32" />
+                                            <ImageUploader id="activityImage" label="上傳玩法示意圖 (選填)" currentImage={formData.activityImage} onImageChange={d => setFormData({...formData, activityImage: d})} height="h-32" />
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2"><i className="fa-solid fa-video text-slate-600 dark:text-slate-400"></i> 參考影片連結</label>
                                                 <input type="url" placeholder="https://youtube.com/..." className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-700 dark:text-white" value={formData.activityVideo} onChange={e => setFormData({...formData, activityVideo: e.target.value})} />
@@ -696,7 +806,7 @@
 
                                     <div className="bg-slate-50 dark:bg-slate-700/50 p-5 rounded-xl border border-slate-200 dark:border-slate-600">
                                         <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2"><i className="fa-solid fa-code"></i> 程式範例</h3>
-                                        <ImageUploader label="上傳程式積木/截圖 (推薦)" currentImage={formData.codeImage} onImageChange={d => setFormData({...formData, codeImage: d})} />
+                                        <ImageUploader id="codeImage" label="上傳程式積木/截圖 (推薦)" currentImage={formData.codeImage} onImageChange={d => setFormData({...formData, codeImage: d})} />
                                         <div className="mt-4">
                                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2"><i className="fa-solid fa-file-lines text-slate-400"></i> 程式碼備註 (選填)</label>
                                             <textarea className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-sm bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" rows="3" value={formData.codeSnippet} onChange={e => setFormData({...formData, codeSnippet: e.target.value})} placeholder="補充說明或貼上關鍵程式碼文字..."></textarea>
