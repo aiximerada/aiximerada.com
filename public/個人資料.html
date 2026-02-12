@@ -133,10 +133,6 @@
       const [avatarPreview, setAvatarPreview] = useState('https://i.pravatar.cc/150?img=11');
       const [bgPreview, setBgPreview] = useState('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop');
 
-      // 學習歷程下拉狀態
-      const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-      const [openLevel, setOpenLevel] = useState(null);
-
       const avatarInputRef = useRef(null);
       const bgInputRef = useRef(null);
 
@@ -173,34 +169,6 @@
             alert("圖片處理發生錯誤，請重試！");
           }
         }
-      };
-
-      // 糖果色系：分配給各級別使用
-      const livelyThemes = [
-        { main: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300', border: 'border-pink-300 dark:border-pink-800', hover: 'hover:bg-pink-200 dark:hover:bg-pink-900/60' },
-        { main: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-800', hover: 'hover:bg-amber-200 dark:hover:bg-amber-900/60' },
-        { main: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', border: 'border-emerald-300 dark:border-emerald-800', hover: 'hover:bg-emerald-200 dark:hover:bg-emerald-900/60' },
-        { main: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300', border: 'border-sky-300 dark:border-sky-800', hover: 'hover:bg-sky-200 dark:hover:bg-sky-900/60' },
-        { main: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300', border: 'border-violet-300 dark:border-violet-800', hover: 'hover:bg-violet-200 dark:hover:bg-violet-900/60' }
-      ];
-
-      // 動態產生 1 到 16 級的學習歷程資料 (加入 Emoji 更可愛)
-      const mockLevels = useMemo(() => {
-        const courseNames = ['🏀 投籃機', '🎡 摩天輪', '🗜️ 伸縮夾子', '🏎️ 皂飛車', '🚲 獨輪車', '🏁 賽車'];
-        return Array.from({ length: 16 }, (_, i) => ({
-          level: i + 1,
-          levelName: `✨ 第 ${i + 1} 級挑戰`,
-          theme: livelyThemes[i % livelyThemes.length],
-          courses: courseNames.map((name, index) => ({
-            id: `lvl-${i + 1}-course-${index + 1}`,
-            courseName: name,
-            attended: Math.random() > 0.3
-          }))
-        }));
-      }, []);
-
-      const toggleLevel = (levelNum) => {
-        setOpenLevel(openLevel === levelNum ? null : levelNum);
       };
 
       return (
@@ -465,87 +433,6 @@
                     </button>
                   </div>
 
-                </div>
-              </div>
-
-              {/* 🌈 學習歷程區塊 (可愛活潑版) */}
-              <div className="mb-12">
-                
-                {/* 夢幻漸層標題按鈕 */}
-                <button 
-                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                  className="w-full px-5 sm:px-8 py-5 sm:py-6 flex items-center justify-between rounded-3xl bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-white shadow-lg shadow-purple-500/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-2xl">
-                      <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                    </div>
-                    <span className="text-xl sm:text-2xl font-bold tracking-wide">學習歷程記錄</span>
-                  </div>
-                  <ChevronDown className={`w-6 h-6 sm:w-8 sm:h-8 text-white/90 transition-transform duration-500 ${isHistoryOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {/* 下拉層次外框 */}
-                <div className={`transition-all duration-500 ease-in-out origin-top ${isHistoryOpen ? 'max-h-[3000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0 overflow-hidden'}`}>
-                  
-                  {/* 使用虛線與柔和底色作為外容器 */}
-                  <div className="p-4 sm:p-6 bg-white dark:bg-[#1e1e1e] rounded-3xl border-4 border-dashed border-pink-200 dark:border-pink-900/40 space-y-4">
-                    
-                    {mockLevels.map((lvl) => (
-                      <div key={lvl.level} className="flex flex-col">
-                        
-                        {/* 彩色糖果級別按鈕 */}
-                        <button
-                          onClick={() => toggleLevel(lvl.level)}
-                          className={`w-full px-5 sm:px-6 py-4 flex items-center justify-between rounded-2xl border-2 transition-all duration-300 transform active:scale-[0.98] ${lvl.theme.main} ${lvl.theme.border} ${lvl.theme.hover}`}
-                        >
-                          <span className="font-bold text-lg">{lvl.levelName}</span>
-                          <ChevronRight className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 ${openLevel === lvl.level ? 'rotate-90' : ''}`} />
-                        </button>
-
-                        {/* 該級別底下的課程卡片 */}
-                        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openLevel === lvl.level ? 'max-h-[1500px] mt-3' : 'max-h-0 mt-0'}`}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
-                            {lvl.courses.map((course) => (
-                              <a 
-                                key={course.id} 
-                                href={`#course-${course.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="group relative flex flex-col p-5 bg-white dark:bg-[#252525] rounded-3xl border-2 border-transparent hover:border-pink-300 dark:hover:border-pink-600 shadow-sm hover:shadow-xl shadow-pink-100 dark:shadow-none hover:-translate-y-1 transition-all duration-300"
-                              >
-                                <div className="flex items-center justify-between mb-4">
-                                  <span className="font-bold text-base sm:text-lg text-gray-700 dark:text-gray-200 group-hover:text-pink-500 dark:group-hover:text-pink-400 transition-colors">
-                                    {course.courseName}
-                                  </span>
-                                  <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-[#1e1e1e] flex items-center justify-center group-hover:bg-pink-100 dark:group-hover:bg-pink-900/50 transition-colors">
-                                    <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-pink-500 transition-colors" />
-                                  </div>
-                                </div>
-                                
-                                <div className="mt-auto">
-                                  {/* 胖胖標籤 (Badge) 取代單調的紅綠燈號 */}
-                                  {course.attended ? (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                      ✅ 已上課
-                                    </span>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-                                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                                      🔴 待上課
-                                    </span>
-                                  )}
-                                </div>
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-
-                      </div>
-                    ))}
-
-                  </div>
                 </div>
               </div>
 
