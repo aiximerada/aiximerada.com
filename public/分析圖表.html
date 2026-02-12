@@ -28,7 +28,6 @@
             .line-chart-container { height: 450px; }
         }
 
-        /* 隱藏原生 Checkbox，客製化膠囊按鈕樣式 */
         .filter-toggle { display: none; }
         
         .filter-btn {
@@ -65,7 +64,7 @@
 </head>
 <body class="text-slate-700 antialiased p-4 md:p-8 min-h-screen">
 
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="max-w-7xl mx-auto space-y-8 relative">
         
         <!-- 頁面標題區塊 -->
         <header class="text-center mb-12 pt-4">
@@ -96,14 +95,20 @@
                 <!-- 雙圖表並排排版 -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     
-                    <!-- 學生表現比例 (雙環圓餅圖區塊) -->
+                    <!-- 學生表現比例 (單環圓餅圖) -->
                     <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
                         <div class="absolute top-4 left-6 flex items-center space-x-2 z-10">
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">能力組成對比 (雙環圓餅圖)</h3>
+                            <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center">
+                                能力組成 (圓餅圖)
+                                <!-- 說明按鈕 -->
+                                <button onclick="openInfoModal('pie')" class="ml-2 text-indigo-400 hover:text-indigo-600 focus:outline-none transition-colors" title="圖表說明">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                                </button>
+                            </h3>
                         </div>
                         <div class="text-xs text-slate-400 absolute top-4 right-6 text-right z-10">
-                            實心外環：實際<br>虛線內環：基準
+                            實際表現
                         </div>
                         <div class="chart-container mt-6">
                             <canvas id="pieAreaChart"></canvas>
@@ -114,7 +119,13 @@
                     <div class="chart-card bg-slate-50/50 rounded-3xl p-6 border border-slate-100/50 relative">
                          <div class="absolute top-4 left-6 flex items-center space-x-2 z-10">
                             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">能力形狀差異</h3>
+                            <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center">
+                                能力形狀差異 (雷達圖)
+                                <!-- 說明按鈕 -->
+                                <button onclick="openInfoModal('radar')" class="ml-2 text-indigo-400 hover:text-indigo-600 focus:outline-none transition-colors" title="圖表說明">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                                </button>
+                            </h3>
                         </div>
                         <div class="chart-container mt-6">
                             <canvas id="radarChart"></canvas>
@@ -132,7 +143,13 @@
                     <div class="bg-emerald-100 p-2 rounded-xl mr-4 shadow-sm">
                         <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                    <h2 class="text-2xl font-bold text-slate-800 tracking-wide">操作時間紀錄</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-wide flex items-center">
+                        操作時間紀錄
+                        <!-- 說明按鈕 -->
+                        <button onclick="openInfoModal('timeline')" class="ml-3 text-emerald-500 hover:text-emerald-700 focus:outline-none transition-colors" title="圖表說明">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </h2>
                 </div>
                 
                 <button id="showAllBtn" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-md hover:shadow-lg transition-all text-sm font-semibold flex items-center gap-2">
@@ -142,7 +159,7 @@
             </div>
             
             <div class="p-8">
-                <!-- 階段區域顯示控制項 (點選會自動縮放視圖) -->
+                <!-- 階段區域顯示控制項 -->
                 <div class="mb-6 flex flex-wrap items-center justify-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <span class="text-sm font-bold text-slate-500 mr-2 flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
@@ -151,6 +168,7 @@
                     
                     <label class="cursor-pointer relative">
                         <input type="checkbox" class="zone-toggle filter-toggle" value="zone1" checked>
+                        <!-- 移除了按鈕上的數字標示 -->
                         <div class="filter-btn px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium text-slate-600 border-slate-200 bg-slate-100/50 hover:bg-slate-200/50">
                             教材區
                         </div>
@@ -229,6 +247,24 @@
 
     </div>
 
+    <!-- 說明彈窗 Modal -->
+    <div id="infoModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform scale-95 transition-transform" id="infoModalContent">
+            <div class="flex justify-between items-start mb-4">
+                <h3 id="infoModalTitle" class="text-xl font-bold text-slate-800">標題</h3>
+                <button onclick="closeInfoModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <p id="infoModalBody" class="text-slate-600 leading-relaxed text-sm"></p>
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeInfoModal()" class="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors">
+                    我知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         /**
          * ==========================================
@@ -247,41 +283,42 @@
             baseData: [2, 4.5, 3, 2, 2.5],
             studentData: [1.5, 3, 4, 1.5, 2],
             timeLineXMax: 6000,
+            // 注意：所有的 0 起點已更新為 1
             timeLineDatasets: [
                 {
                     label: '黃郁俊', 
                     borderColor: '#93c5fd',
                     backgroundColor: 'rgba(147, 197, 253, 0.2)',
                     borderDash: [], 
-                    data: [ {x:0, y:0}, {x:50, y:10}, {x:100, y:2}, {x:800, y:5}, {x:1000, y:10}, {x:1500, y:2} ]
+                    data: [ {x:0, y:1}, {x:50, y:10}, {x:100, y:2}, {x:800, y:5}, {x:1000, y:10}, {x:1500, y:2} ]
                 },
                 {
                     label: '王xx',
                     borderColor: '#fca5a5',
                     backgroundColor: 'rgba(252, 165, 165, 0.2)',
                     borderDash: [5, 5], 
-                    data: [ {x:0, y:0}, {x:1500, y:10}, {x:1800, y:0}, {x:2200, y:50}, {x:2800, y:55}, {x:3100, y:100}, {x:3300, y:150}, {x:3500, y:152}, {x:3500, y:0} ]
+                    data: [ {x:0, y:1}, {x:1500, y:10}, {x:1800, y:1}, {x:2200, y:50}, {x:2800, y:55}, {x:3100, y:100}, {x:3300, y:150}, {x:3500, y:152}, {x:3500, y:1} ]
                 },
                 {
                     label: '高xx',
                     borderColor: '#84cc16', 
                     backgroundColor: 'rgba(132, 204, 22, 0.2)',
                     borderDash: [5, 5],
-                    data: [ {x:0, y:0}, {x:800, y:3}, {x:1200, y:5}, {x:2000, y:0}, {x:2100, y:50}, {x:2500, y:52}, {x:3000, y:58}, {x:3100, y:105}, {x:3700, y:110}, {x:3800, y:0} ]
+                    data: [ {x:0, y:1}, {x:800, y:3}, {x:1200, y:5}, {x:2000, y:1}, {x:2100, y:50}, {x:2500, y:52}, {x:3000, y:58}, {x:3100, y:105}, {x:3700, y:110}, {x:3800, y:1} ]
                 },
                 {
                     label: '陳xx',
                     borderColor: '#c084fc', 
                     backgroundColor: 'rgba(192, 132, 252, 0.2)',
                     borderDash: [5, 5],
-                    data: [ {x:2300, y:0}, {x:2350, y:52}, {x:2800, y:56}, {x:3100, y:110}, {x:3600, y:105}, {x:3700, y:150}, {x:4500, y:150}, {x:4800, y:152}, {x:4850, y:108}, {x:5100, y:105}, {x:5100, y:0} ]
+                    data: [ {x:2300, y:1}, {x:2350, y:52}, {x:2800, y:56}, {x:3100, y:110}, {x:3600, y:105}, {x:3700, y:150}, {x:4500, y:150}, {x:4800, y:152}, {x:4850, y:108}, {x:5100, y:105}, {x:5100, y:1} ]
                 },
                 {
                     label: '林xx',
                     borderColor: '#fde047', 
                     backgroundColor: 'rgba(253, 224, 71, 0.2)',
                     borderDash: [5, 5],
-                    data: [ {x:2000, y:0}, {x:2200, y:50}, {x:3000, y:51}, {x:3100, y:50}, {x:3800, y:53}, {x:4000, y:55}, {x:4700, y:58}, {x:4750, y:0}, {x:4800, y:53}, {x:5400, y:51}, {x:5500, y:55}, {x:5500, y:0} ]
+                    data: [ {x:2000, y:1}, {x:2200, y:50}, {x:3000, y:51}, {x:3100, y:50}, {x:3800, y:53}, {x:4000, y:55}, {x:4700, y:58}, {x:4750, y:1}, {x:4800, y:53}, {x:5400, y:51}, {x:5500, y:55}, {x:5500, y:1} ]
                 }
             ]
         };
@@ -303,10 +340,51 @@
         };
 
         // ==========================================
-        // 1. 雙環圓餅圖 (Doughnut) - 基準為虛線內環
+        // 0. 彈窗說明邏輯
+        // ==========================================
+        const modalData = {
+            'pie': {
+                title: '能力組成 (圓餅圖)',
+                content: '此圖表呈現學生在「科學、技術、工程、藝術、數學」五個領域的整體比例組成。實心的色塊代表學生的實際表現，能直觀看出學生在哪個領域投入最多。'
+            },
+            'radar': {
+                title: '能力形狀差異 (雷達圖)',
+                content: '將「學生的實際表現」與「課程設定的基準」進行形狀上的疊加對比。<br><br><span class="inline-block w-3 h-3 bg-emerald-200 border border-emerald-400 mr-1"></span> 實心色塊代表學生的實際表現。<br><span class="inline-block w-3 h-0 border-t-2 border-dashed border-slate-300 mr-1 align-middle"></span> 虛線框代表課程基準，藉此評估能力發展是否均衡。'
+            },
+            'timeline': {
+                title: '操作時間紀錄',
+                content: '記錄學生在不同階段（教材、進階一～三）的操作歷程。您可點擊上方按鈕單獨聚焦特定階段。<br><br>💡 <b>提示：</b>圖表中的星星圖示 (⭐️)，代表該學生在該階段達成的「最高完成點」。'
+            }
+        };
+
+        const infoModal = document.getElementById('infoModal');
+        const infoModalContent = document.getElementById('infoModalContent');
+        const infoModalTitle = document.getElementById('infoModalTitle');
+        const infoModalBody = document.getElementById('infoModalBody');
+
+        function openInfoModal(type) {
+            infoModalTitle.innerHTML = modalData[type].title;
+            infoModalBody.innerHTML = modalData[type].content;
+            
+            infoModal.classList.remove('hidden');
+            void infoModal.offsetWidth; // 觸發重繪以啟用動畫
+            infoModal.classList.remove('opacity-0');
+            infoModalContent.classList.remove('scale-95');
+        }
+
+        function closeInfoModal() {
+            infoModal.classList.add('opacity-0');
+            infoModalContent.classList.add('scale-95');
+            setTimeout(() => {
+                infoModal.classList.add('hidden');
+            }, 300); // 等待動畫結束
+        }
+
+        // ==========================================
+        // 1. 圓餅圖 (Pie)
         // ==========================================
         new Chart(document.getElementById('pieAreaChart'), {
-            type: 'doughnut',
+            type: 'pie', 
             data: {
                 labels: chartData.labels,
                 datasets: [
@@ -316,25 +394,13 @@
                         backgroundColor: bgColors,
                         borderColor: '#ffffff',
                         borderWidth: 2,
-                        weight: 2, // 實心外環，寬度比例 2
                         hoverOffset: 4
-                    },
-                    {
-                        label: '基準設定',
-                        data: chartData.baseData,
-                        backgroundColor: 'transparent', // 內部全透明
-                        borderColor: bgColors,          // 彩色虛線邊框，對應各領域
-                        borderWidth: 2,
-                        borderDash: [5, 5],             // 虛線樣式
-                        weight: 1,                      // 虛線內環，寬度比例 1
-                        hoverOffset: 2
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '40%', // 中心留白比例
                 plugins: { 
                     legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
                     tooltip: tooltipOptions
@@ -393,21 +459,20 @@
         });
 
         // ==========================================
-        // 3. 階段區域與折線圖 (星星與自動縮放邏輯)
+        // 3. 階段區域與折線圖
         // ==========================================
         const activeZones = { zone1: true, zone2: true, zone3: true, zone4: true };
         const zoneConfig = [
-            { id: 'zone1', min: 0, max: 50, label: '教材區', color: 'rgba(241, 245, 249, 0.7)', textColor: '#94a3b8' },
-            { id: 'zone2', min: 50, max: 100, label: '進階一', color: 'rgba(224, 242, 254, 0.6)', textColor: '#38bdf8' },
-            { id: 'zone3', min: 100, max: 150, label: '進階二', color: 'rgba(220, 252, 231, 0.6)', textColor: '#34d399' },
-            { id: 'zone4', min: 150, max: 200, label: '進階三', color: 'rgba(254, 226, 226, 0.6)', textColor: '#fb7185' }
+            { id: 'zone1', min: 1, max: 50, label: '教材區', color: 'rgba(241, 245, 249, 0.7)', textColor: '#94a3b8' },
+            { id: 'zone2', min: 51, max: 100, label: '進階一', color: 'rgba(224, 242, 254, 0.6)', textColor: '#38bdf8' },
+            { id: 'zone3', min: 101, max: 150, label: '進階二', color: 'rgba(220, 252, 231, 0.6)', textColor: '#34d399' },
+            { id: 'zone4', min: 151, max: 200, label: '進階三', color: 'rgba(254, 226, 226, 0.6)', textColor: '#fb7185' }
         ];
 
-        // 【重構星號邏輯】：嚴格限制每階段最多 1 個星星，且忽視往回掉落的無效點
         chartData.timeLineDatasets.forEach(ds => {
             ds.lastPoints = [];
             for (let z = 1; z <= 4; z++) {
-                let min = (z === 1) ? 0 : (z - 1) * 50 + 1;
+                let min = (z === 1) ? 1 : (z - 1) * 50 + 1;
                 let max = z * 50;
                 
                 let crossIndex = ds.data.findIndex(pt => pt.y > max);
@@ -426,13 +491,13 @@
                     }
                 }
                 
-                if (bestIdx !== -1 && bestY > 0) {
+                // 起點改為 1 後，判斷是否為有效記錄
+                if (bestIdx !== -1 && bestY > 1) {
                     ds.lastPoints.push(bestIdx);
                 }
             }
         });
 
-        // 背景畫色塊的 Plugin
         const horizontalZonePlugin = {
             id: 'horizontalZones',
             beforeDraw: (chart) => {
@@ -469,8 +534,8 @@
             borderWidth: 2.5,
             tension: 0, 
             stepped: false,
-            // 關鍵優化：關閉強制裁切，確保畫布邊緣的星星完整呈現不被切掉
-            clip: false, 
+            // 為了「不要出現其他區域畫面」，取消溢出畫布顯示 (恢復嚴格裁切)
+            clip: true, 
             
             pointRadius: (ctx) => {
                 if(ctx.dataIndex === undefined) return 2;
@@ -497,10 +562,6 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: {
-                    // 為了配合 clip: false，給圖表內部預留一點點呼吸空間
-                    padding: { top: 10, bottom: 10 }
-                },
                 interaction: {
                     mode: 'nearest', 
                     intersect: false
@@ -530,9 +591,10 @@
                         title: { display: true, text: '操作時間軸 (ms/s)', color: '#cbd5e1', font: {size: 13} }
                     },
                     y: {
-                        min: 0,
-                        max: 210, // 初始最大值加 10 的 Padding
-                        ticks: { stepSize: 50, color: '#94a3b8', font: {family: "'Noto Sans TC', sans-serif"} },
+                        min: 1, // 起點改為 1
+                        max: 200, 
+                        // 移除 stepSize 讓 Y 軸的刻度更自然配合嚴格的邊界
+                        ticks: { color: '#94a3b8', font: {family: "'Noto Sans TC', sans-serif"} },
                         grid: { color: '#f1f5f9', drawBorder: false },
                     }
                 }
@@ -540,7 +602,7 @@
         });
 
         // ==========================================
-        // 4. UI 互動與智慧縮放邏輯
+        // 4. UI 互動與嚴格縮放邏輯
         // ==========================================
         const zoneCheckboxes = document.querySelectorAll('.zone-toggle');
         const datasetCheckboxes = document.querySelectorAll('.dataset-toggle');
@@ -556,15 +618,13 @@
                 }
             });
             
-            // 依照選取的區域放大 Y 軸視野，並加上 10 的 Padding 防切點
+            // 嚴格裁切：視圖完全貼齊選取的區域邊界，不再預留 Padding，實現不看到其他畫面
             if (activeMins.length > 0) {
-                let minVal = Math.min(...activeMins);
-                let maxVal = Math.max(...activeMaxs);
-                timeLineChart.options.scales.y.min = minVal === 0 ? 0 : minVal - 10;
-                timeLineChart.options.scales.y.max = maxVal + 10;
+                timeLineChart.options.scales.y.min = Math.min(...activeMins);
+                timeLineChart.options.scales.y.max = Math.max(...activeMaxs);
             } else {
-                timeLineChart.options.scales.y.min = 0;
-                timeLineChart.options.scales.y.max = 210;
+                timeLineChart.options.scales.y.min = 1;
+                timeLineChart.options.scales.y.max = 200;
             }
             timeLineChart.update();
         }
