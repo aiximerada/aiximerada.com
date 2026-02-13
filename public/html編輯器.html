@@ -6,6 +6,8 @@
     <title>HTML 雙向同步編輯器 Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 JSZip 用於解壓縮 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* 基礎捲軸樣式 */
         ::-webkit-scrollbar {
@@ -74,12 +76,13 @@
         </div>
         
         <div class="flex items-center space-x-2">
-            <input type="file" id="fileInput" accept=".html,.htm,.txt" class="hidden">
+            <!-- 增加 .zip 支援 -->
+            <input type="file" id="fileInput" accept=".html,.htm,.txt,.zip" class="hidden">
             
             <button onclick="document.getElementById('fileInput').click()" 
                     class="flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded transition border border-gray-600"
-                    title="上傳檔案">
-                <i data-lucide="upload" class="w-4 h-4 sm:mr-2"></i> <span class="hidden sm:inline">上傳</span>
+                    title="上傳 HTML 或 ZIP 檔案">
+                <i data-lucide="folder-open" class="w-4 h-4 sm:mr-2"></i> <span class="hidden sm:inline">開啟檔案</span>
             </button>
 
             <!-- 檔名輸入框 -->
@@ -157,11 +160,14 @@
         const lineNumbers = document.getElementById('lineNumbers');
         const previewFrame = document.getElementById('previewFrame');
         const fileInput = document.getElementById('fileInput');
-        const fileNameInput = document.getElementById('fileNameInput'); // 新增
+        const fileNameInput = document.getElementById('fileNameInput');
         const cursorLineDisplay = document.getElementById('cursorLine');
         const cursorColDisplay = document.getElementById('cursorCol');
         const statusMsg = document.getElementById('statusMsg');
         const syncStatus = document.getElementById('syncStatus');
+
+        // 用於存儲 ZIP 中的資源 Blob URL
+        let zipAssets = {};
 
         // 預設範例
         const initialCode = `<!DOCTYPE html>
@@ -221,9 +227,9 @@
 
     <div class="container">
         <div class="card">
-            <h1>雙向同步預覽</h1>
-            <p>試著修改這裡的文字，左邊會即時更新。</p>
-            <p>或者點擊左邊的元素，右邊編輯器會跳轉。</p>
+            <h1>ZIP 匯入功能已啟用</h1>
+            <p>您可以上傳包含 HTML、CSS 和圖片的 .zip 檔案。</p>
+            <p>系統會自動讀取其中的 index.html 並將其他資源 (CSS/圖片) 顯示在預覽中。</p>
         </div>
 
         <div class="card">
@@ -237,65 +243,53 @@
 </body>
 </html>`;
 
-        // === 1. 編輯器核心功能 (行號、同步滾動、Tab鍵) ===
-
+        // === 1. 編輯器核心功能 ===
         function updateLineNumbers() {
             const lines = editor.value.split('\n').length;
             lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => `<div>${i + 1}</div>`).join('');
         }
 
-        // 同步捲動：當編輯器捲動時，行號欄也要跟著捲動
         editor.addEventListener('scroll', () => {
             lineNumbers.scrollTop = editor.scrollTop;
         });
 
-        // 支援 Tab 鍵縮排
         editor.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
                 e.preventDefault();
                 const start = editor.selectionStart;
                 const end = editor.selectionEnd;
-                // 插入 2 個空白
                 editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
-                // 恢復游標位置
                 editor.selectionStart = editor.selectionEnd = start + 2;
-                // 觸發 input 事件以更新預覽
                 editor.dispatchEvent(new Event('input'));
             }
         });
 
-        // 游標位置與狀態更新
         function updateCursorInfo() {
             const text = editor.value.substr(0, editor.selectionStart);
             const lines = text.split('\n');
             const currentLine = lines.length;
             const currentCol = lines[lines.length - 1].length + 1;
-
             cursorLineDisplay.textContent = currentLine;
             cursorColDisplay.textContent = currentCol;
-
-            // 觸發編輯器到預覽的同步 (Editor -> Preview)
             syncPreviewHighlight(currentLine);
         }
 
         editor.addEventListener('click', updateCursorInfo);
         editor.addEventListener('keyup', updateCursorInfo);
 
-        // === 2. 雙向同步邏輯 ===
-
-        // 更新預覽畫面 (Debounced)
+        // === 2. 雙向同步邏輯與 ZIP 資源替換 ===
         let debounceTimer;
         function triggerSync() {
             clearTimeout(debounceTimer);
             syncStatus.classList.remove('bg-green-500');
-            syncStatus.classList.add('bg-yellow-500'); // 處理中
+            syncStatus.classList.add('bg-yellow-500');
             statusMsg.textContent = "Updating...";
 
             debounceTimer = setTimeout(() => {
                 renderPreview();
                 updateLineNumbers();
                 syncStatus.classList.remove('bg-yellow-500');
-                syncStatus.classList.add('bg-green-500'); // 完成
+                syncStatus.classList.add('bg-green-500');
                 statusMsg.textContent = "Synced";
             }, 300);
         }
@@ -307,22 +301,33 @@
             const lines = rawCode.split('\n');
             let injectedCode = '';
 
-            // 注入 data-source-line 標記
+            // 1. 注入行號標記
             lines.forEach((line, index) => {
                 const lineNumber = index + 1;
-                // 簡單正則：只匹配開頭標籤，避開閉合標籤
                 let processedLine = line;
                 if (line.match(/<[a-zA-Z][^>]*>/)) {
-                    // 排除 <script> 內部的干擾，但這裡做簡單處理
                     processedLine = line.replace(/(<[a-zA-Z0-9\-]+)(\s|>)/, `$1 data-source-line="${lineNumber}"$2`);
                 }
                 injectedCode += processedLine + '\n';
             });
 
-            // 注入互動腳本 (用於 Preview -> Editor 同步與高亮接收)
+            // 2. 替換 ZIP 資源路徑 (Smart Asset Replacement)
+            // 將相對路徑 (例如 src="images/logo.png") 替換為 Blob URL
+            if (Object.keys(zipAssets).length > 0) {
+                Object.keys(zipAssets).forEach(path => {
+                    // 轉義正則特殊字符
+                    const safePath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    
+                    // 替換 src="..." href="..." action="..."
+                    // 使用正則確保只替換屬性值，避免誤殺
+                    const regex = new RegExp(`(src|href|action|poster)\\s*=\\s*(["'])${safePath}\\2`, 'g');
+                    injectedCode = injectedCode.replace(regex, `$1=$2${zipAssets[path]}$2`);
+                });
+            }
+
+            // 3. 注入互動腳本
             const scriptToInject = `
                 <script>
-                    // 1. 點擊同步：Preview -> Editor
                     document.addEventListener('click', function(e) {
                         const target = e.target.closest('[data-source-line]');
                         if (target) {
@@ -331,43 +336,27 @@
                         }
                     }, true);
 
-                    // 2. 接收外部指令：Editor -> Preview
                     window.addEventListener('message', (event) => {
                         if (event.data && event.data.type === 'highlight-line') {
-                            const line = event.data.line;
-                            highlightElement(line);
+                            highlightElement(event.data.line);
                         }
                     });
 
                     let currentHighlight = null;
-
                     function highlightElement(line) {
-                        // 尋找最近的標籤 (當前行或往上找)
                         let target = null;
                         for (let i = line; i > 0; i--) {
                             const found = document.querySelector('[data-source-line="' + i + '"]');
-                            if (found) {
-                                target = found;
-                                break;
-                            }
+                            if (found) { target = found; break; }
                         }
-
                         if (target) {
-                            // 移除舊的高亮
-                            if (currentHighlight) {
-                                currentHighlight.classList.remove('preview-highlight');
-                            }
-                            
-                            // 新增高亮
+                            if (currentHighlight) currentHighlight.classList.remove('preview-highlight');
                             target.classList.add('preview-highlight');
                             currentHighlight = target;
-
-                            // 捲動到視圖中 (如果是點擊編輯器觸發，使用平滑捲動)
                             target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                         }
                     }
                     
-                    // 注入樣式
                     const style = document.createElement('style');
                     style.textContent = '.preview-highlight { outline: 2px dashed #3b82f6 !important; background-color: rgba(59, 130, 246, 0.1) !important; transition: all 0.2s; }';
                     document.head.appendChild(style);
@@ -384,15 +373,12 @@
             previewFrame.srcdoc = finalHtml;
         }
 
-        // 處理 Editor -> Preview 的同步
         function syncPreviewHighlight(line) {
-            // 發送訊息給 iframe
             if(previewFrame.contentWindow) {
                 previewFrame.contentWindow.postMessage({ type: 'highlight-line', line: line }, '*');
             }
         }
 
-        // 處理 Preview -> Editor 的同步 (接收 postMessage)
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'preview-click') {
                 const lineNum = parseInt(event.data.line);
@@ -402,81 +388,124 @@
 
         function jumpToLine(lineNum) {
             if (!lineNum) return;
-            
             const lines = editor.value.split('\n');
             let charIndex = 0;
             for (let i = 0; i < lineNum - 1; i++) {
                 charIndex += lines[i].length + 1; 
             }
-            
-            // 聚焦並選取
             editor.focus();
             const lineLength = lines[lineNum - 1] ? lines[lineNum - 1].length : 0;
             editor.setSelectionRange(charIndex, charIndex + lineLength);
-            
-            // 計算捲動位置 (置中)
             const lineHeight = 21; 
             const scrollPos = (lineNum - 1) * lineHeight;
-            const editorHeight = editor.clientHeight;
-            
-            editor.scrollTop = scrollPos - (editorHeight / 2);
-            
-            // 更新狀態
+            editor.scrollTop = scrollPos - (editor.clientHeight / 2);
             statusMsg.textContent = `Jump to Line ${lineNum}`;
-            updateCursorInfo(); // 同步回右下角顯示
+            updateCursorInfo();
         }
 
-        // === 3. 檔案處理 ===
-        fileInput.addEventListener('change', (e) => {
+        // === 3. 檔案處理 (支援 HTML 與 ZIP) ===
+        fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 自動更新檔名輸入框
-            fileNameInput.value = file.name;
+            statusMsg.textContent = "Loading file...";
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                editor.value = e.target.result;
-                triggerSync();
-                statusMsg.textContent = "Loaded: " + file.name;
-            };
-            reader.readAsText(file);
+            if (file.name.endsWith('.zip')) {
+                await handleZipFile(file);
+            } else {
+                // 原有的一般檔案處理
+                fileNameInput.value = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    // 清除舊的 ZIP 資源，避免混用
+                    zipAssets = {};
+                    editor.value = e.target.result;
+                    triggerSync();
+                    statusMsg.textContent = "Loaded: " + file.name;
+                };
+                reader.readAsText(file);
+            }
         });
+
+        // ZIP 處理邏輯
+        async function handleZipFile(file) {
+            try {
+                const zip = await JSZip.loadAsync(file);
+                zipAssets = {}; // 重置資源快取
+                let htmlFile = null;
+                const assetPromises = [];
+
+                // 遍歷 ZIP 內容
+                zip.forEach((relativePath, zipEntry) => {
+                    if (zipEntry.dir || relativePath.startsWith('__MACOSX')) return;
+
+                    if (relativePath.match(/\.html?$/i)) {
+                        // 優先選擇 index.html，否則選擇第一個找到的 HTML
+                        if (!htmlFile || relativePath.toLowerCase().endsWith('index.html')) {
+                            htmlFile = zipEntry;
+                        }
+                    } else {
+                        // 處理資源檔案 (CSS, JS, Images)
+                        const p = zipEntry.async('blob').then(blob => {
+                            // 根據副檔名決定 MIME Type (簡單判斷)
+                            let type = '';
+                            if (relativePath.endsWith('.css')) type = 'text/css';
+                            else if (relativePath.endsWith('.js')) type = 'text/javascript';
+                            else if (relativePath.endsWith('.png')) type = 'image/png';
+                            else if (relativePath.endsWith('.jpg') || relativePath.endsWith('.jpeg')) type = 'image/jpeg';
+                            else if (relativePath.endsWith('.svg')) type = 'image/svg+xml';
+                            
+                            // 建立 Blob URL
+                            const finalBlob = type ? new Blob([blob], { type: type }) : blob;
+                            const url = URL.createObjectURL(finalBlob);
+                            
+                            // 存入快取：路徑 -> Blob URL
+                            zipAssets[relativePath] = url;
+                        });
+                        assetPromises.push(p);
+                    }
+                });
+
+                // 等待所有資源處理完畢
+                await Promise.all(assetPromises);
+
+                if (htmlFile) {
+                    const text = await htmlFile.async('string');
+                    editor.value = text;
+                    fileNameInput.value = htmlFile.name.split('/').pop(); // 只取檔名
+                    triggerSync(); // 這會觸發 renderPreview，裡面會用到 zipAssets
+                    statusMsg.textContent = `Loaded ZIP: ${file.name} (Found ${Object.keys(zipAssets).length} assets)`;
+                } else {
+                    alert("ZIP 檔案中未發現 .html 檔案！");
+                    statusMsg.textContent = "Error: No HTML found in ZIP";
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("讀取 ZIP 失敗: " + err.message);
+                statusMsg.textContent = "Error loading ZIP";
+            }
+        }
         
-        // === 4. 匯出功能 (支援自訂檔名) ===
+        // === 4. 匯出功能 ===
         function downloadCode() {
-            // 取得編輯器中的原始碼
             const code = editor.value;
-            
-            // 取得使用者輸入的檔名，若無則預設為 index.html
             let fileName = fileNameInput.value.trim() || 'index.html';
-            
-            // 如果使用者沒有輸入副檔名，自動補上 .html
             if (!fileName.endsWith('.html') && !fileName.endsWith('.htm')) {
                 fileName += '.html';
             }
-
-            // 建立 Blob 物件
             const blob = new Blob([code], { type: 'text/html' });
-            
-            // 建立下載連結
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = fileName; // 使用自訂檔名
+            a.download = fileName;
             document.body.appendChild(a);
-            
-            // 觸發點擊並清理
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            // 更新狀態提示
             statusMsg.textContent = `已匯出檔案: ${fileName}`;
             setTimeout(() => {
-                if (statusMsg.textContent.includes("匯出")) {
-                    statusMsg.textContent = "Ready";
-                }
+                if (statusMsg.textContent.includes("匯出")) statusMsg.textContent = "Ready";
             }, 3000);
         }
 
