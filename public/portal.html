@@ -3,180 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>網址傳送門</title>
+    <title>星際傳送門 - 玉露寶庫</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --main-gold: #FFD700;
+            --silver-starlight: #C0C0C0;
             --nebula-blue: #00f3ff;
             --bg-dark: #050510;
             --glass-panel: rgba(20, 20, 35, 0.7);
             --border-light: rgba(255, 255, 255, 0.1);
             --neon-purple: #bc13fe;
         }
-
         body {
-            background-color: var(--bg-dark);
-            color: #fff;
+            background-color: var(--bg-dark); color: #fff;
             font-family: 'Microsoft JhengHei', sans-serif;
-            min-height: 100vh; margin: 0; padding: 0;
-            display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden;
+            min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
         }
-
-        /* --- ✨ 星空背景 --- */
         .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%); }
         .star { position: absolute; background: white; border-radius: 50%; opacity: 0.8; animation: twinkle 3s infinite ease-in-out; }
         @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
 
-        /* --- UI 元件 --- */
-        .header {
-            width: 100%; padding: 15px 20px;
-            background: rgba(5, 5, 16, 0.8); backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-light);
-            display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; position: sticky; top: 0; z-index: 50;
-        }
+        .header { width: 100%; padding: 15px 20px; background: rgba(5, 5, 16, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; position: sticky; top: 0; z-index: 50; }
         .back-btn { color: var(--nebula-blue); text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
         
         .container { width: 90%; max-width: 800px; margin: 40px 0 60px; display: flex; flex-direction: column; gap: 40px; }
-        
         .page-title { text-align: center; }
         .page-title h1 { margin: 0; font-size: 2.5rem; background: linear-gradient(to right, #fff, var(--nebula-blue)); -webkit-background-clip: text; color: transparent; text-shadow: 0 0 20px rgba(0, 243, 255, 0.3); }
 
-        .glass-card {
-            background: var(--glass-panel); border: 1px solid var(--border-light);
-            border-radius: 20px; padding: 30px; backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        .glass-card { background: var(--glass-panel); border: 1px solid var(--border-light); border-radius: 20px; padding: 30px; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
-        /* --- 接收端 (User) --- */
+        /* User Area */
         .access-zone { text-align: center; }
-        .input-group { position: relative; max-width: 400px; margin: 0 auto; }
-        .code-input {
-            width: 100%; padding: 15px 20px; font-size: 1.2rem; text-align: center;
-            background: rgba(0,0,0,0.3); border: 2px solid var(--border-light); border-radius: 50px;
-            color: #fff; outline: none; transition: 0.3s;
-        }
+        .code-input { width: 100%; max-width: 400px; padding: 15px 20px; font-size: 1.2rem; text-align: center; background: rgba(0,0,0,0.3); border: 2px solid var(--border-light); border-radius: 50px; color: #fff; outline: none; transition: 0.3s; }
         .code-input:focus { border-color: var(--nebula-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
-
-        .btn-retrieve {
-            margin-top: 20px; padding: 12px 40px; border-radius: 50px; border: none;
-            background: linear-gradient(135deg, var(--nebula-blue), var(--neon-purple));
-            color: #fff; font-size: 1.1rem; font-weight: bold; cursor: pointer;
-            box-shadow: 0 5px 15px rgba(188, 19, 254, 0.3); transition: 0.3s;
-        }
-        .btn-retrieve:hover { transform: translateY(-3px); }
-
-        /* 結果列表 */
+        .btn-retrieve { margin-top: 20px; padding: 12px 40px; border-radius: 50px; border: none; background: linear-gradient(135deg, var(--nebula-blue), var(--neon-purple)); color: #fff; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        
+        /* Result List */
         #result-list { display: none; margin-top: 30px; flex-direction: column; gap: 15px; animation: slideDown 0.5s ease; }
         @keyframes slideDown { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
-
-        .result-item {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 15px; padding: 20px; text-align: left;
-            display: flex; flex-direction: column; gap: 10px;
-        }
-        .item-note { font-size: 1.1rem; font-weight: bold; color: var(--main-gold); display: flex; align-items: center; gap: 8px; }
-        .item-url { font-size: 0.9rem; color: #aaa; word-break: break-all; font-family: monospace; }
-        
-        .item-actions { display: flex; gap: 10px; margin-top: 5px; }
-        .action-btn {
-            flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-            background: transparent; color: #fff; cursor: pointer; text-decoration: none;
-            display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 0.9rem; transition: 0.2s;
-        }
-        .action-btn:hover { background: rgba(255,255,255,0.1); }
+        .result-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; text-align: left; }
+        .item-note { font-size: 1.1rem; font-weight: bold; color: var(--main-gold); }
+        .item-url { font-size: 0.9rem; color: #aaa; word-break: break-all; margin-top: 5px; }
+        .item-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #fff; cursor: pointer; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; gap: 5px; }
         .btn-go { background: var(--nebula-blue); color: #000; border-color: var(--nebula-blue); font-weight: bold; }
-        .btn-go:hover { background: #fff; }
+        .qr-area { display: none; justify-content: center; padding: 15px; background: #fff; border-radius: 10px; margin-top: 10px; width: fit-content; }
 
-        .qr-area { display: none; justify-content: center; padding: 15px; background: #fff; border-radius: 10px; margin-top: 10px; width: fit-content; align-self: center; }
-
-        /* --- 管理端 (Admin) --- */
-        #admin-panel { display: none; border: 1px solid var(--main-gold); }
-        .admin-header { display: flex; align-items: center; gap: 10px; color: var(--main-gold); margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
-
-        .creation-area { display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
-        .form-row { display: flex; gap: 10px; }
-        .admin-input { flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #fff; border-radius: 5px; }
+        /* Admin/Silver Panel */
+        #admin-panel { display: none; border: 1px solid var(--silver-starlight); }
+        .admin-header { display: flex; align-items: center; gap: 10px; color: var(--silver-starlight); margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        .creation-area { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
         
-        .btn-add-item { background: var(--nebula-blue); color: #000; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-final-upload { width: 100%; background: var(--main-gold); color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; margin-top: 10px; }
+        .admin-input { width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #fff; border-radius: 5px; margin-bottom: 10px; box-sizing: border-box; }
+        
+        .btn-add-item { background: var(--nebula-blue); color: #000; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; transition:0.2s; }
+        .btn-add-item:hover { transform:scale(1.02); }
+        
+        .btn-final-upload { width: 100%; background: var(--silver-starlight); color: #000; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size:1.1rem; }
+        .btn-final-upload:hover { filter: brightness(1.1); }
+        
+        .portal-item-admin { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 10px; position: relative; border-left: 3px solid transparent; }
+        .portal-item-admin.mine { border-left-color: var(--nebula-blue); background: rgba(0, 243, 255, 0.05); }
+        .creator-tag { font-size: 0.7rem; color: #666; margin-left: 10px; }
 
-        .pending-list { margin-top: 15px; display: flex; flex-direction: column; gap: 5px; }
-        .pending-item { background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
-
-        /* 現有列表 */
-        .portal-list { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px; }
-        .portal-item-admin { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; position: relative; }
-        .portal-pw-tag { display: inline-block; background: var(--main-gold); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; }
-
-        @media (max-width: 600px) {
-            .form-row { flex-direction: column; }
-        }
     </style>
 </head>
 <body>
-
     <div class="stars-bg" id="starsBg"></div>
-
     <div class="header">
         <a href="index.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回大廳</a>
-        <div style="font-size:0.9rem; color:#aaa;">SYSTEM: ONLINE</div>
+        <div id="user-role-display" style="font-size:0.9rem; color:#aaa;">SYSTEM: ONLINE</div>
     </div>
 
     <div class="container">
-        
         <div class="page-title">
-            <h1>網址傳送門</h1>
+            <h1>星際傳送門</h1>
             <p>SECURE MULTI-LINK PORTAL</p>
         </div>
 
         <div class="glass-card access-zone">
             <h3 style="color:var(--nebula-blue); margin-bottom:20px;"><i class="fa-solid fa-key"></i> 提取資源</h3>
-            <p style="color:#aaa; margin-bottom:30px;">請輸入傳送密碼 (通關密語)</p>
-            
-            <div class="input-group">
-                <input type="text" id="accessCode" class="code-input" placeholder="例如：領取簡報" autocomplete="off">
-            </div>
-            
-            <button class="btn-retrieve" onclick="retrievePortal()">
-                <i class="fa-solid fa-rocket"></i> 開啟傳送門
-            </button>
-
+            <input type="text" id="accessCode" class="code-input" placeholder="輸入傳送密碼..." autocomplete="off">
+            <button class="btn-retrieve" onclick="retrievePortal()"><i class="fa-solid fa-rocket"></i> 開啟傳送門</button>
             <div id="result-list"></div>
         </div>
 
         <div class="glass-card" id="admin-panel">
-            <div class="admin-header">
-                <i class="fa-solid fa-user-shield"></i> 指揮官控制台
+            <div class="admin-header" id="panel-title">
+                <i class="fa-solid fa-user-astronaut"></i> 傳送門控制台
             </div>
 
             <div class="creation-area">
-                <h4 style="margin:0 0 10px 0; color:#ddd;">1. 設定傳送密碼</h4>
-                <input type="text" id="newPassword" class="admin-input" placeholder="密碼可以是中文、英文或數字 (例如: 秘密計畫A)">
+                <div style="color:#ddd; margin-bottom:5px;">1. 設定密碼</div>
+                <input type="text" id="newPassword" class="admin-input" placeholder="密碼 (中文/英文皆可)">
 
-                <h4 style="margin:15px 0 10px 0; color:#ddd;">2. 添加網址項目</h4>
-                <div class="form-row">
-                    <input type="text" id="itemNote" class="admin-input" placeholder="文字註記 (例如: 下載連結)">
-                    <input type="text" id="itemUrl" class="admin-input" placeholder="https://..." style="flex:2;">
-                    <button class="btn-add-item" onclick="addPendingItem()"><i class="fa-solid fa-plus"></i></button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 5px;">
+                    <div style="color:#ddd;">2. 新增連結</div>
+                    <button onclick="toggleBatchMode()" id="btnToggleBatch" style="background:none; border:none; color:var(--nebula-blue); cursor:pointer; font-size:0.9rem; transition:0.2s;">
+                        <i class="fa-solid fa-repeat"></i> 切換批量模式
+                    </button>
                 </div>
 
-                <div id="pendingList" class="pending-list"></div>
+                <div id="singleInputMode">
+                    <input type="text" id="itemNote" class="admin-input" placeholder="連結名稱 (例如: 下載點A)">
+                    <input type="text" id="itemUrl" class="admin-input" placeholder="https://...">
+                    <button class="btn-add-item" onclick="addPendingItem()"><i class="fa-solid fa-plus"></i> 加入清單</button>
+                </div>
 
-                <button class="btn-final-upload" onclick="uploadPortal()">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> 建立傳送門
-                </button>
+                <div id="batchInputMode" style="display:none;">
+                    <textarea id="batchText" class="admin-input" style="height:150px; line-height:1.5; resize:vertical;" 
+                        placeholder="每行一筆，支援格式：&#10;名稱,網址&#10;名稱 網址&#10;僅網址&#10;&#10;範例：&#10;Google,https://google.com&#10;Wiki https://wikipedia.org"></textarea>
+                    <button class="btn-add-item" onclick="addBatchItems()" style="background:var(--silver-starlight); color:#000;">
+                        <i class="fa-solid fa-layer-group"></i> 批量解析並加入
+                    </button>
+                </div>
+
+                <div id="pendingList" style="margin-top:10px; color:#aaa; font-size:0.9rem;"></div>
+                
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
+                
+                <button class="btn-final-upload" onclick="uploadPortal()"><i class="fa-solid fa-cloud-arrow-up"></i> 建立傳送門</button>
             </div>
 
-            <h4 style="color:#888; margin-top:30px;">現有運作中的傳送門</h4>
-            <div class="portal-list" id="portalList">
-                <div style="text-align:center; padding:20px; color:#666;">載入中...</div>
-            </div>
+            <h4 style="color:#888; margin-top:30px;">傳送門列表</h4>
+            <div id="portalList"></div>
         </div>
-
     </div>
 
     <script type="module">
@@ -184,15 +137,13 @@
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
             projectId: "yulubox",
             storageBucket: "yulubox.firebasestorage.app",
             messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
+            appId: "1:256466567852:web:233b74668908ffcb9b9509"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -200,215 +151,235 @@
         const db = getFirestore(app);
         const portalsRef = collection(db, "portals");
 
-        // 本地暫存的待上傳項目
         let pendingItems = [];
+        let currentUserEmail = "";
+        let currentUserRole = "member";
 
-        // 1. 權限檢查
+        // 權限驗證
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userDoc = await getDocs(query(collection(db, "users"), where("email", "==", user.email)));
-                let isAdmin = false;
-                userDoc.forEach(d => { if(d.data().role === 'admin') isAdmin = true; });
-                if (isAdmin) {
+                currentUserEmail = user.email;
+                const q = query(collection(db, "users"), where("email", "==", user.email));
+                const snap = await getDocs(q);
+                
+                snap.forEach(d => { currentUserRole = d.data().role || 'member'; });
+
+                if (currentUserRole === 'admin' || currentUserRole === 'silver') {
                     document.getElementById('admin-panel').style.display = 'block';
+                    
+                    const panelTitle = document.getElementById('panel-title');
+                    const uploadBtn = document.querySelector('.btn-final-upload');
+                    if(currentUserRole === 'admin') {
+                        panelTitle.innerHTML = '<i class="fa-solid fa-user-shield"></i> 指揮官控制台 (Gold)';
+                        panelTitle.style.color = 'var(--main-gold)';
+                        document.getElementById('admin-panel').style.borderColor = 'var(--main-gold)';
+                        uploadBtn.style.background = 'var(--main-gold)';
+                    } else {
+                        panelTitle.innerHTML = '<i class="fa-solid fa-user-astronaut"></i> 銀星控制台 (Silver)';
+                    }
                     loadAdminPortals();
                 }
             }
         });
 
-        // ================= 使用者邏輯 =================
-
+        // --- 使用者提取功能 ---
         window.retrievePortal = async () => {
             const code = document.getElementById('accessCode').value.trim();
             const listDiv = document.getElementById('result-list');
-            
-            if (!code) { alert("請輸入密碼！"); return; }
-            listDiv.style.display = 'none';
-            listDiv.innerHTML = '';
+            listDiv.innerHTML = ''; listDiv.style.display = 'none';
 
-            try {
-                const q = query(portalsRef, where("password", "==", code));
-                const snapshot = await getDocs(q);
+            if (!code) return alert("請輸入密碼");
 
-                if (snapshot.empty) {
-                    alert("找不到此密碼的傳送門，請確認輸入是否正確。");
-                    return;
-                }
+            const snap = await getDocs(query(portalsRef, where("password", "==", code)));
+            if (snap.empty) return alert("密碼錯誤或連結已失效");
 
-                listDiv.style.display = 'flex';
-                let found = false;
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // 相容性處理：如果舊資料只有單一 url，轉為陣列顯示
-                    let items = data.items || [];
-                    if(!data.items && data.url) {
-                        items.push({ note: "連結", url: data.url });
-                    }
-
-                    items.forEach((item, index) => {
-                        const uniqueId = `qr-${doc.id}-${index}`;
-                        const div = document.createElement('div');
-                        div.className = 'result-item';
-                        div.innerHTML = `
-                            <div class="item-note">
-                                <i class="fa-solid fa-quote-left" style="font-size:0.8rem; opacity:0.5;"></i> 
-                                ${item.note || '未命名連結'}
-                            </div>
+            listDiv.style.display = 'flex';
+            snap.forEach(doc => {
+                const data = doc.data();
+                const items = data.items || (data.url ? [{note:"連結", url:data.url}] : []);
+                
+                items.forEach((item, idx) => {
+                    const qrId = `qr-${doc.id}-${idx}`;
+                    listDiv.innerHTML += `
+                        <div class="result-item">
+                            <div class="item-note">${item.note}</div>
                             <div class="item-url">${item.url}</div>
                             <div class="item-actions">
-                                <a href="${item.url}" target="_blank" class="action-btn btn-go">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> 開啟
-                                </a>
-                                <button class="action-btn" onclick="navigator.clipboard.writeText('${item.url}').then(()=>alert('已複製'))">
-                                    <i class="fa-regular fa-copy"></i>
-                                </button>
-                                <button class="action-btn" onclick="toggleQR('${uniqueId}', '${item.url}')">
-                                    <i class="fa-solid fa-qrcode"></i> QR
-                                </button>
+                                <a href="${item.url}" target="_blank" class="action-btn btn-go"><i class="fa-solid fa-arrow-up-right-from-square"></i> 開啟</a>
+                                <button class="action-btn" onclick="toggleQR('${qrId}', '${item.url}')"><i class="fa-solid fa-qrcode"></i> QR</button>
                             </div>
-                            <div id="${uniqueId}" class="qr-area"></div>
-                        `;
-                        listDiv.appendChild(div);
-                    });
-                    found = true;
+                            <div id="${qrId}" class="qr-area"></div>
+                        </div>`;
                 });
+            });
+        };
 
-            } catch (error) {
-                console.error(error);
-                alert("讀取失敗，請重試");
+        window.toggleQR = (id, url) => {
+            const el = document.getElementById(id);
+            if(el.style.display === 'flex') { el.style.display = 'none'; }
+            else { 
+                el.style.display = 'flex'; el.innerHTML = '';
+                new QRCode(el, { text: url, width: 128, height: 128 });
             }
         };
 
-        window.toggleQR = (elementId, url) => {
-            const el = document.getElementById(elementId);
-            if (el.style.display === 'flex') {
-                el.style.display = 'none';
+        // --- 管理功能：單筆 / 批量 / 上傳 ---
+
+        window.toggleBatchMode = () => {
+            const single = document.getElementById('singleInputMode');
+            const batch = document.getElementById('batchInputMode');
+            const btn = document.getElementById('btnToggleBatch');
+            
+            if(single.style.display !== 'none') {
+                single.style.display = 'none';
+                batch.style.display = 'block';
+                btn.innerHTML = '<i class="fa-solid fa-pen"></i> 切換單筆模式';
             } else {
-                el.style.display = 'flex';
-                el.innerHTML = ''; // 清空避免重複
-                new QRCode(el, {
-                    text: url,
-                    width: 150, height: 150,
-                    colorDark : "#000000", colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
+                single.style.display = 'block';
+                batch.style.display = 'none';
+                btn.innerHTML = '<i class="fa-solid fa-repeat"></i> 切換批量模式';
             }
         };
 
-        // ================= 管理員邏輯 =================
-
-        // 暫存清單操作
+        // 單筆加入
         window.addPendingItem = () => {
             const note = document.getElementById('itemNote').value.trim();
             const url = document.getElementById('itemUrl').value.trim();
-            if(!url) return alert("請至少輸入網址");
-
-            pendingItems.push({ note, url });
-            renderPendingList();
-            
-            // 清空輸入框
-            document.getElementById('itemNote').value = '';
-            document.getElementById('itemUrl').value = '';
+            if(note && url) {
+                pendingItems.push({note, url});
+                document.getElementById('itemNote').value = '';
+                document.getElementById('itemUrl').value = '';
+                renderPending();
+            } else {
+                alert("請填寫名稱與網址");
+            }
         };
 
-        function renderPendingList() {
-            const container = document.getElementById('pendingList');
-            container.innerHTML = '';
-            pendingItems.forEach((item, idx) => {
-                container.innerHTML += `
-                    <div class="pending-item">
-                        <span><b>${item.note}</b> - ${item.url}</span>
-                        <i class="fa-solid fa-xmark" style="cursor:pointer; color:#ff4757;" onclick="removePending(${idx})"></i>
-                    </div>
-                `;
+        // 批量加入 (解析器)
+        window.addBatchItems = () => {
+            const text = document.getElementById('batchText').value.trim();
+            if(!text) return alert("請輸入內容");
+            
+            const lines = text.split('\n');
+            let count = 0;
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if(!line) return;
+                
+                let note = "連結";
+                let url = line;
+                
+                // 簡易解析邏輯：優先找逗號，其次找空格
+                if(line.includes(',')) {
+                    const parts = line.split(',');
+                    note = parts[0].trim();
+                    url = parts.slice(1).join(',').trim();
+                } else if (line.match(/\s/)) { // 如果有空格
+                    // 假設格式：名稱 網址 (取第一個空格做分隔)
+                    const firstSpace = line.indexOf(' ');
+                    note = line.substring(0, firstSpace).trim();
+                    url = line.substring(firstSpace + 1).trim();
+                }
+                
+                // 簡易網址驗證 (有內容即可)
+                if(url) {
+                    pendingItems.push({note, url});
+                    count++;
+                }
             });
+            
+            renderPending();
+            document.getElementById('batchText').value = '';
+            alert(`已成功解析並加入 ${count} 筆連結！`);
+            toggleBatchMode(); // 切換回列表讓使用者確認
+        };
+
+        function renderPending() {
+            const div = document.getElementById('pendingList');
+            if(pendingItems.length === 0) {
+                div.innerHTML = '<div style="text-align:center; padding:10px;">尚未加入任何連結</div>';
+                return;
+            }
+            div.innerHTML = pendingItems.map((i, idx) => 
+                `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px dashed #444;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;">
+                        <b>${i.note}</b> <span style="color:#666;">${i.url}</span>
+                    </span>
+                    <span onclick="pendingItems.splice(${idx},1);renderPending()" style="color:#ff4757;cursor:pointer;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </span>
+                </div>`
+            ).join('');
         }
 
-        window.removePending = (idx) => {
-            pendingItems.splice(idx, 1);
-            renderPendingList();
-        };
-
-        // 上傳到 Firestore
         window.uploadPortal = async () => {
             const pw = document.getElementById('newPassword').value.trim();
             if(!pw) return alert("請設定傳送密碼");
             if(pendingItems.length === 0) return alert("清單中沒有任何項目");
-
-            // 檢查密碼重複
+            
             const check = await getDocs(query(portalsRef, where("password", "==", pw)));
-            if(!check.empty) return alert("此密碼已被使用！");
+            if(!check.empty) return alert("此密碼已被使用，請換一個");
 
             try {
                 await addDoc(portalsRef, {
-                    password: pw,
-                    items: pendingItems, // 存入陣列
-                    createdAt: new Date()
+                    password: pw, items: pendingItems,
+                    createdAt: new Date(),
+                    createdBy: currentUserEmail
                 });
-                alert("傳送門建立成功！");
-                // 重置
-                pendingItems = [];
-                renderPendingList();
-                document.getElementById('newPassword').value = '';
+                alert("建立成功！");
+                pendingItems = []; 
+                renderPending(); 
+                document.getElementById('newPassword').value='';
             } catch(e) {
-                alert("上傳失敗: " + e.message);
+                alert("上傳失敗：" + e.message);
             }
         };
 
-        // 監聽並顯示現有傳送門
         function loadAdminPortals() {
-            onSnapshot(query(portalsRef, orderBy("createdAt", "desc")), (snapshot) => {
-                const div = document.getElementById('portalList');
-                div.innerHTML = '';
-                if(snapshot.empty) { div.innerHTML = '<div style="text-align:center; color:#666;">無資料</div>'; return; }
+            onSnapshot(query(portalsRef, orderBy("createdAt", "desc")), (snap) => {
+                const list = document.getElementById('portalList');
+                list.innerHTML = '';
+                if(snap.empty) { list.innerHTML = '<div style="text-align:center;color:#666;padding:20px;">無資料</div>'; return; }
 
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const itemsCount = data.items ? data.items.length : 1;
+                snap.forEach(d => {
+                    const data = d.data();
+                    const isMine = data.createdBy === currentUserEmail;
+                    const canDelete = (currentUserRole === 'admin') || isMine;
+                    const mineClass = isMine ? 'mine' : '';
                     
-                    div.innerHTML += `
-                        <div class="portal-item-admin">
-                            <div style="display:flex; justify-content:space-between; align-items:start;">
-                                <div>
-                                    <span class="portal-pw-tag">${data.password}</span>
-                                    <span style="font-size:0.8rem; color:#888; margin-left:10px;">包含 ${itemsCount} 個連結</span>
-                                </div>
-                                <button onclick="deletePortal('${docSnap.id}')" style="background:none; border:none; color:#ff4757; cursor:pointer;">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                    const deleteBtn = canDelete ? 
+                        `<button onclick="deletePortal('${d.id}')" style="float:right;color:#ff4757;background:none;border:none;cursor:pointer;padding:5px;"><i class="fa-solid fa-trash"></i></button>` : '';
+
+                    list.innerHTML += `
+                        <div class="portal-item-admin ${mineClass}">
+                            ${deleteBtn}
+                            <div>
+                                <span style="background:#fff;color:#000;padding:2px 8px;border-radius:4px;font-weight:bold;">${data.password}</span>
+                                <span class="creator-tag">${data.createdBy || '未知'}</span>
                             </div>
-                            <div style="margin-top:5px; font-size:0.85rem; color:#aaa;">
+                            <div style="font-size:0.85rem; color:#aaa; margin-top:8px;">
                                 ${(data.items || []).map(i => `<div>• ${i.note}: ${i.url}</div>`).join('')}
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 });
             });
         }
 
         window.deletePortal = async (id) => {
-            if(confirm("確定要刪除此傳送門嗎？")) {
-                await deleteDoc(doc(db, "portals", id));
-            }
+            if(confirm("確定要刪除這組傳送門嗎？")) await deleteDoc(doc(db, "portals", id));
         };
 
         // 星空特效
-        (function createStars() {
-            const container = document.getElementById('starsBg');
-            for(let i=0; i<50; i++) {
+        (function(){
+            const bg = document.getElementById('starsBg');
+            for(let i=0;i<50;i++){
                 const s = document.createElement('div');
-                s.className = 'star';
-                s.style.left = Math.random()*100 + '%';
-                s.style.top = Math.random()*100 + '%';
-                const size = Math.random()*3 + 1;
-                s.style.width = size + 'px';
-                s.style.height = size + 'px';
-                s.style.animationDelay = Math.random()*3 + 's';
-                container.appendChild(s);
+                s.className='star'; s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*100+'%';
+                s.style.width=Math.random()*3+'px'; s.style.height=s.style.width;
+                bg.appendChild(s);
             }
         })();
-
     </script>
 </body>
 </html>

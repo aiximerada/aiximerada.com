@@ -68,3 +68,4 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 public/casino.html
+public/admin_members.html
