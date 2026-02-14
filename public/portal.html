@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>網址傳送門 - 玉露寶庫</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --main-gold: #FFD700;
+            --nebula-blue: #00f3ff;
+            --bg-dark: #050510;
+            --glass-panel: rgba(20, 20, 35, 0.7);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --neon-purple: #bc13fe;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; padding: 0;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- ✨ 星空背景特效 --- */
+        .stars-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%); }
+        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.8; animation: twinkle 3s infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+        /* --- 頂部導航 --- */
+        .header {
+            width: 100%; padding: 15px 20px;
+            background: rgba(5, 5, 16, 0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; position: sticky; top: 0; z-index: 50;
+        }
+        .back-btn { color: var(--nebula-blue); text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .back-btn:hover { text-shadow: 0 0 10px var(--nebula-blue); }
+
+        /* --- 主容器 --- */
+        .container {
+            width: 90%; max-width: 800px;
+            margin-top: 40px; margin-bottom: 60px;
+            display: flex; flex-direction: column; gap: 40px;
+        }
+
+        /* --- 標題區 --- */
+        .page-title { text-align: center; }
+        .page-title h1 { margin: 0; font-size: 2.5rem; background: linear-gradient(to right, #fff, var(--nebula-blue)); -webkit-background-clip: text; color: transparent; text-shadow: 0 0 20px rgba(0, 243, 255, 0.3); }
+        .page-title p { color: #888; letter-spacing: 2px; margin-top: 10px; }
+
+        /* --- 通用卡片樣式 --- */
+        .glass-card {
+            background: var(--glass-panel);
+            border: 1px solid var(--border-light);
+            border-radius: 20px; padding: 30px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: 0.3s;
+        }
+
+        /* --- 接收端 (User) --- */
+        .access-zone { text-align: center; }
+        .input-group { position: relative; max-width: 400px; margin: 0 auto; }
+        .code-input {
+            width: 100%; padding: 15px 20px; font-size: 1.2rem; text-align: center;
+            background: rgba(0,0,0,0.3); border: 2px solid var(--border-light); border-radius: 50px;
+            color: #fff; letter-spacing: 2px; outline: none; transition: 0.3s;
+        }
+        .code-input:focus { border-color: var(--nebula-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
+        
+        .btn-retrieve {
+            margin-top: 20px; padding: 12px 40px; border-radius: 50px; border: none;
+            background: linear-gradient(135deg, var(--nebula-blue), var(--neon-purple));
+            color: #fff; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(188, 19, 254, 0.3); transition: 0.3s;
+        }
+        .btn-retrieve:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(188, 19, 254, 0.5); }
+
+        /* --- 結果顯示區 --- */
+        #result-area {
+            display: none; /* 預設隱藏 */
+            margin-top: 30px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 30px;
+            flex-direction: column; align-items: center; gap: 20px; animation: slideDown 0.5s ease;
+        }
+        @keyframes slideDown { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
+
+        .qr-frame {
+            padding: 15px; background: #fff; border-radius: 10px;
+            box-shadow: 0 0 20px var(--nebula-blue);
+        }
+        .link-actions { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        .action-btn {
+            padding: 10px 25px; border-radius: 8px; text-decoration: none; font-weight: bold;
+            display: flex; align-items: center; gap: 8px; transition: 0.2s; border: 1px solid transparent;
+        }
+        .btn-go { background: var(--nebula-blue); color: #000; }
+        .btn-go:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+        .btn-copy { background: transparent; border-color: #fff; color: #fff; cursor: pointer; }
+        .btn-copy:hover { background: rgba(255,255,255,0.1); }
+
+        /* --- 管理端 (Admin) --- */
+        #admin-panel { display: none; border: 1px solid var(--main-gold); }
+        .admin-header { display: flex; align-items: center; gap: 10px; color: var(--main-gold); margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; }
+        
+        .upload-form { display: grid; gap: 15px; margin-bottom: 30px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .admin-input {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.4);
+            border: 1px solid #444; border-radius: 8px; color: #fff; box-sizing: border-box;
+        }
+        .admin-input:focus { border-color: var(--main-gold); outline: none; }
+        
+        .btn-upload {
+            background: var(--main-gold); color: #000; font-weight: bold; border: none; padding: 12px;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-upload:hover { background: #fff; box-shadow: 0 0 15px var(--main-gold); }
+
+        .portal-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .portal-item {
+            background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .portal-info { font-size: 0.9rem; color: #ccc; overflow: hidden; }
+        .portal-code { color: var(--main-gold); font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+        .btn-delete { color: #ff4757; background: none; border: 1px solid #ff4757; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        .btn-delete:hover { background: #ff4757; color: #fff; }
+
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars-bg" id="starsBg"></div>
+
+    <div class="header">
+        <a href="index.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回大廳</a>
+        <div style="font-size:0.9rem; color:#aaa;">SYSTEM: ONLINE</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="page-title">
+            <h1>網址傳送門</h1>
+            <p>SECURE URL PORTAL</p>
+        </div>
+
+        <div class="glass-card access-zone">
+            <h3 style="color:var(--nebula-blue); margin-bottom:20px;"><i class="fa-solid fa-unlock-keyhole"></i> 提取通道</h3>
+            <p style="color:#aaa; margin-bottom:30px;">請輸入接收到的傳送密碼以開啟連結</p>
+            
+            <div class="input-group">
+                <input type="text" id="accessCode" class="code-input" placeholder="輸入傳送密碼" autocomplete="off">
+            </div>
+            
+            <button class="btn-retrieve" onclick="retrievePortal()">
+                <i class="fa-solid fa-bolt"></i> 開啟傳送門
+            </button>
+
+            <div id="result-area">
+                <div style="color:#fff; font-size:1.1rem; margin-bottom:10px;">傳送門已開啟！</div>
+                
+                <div id="qrcode" class="qr-frame"></div>
+                
+                <div class="link-actions">
+                    <a href="#" id="directLink" target="_blank" class="action-btn btn-go">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> 直接前往
+                    </a>
+                    <button class="action-btn btn-copy" onclick="copyUrl()">
+                        <i class="fa-regular fa-copy"></i> 複製連結
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card" id="admin-panel">
+            <div class="admin-header">
+                <i class="fa-solid fa-user-shield"></i> 指揮官控制台
+            </div>
+
+            <div class="upload-form">
+                <input type="text" id="newUrl" class="admin-input" placeholder="https://..." style="width:100%;">
+                <div class="form-row">
+                    <input type="text" id="newCode" class="admin-input" placeholder="設定提取密碼 (例如: 8888)">
+                    <button class="btn-upload" onclick="createPortal()">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 建立傳送門
+                    </button>
+                </div>
+            </div>
+
+            <h4 style="border-bottom:1px solid #444; padding-bottom:10px; color:#888;">現有傳送點</h4>
+            <div class="portal-list" id="portalList">
+                <div style="text-align:center; color:#666; padding:20px;">載入中...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase 配置 (與您其他檔案一致)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const portalsRef = collection(db, "portals");
+
+        let currentUrl = ""; // 暫存查詢到的網址
+
+        // 1. 權限檢查：是否顯示管理員面板
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 這裡簡單檢查是否登入，嚴謹一點可以檢查 user.uid 是否在 users 集合中 role 為 admin
+                // 為了方便，假設登入即顯示 (或配合您 admin_members 的邏輯)
+                // 查詢使用者權限
+                const userDoc = await getDocs(query(collection(db, "users"), where("email", "==", user.email)));
+                let isAdmin = false;
+                userDoc.forEach(d => { if(d.data().role === 'admin') isAdmin = true; });
+
+                if (isAdmin) {
+                    document.getElementById('admin-panel').style.display = 'block';
+                    loadPortals(); // 載入列表
+                }
+            }
+        });
+
+        // 2. 使用者功能：提取網址
+        window.retrievePortal = async () => {
+            const code = document.getElementById('accessCode').value.trim();
+            const resultArea = document.getElementById('result-area');
+            const qrContainer = document.getElementById('qrcode');
+            const directLink = document.getElementById('directLink');
+
+            if (!code) { alert("請輸入密碼！"); return; }
+
+            // 重置介面
+            resultArea.style.display = 'none';
+            qrContainer.innerHTML = '';
+
+            try {
+                // 查詢 Firestore (假設密碼是唯一的)
+                const q = query(portalsRef, where("password", "==", code));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    alert("無效的傳送密碼，或是該傳送門已關閉。");
+                    return;
+                }
+
+                // 取得第一筆符合的資料
+                let targetUrl = "";
+                querySnapshot.forEach((doc) => {
+                    targetUrl = doc.data().url;
+                });
+
+                if (!targetUrl) return;
+
+                // 顯示結果
+                currentUrl = targetUrl;
+                resultArea.style.display = 'flex';
+                directLink.href = targetUrl;
+
+                // 生成 QR Code
+                new QRCode(qrContainer, {
+                    text: targetUrl,
+                    width: 150,
+                    height: 150,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+            } catch (error) {
+                console.error("Error retrieving portal:", error);
+                alert("系統連線錯誤，請稍後再試。");
+            }
+        };
+
+        window.copyUrl = () => {
+            if(currentUrl) {
+                navigator.clipboard.writeText(currentUrl).then(() => alert("連結已複製！"));
+            }
+        };
+
+        // 3. 管理員功能：建立傳送門
+        window.createPortal = async () => {
+            const url = document.getElementById('newUrl').value.trim();
+            const code = document.getElementById('newCode').value.trim();
+
+            if (!url || !code) { alert("請填寫網址與密碼！"); return; }
+
+            // 檢查密碼是否重複 (選用，避免撞號)
+            const q = query(portalsRef, where("password", "==", code));
+            const check = await getDocs(q);
+            if (!check.empty) { alert("此密碼已被使用，請換一個！"); return; }
+
+            try {
+                await addDoc(portalsRef, {
+                    url: url,
+                    password: code,
+                    createdAt: new Date()
+                });
+                
+                alert("傳送門建立成功！");
+                document.getElementById('newUrl').value = '';
+                document.getElementById('newCode').value = '';
+                // 列表會自動更新 (因為用了 onSnapshot)
+            } catch (e) {
+                console.error(e);
+                alert("建立失敗：" + e.message);
+            }
+        };
+
+        // 4. 管理員功能：載入列表
+        function loadPortals() {
+            const listContainer = document.getElementById('portalList');
+            
+            // 監聽資料庫變動
+            const q = query(portalsRef, orderBy("createdAt", "desc"));
+            onSnapshot(q, (snapshot) => {
+                listContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    listContainer.innerHTML = '<div style="text-align:center; color:#666;">目前沒有運作中的傳送門</div>';
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const item = document.createElement('div');
+                    item.className = 'portal-item';
+                    item.innerHTML = `
+                        <div class="portal-info">
+                            <div class="portal-code"><i class="fa-solid fa-key"></i> ${data.password}</div>
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;" title="${data.url}">${data.url}</div>
+                        </div>
+                        <button class="btn-delete" onclick="deletePortal('${docSnap.id}')">
+                            <i class="fa-solid fa-trash"></i> 刪除
+                        </button>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            });
+        }
+
+        // 5. 管理員功能：刪除
+        window.deletePortal = async (id) => {
+            if (confirm("確定要關閉這個傳送門嗎？使用者將無法再訪問。")) {
+                try {
+                    await deleteDoc(doc(db, "portals", id));
+                } catch (e) {
+                    alert("刪除失敗");
+                }
+            }
+        };
+
+        // 星空背景生成
+        (function createStars() {
+            const container = document.getElementById('starsBg');
+            for(let i=0; i<50; i++) {
+                const s = document.createElement('div');
+                s.className = 'star';
+                s.style.left = Math.random()*100 + '%';
+                s.style.top = Math.random()*100 + '%';
+                const size = Math.random()*3 + 1;
+                s.style.width = size + 'px';
+                s.style.height = size + 'px';
+                s.style.animationDelay = Math.random()*3 + 's';
+                container.appendChild(s);
+            }
+        })();
+
+    </script>
+</body>
+</html>
