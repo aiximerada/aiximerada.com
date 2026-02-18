@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漫畫搜圖 Pro (個人專用版)</title>
+    <style>
+        /* --- 變數定義 --- */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --card-color: #252525;
+            --text-main: #e0e0e0;
+            --text-sub: #a0a0a0;
+            --accent-color: #ff7043; /* 橘色主題 */
+            --accent-hover: #f4511e;
+            --border-color: #333;
+            --drop-active: rgba(255, 112, 67, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 { text-align: center; margin-bottom: 5px; font-weight: 300; }
+        .subtitle { text-align: center; color: var(--text-sub); font-size: 0.9em; margin-bottom: 20px; }
+
+        /* --- 拖曳上傳區 (Drop Zone) --- */
+        .drop-zone {
+            background-color: var(--surface-color);
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .drop-zone:hover { border-color: #666; background-color: #2a2a2a; }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent-color);
+            background-color: var(--drop-active);
+            transform: scale(1.01);
+        }
+
+        .drop-icon { font-size: 48px; color: #555; pointer-events: none; transition: color 0.3s; }
+        .drop-zone:hover .drop-icon { color: var(--accent-color); }
+
+        #fileInput { display: none; }
+
+        /* --- 狀態區 --- */
+        .status-area { text-align: center; min-height: 20px; margin-top: 10px; }
+        .loader {
+            display: none;
+            width: 24px; height: 24px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- 結果卡片 --- */
+        .result-card {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+        .result-card:hover { transform: translateY(-2px); border-color: #555; }
+
+        .image-box { width: 130px; min-width: 130px; background-color: #000; position: relative; }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        .info-box { flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+
+        .similarity-badge {
+            display: inline-block;
+            font-size: 12px; font-weight: bold;
+            color: var(--accent-color);
+            background: rgba(255, 112, 67, 0.1);
+            padding: 4px 8px; border-radius: 4px;
+            width: fit-content;
+        }
+
+        .clickable-text {
+            background-color: #2c2c2c; padding: 8px 12px; border-radius: 6px;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; user-select: none; transition: background 0.2s;
+        }
+        .clickable-text:hover { background-color: #383838; }
+        .clickable-text:active { transform: scale(0.98); }
+
+        .action-btn {
+            background-color: var(--accent-color); color: #121212;
+            text-decoration: none; padding: 10px; border-radius: 6px;
+            text-align: center; font-weight: bold; margin-top: auto;
+            transition: filter 0.2s;
+        }
+        .action-btn:hover { filter: brightness(1.1); }
+
+        /* --- Toast --- */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #4CAF50; color: #fff;
+            text-align: center; border-radius: 8px; padding: 12px; position: fixed;
+            bottom: 30px; left: 50%; transform: translateX(-50%); opacity: 0;
+            transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; font-weight: bold;
+        }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚀 極速搜圖</h2>
+    <div class="subtitle">拖曳圖片至下方即可開始搜尋</div>
+
+    <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📤</div>
+        <p>點擊選擇圖片，或將圖片拖曳至此</p>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">支援 JPG, PNG, WebP</div>
+        <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="status-area">
+        <div class="loader" id="loader"></div>
+        <div id="status-msg" style="color: #888; font-size: 0.9em;"></div>
+    </div>
+
+    <div id="resultsArea"></div>
+</div>
+
+<div id="toast">✅ 已複製到剪貼簿！</div>
+
+<script>
+    // ==========================================
+    // 🔧 設定區：你的 API Key 已填入
+    // ==========================================
+    const MY_API_KEY = '95cf06fea89fd89f4c2c38e04d329e0300a828e4'; 
+    // ==========================================
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    // 點擊 Drop Zone 觸發 Input
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // 監聽 Input 變更
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFile(e.target.files[0]);
+    });
+
+    // 拖曳事件
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+    });
+
+    async function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('請上傳圖片檔案！');
+            return;
+        }
+
+        if (MY_API_KEY === '在此填入你的Key' || MY_API_KEY === '') {
+            alert('API Key 尚未設定！');
+            return;
+        }
+
+        const statusMsg = document.getElementById('status-msg');
+        const loader = document.getElementById('loader');
+        const resultsArea = document.getElementById('resultsArea');
+        
+        resultsArea.innerHTML = '';
+        loader.style.display = 'block';
+        statusMsg.innerText = '正在處理圖片...';
+
+        try {
+            const compressedData = await compressImage(file);
+            statusMsg.innerText = `搜尋中...`;
+
+            await searchImage(compressedData.blob);
+            
+            loader.style.display = 'none';
+            statusMsg.innerText = '搜尋完成';
+        } catch (err) {
+            console.error(err);
+            loader.style.display = 'none';
+            statusMsg.innerText = '錯誤: ' + err.message;
+        }
+    }
+
+    // 圖片壓縮
+    function compressImage(file, maxWidth = 1000, quality = 0.85) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > maxWidth) { h *= maxWidth / w; w = maxWidth; } }
+                    else { if (h > maxWidth) { w *= maxWidth / h; h = maxWidth; } }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => resolve({ blob: blob }), 'image/jpeg', quality);
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    }
+
+    // API 搜尋
+    async function searchImage(imageBlob) {
+        const formData = new FormData();
+        formData.append('file', imageBlob, 'search.jpg');
+        formData.append('api_key', MY_API_KEY); 
+        formData.append('db', 999);
+        formData.append('output_type', 2);
+        formData.append('numres', 6);
+
+        const proxyUrl = 'https://corsproxy.io/?'; 
+        const targetUrl = 'https://saucenao.com/search.php';
+
+        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('連線失敗');
+        const data = await response.json();
+        renderResults(data);
+    }
+
+    function renderResults(data) {
+        const resultsArea = document.getElementById('resultsArea');
+        
+        if (!data.results || data.results.length === 0) {
+            resultsArea.innerHTML = '<p style="text-align:center; color:#888;">找不到相似結果 🐢</p>';
+            return;
+        }
+
+        const validResults = data.results.filter(r => parseFloat(r.header.similarity) > 50);
+
+        if (validResults.length === 0) {
+             resultsArea.innerHTML = '<p style="text-align:center; color:#888;">相似度過低 🐢</p>';
+             return;
+        }
+
+        validResults.forEach(result => {
+            const content = result.data;
+            const header = result.header;
+            const title = content.title || content.jp_name || content.source || '無標題';
+            
+            let idInfo = '', idValue = '';
+            if (content.pixiv_id) { idInfo = `Pixiv ID: ${content.pixiv_id}`; idValue = content.pixiv_id; }
+            else if (content.member_name) { idInfo = `作者: ${content.member_name}`; idValue = content.member_name; }
+
+            const extUrl = content.ext_urls ? content.ext_urls[0] : '#';
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+                <div class="image-box"><img src="${header.thumbnail}"></div>
+                <div class="info-box">
+                    <div class="similarity-badge">相似度 ${header.similarity}%</div>
+                    <div class="clickable-text" onclick="copyToClipboard('${title.replace(/'/g, "\\'")}')">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:90%">${title}</span><span>📋</span>
+                    </div>
+                    ${idValue ? `<div class="clickable-text" onclick="copyToClipboard('${idValue}')"><span>${idInfo}</span><span>📋</span></div>` : ''}
+                    <a href="${extUrl}" target="_blank" class="action-btn">🚀 前往來源</a>
+                </div>
+            `;
+            resultsArea.appendChild(card);
+        });
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
+        });
+    }
+</script>
+
+</body>
+</html>
