@@ -81,7 +81,7 @@
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc, updateDoc, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // 🔥 設定您的 Firebase Config
         const firebaseConfig = {
@@ -116,36 +116,48 @@
             const [isEditing, setIsEditing] = useState(false);
             const [editId, setEditId] = useState(null);
             const [adminForm, setAdminForm] = useState({
-                projectName: '', // 新增專案名稱欄位
+                projectName: '', 
                 password: '',
                 items: [{ note: '', url: '' }]
             });
 
-            // 1. 初始化與權限驗證 (開放給未登入者)
+            // 1. 初始化與權限驗證 (完全移除匿名登入，避免報錯)
             useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
                         try {
-                            // 檢查是否為管理員
-                            const userDocSnap = await getDocs(query(collection(db, "users"), where("email", "==", currentUser.email)));
+                            // 透過 UID 讀取個人資料判定權限
+                            const userDocRef = doc(db, "users", currentUser.uid);
+                            const userDocSnap = await getDoc(userDocRef);
+                            
                             let role = 'member';
-                            userDocSnap.forEach(d => { role = d.data().role; });
-                            setIsAdmin(role === 'admin');
+                            if (userDocSnap.exists()) {
+                                role = userDocSnap.data().role;
+                            } else {
+                                // 備用方案
+                                const q = query(collection(db, "users"), where("email", "==", currentUser.email));
+                                const snap = await getDocs(q);
+                                snap.forEach(d => { role = d.data().role; });
+                            }
+                            
+                            // 同時開放 admin 和 silver 擁有管理權限
+                            setIsAdmin(role === 'admin' || role === 'silver');
                         } catch (error) {
-                            console.error("權限驗證失敗", error);
+                            console.error("權限驗證失敗：", error);
+                            setIsAdmin(false);
                         }
                     } else {
-                        // 未登入者直接設為 null，並關閉管理員權限
+                        // 🔥 關鍵修正：如果是未登入者，直接將狀態設為訪客，不要去呼叫 signInAnonymously()
                         setUser(null);
                         setIsAdmin(false);
                     }
-                    setLoading(false);
+                    setLoading(false); // 結束載入狀態
                 });
                 return () => unsubscribe();
             }, []);
 
-            // 2. 載入傳送門清單 (僅限管理員可以看到所有人建立的專案)
+            // 2. 載入傳送門清單 (僅限管理員)
             useEffect(() => {
                 if (!user || !isAdmin) return;
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'links'), orderBy('createdAt', 'desc'));
@@ -176,8 +188,8 @@
                         setAccessCode('');
                     }
                 } catch (error) {
-                    console.error(error);
-                    setRetrieveError("系統錯誤，請稍後再試。若您是未登入訪客，請確認資料庫允許公開讀取。");
+                    console.error("讀取錯誤：", error);
+                    setRetrieveError("系統讀取失敗。若您是訪客，請確認資料庫開放了讀取權限。");
                 }
             };
 
@@ -217,6 +229,7 @@
                 try {
                     setLoading(true);
                     
+                    // 檢查密碼是否重複
                     if (!isEditing) {
                         const checkQ = query(collection(db, 'artifacts', appId, 'public', 'data', 'links'), where("password", "==", adminForm.password.trim()));
                         const checkSnap = await getDocs(checkQ);
@@ -239,7 +252,7 @@
                     } else {
                         payload.createdAt = new Date().toISOString();
                         payload.authorId = user.uid;
-                        payload.authorEmail = user.email; // 紀錄是哪位管理員建立的
+                        payload.authorEmail = user.email;
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'links'), payload);
                         alert("專案建立成功！");
                     }
@@ -249,7 +262,7 @@
                     setEditId(null);
                 } catch (error) {
                     console.error(error);
-                    alert("儲存失敗");
+                    alert("儲存失敗，請檢查權限");
                 } finally {
                     setLoading(false);
                 }
@@ -278,6 +291,7 @@
                 }
             };
 
+            // 畫面載入中
             if (loading) {
                 return (
                     <div className="min-h-screen flex flex-col items-center justify-center">
@@ -287,6 +301,7 @@
                 );
             }
 
+            // 主畫面渲染
             return (
                 <div className="w-full max-w-5xl mx-auto px-4 py-8 md:py-12 relative z-10 flex flex-col items-center">
                     
