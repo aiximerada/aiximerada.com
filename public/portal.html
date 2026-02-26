@@ -80,7 +80,7 @@
 
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, deleteDoc, doc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // 🔥 設定您的 Firebase Config
@@ -116,16 +116,18 @@
             const [isEditing, setIsEditing] = useState(false);
             const [editId, setEditId] = useState(null);
             const [adminForm, setAdminForm] = useState({
+                projectName: '', // 新增專案名稱欄位
                 password: '',
                 items: [{ note: '', url: '' }]
             });
 
-            // 1. 初始化與權限驗證
+            // 1. 初始化與權限驗證 (開放給未登入者)
             useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
                         try {
+                            // 檢查是否為管理員
                             const userDocSnap = await getDocs(query(collection(db, "users"), where("email", "==", currentUser.email)));
                             let role = 'member';
                             userDocSnap.forEach(d => { role = d.data().role; });
@@ -134,22 +136,16 @@
                             console.error("權限驗證失敗", error);
                         }
                     } else {
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (error) {
-                            console.error("Auth Error:", error);
-                            if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
-                                alert("⚠️ 需要登入才能使用傳送門");
-                                window.location.href = "login.html";
-                            }
-                        }
+                        // 未登入者直接設為 null，並關閉管理員權限
+                        setUser(null);
+                        setIsAdmin(false);
                     }
                     setLoading(false);
                 });
                 return () => unsubscribe();
             }, []);
 
-            // 2. 載入管理員的傳送門清單 (僅限管理員)
+            // 2. 載入傳送門清單 (僅限管理員可以看到所有人建立的專案)
             useEffect(() => {
                 if (!user || !isAdmin) return;
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'links'), orderBy('createdAt', 'desc'));
@@ -160,7 +156,7 @@
                 return () => unsubscribe();
             }, [user, isAdmin]);
 
-            // --- 使用者操作邏輯 ---
+            // --- 使用者操作邏輯 (所有人皆可操作) ---
             const handleRetrieve = async (e) => {
                 e.preventDefault();
                 if (!accessCode.trim()) return;
@@ -169,6 +165,7 @@
                 setShowQRFor(null);
 
                 try {
+                    // 根據密碼搜尋對應的專案
                     const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'links'), where("password", "==", accessCode.trim()));
                     const snap = await getDocs(q);
                     
@@ -179,7 +176,8 @@
                         setAccessCode('');
                     }
                 } catch (error) {
-                    setRetrieveError("系統錯誤，請稍後再試");
+                    console.error(error);
+                    setRetrieveError("系統錯誤，請稍後再試。若您是未登入訪客，請確認資料庫允許公開讀取。");
                 }
             };
 
@@ -206,6 +204,7 @@
 
             const handleAdminSubmit = async (e) => {
                 e.preventDefault();
+                if (!adminForm.projectName.trim()) return alert("請輸入專案名稱");
                 if (!adminForm.password.trim()) return alert("請輸入提取密碼");
                 
                 const validItems = adminForm.items.filter(item => item.url.trim() !== '').map(item => ({
@@ -228,6 +227,7 @@
                     }
 
                     const payload = {
+                        projectName: adminForm.projectName.trim(),
                         password: adminForm.password.trim(),
                         items: validItems,
                         updatedAt: new Date().toISOString()
@@ -235,15 +235,16 @@
 
                     if (isEditing && editId) {
                         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'links', editId), payload);
-                        alert("傳送門已更新！");
+                        alert("專案已更新！");
                     } else {
                         payload.createdAt = new Date().toISOString();
                         payload.authorId = user.uid;
+                        payload.authorEmail = user.email; // 紀錄是哪位管理員建立的
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'links'), payload);
-                        alert("傳送門建立成功！");
+                        alert("專案建立成功！");
                     }
 
-                    setAdminForm({ password: '', items: [{ note: '', url: '' }] });
+                    setAdminForm({ projectName: '', password: '', items: [{ note: '', url: '' }] });
                     setIsEditing(false);
                     setEditId(null);
                 } catch (error) {
@@ -256,6 +257,7 @@
 
             const startEdit = (portal) => {
                 setAdminForm({
+                    projectName: portal.projectName || '',
                     password: portal.password,
                     items: portal.items.length > 0 ? portal.items : [{ note: '', url: '' }]
                 });
@@ -265,18 +267,18 @@
             };
 
             const cancelEdit = () => {
-                setAdminForm({ password: '', items: [{ note: '', url: '' }] });
+                setAdminForm({ projectName: '', password: '', items: [{ note: '', url: '' }] });
                 setIsEditing(false);
                 setEditId(null);
             };
 
             const handleDelete = async (id) => {
-                if (confirm("確定要徹底銷毀這個傳送門嗎？此操作無法復原。")) {
+                if (confirm("確定要徹底銷毀這個傳送門專案嗎？此操作無法復原。")) {
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'links', id));
                 }
             };
 
-            if (loading && !user) {
+            if (loading) {
                 return (
                     <div className="min-h-screen flex flex-col items-center justify-center">
                         <i className="fa-solid fa-circle-notch fa-spin text-4xl text-[#00f3ff] mb-4"></i>
@@ -290,13 +292,16 @@
                     
                     {/* Header */}
                     <div className="w-full flex justify-between items-center mb-10">
-                        <a href="vip_area.html" className="text-[#00f3ff] hover:text-white transition-colors font-bold flex items-center gap-2">
-                            <i className="fa-solid fa-chevron-left"></i> 返回星員區
+                        <a href={user ? "vip_area.html" : "index.html"} className="text-[#00f3ff] hover:text-white transition-colors font-bold flex items-center gap-2">
+                            <i className="fa-solid fa-chevron-left"></i> {user ? '返回星員區' : '返回首頁'}
                         </a>
                         <div className="text-right">
                             {isAdmin ? 
                                 <span className="bg-[#FFD700] text-black px-3 py-1 rounded-full text-xs font-bold"><i className="fa-solid fa-shield-halved"></i> 管理員模式</span> : 
-                                <span className="bg-[rgba(255,255,255,0.1)] text-gray-300 px-3 py-1 rounded-full text-xs font-bold"><i className="fa-solid fa-user-astronaut"></i> 一般星員</span>
+                                (user ? 
+                                    <span className="bg-[rgba(255,255,255,0.1)] text-gray-300 px-3 py-1 rounded-full text-xs font-bold"><i className="fa-solid fa-user-astronaut"></i> 一般星員</span> :
+                                    <span className="bg-gray-700 text-white px-3 py-1 rounded-full text-xs font-bold"><i className="fa-solid fa-user-secret"></i> 訪客</span>
+                                )
                             }
                         </div>
                     </div>
@@ -308,12 +313,12 @@
                         <p className="text-gray-400 tracking-widest text-sm md:text-base uppercase">Secure URL Portal System</p>
                     </div>
 
-                    {/* 提取區 (所有人都看得到) */}
+                    {/* 提取區 (所有人：包含訪客皆可使用) */}
                     <div className="glass-card w-full max-w-xl rounded-3xl p-8 mb-12 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00f3ff] to-transparent opacity-50"></div>
                         
                         <h2 className="text-2xl font-bold text-[#00f3ff] mb-6 flex items-center justify-center gap-3">
-                            <i className="fa-solid fa-unlock-keyhole"></i> 提取資源
+                            <i className="fa-solid fa-unlock-keyhole"></i> 提取專案資源
                         </h2>
                         
                         <form onSubmit={handleRetrieve} className="flex flex-col gap-4">
@@ -337,15 +342,20 @@
                         {/* 提取結果顯示 */}
                         {retrievedPortal && (
                             <div className="mt-8 pt-8 border-t border-[rgba(255,255,255,0.1)] animate-in fade-in slide-in-from-bottom-4">
-                                <div className="flex items-center justify-center gap-2 mb-6">
-                                    <span className="w-3 h-3 rounded-full bg-[#00ff9d] animate-ping"></span>
-                                    <h3 className="text-xl font-bold text-white">傳送門已開啟</h3>
+                                <div className="flex flex-col items-center justify-center gap-2 mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-[#00ff9d] animate-ping"></span>
+                                        <h3 className="text-xl font-bold text-[#00ff9d]">傳送門已開啟</h3>
+                                    </div>
+                                    <div className="text-2xl font-black text-[#FFD700] mt-2">
+                                        📁 {retrievedPortal.projectName || '未命名專案'}
+                                    </div>
                                 </div>
                                 
                                 <div className="space-y-4">
                                     {retrievedPortal.items.map((item, idx) => (
                                         <div key={idx} className="bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.1)] rounded-xl p-5 hover:border-[#00f3ff] transition-colors">
-                                            <div className="font-bold text-[#FFD700] text-lg mb-1">{item.note}</div>
+                                            <div className="font-bold text-white text-lg mb-1">{item.note}</div>
                                             <div className="text-gray-400 text-sm break-all mb-4">{item.url}</div>
                                             
                                             <div className="flex flex-wrap gap-3">
@@ -383,7 +393,7 @@
                         <div className="w-full">
                             <div className="flex items-center gap-4 mb-6 opacity-80">
                                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#FFD700]"></div>
-                                <h2 className="text-xl font-bold text-[#FFD700]"><i className="fa-solid fa-user-shield"></i> 指揮官控制台</h2>
+                                <h2 className="text-xl font-bold text-[#FFD700]"><i className="fa-solid fa-user-shield"></i> 管理員控制台</h2>
                                 <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#FFD700]"></div>
                             </div>
 
@@ -391,13 +401,25 @@
                                 {/* 左側：新增/編輯表單 */}
                                 <div className="glass-card rounded-3xl p-6 md:p-8 border-[#FFD700]">
                                     <h3 className="text-xl font-bold mb-6 text-white flex justify-between items-center">
-                                        <span>{isEditing ? '編輯傳送門' : '建立新傳送門'}</span>
+                                        <span>{isEditing ? '編輯專案' : '建立新專案'}</span>
                                         {isEditing && <button onClick={cancelEdit} className="text-sm bg-[rgba(255,255,255,0.1)] px-3 py-1 rounded-full text-gray-300 hover:text-white"><i className="fa-solid fa-xmark"></i> 取消</button>}
                                     </h3>
                                     
                                     <form onSubmit={handleAdminSubmit}>
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-bold text-[#FFD700] mb-2">1. 專案名稱</label>
+                                            <input 
+                                                type="text" 
+                                                required
+                                                placeholder="例：國小機器人營隊資料" 
+                                                value={adminForm.projectName}
+                                                onChange={(e) => setAdminForm({...adminForm, projectName: e.target.value})}
+                                                className="cyber-input w-full py-3 px-4 rounded-lg"
+                                            />
+                                        </div>
+
                                         <div className="mb-6">
-                                            <label className="block text-sm font-bold text-[#FFD700] mb-2">1. 設定提取密碼</label>
+                                            <label className="block text-sm font-bold text-[#FFD700] mb-2">2. 設定提取密碼</label>
                                             <input 
                                                 type="text" 
                                                 required
@@ -409,7 +431,7 @@
                                         </div>
 
                                         <div className="mb-6">
-                                            <label className="block text-sm font-bold text-[#FFD700] mb-2">2. 設定連結項目</label>
+                                            <label className="block text-sm font-bold text-[#FFD700] mb-2">3. 設定連結項目</label>
                                             
                                             <div className="space-y-4">
                                                 {adminForm.items.map((item, index) => (
@@ -446,7 +468,7 @@
                                         </div>
 
                                         <button type="submit" disabled={loading} className="w-full py-3 bg-[#FFD700] text-black font-black text-lg rounded-xl hover:shadow-[0_0_20px_rgba(255,215,0,0.5)] transition-all active:scale-95 disabled:opacity-50">
-                                            {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : (isEditing ? '儲存變更' : '發佈傳送門')}
+                                            {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : (isEditing ? '儲存變更' : '發佈專案')}
                                         </button>
                                     </form>
                                 </div>
@@ -454,7 +476,7 @@
                                 {/* 右側：現有清單 */}
                                 <div className="glass-card rounded-3xl p-6 md:p-8 flex flex-col max-h-[600px]">
                                     <h3 className="text-xl font-bold mb-4 text-white">
-                                        <i className="fa-solid fa-database text-[#00f3ff]"></i> 已建立的傳送門 ({portals.length})
+                                        <i className="fa-solid fa-database text-[#00f3ff]"></i> 已建立的專案 ({portals.length})
                                     </h3>
                                     
                                     <div className="overflow-y-auto pr-2 space-y-4 flex-1">
@@ -472,7 +494,9 @@
                                                         </button>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 mb-2">
+                                                    <div className="text-lg font-bold text-[#FFD700] mb-2 pr-16">{portal.projectName || '未命名專案'}</div>
+
+                                                    <div className="flex items-center gap-2 mb-3">
                                                         <i className="fa-solid fa-key text-gray-400 text-sm"></i>
                                                         <span className="font-mono bg-white text-black px-2 py-0.5 rounded font-bold">{portal.password}</span>
                                                     </div>
@@ -485,8 +509,11 @@
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <div className="text-xs text-gray-600 mt-3 text-right">
-                                                        {portal.updatedAt ? '更新於 ' : '建立於 '}{portal.updatedAt?.split('T')[0] || portal.createdAt?.split('T')[0]}
+                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-[rgba(255,255,255,0.05)]">
+                                                        <div className="text-xs text-gray-500"><i className="fa-solid fa-user"></i> {portal.authorEmail || '未知發佈者'}</div>
+                                                        <div className="text-xs text-gray-600">
+                                                            {portal.updatedAt ? '更新於 ' : '建立於 '}{portal.updatedAt?.split('T')[0] || portal.createdAt?.split('T')[0]}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))
