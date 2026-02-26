@@ -121,34 +121,41 @@
                 items: [{ note: '', url: '' }]
             });
 
-            // 1. 初始化與權限驗證 (完全移除匿名登入，避免報錯)
+            // 1. 初始化與權限驗證 (開放給未登入者)
             useEffect(() => {
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
                         try {
-                            // 透過 UID 讀取個人資料判定權限
-                            const userDocRef = doc(db, "users", currentUser.uid);
-                            const userDocSnap = await getDoc(userDocRef);
-                            
                             let role = 'member';
-                            if (userDocSnap.exists()) {
-                                role = userDocSnap.data().role;
-                            } else {
-                                // 備用方案
+                            
+                            // 🔥 關鍵修復：優先使用您的 Email 查詢方法，確保能撈到手動建立的會員資料
+                            try {
                                 const q = query(collection(db, "users"), where("email", "==", currentUser.email));
                                 const snap = await getDocs(q);
-                                snap.forEach(d => { role = d.data().role; });
+                                snap.forEach(d => { 
+                                    if (d.data().role) role = d.data().role; 
+                                });
+                            } catch (err) {
+                                console.warn("Email 查詢發生問題，嘗試 UID 查詢:", err);
+                                // 如果 Email 查詢失敗，再用 UID 當作備案
+                                const userDocRef = doc(db, "users", currentUser.uid);
+                                const userDocSnap = await getDoc(userDocRef);
+                                if (userDocSnap.exists() && userDocSnap.data().role) {
+                                    role = userDocSnap.data().role;
+                                }
                             }
                             
-                            // 同時開放 admin 和 silver 擁有管理權限
-                            setIsAdmin(role === 'admin' || role === 'silver');
+                            // 判定是否為管理員或銀星，強制轉小寫避免大小寫差異
+                            const roleLower = String(role).toLowerCase();
+                            setIsAdmin(roleLower === 'admin' || roleLower === 'silver');
+                            
                         } catch (error) {
-                            console.error("權限驗證失敗：", error);
+                            console.error("權限驗證發生不可預期的錯誤：", error);
                             setIsAdmin(false);
                         }
                     } else {
-                        // 🔥 關鍵修正：如果是未登入者，直接將狀態設為訪客，不要去呼叫 signInAnonymously()
+                        // 未登入者直接設為 null，並關閉管理員權限
                         setUser(null);
                         setIsAdmin(false);
                     }
@@ -157,7 +164,7 @@
                 return () => unsubscribe();
             }, []);
 
-            // 2. 載入傳送門清單 (僅限管理員)
+            // 2. 載入傳送門清單 (僅限管理員可以看到所有人建立的專案)
             useEffect(() => {
                 if (!user || !isAdmin) return;
                 const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'links'), orderBy('createdAt', 'desc'));
@@ -252,7 +259,7 @@
                     } else {
                         payload.createdAt = new Date().toISOString();
                         payload.authorId = user.uid;
-                        payload.authorEmail = user.email;
+                        payload.authorEmail = user.email; // 紀錄是哪位管理員建立的
                         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'links'), payload);
                         alert("專案建立成功！");
                     }
