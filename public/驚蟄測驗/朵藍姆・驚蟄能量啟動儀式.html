@@ -16,10 +16,10 @@
             font-family: 'Noto Serif TC', serif; 
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
-            background-color: #faf5ff; /* 改用單純背景色，減輕手機渲染負擔 */
+            background-color: #faf5ff; 
         }
 
-        /* 浮動特效 (僅保留在選擇區塊) */
+        /* 浮動特效 */
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
@@ -41,7 +41,6 @@
             100% { opacity: 1; transform: translateY(0); } 
         }
 
-        /* 確保截圖區域的樣式是最乾淨的，避免手機版出錯 */
         #capture-area {
             background-color: #ffffff;
             position: relative;
@@ -61,14 +60,14 @@
                 《 萬物復甦，你的內在力量正在啟動什麼？ 》
             </h2>
             
-            <div class="max-w-xl mx-auto bg-purple-50 py-8 px-5 rounded-3xl mt-8 border border-purple-100">
+            <div class="max-w-xl mx-auto bg-purple-50 py-8 px-5 rounded-3xl mt-8 border border-purple-100 transition-all duration-300" id="guide-box">
                 <p class="mb-5 text-gray-600 tracking-wider text-sm sm:text-base leading-relaxed">
                     今天，請給自己三分鐘。<br>深呼吸三次，將手放在心口，問自己：
                 </p>
                 <p class="text-xl sm:text-2xl font-bold text-purple-900 my-4 tracking-widest">
                     「此刻，我的內在力量<br class="block sm:hidden">正在啟動什麼？」
                 </p>
-                <p class="text-xs sm:text-sm text-purple-600 font-bold tracking-widest mt-5" id="guide-text">
+                <p class="text-xs sm:text-sm text-purple-600 font-bold tracking-widest mt-5 transition-colors" id="guide-text">
                     ✧ 憑直覺點擊一張圖騰，讓靈魂為你指引 ✧
                 </p>
             </div>
@@ -76,28 +75,28 @@
 
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-10" id="card-grid">
             <div class="totem-card floating delay-1 relative cursor-pointer transition-all duration-300" onclick="showResult('A', this, 'S__213467149_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467149_0.jpg" alt="圖騰 A" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467149_0.jpg" alt="圖騰 A" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
             <div class="totem-card floating delay-2 relative cursor-pointer transition-all duration-300" onclick="showResult('B', this, 'S__213467150_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467150_0.jpg" alt="圖騰 B" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467150_0.jpg" alt="圖騰 B" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
             <div class="totem-card floating delay-3 relative cursor-pointer transition-all duration-300" onclick="showResult('C', this, 'S__213467151_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467151_0.jpg" alt="圖騰 C" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467151_0.jpg" alt="圖騰 C" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
             <div class="totem-card floating delay-4 relative cursor-pointer transition-all duration-300" onclick="showResult('D', this, 'S__213467152_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467152_0.jpg" alt="圖騰 D" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467152_0.jpg" alt="圖騰 D" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
             <div class="totem-card floating delay-5 relative cursor-pointer transition-all duration-300" onclick="showResult('E', this, 'S__213467153_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467153_0.jpg" alt="圖騰 E" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467153_0.jpg" alt="圖騰 E" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
             <div class="totem-card floating delay-6 relative cursor-pointer transition-all duration-300" onclick="showResult('F', this, 'S__213467154_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50"><img src="S__213467154_0.jpg" alt="圖騰 F" class="w-full rounded-xl object-cover pointer-events-none"></div>
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467154_0.jpg" alt="圖騰 F" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
         </div>
 
         <div id="result-wrapper" class="hidden flex flex-col items-center w-full">
             
-            <div id="capture-area" class="w-full relative p-8 sm:p-10 rounded-3xl border border-amber-200 text-center mb-6">
+            <div id="capture-area" class="w-full relative p-8 sm:p-10 rounded-3xl border border-amber-200 text-center mb-6 shadow-sm">
                 <p class="text-xs text-purple-600 font-bold tracking-[0.2em] mb-6">✦ 朵藍姆・宇宙圖騰靈導員 ✦</p>
 
                 <div class="w-32 h-32 mx-auto mb-6 rounded-2xl p-2 bg-white shadow-sm border border-gray-100">
@@ -111,9 +110,15 @@
                 <p class="text-[11px] text-gray-400 mt-10 tracking-widest">萬物復甦，你醒在哪個維度？</p>
             </div>
 
-            <button id="generate-btn" onclick="generateImage()" class="w-full max-w-sm flex items-center justify-center gap-2 bg-purple-700 text-white px-6 py-4 rounded-full text-base font-bold tracking-widest hover:bg-purple-800 transition-all shadow-lg mt-2">
-                ✨ 製作專屬神諭圖卡分享
-            </button>
+            <div class="w-full max-w-sm flex flex-col gap-3 mt-2">
+                <button id="generate-btn" onclick="generateImage()" class="w-full flex items-center justify-center gap-2 bg-purple-700 text-white px-6 py-4 rounded-full text-base font-bold tracking-widest hover:bg-purple-800 transition-all shadow-lg">
+                    ✨ 製作專屬神諭圖卡分享
+                </button>
+                
+                <button onclick="resetDraw()" class="w-full flex items-center justify-center gap-2 bg-purple-50 text-purple-700 border border-purple-200 px-6 py-3.5 rounded-full text-sm font-bold tracking-widest hover:bg-purple-100 transition-all">
+                    ↺ 再抽一次
+                </button>
+            </div>
         </div>
     </div>
 
@@ -138,6 +143,10 @@
                 打開 LINE
             </a>
         </div>
+
+        <button onclick="resetDraw()" class="mt-10 text-gray-500 font-bold tracking-widest hover:text-purple-600 transition-colors underline underline-offset-4 text-sm">
+            ↺ 重新測驗
+        </button>
     </div>
 
     <script>
@@ -162,8 +171,13 @@
             const resultImg = document.getElementById('result-img');
             const allCards = document.querySelectorAll('.totem-card');
             
-            document.getElementById('guide-text').innerText = "✧ 這是靈魂給你的驚蟄指引 ✧";
+            // 改變指引文字狀態
+            const guideText = document.getElementById('guide-text');
+            guideText.innerText = "✧ 這是靈魂給你的驚蟄指引 ✧";
+            guideText.classList.replace('text-purple-600', 'text-amber-600');
+            document.getElementById('guide-box').classList.replace('bg-purple-50', 'bg-amber-50');
 
+            // 處理卡片鎖定狀態
             allCards.forEach(card => {
                 const innerDiv = card.querySelector('.card-inner');
                 card.style.animation = 'none'; 
@@ -171,7 +185,7 @@
 
                 if (card === selectedElement) {
                     card.classList.add('scale-105', 'z-20');
-                    innerDiv.className = 'card-inner bg-amber-50 p-2 rounded-2xl border-2 border-amber-400 shadow-lg';
+                    innerDiv.className = 'card-inner bg-amber-50 p-2 rounded-2xl border-2 border-amber-400 shadow-lg transition-all duration-300';
                 } else {
                     card.classList.add('opacity-40', 'scale-90', 'grayscale');
                 }
@@ -185,70 +199,98 @@
             wrapper.classList.add('reveal-anim');
 
             setTimeout(() => {
-                wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 300);
         }
 
-        // ================= 最穩定的手機截圖邏輯 =================
+        // ================= 新增：重置抽卡功能 =================
+        function resetDraw() {
+            hasSelected = false; // 解除鎖定
+
+            // 1. 還原頂部引導文字與背景
+            const guideText = document.getElementById('guide-text');
+            guideText.innerText = "✧ 憑直覺點擊一張圖騰，讓靈魂為你指引 ✧";
+            guideText.classList.replace('text-amber-600', 'text-purple-600');
+            document.getElementById('guide-box').classList.replace('bg-amber-50', 'bg-purple-50');
+
+            // 2. 還原所有卡片狀態
+            const allCards = document.querySelectorAll('.totem-card');
+            allCards.forEach(card => {
+                const innerDiv = card.querySelector('.card-inner');
+                // 移除選中與未選中的特效
+                card.classList.remove('scale-105', 'z-20', 'opacity-40', 'scale-90', 'grayscale');
+                // 恢復游標與浮動動畫
+                card.classList.add('cursor-pointer');
+                card.style.animation = ''; 
+                // 還原內部框線與背景
+                innerDiv.className = 'card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300';
+            });
+
+            // 3. 隱藏結果區塊
+            const wrapper = document.getElementById('result-wrapper');
+            wrapper.classList.add('hidden');
+            wrapper.classList.remove('reveal-anim');
+
+            // 4. 隱藏截圖分享區塊，並把主容器顯示回來（針對截圖後的重置）
+            document.getElementById('final-share-section').classList.add('hidden');
+            document.getElementById('main-content-container').style.display = 'block';
+
+            // 5. 平滑滾動回最上方
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ================= 截圖與生成圖片功能 =================
         async function generateImage() {
             const captureArea = document.getElementById('capture-area');
             const generateBtn = document.getElementById('generate-btn');
-            const originalText = generateBtn.innerText;
+            const originalText = generateBtn.innerHTML;
             
-            generateBtn.innerText = "✨ 正在為您合成圖片，請稍候...";
+            generateBtn.innerText = "✨ 正在合成圖片，請稍候...";
             generateBtn.classList.add('opacity-70', 'cursor-not-allowed');
 
             try {
-                // 確保截圖前視角回到最上方，避免 html2canvas 在手機上截到空白
                 window.scrollTo(0, 0);
 
-                // 使用 html2canvas 合成圖片
                 const canvas = await html2canvas(captureArea, {
-                    scale: 2, // 解析度放大 2 倍確保清晰度
+                    scale: 2, 
                     backgroundColor: "#ffffff",
                     useCORS: true, 
                     allowTaint: true
                 });
                 
-                // 將 Canvas 轉換為真實圖片的 Base64 網址
                 const imgData = canvas.toDataURL("image/png");
                 
-                // 1. 隱藏原本的排版區塊與整個主容器
                 document.getElementById('main-content-container').style.display = 'none';
+                document.getElementById('generated-final-image').src = imgData;
                 
-                // 2. 將合成好的圖片塞進新的顯示區域
-                const finalImg = document.getElementById('generated-final-image');
-                finalImg.src = imgData;
-                
-                // 3. 顯示「長按儲存與分享」的區塊
                 const finalSection = document.getElementById('final-share-section');
                 finalSection.classList.remove('hidden');
 
-                // 讓畫面滾動到最上方看清楚圖片
                 window.scrollTo(0, 0);
+                
+                // 復原按鈕文字，以防使用者按了「重置」後按鈕文字沒回來
+                generateBtn.innerHTML = originalText;
+                generateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
                 
             } catch (error) {
                 console.error('截圖失敗:', error);
-                alert('圖片合成失敗，可能是手機記憶體不足，請重新整理網頁再試一次。');
-                generateBtn.innerText = originalText;
+                alert('圖片合成失敗，請重新整理網頁再試一次。');
+                generateBtn.innerHTML = originalText;
                 generateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
             }
         }
 
-        // ================= App 喚醒防呆機制 =================
-        // 如果手機沒裝該 App，Url Scheme (如 instagram://) 會沒反應，所以用 JS 捕捉並提供備用網址
+        // ================= App 喚醒功能 =================
         function openApp(event) {
             event.preventDefault();
             const target = event.currentTarget;
             const appUrl = target.getAttribute('href');
             const fallbackUrl = target.getAttribute('fallback-href');
 
-            // 嘗試打開 App
             window.location.href = appUrl;
 
-            // 如果 1.5 秒後還留在原網頁，代表可能沒裝 App 或不支援，跳轉至網頁版
             setTimeout(() => {
-                if (document.hidden || document.webkitHidden) return; // 如果已經跳出去了就不做事
+                if (document.hidden || document.webkitHidden) return; 
                 window.open(fallbackUrl, '_blank');
             }, 1500);
         }
