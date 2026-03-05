@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>朵藍姆・驚蟄能量啟動儀式</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&display=swap');
         
@@ -14,6 +18,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* 動態流動背景 */
         .animated-bg {
             background: linear-gradient(-45deg, #f5f3ff, #ffffff, #fffbeb, #faf5ff);
             background-size: 400% 400%;
@@ -25,6 +30,7 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* 浮動特效 */
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-8px); }
@@ -38,6 +44,7 @@
         .delay-5 { animation-delay: 1.1s; }
         .delay-6 { animation-delay: 1.8s; }
 
+        /* 出現特效 */
         .reveal-anim { 
             animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
         }
@@ -46,6 +53,7 @@
             100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 
         }
 
+        /* 呼吸燈字體 */
         .pulse-text {
             animation: pulseText 2.5s infinite;
         }
@@ -54,123 +62,104 @@
             50% { opacity: 1; text-shadow: 0 0 8px rgba(167, 139, 250, 0.5); }
         }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e9d5ff; border-radius: 10px; }
+        /* 確保截圖時的排版穩定 */
+        #capture-area {
+            background-color: #ffffff; /* 必須是實色，否則截圖可能會變黑 */
+        }
     </style>
 </head>
 
-<body class="animated-bg min-h-screen py-8 md:py-16 px-4 sm:px-6 text-gray-800 selection:bg-purple-200 selection:text-purple-900 flex flex-col items-center">
+<body class="animated-bg min-h-screen py-8 md:py-12 px-4 sm:px-6 text-gray-800 flex flex-col items-center relative">
     
-    <div class="w-full max-w-4xl bg-white/70 backdrop-blur-xl p-6 sm:p-10 md:p-14 rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(100,50,150,0.15)] border border-white/80 relative z-10">
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-30 mix-blend-overlay" style="background-image: radial-gradient(#a855f7 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+    <div class="w-full max-w-3xl bg-white/70 backdrop-blur-xl p-6 sm:p-10 rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(100,50,150,0.15)] border border-white/80 relative z-10">
         
-        <header class="text-center mb-10 md:mb-14 space-y-6">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-900 via-purple-700 to-amber-600 mb-3 tracking-[0.1em] drop-shadow-sm leading-tight">
+        <header class="text-center mb-10 space-y-5">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-900 via-purple-700 to-amber-600 mb-2 tracking-[0.1em] drop-shadow-sm leading-tight">
                 朵藍姆・驚蟄能量<br class="block sm:hidden">啟動儀式
             </h1>
-            <h2 class="text-base sm:text-lg md:text-xl font-semibold text-amber-600/90 tracking-widest px-2">
+            <h2 class="text-base sm:text-lg font-semibold text-amber-600/90 tracking-widest px-2">
                 《 萬物復甦，你的內在力量正在啟動什麼？ 》
             </h2>
             
-            <div class="text-sm sm:text-base md:text-lg leading-loose text-gray-500/90 space-y-1 mt-6">
-                <p>春雷響起，不只是大地甦醒。</p>
-                <p>那一聲雷，同時震動了你靈魂深處的某一扇門。</p>
-            </div>
-            
-            <div class="max-w-xl mx-auto bg-gradient-to-b from-purple-50/80 to-transparent py-8 px-5 sm:px-8 rounded-3xl mt-8 md:mt-10 border border-purple-100/50 shadow-[inset_0_2px_10px_rgba(255,255,255,0.8)]" id="guide-box">
+            <div class="max-w-xl mx-auto bg-gradient-to-b from-purple-50/80 to-transparent py-8 px-5 rounded-3xl mt-8 border border-purple-100/50">
                 <p class="mb-5 text-gray-600 tracking-wider text-sm sm:text-base leading-relaxed">
                     今天，請給自己三分鐘。<br>深呼吸三次，將手放在心口，問自己：
                 </p>
-                <p class="text-xl sm:text-2xl font-bold text-purple-900 my-6 tracking-widest drop-shadow-sm">
+                <p class="text-xl sm:text-2xl font-bold text-purple-900 my-4 tracking-widest drop-shadow-sm">
                     「此刻，我的內在力量<br class="block sm:hidden">正在啟動什麼？」
                 </p>
-                <p class="text-xs sm:text-sm text-purple-500 font-bold tracking-widest mt-6 pulse-text" id="guide-text">
+                <p class="text-xs sm:text-sm text-purple-500 font-bold tracking-widest mt-5 pulse-text" id="guide-text">
                     ✧ 憑直覺點擊一張圖騰，讓靈魂為你指引 ✧
                 </p>
             </div>
         </header>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-12 md:mb-16 relative" id="card-grid">
-            <div class="totem-card floating delay-1 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('A', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-10 relative" id="card-grid">
+            <div class="totem-card floating delay-1 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('A', this, 'S__213467149_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467149_0.jpg" alt="圖騰 A" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
-            <div class="totem-card floating delay-2 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('B', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <div class="totem-card floating delay-2 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('B', this, 'S__213467150_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467150_0.jpg" alt="圖騰 B" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
-            <div class="totem-card floating delay-3 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('C', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <div class="totem-card floating delay-3 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('C', this, 'S__213467151_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467151_0.jpg" alt="圖騰 C" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
-            <div class="totem-card floating delay-4 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('D', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <div class="totem-card floating delay-4 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('D', this, 'S__213467152_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467152_0.jpg" alt="圖騰 D" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
-            <div class="totem-card floating delay-5 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('E', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <div class="totem-card floating delay-5 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('E', this, 'S__213467153_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467153_0.jpg" alt="圖騰 E" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
-            <div class="totem-card floating delay-6 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('F', this)">
-                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 group-hover:border-amber-300 group-hover:shadow-[0_0_25px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <div class="totem-card floating delay-6 relative group cursor-pointer transition-all duration-500 ease-out" onclick="showResult('F', this, 'S__213467154_0.jpg')">
+                <div class="card-inner bg-white/90 p-2 sm:p-3 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300">
                     <img src="S__213467154_0.jpg" alt="圖騰 F" class="w-full rounded-xl object-cover mix-blend-multiply pointer-events-none">
                 </div>
             </div>
         </div>
 
-        <div id="result-container" class="hidden mb-4">
-            <div class="relative bg-white/90 backdrop-blur-md p-8 sm:p-10 md:p-14 rounded-[2rem] border border-amber-200/60 shadow-[0_15px_40px_rgb(251,191,36,0.15)] text-center overflow-hidden">
-                <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-full h-40 bg-gradient-to-b from-amber-300/20 to-transparent blur-2xl rounded-full pointer-events-none"></div>
-                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-80"></div>
-                
-                <h3 id="result-title" class="text-xl sm:text-2xl md:text-3xl font-bold text-amber-700 mb-6 md:mb-8 tracking-widest relative z-10"></h3>
-                <div class="w-12 h-0.5 bg-amber-200 mx-auto mb-6 md:mb-8 rounded-full"></div>
-                <p id="result-text" class="text-base sm:text-lg md:text-xl text-gray-700 leading-[2.2] md:leading-[2.4] tracking-wider whitespace-pre-line relative z-10 font-medium"></p>
-                
-                <div class="mt-10 pt-8 border-t border-amber-100/60 relative z-10">
-                    <p class="text-sm md:text-base text-gray-500 font-medium tracking-widest mb-5">✨ 將這份靈魂指引分享出去 ✨</p>
-                    <div class="flex flex-wrap justify-center gap-3 md:gap-4">
-                        <button onclick="shareToFB()" class="flex items-center gap-2 bg-[#1877F2] text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#166FE5] transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                            Facebook
-                        </button>
-                        <button onclick="shareToLine()" class="flex items-center gap-2 bg-[#06C755] text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#05B34C] transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.93 8.846 9.475 9.61.37.078.871.242.997.558.113.284.073.729.034.935-.049.264-.326 1.953-.396 2.383-.119.742.545 1.054 1.157.697.643-.377 3.473-2.071 4.755-2.887 3.518-2.227 6.978-5.385 6.978-11.296z"/></svg>
-                            LINE
-                        </button>
-                        <button onclick="copyLink()" id="copyBtn" class="flex items-center gap-2 bg-gray-50 text-gray-700 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-100 border border-gray-200 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                            <span id="copyText">複製連結</span>
-                        </button>
-                    </div>
-                </div>
+        <div id="result-wrapper" class="hidden flex flex-col items-center w-full">
+            
+            <div id="capture-area" class="w-full relative bg-white p-8 sm:p-10 rounded-3xl border border-amber-200/60 shadow-[0_10px_30px_rgb(251,191,36,0.15)] text-center overflow-hidden mb-6">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+                <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-[150%] h-32 bg-amber-50/80 rounded-[100%] pointer-events-none"></div>
 
+                <p class="text-xs text-purple-500/80 font-bold tracking-[0.2em] mb-6 relative z-10">✦ 朵藍姆・宇宙圖騰靈導員 ✦</p>
+
+                <div class="w-32 h-32 sm:w-40 sm:h-40 mx-auto mb-6 relative z-10 rounded-2xl p-2 bg-white shadow-sm border border-gray-100">
+                    <img id="result-img" src="" alt="你的專屬圖騰" class="w-full h-full object-contain mix-blend-multiply rounded-xl">
+                </div>
+                
+                <h3 id="result-title" class="text-xl sm:text-2xl font-bold text-amber-700 mb-6 tracking-widest relative z-10"></h3>
+                <div class="w-8 h-0.5 bg-amber-300 mx-auto mb-6 rounded-full"></div>
+                <p id="result-text" class="text-base sm:text-lg text-gray-700 leading-[2.2] tracking-wider whitespace-pre-line relative z-10 font-medium"></p>
+                
+                <p class="text-[10px] text-gray-400 mt-10 tracking-widest">萬物復甦，你醒在哪個維度？</p>
             </div>
+
+            <button id="main-share-btn" onclick="captureAndShare()" class="w-full max-w-sm flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-4 rounded-full text-base font-bold tracking-widest hover:from-amber-600 hover:to-amber-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                <span id="share-btn-text">一鍵截圖並分享指引</span>
+            </button>
+            <p class="text-xs text-gray-400 mt-3 tracking-wider">自動生成專屬神諭圖卡 📱</p>
         </div>
 
-        <footer class="text-center space-y-4 pt-10 text-gray-500 text-xs sm:text-sm md:text-base">
-            <div class="inline-block px-4">
-                <p class="font-bold text-purple-900 text-base sm:text-lg mb-2 tracking-widest flex items-center justify-center gap-3">
-                    <span class="text-amber-500 text-sm">✦</span> 六道啟動之門 <span class="text-amber-500 text-sm">✦</span>
-                </p>
-                <p class="leading-relaxed mb-1">當你選擇圖騰的那一刻，不是你選它，而是那股力量選擇透過你顯化。</p>
-                <p class="leading-relaxed text-purple-400/80 font-medium">驚蟄不是驚嚇，是驚醒與啟動。</p>
-            </div>
-            
-            <div class="mt-8 pt-6">
-                <p class="font-bold text-purple-900/80 tracking-[0.2em] text-sm sm:text-base">朵藍姆・宇宙圖騰靈導員</p>
-                <p class="text-amber-600/70 mt-1 tracking-widest text-xs">讓覺醒成為日常</p>
-            </div>
+        <footer class="text-center pt-8 mt-6 text-gray-500 text-sm">
+            <p class="font-bold text-purple-900/60 tracking-[0.2em] text-sm">驚蟄不是驚嚇，是驚醒與啟動</p>
         </footer>
 
     </div>
-
-    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-40 mix-blend-overlay" style="background-image: radial-gradient(#a855f7 1px, transparent 1px); background-size: 40px 40px;"></div>
 
     <script>
         const data = {
@@ -182,101 +171,115 @@
             'F': { title: 'F｜🌬 落地的靈魂種子', text: '你有無限創意。\n但種子需要土地。\n選擇一個立足點，讓夢開始發芽。' }
         };
 
-        // 鎖定狀態變數
         let hasSelected = false;
 
-        function showResult(choice, selectedElement) {
-            // 如果已經選擇過，就直接中斷執行 (達到鎖定效果)
+        function showResult(choice, selectedElement, imgSrc) {
+            // 一期一會：鎖定不可更改
             if (hasSelected) return; 
             hasSelected = true;
 
-            const container = document.getElementById('result-container');
+            const wrapper = document.getElementById('result-wrapper');
             const titleElement = document.getElementById('result-title');
             const textElement = document.getElementById('result-text');
+            const resultImg = document.getElementById('result-img');
             const allCards = document.querySelectorAll('.totem-card');
             const guideText = document.getElementById('guide-text');
 
-            // 改變引導文字
             guideText.innerText = "✧ 這是靈魂給你的驚蟄指引 ✧";
             guideText.classList.remove('pulse-text');
 
-            // 處理所有卡片的狀態
+            // 處理卡片鎖定狀態視覺
             allCards.forEach(card => {
                 const innerDiv = card.querySelector('.card-inner');
-                card.style.animation = 'none'; // 停止浮動
-                
-                // 移除滑鼠游標指針與 hover 效果 (因為已經鎖定了)
+                card.style.animation = 'none'; 
                 card.classList.remove('cursor-pointer', 'group');
 
                 if (card === selectedElement) {
-                    // 選中的卡片放大、發光
                     card.classList.remove('opacity-40', 'scale-90');
                     card.classList.add('scale-105', 'z-20');
-                    innerDiv.className = 'card-inner bg-amber-50/70 p-2 sm:p-3 rounded-2xl border border-amber-300 ring-4 ring-amber-400 ring-offset-2 ring-offset-purple-50 shadow-2xl transition-all duration-500';
+                    innerDiv.className = 'card-inner bg-amber-50/70 p-2 sm:p-3 rounded-2xl border border-amber-300 ring-4 ring-amber-400 ring-offset-2 ring-offset-purple-50 shadow-xl transition-all duration-500';
                 } else {
-                    // 未選中的卡片變暗、變灰、縮小
                     card.classList.add('opacity-30', 'scale-90', 'grayscale');
-                    card.classList.remove('scale-105', 'z-20');
                     innerDiv.className = 'card-inner bg-white/90 p-2 sm:p-3 rounded-2xl border border-purple-50 shadow-sm transition-all duration-500';
                 }
             });
 
-            // 寫入結果資料
+            // 載入資料與對應圖片至截圖區塊
             titleElement.innerText = data[choice].title;
             textElement.innerText = data[choice].text;
+            resultImg.src = imgSrc; // 將被選中的圖片塞進結果卡片中
 
-            // 播放顯示動畫
-            container.classList.remove('hidden');
-            container.classList.remove('reveal-anim');
-            void container.offsetWidth; 
-            container.classList.add('reveal-anim');
+            // 顯示結果
+            wrapper.classList.remove('hidden');
+            wrapper.classList.add('reveal-anim');
 
-            // 平滑滾動至結果
+            // 自動平滑向下滾動
             setTimeout(() => {
-                const windowHeight = window.innerHeight;
-                const elementHeight = container.offsetHeight;
-                const yOffset = -(windowHeight / 2) + (elementHeight / 2) - 20; 
-                const y = container.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                
-                window.scrollTo({ top: y, behavior: 'smooth' });
+                wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         }
 
-        // ================= 社群分享功能 =================
-        
-        // 獲取當前網頁網址 (如果在本地測試會抓到 localhost，上線後會抓到正式網址)
-        function getShareUrl() {
-            return encodeURIComponent(window.location.href);
-        }
-
-        function shareToFB() {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${getShareUrl()}`, '_blank', 'width=600,height=400');
-        }
-
-        function shareToLine() {
-            window.open(`https://social-plugins.line.me/lineit/share?url=${getShareUrl()}`, '_blank');
-        }
-
-        function copyLink() {
-            const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                const copyTextSpan = document.getElementById('copyText');
-                const btn = document.getElementById('copyBtn');
+        // ================= 核心截圖與分享功能 =================
+        async function captureAndShare() {
+            const captureArea = document.getElementById('capture-area');
+            const shareBtnText = document.getElementById('share-btn-text');
+            const originalText = shareBtnText.innerText;
+            
+            // 提示正在處理
+            shareBtnText.innerText = "✨ 正在生成神諭卡...";
+            
+            try {
+                // 使用 html2canvas 截圖 (設定 scale 提高畫質，確保背景為純白)
+                const canvas = await html2canvas(captureArea, {
+                    scale: 2,
+                    backgroundColor: "#ffffff",
+                    useCORS: true // 確保可以正確處理圖片
+                });
                 
-                // 改變外觀提示已複製
-                copyTextSpan.innerText = '已複製！';
-                copyTextSpan.classList.add('text-green-600');
-                btn.classList.add('border-green-300', 'bg-green-50');
+                // 將 Canvas 轉換為圖片 Blob
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], '朵藍姆驚蟄指引.png', { type: 'image/png' });
+                    
+                    // 檢查瀏覽器是否支援「帶有圖片檔案」的原生分享 API (多數現代手機瀏覽器支援，但需在 HTTPS 環境)
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                title: '朵藍姆・驚蟄能量啟動',
+                                text: '這是我抽到的驚蟄指引！萬物復甦，你醒在哪個維度？',
+                                files: [file]
+                            });
+                            shareBtnText.innerText = "分享成功！";
+                        } catch (e) {
+                            console.log('使用者取消分享或分享失敗', e);
+                            shareBtnText.innerText = originalText;
+                        }
+                    } else {
+                        // 如果在電腦上，或是網頁沒有上線 (HTTP/Localhost)，則改為觸發「自動下載圖片」
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = '朵藍姆_驚蟄指引.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        alert('✨ 你的專屬指引圖片已下載完畢！\n你可以直接將它附加到 Facebook 或 LINE 的貼文中分享。');
+                        shareBtnText.innerText = "已下載圖片";
+                    }
+                    
+                    // 兩秒後按鈕文字復原
+                    setTimeout(() => {
+                        shareBtnText.innerText = originalText;
+                    }, 2000);
+
+                }, 'image/png');
                 
-                // 2 秒後恢復原狀
-                setTimeout(() => {
-                    copyTextSpan.innerText = '複製連結';
-                    copyTextSpan.classList.remove('text-green-600');
-                    btn.classList.remove('border-green-300', 'bg-green-50');
-                }, 2000);
-            }).catch(err => {
-                console.error('無法複製連結:', err);
-            });
+            } catch (error) {
+                console.error('截圖失敗:', error);
+                alert('抱歉，生成圖片時發生錯誤。請確保您已連上網路。');
+                shareBtnText.innerText = originalText;
+            }
         }
     </script>
 </body>
