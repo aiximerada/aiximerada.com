@@ -31,6 +31,45 @@ async function getUserProfile(userId) {
     } catch (e) { return "記帳員"; }
 }
 
+// 輔助函數：撈出紀錄並讓使用者選擇刪除
+async function fetchAndDeleteList(userId, scope, replyToken, userRef, groupId) {
+    const colName = scope === "group" ? "records_group" : "records_personal";
+    let query = db.collection(colName);
+    if (scope === "group") query = query.where("groupId", "==", groupId);
+    else query = query.where("userId", "==", userId);
+    
+    const snapshot = await query.orderBy("timestamp", "desc").limit(5).get();
+    
+    if (snapshot.empty) {
+        await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
+        await replyLineMessage(replyToken, [{ type: "text", text: "📭 您目前沒有任何紀錄可以刪除喔！" }]);
+        return;
+    }
+
+    let msg = "請選擇要刪除的紀錄編號：\n────────────────\n";
+    let candidates = [];
+    let quickReplies = [];
+
+    snapshot.forEach((doc, index) => {
+        const data = doc.data();
+        const typeStr = data.transactionType === "income" ? "📈 收入" : "📉 支出";
+        msg += `${index + 1}. [${data.category}] ${data.amount}元 (${typeStr})\n`;
+        candidates.push({ id: doc.id });
+        quickReplies.push({ type: "action", action: { type: "message", label: `${index + 1}`, text: `${index + 1}` } });
+    });
+    quickReplies.push({ type: "action", action: { type: "message", label: "取消", text: "取消" } });
+
+    await userRef.set({ 
+        state: "WAITING_DELETE_TARGET", 
+        tempRecord: { deleteCandidates: candidates, deleteScope: scope, deleteGroupId: groupId } 
+    }, { merge: true });
+
+    await replyLineMessage(replyToken, [{ type: "text", text: msg.trim(), quickReply: { items: quickReplies } }]);
+}
+
+// =====================================================================
+// 🤖 核心：LINE 機器人 Webhook 接收與處理
+// =====================================================================
 exports.lineWebhook = functions.https.onRequest(async (req, res) => {
     const events = req.body.events;
     if (!events || events.length === 0) return res.status(200).send("OK");
@@ -41,58 +80,110 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             const text = event.message.text.trim();
             const replyToken = event.replyToken;
 
-            // 1. 讀取使用者狀態 (加入防呆機制，若無資料則預設為 IDLE)
             const userRef = db.collection("users").doc(userId);
             const userDoc = await userRef.get();
             let userData = userDoc.exists ? userDoc.data() : { state: "IDLE" };
             let state = userData.state || "IDLE";
 
-            // ==========================================
-            // 【最高優先級】：全域指令與按鈕精確攔截
-            // ==========================================
-
+            // ---------------------------------------------------------
+            // 【最高優先級指令】
+            // ---------------------------------------------------------
             if (text === "取消") {
                 await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
                 await replyLineMessage(replyToken, [{ type: "text", text: "👌 已取消目前的動作。" }]);
                 continue;
             }
 
-            if (text.startsWith("創建群組")) {
-                const groupName = text.replace("創建群組", "").trim() || "未命名群組";
-                const inviteCode = Math.floor(100000 + Math.random() * 900000).toString();
-                await db.collection("groups").doc(inviteCode).set({
-                    name: groupName, owner: userId, members: [userId], createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-                await userRef.set({ groupId: inviteCode }, { merge: true });
-                await replyLineMessage(replyToken, [{ type: "text", text: `✅ 群組【${groupName}】創建成功！\n邀請碼：${inviteCode}` }]);
+            // 🌟 官網詢問指令
+            if (text === "官網" || text === "首頁" || text.toLowerCase() === "website") {
+                await replyLineMessage(replyToken, [{
+                    type: "text",
+                    text: `🌐 歡迎訪問玉露寶庫官方網站：\nhttps://aiximerada.com\n\n您可以在這裡體驗更完整的星際帳務與社群功能喔！✨`
+                }]);
                 continue;
             }
 
-            if (text.startsWith("加入群組")) {
-                const code = text.replace("加入群組", "").trim();
-                const groupRef = db.collection("groups").doc(code);
-                const groupDoc = await groupRef.get();
-                if (groupDoc.exists()) {
-                    await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion(userId) });
-                    await userRef.set({ groupId: code }, { merge: true });
-                    await replyLineMessage(replyToken, [{ type: "text", text: `🎉 成功加入群組【${groupDoc.data().name}】！` }]);
+            if (text === "看報表" || text === "報表") {
+                const reportUrl = `https://yulubox.web.app/帳務.html`;
+                await replyLineMessage(replyToken, [{
+                    type: "text",
+                    text: `📊 這是您的專屬帳務分析圖表：\n\n點擊下方連結立即查看：\n${reportUrl}`
+                }]);
+                continue;
+            }
+
+            if (text === "刪除" || text === "刪除紀錄") {
+                const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
+                if (!groupsSnap.empty) {
+                    await userRef.set({ state: "WAITING_DELETE_SCOPE" }, { merge: true });
+                    await replyLineMessage(replyToken, [{
+                        type: "text",
+                        text: "請問要刪除哪裡的紀錄？👇",
+                        quickReply: { items: [
+                            { type: "action", action: { type: "message", label: "🙋‍♂️ 個人", text: "刪除個人紀錄" } },
+                            { type: "action", action: { type: "message", label: "👥 群組", text: "刪除群組紀錄" } }
+                        ]}
+                    }]);
                 } else {
-                    await replyLineMessage(replyToken, [{ type: "text", text: "❌ 找不到該邀請碼。" }]);
+                    await fetchAndDeleteList(userId, "personal", replyToken, userRef, null);
                 }
                 continue;
             }
 
-            // 🌟 解決無限迴圈的關鍵：只要按了「個人/群組」按鈕，強制進入收支選擇，不再比對模糊字
+            // ---------------------------------------------------------
+            // 【狀態機：接續上一步驟】
+            // ---------------------------------------------------------
+            if (state === "WAITING_DELETE_SCOPE") {
+                if (text === "刪除個人紀錄") {
+                    await fetchAndDeleteList(userId, "personal", replyToken, userRef, null);
+                } else if (text === "刪除群組紀錄") {
+                    const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
+                    if(!groupsSnap.empty) {
+                        const groupId = groupsSnap.docs[0].id;
+                        await fetchAndDeleteList(userId, "group", replyToken, userRef, groupId);
+                    }
+                } else {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "⚠️ 請點擊下方按鈕選擇，或輸入「取消」" }]);
+                }
+                continue;
+            }
+
+            if (state === "WAITING_DELETE_TARGET") {
+                const idx = parseInt(text) - 1;
+                const candidates = userData.tempRecord?.deleteCandidates || [];
+                const scope = userData.tempRecord?.deleteScope;
+                
+                if (isNaN(idx) || idx < 0 || idx >= candidates.length) {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "⚠️ 請輸入正確的編號 (例如: 1) 或點擊「取消」" }]);
+                    continue;
+                }
+
+                const docId = candidates[idx].id;
+                const colName = scope === "group" ? "records_group" : "records_personal";
+                
+                await db.collection(colName).doc(docId).delete();
+                await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
+                await replyLineMessage(replyToken, [{ type: "text", text: `✅ 垃圾桶運作中！已成功為您刪除該筆紀錄。` }]);
+                continue;
+            }
+
+            // --- 記帳流程 ---
             if (text === "個人記帳" || text === "群組記帳") {
                 const isGroup = text === "群組記帳";
-                if (isGroup && !userData.groupId) {
-                    await replyLineMessage(replyToken, [{ type: "text", text: "⚠️ 您尚未加入群組，請先輸入「創建群組 (名稱)」。" }]);
-                    continue;
+                let groupId = null;
+
+                if (isGroup) {
+                    const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
+                    if (groupsSnap.empty) {
+                        await replyLineMessage(replyToken, [{ type: "text", text: "⚠️ 您目前沒有加入任何群組喔！請至「看報表」網頁中新增群組。" }]);
+                        continue;
+                    }
+                    groupId = groupsSnap.docs[0].id; 
                 }
 
                 await userRef.set({ 
                     state: "WAITING_TRANSACTION_TYPE",
-                    tempRecord: { account: isGroup ? "group" : "personal" }
+                    tempRecord: { account: isGroup ? "group" : "personal", targetGroupId: groupId }
                 }, { merge: true });
 
                 await replyLineMessage(replyToken, [{
@@ -107,10 +198,6 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 }]);
                 continue;
             }
-
-            // ==========================================
-            // 【狀態機】：依照上一個步驟的進度繼續
-            // ==========================================
 
             if (state === "WAITING_TRANSACTION_TYPE") {
                 if (text !== "支出" && text !== "收入") {
@@ -134,7 +221,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 await userRef.set({ state: "WAITING_CATEGORY", tempRecord: tempRecord }, { merge: true });
                 await replyLineMessage(replyToken, [{
                     type: "text",
-                    text: `您選擇了【${text}】\n請選擇資金${isIncome ? '來源' : '去向'}分類：`,
+                    text: `您選擇了【${text}】\n請選擇資金分類：`,
                     quickReply: { items: quickReplyItems }
                 }]);
                 continue;
@@ -205,7 +292,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 };
 
-                if (isGroup) finalData.groupId = userData.groupId;
+                if (isGroup) finalData.groupId = record.targetGroupId;
 
                 await db.collection(collectionName).add(finalData);
                 await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
@@ -213,7 +300,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 let successMsg = `✅ 記帳成功！\n────────────────\n`;
                 successMsg += `📒 帳本：${isGroup ? '群組共用' : '個人專屬'}\n`;
                 if (isGroup) successMsg += `👤 記錄人：${userName}\n`;
-                successMsg += `🔄 類型：${isIncome ? '📈 新增資金 (收入)' : '📉 扣除資金 (支出)'}\n`;
+                successMsg += `🔄 類型：${isIncome ? '📈 收入' : '📉 支出'}\n`;
                 successMsg += `🏷️ 分類：${record.category}\n`;
                 successMsg += `💵 金額：${record.amount} 元\n`;
                 if (note) successMsg += `📝 備註：${note}\n`;
@@ -222,12 +309,11 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 continue;
             }
 
-            // ==========================================
-            // 【最低優先級】：模糊觸發 (只有閒置時才觸發)
-            // ==========================================
-
+            // ---------------------------------------------------------
+            // 【模糊觸發：IDLE 狀態下偵測關鍵字】
+            // ---------------------------------------------------------
             if (state === "IDLE") {
-                const triggerWords = ["記", "帳", "賬", "報", "錢", "買", "支", "收", "資"];
+                const triggerWords = ["記", "帳", "賬", "錢", "買", "支", "收", "資"];
                 const isTypingAmount = !isNaN(parseInt(text[0]));
                 
                 if (triggerWords.some(w => text.includes(w)) || isTypingAmount) {
@@ -243,8 +329,101 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                     }]);
                 }
             }
-
         }
     }
     res.status(200).send("OK");
+});
+
+// =====================================================================
+// 🤖 定時任務：每月 1 號早上 9 點自動發送 LINE 月報表與年報表
+// =====================================================================
+exports.autoSendReports = functions.region("asia-east1").pubsub.schedule("0 9 1 * *").timeZone("Asia/Taipei").onRun(async (context) => {
+    try {
+        const today = new Date();
+        const isJan1st = (today.getMonth() === 0); // 判斷今天是不是 1 月，決定是否發年報表
+
+        // 計算「上個月」是哪一年、哪一月
+        const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const reportYear = lastMonthDate.getFullYear();
+        const reportMonth = lastMonthDate.getMonth() + 1;
+
+        const reportUrl = `https://yulubox.web.app/帳務.html`; 
+
+        // --- 1. 發送給「個人帳本」有開啟通知的用戶 ---
+        const usersSnap = await db.collection("users").get();
+        for (const userDoc of usersSnap.docs) {
+            const userData = userDoc.data();
+            const lineUserId = userData.lineUserId;
+            if (!lineUserId) continue;
+
+            let messages = [];
+
+            // 月報表
+            if (userData.monthReportNotify) {
+                messages.push({
+                    type: "text",
+                    text: `📊 【玉露寶庫】月報表通知\n\n上個月 (${reportYear}年${reportMonth}月) 的個人帳務結算已經完成囉！\n\n👉 點擊下方連結查看詳細收支與圖表分析：\n${reportUrl}`
+                });
+            }
+
+            // 年報表 (僅 1 月 1 日觸發)
+            if (isJan1st && userData.yearReportNotify) {
+                const lastYear = today.getFullYear() - 1;
+                messages.push({
+                    type: "text",
+                    text: `🎉 【玉露寶庫】年度總結報表\n\n${lastYear} 年辛苦了！您去年的年度財務總結已經出爐。\n\n👉 點擊下方連結回顧去年的財務點滴：\n${reportUrl}`
+                });
+            }
+
+            if (messages.length > 0) {
+                try {
+                    await axios.post('https://api.line.me/v2/bot/message/push', {
+                        to: lineUserId,
+                        messages: messages
+                    }, { headers: { 'Authorization': `Bearer ${LINE_TOKEN}` } });
+                } catch (err) { console.error("個人報表發送失敗:", err.message); }
+            }
+        }
+
+        // --- 2. 發送給「群組帳本」有開啟通知的成員 ---
+        const groupsSnap = await db.collection("groups").get();
+        for (const groupDoc of groupsSnap.docs) {
+            const groupData = groupDoc.data();
+            const members = groupData.members || [];
+            if (members.length === 0) continue;
+
+            let messages = [];
+
+            if (groupData.monthReportNotify) {
+                messages.push({
+                    type: "text",
+                    text: `📊 【${groupData.name}】群組月報表\n\n上個月 (${reportYear}年${reportMonth}月) 的群組公積金結算已完成！\n\n👉 點擊下方連結查看：\n${reportUrl}`
+                });
+            }
+
+            if (isJan1st && groupData.yearReportNotify) {
+                const lastYear = today.getFullYear() - 1;
+                messages.push({
+                    type: "text",
+                    text: `🎉 【${groupData.name}】年度總結\n\n${lastYear} 年的群組財務總結出爐囉！\n\n👉 點擊連結查看：\n${reportUrl}`
+                });
+            }
+
+            if (messages.length > 0) {
+                for (const memberLineId of members) {
+                    try {
+                        await axios.post('https://api.line.me/v2/bot/message/push', {
+                            to: memberLineId,
+                            messages: messages
+                        }, { headers: { 'Authorization': `Bearer ${LINE_TOKEN}` } });
+                    } catch (err) { console.error("群組報表發送失敗:", err.message); }
+                }
+            }
+        }
+        
+        console.log("✅ 報表自動派發任務執行完畢！");
+        return null;
+    } catch (error) {
+        console.error("執行定時任務發生錯誤:", error);
+    }
 });
