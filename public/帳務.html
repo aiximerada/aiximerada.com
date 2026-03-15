@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帳務</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa; }
+        .chart-container { width: 90%; max-width: 500px; margin: 50px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+    </style>
+</head>
+<body>
+
+    <div class="chart-container">
+        <h2>📊 帳務分析</h2>
+        <canvas id="expenseChart"></canvas>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // 🔴 您的專屬 Firebase 金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        // 初始化 Firebase 連線
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 1. 初始化空圖表 (Chart.js)
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        let expenseChart = new Chart(ctx, {
+            type: 'doughnut', 
+            data: {
+                labels: [], // 預計放「分類名稱」
+                datasets: [{
+                    label: '支出金額',
+                    data: [], // 預計放「分類的總金額」
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED'],
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true }
+        });
+
+        // 2. 即時監聽資料庫 (魔法在這裡 ✨)
+        // 條件：去「個人帳本」抓取「支出」的紀錄
+        const q = query(collection(db, "records_personal"), where("transactionType", "==", "expense"));
+        
+        onSnapshot(q, (snapshot) => {
+            const categoryTotals = {};
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const cat = data.category;
+                const amt = data.amount;
+
+                // 加總每個分類的金額
+                if (categoryTotals[cat]) {
+                    categoryTotals[cat] += amt;
+                } else {
+                    categoryTotals[cat] = amt;
+                }
+            });
+
+            // 3. 把計算好的資料餵給圖表，並呼叫 update() 重新渲染
+            expenseChart.data.labels = Object.keys(categoryTotals);
+            expenseChart.data.datasets[0].data = Object.values(categoryTotals);
+            expenseChart.update(); 
+            
+            console.log("圖表已即時更新！", categoryTotals);
+        });
+    </script>
+</body>
+</html>

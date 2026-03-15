@@ -6,8 +6,10 @@
     <title>登入 - 玉露寶庫</title>
     
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" type="image/png">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
     <style>
         :root {
             /* 🎨 星際奢華配色 */
@@ -16,6 +18,7 @@
             --deep-space: #0f172a;      
             --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
+            --line-green: #06C755; /* LINE 官方品牌綠 */
             --glass-bg: rgba(15, 23, 42, 0.75); 
             --glass-border: rgba(255, 255, 255, 0.1);
         }
@@ -31,21 +34,9 @@
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
         
-        .stars-distant {
-            background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
-            background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s;
-        }
-        
-        .stars-mid {
-            background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent);
-            background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse;
-        }
-        
-        .gold-twinklers {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
-            background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
-        }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s; }
+        .stars-mid { background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent); background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse; }
+        .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent); background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite; }
 
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
@@ -58,6 +49,7 @@
             backdrop-filter: blur(12px); text-align: center;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             animation: fadeIn 0.8s ease-out;
+            max-height: 90vh; overflow-y: auto;
         }
         @keyframes fadeIn { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
 
@@ -67,12 +59,7 @@
             display: flex; align-items: center; justify-content: center; gap: 15px;
         }
 
-        /* 🔵 藍色星星樣式 */
-        .title-star {
-            color: var(--nebula-blue); font-size: 1.2rem;
-            filter: drop-shadow(0 0 8px var(--nebula-blue));
-            animation: pulseStar 2s infinite alternate;
-        }
+        .title-star { color: var(--nebula-blue); font-size: 1.2rem; filter: drop-shadow(0 0 8px var(--nebula-blue)); animation: pulseStar 2s infinite alternate; }
         @keyframes pulseStar { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
 
         .input-group { position: relative; margin-bottom: 20px; }
@@ -89,17 +76,23 @@
         button {
             width: 100%; padding: 14px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
             color: #0f172a; border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
-            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px;
+            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px; display: flex; justify-content: center; align-items: center; gap: 10px;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
         
-        .register-btn {
-            background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px;
-        }
+        .register-btn { background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px; }
         .register-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 15px var(--nebula-blue); color: #fff; }
 
+        /* 🟢 LINE 登入按鈕專屬樣式 */
+        .line-btn { background: var(--line-green); color: #ffffff; margin-top: 15px; border: none; }
+        .line-btn:hover { background: #05A044; box-shadow: 0 10px 20px rgba(6, 199, 85, 0.3); color: #fff; }
+
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #64748b; font-size: 0.9rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #475569; }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+
         .error { color: var(--danger-red); font-size: 0.9rem; margin-top: 15px; min-height: 20px; font-weight: bold; }
-        
         .back-link { margin-top: 25px; display: block; font-size: 0.9rem; color: #64748b; text-decoration: none; transition: 0.3s; }
         .back-link:hover { color: #fff; }
 
@@ -131,11 +124,17 @@
         </div>
 
         <button onclick="handleLogin()">
-            <i class="fa-solid fa-right-to-bracket"></i> 登入
+            <i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入
         </button>
         
         <button class="register-btn" onclick="location.href='register.html'">
             <i class="fa-solid fa-user-plus"></i> 加入星員
+        </button>
+
+        <div class="divider">或</div>
+
+        <button class="line-btn" id="lineLoginBtn" onclick="handleLineLogin()">
+            <i class="fa-brands fa-line" style="font-size: 1.3rem;"></i> LINE 快速登入
         </button>
 
         <div class="error" id="errorMsg"></div>
@@ -149,6 +148,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // Firebase 初始化
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -158,10 +158,44 @@
             appId: "1:256466567852:web:233b74668908ffcb9b9509",
             measurementId: "G-YPCY41EKWX"
         };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // ==========================================
+        // 🌟 LINE LIFF 初始化設定
+        // ==========================================
+        const myLiffId = "2009464550-Odl0cheD"; // 您的專屬 LIFF ID
+
+        document.addEventListener("DOMContentLoaded", () => {
+            liff.init({ liffId: myLiffId })
+                .then(() => {
+                    // 如果一打開網頁發現已經用 LINE 登入過了，直接幫他跳轉到帳務頁面
+                    if (liff.isLoggedIn()) {
+                        window.location.href = "帳務.html"; 
+                    }
+                })
+                .catch((err) => {
+                    console.error("LIFF 初始化失敗:", err);
+                });
+        });
+
+        // 點擊 LINE 登入按鈕執行的動作
+        window.handleLineLogin = () => {
+            const btn = document.getElementById('lineLoginBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
+            
+            if (!liff.isLoggedIn()) {
+                // 如果沒登入，呼叫 LINE 登入畫面，並設定登入後跳轉回您的網域下的 帳務.html
+                const redirectUrl = window.location.origin + "/帳務.html";
+                liff.login({ redirectUri: redirectUrl });
+            } else {
+                window.location.href = "帳務.html";
+            }
+        };
+
+        // ==========================================
+        // 原本的 Email 登入功能 (保留不變)
+        // ==========================================
         window.handleLogin = () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -173,7 +207,6 @@
                 return;
             }
 
-            // 按鈕 Loading 狀態
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
             btn.disabled = true;
 
@@ -182,11 +215,9 @@
                     window.location.href = "vip_area.html";
                 })
                 .catch((error) => {
-                    // 還原按鈕
-                    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 登入';
+                    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入';
                     btn.disabled = false;
                     
-                    // 錯誤處理
                     if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                         errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
                     } else if (error.code === 'auth/too-many-requests') {
@@ -194,7 +225,6 @@
                     } else {
                         errorDiv.innerText = "系統錯誤：" + error.message;
                     }
-                    console.error(error);
                 });
         }
     </script>
