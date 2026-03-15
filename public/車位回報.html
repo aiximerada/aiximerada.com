@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>玉露寶庫 - 座標回報系統</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 10px; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)] text-white p-4 flex justify-center items-start">
+
+    <div id="root" class="w-full max-w-md mt-4 pb-10"></div>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect } = React;
+
+        // === 1. Firebase 初始化 (CDN 引入模式) ===
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js"; // 新增 Analytics
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // 你的專屬 Firebase 金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+        
+        // 初始化各項 Firebase 服務
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app); // 啟動流量分析
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const storage = getStorage(app);
+
+        // === 2. 核心 App 元件 ===
+        function App() {
+            const [currentTab, setCurrentTab] = useState('report');
+            const [user, setUser] = useState(null);
+
+            useEffect(() => {
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
+                return () => unsubscribe();
+            }, []);
+
+            return (
+                <div className="relative w-full">
+                    <div className="flex justify-center space-x-4 mb-6">
+                        <button onClick={() => setCurrentTab('report')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'report' ? 'bg-[#00f3ff] text-black shadow-[0_0_15px_rgba(0,243,255,0.6)]' : 'bg-white/10 text-gray-300'}`}>
+                            <i className="fa-solid fa-satellite-dish mr-2"></i>車位回報
+                        </button>
+                        <button onClick={() => setCurrentTab('admin')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'admin' ? 'bg-[#bc13fe] text-white shadow-[0_0_15px_rgba(188,19,254,0.6)]' : 'bg-white/10 text-gray-300'}`}>
+                            <i className="fa-solid fa-user-shield mr-2"></i>管理中心
+                        </button>
+                    </div>
+                    {currentTab === 'report' && <ReportForm db={db} storage={storage} />}
+                    {currentTab === 'admin' && <AdminPanel db={db} auth={auth} user={user} />}
+                </div>
+            );
+        }
+
+        // === 3. 車友回報表單元件 ===
+        function ReportForm({ db, storage }) {
+            const [formData, setFormData] = useState({ 
+                name: '', address: '', lat: '', lng: '', 
+                priceType: '免費', priceAmount: '',
+                gmap: '', amap: '', note: '', provider: '熱心車友' 
+            });
+            const [imageFile, setImageFile] = useState(null);
+            const [previewUrl, setPreviewUrl] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [msg, setMsg] = useState('');
+
+            const getLocation = () => {
+                if (!navigator.geolocation) return alert('瀏覽器不支援定位');
+                setMsg('🛰️ 正在掃描星系座標...');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        setFormData(prev => ({ ...prev, lat: pos.coords.latitude, lng: pos.coords.longitude }));
+                        setMsg('✅ 座標鎖定成功');
+                        setTimeout(() => setMsg(''), 2000);
+                    },
+                    (err) => { alert('無法取得座標，請確認已開啟定位權限。'); setMsg(''); }
+                );
+            };
+
+            const handleImageChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setImageFile(file);
+                setPreviewUrl(URL.createObjectURL(file));
+            };
+
+            const compressImage = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_SIZE = 800;
+                            let width = img.width; let height = img.height;
+                            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                            else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                            canvas.width = width; canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            canvas.toBlob((blob) => {
+                                if(!blob) return reject(new Error('壓縮失敗'));
+                                resolve(new File([blob], `parking_${Date.now()}.webp`, { type: 'image/webp' }));
+                            }, 'image/webp', 0.4);
+                        };
+                    };
+                    reader.onerror = error => reject(new Error('讀取失敗'));
+                });
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setMsg('🚀 正在啟動引擎傳輸資料...');
+                try {
+                    let finalImageUrl = "";
+                    if (imageFile) {
+                        setMsg('📦 正在壓縮並上傳影像資料...');
+                        const compressedFile = await compressImage(imageFile);
+                        const storageRef = ref(storage, `parking_images/${compressedFile.name}`);
+                        const uploadTask = await uploadBytesResumable(storageRef, compressedFile);
+                        finalImageUrl = await getDownloadURL(uploadTask.ref);
+                    }
+
+                    setMsg('💾 寫入玉露寶庫核心...');
+                    const finalPrice = formData.priceType === '免費' 
+                        ? '免費' 
+                        : (formData.priceAmount ? `${formData.priceType}：${formData.priceAmount}` : formData.priceType);
+
+                    await addDoc(collection(db, "parking_locations"), {
+                        name: formData.name,
+                        address: formData.address,
+                        lat: parseFloat(formData.lat) || 0,
+                        lng: parseFloat(formData.lng) || 0,
+                        price: finalPrice,
+                        gmap: formData.gmap,
+                        amap: formData.amap,
+                        note: formData.note,
+                        provider: formData.provider,
+                        image_url: finalImageUrl,
+                        status: "pending", 
+                        created_at: serverTimestamp()
+                    });
+                    
+                    setMsg('✨ 回報成功！已送交指揮中心審核。');
+                    setFormData({ name: '', address: '', lat: '', lng: '', priceType: '免費', priceAmount: '', gmap: '', amap: '', note: '', provider: '熱心車友' });
+                    setImageFile(null); setPreviewUrl('');
+                } catch (error) {
+                    console.error(error);
+                    setMsg('❌ 傳輸失敗：' + error.message);
+                }
+                setLoading(false);
+            };
+
+            return (
+                <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
+                    <div className="absolute top-[-50px] right-[-50px] w-32 h-32 bg-[#00f3ff]/20 rounded-full blur-3xl"></div>
+                    <h2 className="text-2xl font-bold mb-6 text-center tracking-wider text-[#00f3ff] drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]">
+                        新增車位情報
+                    </h2>
+                    
+                    <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">停車場名稱 *</label>
+                            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：羅東夜市機車格" />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">詳細地址 *</label>
+                            <input required type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
+                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="輸入完整地址" />
+                        </div>
+
+                        <div className="p-3 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
+                            <div className="text-xs text-gray-400">
+                                <div>緯度 Lat: <span className="text-[#FFD700]">{formData.lat || '未鎖定'}</span></div>
+                                <div>經度 Lng: <span className="text-[#FFD700]">{formData.lng || '未鎖定'}</span></div>
+                            </div>
+                            <button type="button" onClick={getLocation} className="px-3 py-2 bg-white/10 hover:bg-[#00f3ff]/20 text-[#00f3ff] rounded-lg border border-[#00f3ff]/50 transition-all text-sm flex items-center">
+                                <i className="fa-solid fa-crosshairs mr-2"></i>自動定位
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
+                            <div className="flex-1 flex flex-col">
+                                <label className="text-sm text-[#00f3ff] mb-1">收費方式</label>
+                                <select value={formData.priceType} onChange={e => setFormData({...formData, priceType: e.target.value})}
+                                    className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors appearance-none">
+                                    <option className="bg-[#090A0F]" value="免費">免費</option>
+                                    <option className="bg-[#090A0F]" value="計時">計時</option>
+                                    <option className="bg-[#090A0F]" value="計次">計次</option>
+                                    <option className="bg-[#090A0F]" value="其他">其他</option>
+                                </select>
+                            </div>
+                            
+                            {formData.priceType !== '免費' && (
+                                <div className="flex-1 flex flex-col">
+                                    <label className="text-sm text-[#00f3ff] mb-1">費率 / 金額區間</label>
+                                    <input type="text" value={formData.priceAmount} onChange={e => setFormData({...formData, priceAmount: e.target.value})}
+                                        className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：30元/H 或 20-50元" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">Google Maps 連結</label>
+                            <input type="url" value={formData.gmap} onChange={e => setFormData({...formData, gmap: e.target.value})}
+                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="貼上 Google Maps 分享網址" />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">Apple Maps 連結</label>
+                            <input type="url" value={formData.amap} onChange={e => setFormData({...formData, amap: e.target.value})}
+                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="貼上 Apple Maps 分享網址" />
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">實景照片 (門口或場內)</label>
+                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#00f3ff]/30 rounded-xl cursor-pointer hover:bg-[#00f3ff]/10 transition-all overflow-hidden relative">
+                                {previewUrl ? (
+                                    <img src={previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="預覽" />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center text-gray-400">
+                                        <i className="fa-solid fa-camera text-2xl mb-2 text-[#00f3ff]"></i>
+                                        <p className="text-sm">點擊上傳影像 (自動極致壓縮)</p>
+                                    </div>
+                                )}
+                                <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                            </label>
+                        </div>
+
+                        <div className="flex flex-col">
+                            <label className="text-sm text-[#00f3ff] mb-1">備註事項 (選填)</label>
+                            <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})}
+                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：有遮雨棚、斜坡陡" />
+                        </div>
+
+                        <div className="flex flex-col mt-4 pt-4 border-t border-white/10">
+                            <label className="text-sm text-gray-400 mb-1">提供者暱稱</label>
+                            <input type="text" value={formData.provider} onChange={e => setFormData({...formData, provider: e.target.value})}
+                                className="bg-transparent border-b border-[#00f3ff]/30 px-2 py-1 text-[#FFD700] focus:outline-none focus:border-[#bc13fe] text-right" />
+                        </div>
+                        
+                        {msg && <div className="text-center text-[#00ff9d] animate-pulse text-sm my-2">{msg}</div>}
+                        
+                        <button disabled={loading} type="submit" 
+                            className={`w-full py-4 mt-2 rounded-xl font-bold tracking-widest text-white transition-all shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:shadow-[0_0_25px_rgba(188,19,254,0.6)] ${loading ? 'bg-gray-600' : 'bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] hover:opacity-90'}`}>
+                            {loading ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : null}
+                            {loading ? '傳輸中...' : '提交回報'}
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        // === 4. 管理員後台元件 ===
+        function AdminPanel({ db, auth, user }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [pendingSpots, setPendingSpots] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            const fetchPendingSpots = async () => {
+                if (!user) return;
+                setLoading(true);
+                try {
+                    const q = query(collection(db, "parking_locations"), where("status", "==", "pending"));
+                    const querySnapshot = await getDocs(q);
+                    const spots = [];
+                    querySnapshot.forEach((doc) => spots.push({ id: doc.id, ...doc.data() }));
+                    setPendingSpots(spots);
+                } catch (error) { alert("讀取失敗，請確認權限！"); }
+                setLoading(false);
+            };
+
+            useEffect(() => { if(user) fetchPendingSpots(); }, [user]);
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                try { await signInWithEmailAndPassword(auth, email, password); } 
+                catch (error) { alert('登入失敗'); }
+            };
+
+            const handleApprove = async (id) => {
+                if(!window.confirm('確定要核准並上架嗎？')) return;
+                try {
+                    await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
+                    setPendingSpots(pendingSpots.filter(spot => spot.id !== id));
+                } catch (error) { alert('核准失敗：' + error.message); }
+            };
+
+            const handleReject = async (id) => {
+                if(!window.confirm('確定要刪除這筆回報嗎？')) return;
+                try {
+                    await deleteDoc(doc(db, "parking_locations", id));
+                    setPendingSpots(pendingSpots.filter(spot => spot.id !== id));
+                } catch (error) { alert('刪除失敗：' + error.message); }
+            };
+
+            if (!user) {
+                return (
+                    <div className="glass-panel rounded-2xl p-6">
+                        <h2 className="text-xl font-bold mb-4 text-[#bc13fe] text-center"><i className="fa-solid fa-lock mr-2"></i>指揮中心登入</h2>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <input type="email" placeholder="管理員信箱" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-3 text-white" />
+                            <input type="password" placeholder="密碼" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-3 text-white" />
+                            <button type="submit" className="w-full py-3 rounded-xl font-bold bg-[#bc13fe] text-white hover:bg-white hover:text-black transition-all">登入系統</button>
+                        </form>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="glass-panel rounded-2xl p-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-[#bc13fe]">待審核名單</h2>
+                        <button onClick={() => signOut(auth)} className="text-sm text-gray-400 hover:text-white border border-gray-500 px-3 py-1 rounded-lg">登出</button>
+                    </div>
+                    
+                    {loading ? <p className="text-center">讀取中...</p> : pendingSpots.length === 0 ? <p className="text-center text-gray-400 my-8">✅ 目前沒有待審核資料</p> : 
+                        <div className="space-y-4">
+                            {pendingSpots.map(spot => (
+                                <div key={spot.id} className="bg-black/40 border border-white/10 rounded-xl p-4 relative">
+                                    {spot.image_url && <img src={spot.image_url} alt="實景" className="w-full h-32 object-cover rounded-lg mb-3 border border-white/20" />}
+                                    <div className="text-lg font-bold text-[#FFD700] mb-1">{spot.name}</div>
+                                    <div className="text-sm text-gray-300 mb-1"><i className="fa-solid fa-location-dot mr-1"></i>{spot.address}</div>
+                                    <div className="text-sm text-gray-300 mb-1"><i className="fa-solid fa-coins mr-1"></i>{spot.price || '未提供'}</div>
+                                    <div className="text-xs text-gray-400 mb-3">
+                                        座標: {spot.lat}, {spot.lng}<br/>
+                                        備註: {spot.note || '無'} | 提供者: {spot.provider}
+                                    </div>
+                                    <div className="flex space-x-2">
+                                        <button onClick={() => handleApprove(spot.id)} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] border border-[#00ff9d]/50 py-2 rounded-lg hover:bg-[#00ff9d] hover:text-black transition-all"><i className="fa-solid fa-check mr-1"></i>核准上架</button>
+                                        <button onClick={() => handleReject(spot.id)} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] border border-[#ff4757]/50 py-2 rounded-lg hover:bg-[#ff4757] hover:text-white transition-all"><i className="fa-solid fa-trash mr-1"></i>退回刪除</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    }
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
