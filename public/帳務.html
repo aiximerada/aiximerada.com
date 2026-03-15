@@ -2,27 +2,154 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>帳務</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>專屬帳務分析 - 玉露寶庫</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa; }
-        .chart-container { width: 90%; max-width: 500px; margin: 50px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
+        :root {
+            /* 🎨 星際奢華配色 */
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --neon-green: #00ff9d;
+            
+            /* 玻璃擬態 */
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            min-height: 100vh; margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- 背景特效 (星空與流星) --- */
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; opacity: 0.5; animation: rotateSpace 240s linear infinite; }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent); background-size: 300px 300px; }
+        @keyframes rotateSpace { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* --- 頂部導覽列 --- */
+        .nav-bar {
+            width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; z-index: 10;
+        }
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2);
+            color: #94a3b8; padding: 10px 20px; border-radius: 30px; cursor: pointer;
+            transition: 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+            backdrop-filter: blur(5px);
+        }
+        .back-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: #fff; }
+
+        h1 { margin: 0; color: var(--main-gold); font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); display: flex; align-items: center; gap: 10px; }
+
+        /* --- 總覽數據卡片 --- */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; width: 100%; max-width: 900px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 25px; text-align: center;
+            backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card h3 { margin: 0 0 10px 0; color: #94a3b8; font-size: 1rem; letter-spacing: 1px; }
+        .stat-card .amount { font-size: 2.2rem; font-weight: 900; margin: 0; }
+        
+        .income-text { color: var(--neon-green); text-shadow: 0 0 15px rgba(0, 255, 157, 0.3); }
+        .expense-text { color: var(--danger-red); text-shadow: 0 0 15px rgba(255, 71, 87, 0.3); }
+        .balance-text { color: var(--nebula-blue); text-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
+
+        /* --- 圖表區域 --- */
+        .chart-section {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 30px; width: 100%; max-width: 900px;
+            backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: center;
+            box-sizing: border-box;
+        }
+        .chart-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .chart-header h2 { margin: 0; color: #fff; font-size: 1.3rem; }
+
+        /* 圖表容器 */
+        .canvas-container { position: relative; width: 100%; max-width: 450px; aspect-ratio: 1; display: flex; justify-content: center; align-items: center; }
+
+        /* ❌ 無資料提示狀態 */
+        .no-data-msg {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 15px; padding: 50px 20px; color: #64748b; text-align: center;
+        }
+        .no-data-msg i { font-size: 4rem; color: #334155; margin-bottom: 10px; }
+        .no-data-msg p { margin: 0; font-size: 1.1rem; }
+        .no-data-msg span { font-size: 0.9rem; color: #475569; }
+
     </style>
 </head>
 <body>
 
-    <div class="chart-container">
-        <h2>📊 帳務分析</h2>
-        <canvas id="expenseChart"></canvas>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+    </div>
+
+    <div class="nav-bar">
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 返回星員區</a>
+        <h1><i class="fa-solid fa-chart-pie"></i> 專屬帳務分析</h1>
+    </div>
+
+    <div id="loading-status" style="color: var(--main-gold); margin-top: 50px; font-size: 1.2rem; font-weight: bold;">
+        <i class="fa-solid fa-satellite-dish fa-spin"></i> 正在與資料庫連線中...
+    </div>
+
+    <div id="dashboard-content" style="display: none; width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="summary-grid">
+            <div class="stat-card">
+                <h3><i class="fa-solid fa-arrow-trend-down"></i> 本月總支出</h3>
+                <p class="amount expense-text" id="totalExpense">$ 0</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fa-solid fa-arrow-trend-up"></i> 本月總收入</h3>
+                <p class="amount income-text" id="totalIncome">$ 0</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fa-solid fa-scale-balanced"></i> 目前結餘</h3>
+                <p class="amount balance-text" id="netBalance">$ 0</p>
+            </div>
+        </div>
+
+        <div class="chart-section">
+            <div class="chart-header">
+                <h2><i class="fa-solid fa-list-ul"></i> 支出分類佔比</h2>
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="expenseChart" style="display: none;"></canvas>
+                
+                <div id="noDataUI" class="no-data-msg">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <p>目前暫時沒有記帳資料喔！</p>
+                    <span>請打開 LINE 機器人輸入「記帳」來新增第一筆紀錄</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔴 您的專屬 Firebase 金鑰
+        // Firebase 金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -33,53 +160,128 @@
             measurementId: "G-YPCY41EKWX"
         };
 
-        // 初始化 Firebase 連線
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 1. 初始化空圖表 (Chart.js)
+        // ==========================================
+        // 1. 驗證使用者身分
+        // ==========================================
+        const lineUserId = localStorage.getItem("lineUserId");
+
+        if (!lineUserId) {
+            // 如果沒抓到身分，代表他沒有從 vip_area 進來
+            document.getElementById('loading-status').innerHTML = "❌ 無法辨識身分。<br><br>請返回「星員區」並確保您已綁定 LINE 帳號。";
+        } else {
+            // 身分正確，顯示看板並開始抓資料
+            document.getElementById('loading-status').style.display = "none";
+            document.getElementById('dashboard-content').style.display = "flex";
+            loadFinanceData(lineUserId);
+        }
+
+        // ==========================================
+        // 2. 初始化 Chart.js (設定為暗黑星際模式)
+        // ==========================================
+        Chart.defaults.color = '#cbd5e1'; // 圖表文字顏色
+        Chart.defaults.font.family = "'Microsoft JhengHei', sans-serif";
+        
         const ctx = document.getElementById('expenseChart').getContext('2d');
         let expenseChart = new Chart(ctx, {
             type: 'doughnut', 
             data: {
-                labels: [], // 預計放「分類名稱」
+                labels: [],
                 datasets: [{
-                    label: '支出金額',
-                    data: [], // 預計放「分類的總金額」
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#E7E9ED'],
-                    borderWidth: 2
+                    data: [],
+                    backgroundColor: [
+                        '#FFD700', // 金
+                        '#00f3ff', // 藍
+                        '#ff4757', // 紅
+                        '#00ff9d', // 綠
+                        '#a855f7', // 紫
+                        '#FDB931', // 琥珀
+                        '#3b82f6'  // 深藍
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 15 // 滑鼠移上去彈出來的效果
                 }]
             },
-            options: { responsive: true }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%', // 中間挖空的比例，讓它看起來更細緻
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#FFD700',
+                        bodyFont: { size: 16 },
+                        padding: 15,
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return ' $ ' + context.parsed.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
         });
 
-        // 2. 即時監聽資料庫 (魔法在這裡 ✨)
-        // 條件：去「個人帳本」抓取「支出」的紀錄
-        const q = query(collection(db, "records_personal"), where("transactionType", "==", "expense"));
-        
-        onSnapshot(q, (snapshot) => {
-            const categoryTotals = {};
+        // ==========================================
+        // 3. 即時監聽資料庫與更新畫面
+        // ==========================================
+        function loadFinanceData(userId) {
+            // 抓取該用戶的「所有」個人記帳紀錄 (包含收入與支出)
+            const q = query(collection(db, "records_personal"), where("userId", "==", userId));
+            
+            onSnapshot(q, (snapshot) => {
+                let totalIncome = 0;
+                let totalExpense = 0;
+                const expenseCategories = {};
+                let hasExpenses = false;
 
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                const cat = data.category;
-                const amt = data.amount;
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const amount = data.amount;
 
-                // 加總每個分類的金額
-                if (categoryTotals[cat]) {
-                    categoryTotals[cat] += amt;
+                    if (data.transactionType === "income") {
+                        totalIncome += amount;
+                    } else {
+                        // 如果是支出 (expense) 或是舊資料沒標記
+                        totalExpense += amount;
+                        expenseCategories[data.category] = (expenseCategories[data.category] || 0) + amount;
+                        hasExpenses = true;
+                    }
+                });
+
+                // --- 1. 更新上方的三大看板數字 ---
+                const balance = totalIncome - totalExpense;
+                document.getElementById('totalIncome').innerText = `$ ${totalIncome.toLocaleString()}`;
+                document.getElementById('totalExpense').innerText = `$ ${totalExpense.toLocaleString()}`;
+                document.getElementById('netBalance').innerText = `$ ${balance.toLocaleString()}`;
+
+                // --- 2. 判斷並更新圓餅圖 UI ---
+                const canvas = document.getElementById('expenseChart');
+                const noDataUI = document.getElementById('noDataUI');
+
+                if (!hasExpenses) {
+                    // ❌ 沒有支出資料：隱藏畫布，顯示提示文字
+                    canvas.style.display = 'none';
+                    noDataUI.style.display = 'flex';
                 } else {
-                    categoryTotals[cat] = amt;
+                    // ✅ 有資料：隱藏提示文字，顯示並更新畫布
+                    canvas.style.display = 'block';
+                    noDataUI.style.display = 'none';
+
+                    expenseChart.data.labels = Object.keys(expenseCategories);
+                    expenseChart.data.datasets[0].data = Object.values(expenseCategories);
+                    expenseChart.update(); 
                 }
             });
-
-            // 3. 把計算好的資料餵給圖表，並呼叫 update() 重新渲染
-            expenseChart.data.labels = Object.keys(categoryTotals);
-            expenseChart.data.datasets[0].data = Object.values(categoryTotals);
-            expenseChart.update(); 
-            
-            console.log("圖表已即時更新！", categoryTotals);
-        });
+        }
     </script>
 </body>
 </html>
