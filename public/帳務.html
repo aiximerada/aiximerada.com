@@ -3,116 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>專屬帳務分析 - 玉露寶庫</title>
+    <title>帳務總覽與群組 - 玉露寶庫</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         :root {
-            /* 🎨 星際奢華配色 */
-            --main-gold: #FFD700;       
-            --accent-amber: #FDB931;    
-            --deep-space: #0f172a;      
-            --nebula-blue: #00f3ff;     
-            --danger-red: #ff4757;      
-            --neon-green: #00ff9d;
-            
-            /* 玻璃擬態 */
-            --glass-bg: rgba(15, 23, 42, 0.75); 
-            --glass-border: rgba(255, 255, 255, 0.1);
+            var(--main-gold): #FFD700; var(--accent-amber): #FDB931; var(--deep-space): #0f172a;      
+            var(--nebula-blue): #00f3ff; var(--danger-red): #ff4757; var(--neon-green): #00ff9d;
+            var(--glass-bg): rgba(15, 23, 42, 0.75); var(--glass-border): rgba(255, 255, 255, 0.1);
         }
 
         body {
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
             color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden;
+            display: flex; flex-direction: column; align-items: center; overflow-x: hidden;
         }
 
-        /* --- 背景特效 (星空與流星) --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; opacity: 0.5; animation: rotateSpace 240s linear infinite; }
         .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent); background-size: 300px 300px; }
         @keyframes rotateSpace { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* --- 頂部導覽列 --- */
-        .nav-bar {
-            width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 30px; z-index: 10;
-        }
-        .back-btn {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2);
-            color: #94a3b8; padding: 10px 20px; border-radius: 30px; cursor: pointer;
-            transition: 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
-            backdrop-filter: blur(5px);
-        }
+        .nav-bar { width: 100%; max-width: 1000px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; z-index: 10; }
+        .back-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2); color: #94a3b8; padding: 10px 20px; border-radius: 30px; cursor: pointer; transition: 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; backdrop-filter: blur(5px); }
         .back-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: #fff; }
+        h1 { margin: 0; color: #FFD700; font-size: 1.6rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); display: flex; align-items: center; gap: 10px; }
 
-        h1 { margin: 0; color: var(--main-gold); font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); display: flex; align-items: center; gap: 10px; }
-
-        /* --- 總覽數據卡片 --- */
-        .summary-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px; width: 100%; max-width: 900px; margin-bottom: 30px;
+        /* --- 帳本切換區 (橫向捲動) --- */
+        .account-tabs {
+            width: 100%; max-width: 1000px; display: flex; gap: 15px; overflow-x: auto;
+            padding-bottom: 10px; margin-bottom: 20px; scrollbar-width: none;
         }
-        .stat-card {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 20px; padding: 25px; text-align: center;
-            backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            transition: transform 0.3s;
-        }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card h3 { margin: 0 0 10px 0; color: #94a3b8; font-size: 1rem; letter-spacing: 1px; }
-        .stat-card .amount { font-size: 2.2rem; font-weight: 900; margin: 0; }
+        .account-tabs::-webkit-scrollbar { display: none; }
         
-        .income-text { color: var(--neon-green); text-shadow: 0 0 15px rgba(0, 255, 157, 0.3); }
-        .expense-text { color: var(--danger-red); text-shadow: 0 0 15px rgba(255, 71, 87, 0.3); }
-        .balance-text { color: var(--nebula-blue); text-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
-
-        /* --- 圖表區域 --- */
-        .chart-section {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 20px; padding: 30px; width: 100%; max-width: 900px;
-            backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            display: flex; flex-direction: column; align-items: center;
-            box-sizing: border-box;
+        .tab-item {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px; border-radius: 20px; cursor: pointer; white-space: nowrap;
+            display: flex; align-items: center; gap: 10px; transition: 0.3s;
         }
-        .chart-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
-        .chart-header h2 { margin: 0; color: #fff; font-size: 1.3rem; }
+        .tab-item img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: #000; }
+        .tab-item:hover { background: rgba(255,255,255,0.1); }
+        .tab-item.active { background: rgba(0, 243, 255, 0.2); border-color: #00f3ff; color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); }
+        
+        .tab-add { border: 1px dashed rgba(255,255,255,0.5); color: #94a3b8; }
+        .tab-add:hover { border-color: #FFD700; color: #FFD700; }
 
-        /* 圖表容器 */
-        .canvas-container { position: relative; width: 100%; max-width: 450px; aspect-ratio: 1; display: flex; justify-content: center; align-items: center; }
+        /* --- 控制面板 (群組專用) --- */
+        .group-controls { width: 100%; max-width: 1000px; display: none; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+        .action-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 15px; border-radius: 10px; cursor: pointer; transition: 0.3s; font-size: 0.9rem; }
+        .action-btn:hover { background: rgba(255,215,0,0.2); border-color: #FFD700; color: #FFD700; }
 
-        /* ❌ 無資料提示狀態 */
-        .no-data-msg {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 15px; padding: 50px 20px; color: #64748b; text-align: center;
-        }
-        .no-data-msg i { font-size: 4rem; color: #334155; margin-bottom: 10px; }
-        .no-data-msg p { margin: 0; font-size: 1.1rem; }
-        .no-data-msg span { font-size: 0.9rem; color: #475569; }
+        /* --- 數據卡片與圖表 --- */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; margin-bottom: 25px; }
+        .stat-card { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 25px; text-align: center; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .stat-card h3 { margin: 0 0 10px 0; color: #94a3b8; font-size: 1rem; }
+        .stat-card .amount { font-size: 2.2rem; font-weight: 900; margin: 0; }
+        .income-text { color: #00ff9d; } .expense-text { color: #ff4757; } .balance-text { color: #00f3ff; }
+
+        .charts-wrapper { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; }
+        .chart-box { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 25px; backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; }
+        .chart-header { width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; }
+        .chart-header h2 { margin: 0; color: #fff; font-size: 1.2rem; }
+        .canvas-container { position: relative; width: 100%; height: 300px; display: flex; justify-content: center; align-items: center; }
+        .no-data-msg { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #64748b; }
+        .no-data-msg i { font-size: 3rem; }
+
+        /* --- Modal 彈跳視窗樣式 --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-box { background: #0f172a; border: 1px solid #00f3ff; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; position: relative; }
+        .modal-box h2 { color: #FFD700; margin-top: 0; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #94a3b8; cursor: pointer; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; color: #00f3ff; font-size: 0.9rem; }
+        .input-group input[type="text"] { width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid #475569; border-radius: 8px; color: #fff; box-sizing: border-box; }
+        .input-group input[type="file"] { color: #94a3b8; }
+        .preview-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px auto; display: block; border: 2px solid #FFD700; display: none; }
+        .submit-btn { background: #FFD700; color: #000; width: 100%; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 1.1rem; }
+        
+        #qrcode { background: white; padding: 15px; border-radius: 10px; display: inline-block; margin: 15px 0; }
+        .share-links { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .share-links button { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-line { background: #06C755; color: white; }
+        .btn-copy { background: #475569; color: white; }
 
     </style>
 </head>
 <body>
 
-    <div class="space-container">
-        <div class="star-field stars-distant"></div>
-    </div>
+    <div class="space-container"><div class="star-field stars-distant"></div></div>
 
     <div class="nav-bar">
-        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 返回星員區</a>
-        <h1><i class="fa-solid fa-chart-pie"></i> 專屬帳務分析</h1>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> 返回</a>
+        <h1 id="pageTitle"><i class="fa-solid fa-book"></i> 個人帳本</h1>
     </div>
 
-    <div id="loading-status" style="color: var(--main-gold); margin-top: 50px; font-size: 1.2rem; font-weight: bold;">
-        <i class="fa-solid fa-satellite-dish fa-spin"></i> 正在與資料庫連線中...
+    <div class="account-tabs" id="accountTabs">
+        <div class="tab-item active" onclick="switchAccount('personal', '個人帳本')">
+            <i class="fa-solid fa-user"></i> 個人專屬
+        </div>
+        <div class="tab-item tab-add" onclick="openCreateGroupModal()">
+            <i class="fa-solid fa-plus"></i> 新增群組
+        </div>
+    </div>
+
+    <div class="group-controls" id="groupControls">
+        <button class="action-btn" onclick="openInviteModal()"><i class="fa-solid fa-user-plus"></i> 邀請成員</button>
+    </div>
+
+    <div id="loading-status" style="color: #FFD700; margin-top: 50px; font-size: 1.2rem; font-weight: bold;">
+        <i class="fa-solid fa-satellite-dish fa-spin"></i> 資料同步中...
     </div>
 
     <div id="dashboard-content" style="display: none; width: 100%; display: flex; flex-direction: column; align-items: center;">
-        
         <div class="summary-grid">
             <div class="stat-card">
                 <h3><i class="fa-solid fa-arrow-trend-down"></i> 本月總支出</h3>
@@ -128,160 +135,315 @@
             </div>
         </div>
 
-        <div class="chart-section">
-            <div class="chart-header">
-                <h2><i class="fa-solid fa-list-ul"></i> 支出分類佔比</h2>
-            </div>
-            
-            <div class="canvas-container">
-                <canvas id="expenseChart" style="display: none;"></canvas>
-                
-                <div id="noDataUI" class="no-data-msg">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <p>目前暫時沒有記帳資料喔！</p>
-                    <span>請打開 LINE 機器人輸入「記帳」來新增第一筆紀錄</span>
+        <div class="charts-wrapper">
+            <div class="chart-box">
+                <div class="chart-header"><h2><i class="fa-solid fa-chart-pie"></i> 支出分類佔比</h2></div>
+                <div class="canvas-container">
+                    <canvas id="pieChart" style="display: none;"></canvas>
+                    <div id="noDataPie" class="no-data-msg"><i class="fa-solid fa-folder-open"></i><p>暫無資料</p></div>
                 </div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-header"><h2><i class="fa-solid fa-chart-column"></i> 近 7 日趨勢</h2></div>
+                <div class="canvas-container">
+                    <canvas id="barChart" style="display: none;"></canvas>
+                    <div id="noDataBar" class="no-data-msg"><i class="fa-solid fa-folder-open"></i><p>暫無資料</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="createGroupModal" class="modal-overlay">
+        <div class="modal-box">
+            <span class="close-modal" onclick="closeModal('createGroupModal')">&times;</span>
+            <h2><i class="fa-solid fa-users"></i> 創建新群組</h2>
+            <div class="input-group">
+                <label>群組名稱</label>
+                <input type="text" id="groupNameInput" placeholder="例如：日本旅遊公積金">
+            </div>
+            <div class="input-group">
+                <label>群組大頭貼 (可選)</label>
+                <input type="file" id="groupAvatarInput" accept="image/*" onchange="previewImage(event)">
+                <img id="avatarPreview" class="preview-img" src="">
+            </div>
+            <button class="submit-btn" id="btnCreateGroup" onclick="handleCreateGroup()">確認創建</button>
+        </div>
+    </div>
+
+    <div id="inviteModal" class="modal-overlay">
+        <div class="modal-box">
+            <span class="close-modal" onclick="closeModal('inviteModal')">&times;</span>
+            <h2><i class="fa-solid fa-qrcode"></i> 邀請加入群組</h2>
+            <p style="color:#94a3b8; font-size:0.9rem;">請朋友掃描條碼，或傳送連結給他們</p>
+            <div id="qrcode"></div>
+            <div class="share-links">
+                <button class="btn-copy" onclick="copyInviteLink()"><i class="fa-solid fa-link"></i> 複製連結</button>
+                <button class="btn-line" onclick="shareToLine()"><i class="fa-brands fa-line"></i> LINE 傳送</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔴 引入 Storage 進行圖片上傳
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // Firebase 金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
             projectId: "yulubox",
             storageBucket: "yulubox.firebasestorage.app",
             messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
+            appId: "1:256466567852:web:233b74668908ffcb9b9509"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
-        // ==========================================
-        // 1. 驗證使用者身分
-        // ==========================================
         const lineUserId = localStorage.getItem("lineUserId");
+        let currentScope = "personal"; // 目前看的是個人還是某個群組
+        let currentGroupId = null;
+        let unsubscribeFinance = null; // 監聽器
 
-        if (!lineUserId) {
-            // 如果沒抓到身分，代表他沒有從 vip_area 進來
-            document.getElementById('loading-status').innerHTML = "❌ 無法辨識身分。<br><br>請返回「星員區」並確保您已綁定 LINE 帳號。";
-        } else {
-            // 身分正確，顯示看板並開始抓資料
+        // 初始化圖表
+        Chart.defaults.color = '#cbd5e1'; 
+        const chartColors = ['#FFD700', '#00f3ff', '#ff4757', '#00ff9d', '#a855f7', '#FDB931'];
+        let pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: chartColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right' } } } });
+        let barChart = new Chart(document.getElementById('barChart').getContext('2d'), { type: 'bar', data: { labels: [], datasets: [{ label: '每日支出', data: [], backgroundColor: '#00f3ff', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } } } } });
+
+        // ==========================================
+        // 系統啟動與邀請碼偵測
+        // ==========================================
+        window.onload = async () => {
+            if (!lineUserId) {
+                document.getElementById('loading-status').innerHTML = "❌ 無法辨識身分。<br>請返回「星員區」並確保您已綁定 LINE 帳號。";
+                return;
+            }
+
+            // 檢查網址是否有 ?invite=邀請碼
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviteCode = urlParams.get('invite');
+            if (inviteCode) {
+                await processInvite(inviteCode);
+            }
+
             document.getElementById('loading-status').style.display = "none";
             document.getElementById('dashboard-content').style.display = "flex";
-            loadFinanceData(lineUserId);
+            
+            loadUserGroups();
+            window.switchAccount('personal', '個人帳本');
+        };
+
+        // 處理受邀加入群組
+        async function processInvite(groupId) {
+            try {
+                const groupRef = doc(db, "groups", groupId);
+                const groupSnap = await getDoc(groupRef);
+                if (groupSnap.exists()) {
+                    const groupData = groupSnap.data();
+                    if (confirm(`是否要加入群組：【${groupData.name}】？`)) {
+                        await updateDoc(groupRef, { members: arrayUnion(lineUserId) });
+                        alert("🎉 成功加入群組！");
+                        // 清除網址參數
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } else {
+                    alert("❌ 找不到該群組或邀請碼已失效。");
+                }
+            } catch (err) { console.error(err); }
         }
 
         // ==========================================
-        // 2. 初始化 Chart.js (設定為暗黑星際模式)
+        // 讀取群組列表 & 切換帳本
         // ==========================================
-        Chart.defaults.color = '#cbd5e1'; // 圖表文字顏色
-        Chart.defaults.font.family = "'Microsoft JhengHei', sans-serif";
-        
-        const ctx = document.getElementById('expenseChart').getContext('2d');
-        let expenseChart = new Chart(ctx, {
-            type: 'doughnut', 
-            data: {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    backgroundColor: [
-                        '#FFD700', // 金
-                        '#00f3ff', // 藍
-                        '#ff4757', // 紅
-                        '#00ff9d', // 綠
-                        '#a855f7', // 紫
-                        '#FDB931', // 琥珀
-                        '#3b82f6'  // 深藍
-                    ],
-                    borderWidth: 0,
-                    hoverOffset: 15 // 滑鼠移上去彈出來的效果
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '65%', // 中間挖空的比例，讓它看起來更細緻
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        titleColor: '#FFD700',
-                        bodyFont: { size: 16 },
-                        padding: 15,
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                return ' $ ' + context.parsed.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // ==========================================
-        // 3. 即時監聽資料庫與更新畫面
-        // ==========================================
-        function loadFinanceData(userId) {
-            // 抓取該用戶的「所有」個人記帳紀錄 (包含收入與支出)
-            const q = query(collection(db, "records_personal"), where("userId", "==", userId));
-            
+        function loadUserGroups() {
+            // 找出 members 陣列中包含這個使用者的所有群組
+            const q = query(collection(db, "groups"), where("members", "array-contains", lineUserId));
             onSnapshot(q, (snapshot) => {
-                let totalIncome = 0;
-                let totalExpense = 0;
-                const expenseCategories = {};
+                const tabsContainer = document.getElementById('accountTabs');
+                // 保留「個人」與「新增」按鈕，清空中間的群組
+                const personalTab = tabsContainer.children[0].outerHTML;
+                const addTab = tabsContainer.children[tabsContainer.children.length - 1].outerHTML;
+                
+                let groupsHtml = "";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const avatar = data.avatarUrl || "https://cdn-icons-png.flaticon.com/512/615/615075.png";
+                    groupsHtml += `
+                        <div class="tab-item" id="tab-${doc.id}" onclick="switchAccount('${doc.id}', '${data.name}')">
+                            <img src="${avatar}"> ${data.name}
+                        </div>
+                    `;
+                });
+                
+                tabsContainer.innerHTML = personalTab + groupsHtml + addTab;
+                // 重新標記 active
+                if (currentScope !== 'personal') {
+                    const activeTab = document.getElementById(`tab-${currentScope}`);
+                    if(activeTab) activeTab.classList.add('active');
+                }
+            });
+        }
+
+        window.switchAccount = (scope, name) => {
+            currentScope = scope;
+            document.getElementById('pageTitle').innerHTML = scope === 'personal' ? `<i class="fa-solid fa-book"></i> ${name}` : `<i class="fa-solid fa-users"></i> ${name}`;
+            
+            // UI 狀態切換
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            if(scope === 'personal') {
+                document.querySelector('.tab-item').classList.add('active');
+                document.getElementById('groupControls').style.display = 'none';
+            } else {
+                const activeTab = document.getElementById(`tab-${scope}`);
+                if(activeTab) activeTab.classList.add('active');
+                document.getElementById('groupControls').style.display = 'flex';
+                currentGroupId = scope;
+            }
+
+            // 重新抓取資料
+            if(unsubscribeFinance) unsubscribeFinance();
+            fetchData(scope);
+        };
+
+        // 讀取財務資料 (個人 or 群組)
+        function fetchData(scope) {
+            let q;
+            if (scope === 'personal') {
+                q = query(collection(db, "records_personal"), where("userId", "==", lineUserId));
+            } else {
+                q = query(collection(db, "records_group"), where("groupId", "==", scope));
+            }
+
+            unsubscribeFinance = onSnapshot(q, (snapshot) => {
+                let totalIncome = 0; let totalExpense = 0;
+                const expenseCats = {}; const dailyExp = {}; 
                 let hasExpenses = false;
+
+                for(let i=6; i>=0; i--) {
+                    let d = new Date(); d.setDate(d.getDate() - i);
+                    dailyExp[`${d.getMonth()+1}/${d.getDate()}`] = 0;
+                }
 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     const amount = data.amount;
+                    let dateStr = "";
+                    if (data.timestamp) { const d = data.timestamp.toDate(); dateStr = `${d.getMonth()+1}/${d.getDate()}`; }
 
-                    if (data.transactionType === "income") {
-                        totalIncome += amount;
-                    } else {
-                        // 如果是支出 (expense) 或是舊資料沒標記
+                    if (data.transactionType === "income") { totalIncome += amount; } 
+                    else {
                         totalExpense += amount;
-                        expenseCategories[data.category] = (expenseCategories[data.category] || 0) + amount;
+                        expenseCats[data.category] = (expenseCats[data.category] || 0) + amount;
+                        if (dailyExp[dateStr] !== undefined) dailyExp[dateStr] += amount;
                         hasExpenses = true;
                     }
                 });
 
-                // --- 1. 更新上方的三大看板數字 ---
-                const balance = totalIncome - totalExpense;
                 document.getElementById('totalIncome').innerText = `$ ${totalIncome.toLocaleString()}`;
                 document.getElementById('totalExpense').innerText = `$ ${totalExpense.toLocaleString()}`;
-                document.getElementById('netBalance').innerText = `$ ${balance.toLocaleString()}`;
+                document.getElementById('netBalance').innerText = `$ ${(totalIncome - totalExpense).toLocaleString()}`;
 
-                // --- 2. 判斷並更新圓餅圖 UI ---
-                const canvas = document.getElementById('expenseChart');
-                const noDataUI = document.getElementById('noDataUI');
+                const noDataPie = document.getElementById('noDataPie'); const pieCanvas = document.getElementById('pieChart');
+                if(!hasExpenses){ pieCanvas.style.display='none'; noDataPie.style.display='flex'; } 
+                else { pieCanvas.style.display='block'; noDataPie.style.display='none'; pieChart.data.labels=Object.keys(expenseCats); pieChart.data.datasets[0].data=Object.values(expenseCats); pieChart.update(); }
 
-                if (!hasExpenses) {
-                    // ❌ 沒有支出資料：隱藏畫布，顯示提示文字
-                    canvas.style.display = 'none';
-                    noDataUI.style.display = 'flex';
-                } else {
-                    // ✅ 有資料：隱藏提示文字，顯示並更新畫布
-                    canvas.style.display = 'block';
-                    noDataUI.style.display = 'none';
-
-                    expenseChart.data.labels = Object.keys(expenseCategories);
-                    expenseChart.data.datasets[0].data = Object.values(expenseCategories);
-                    expenseChart.update(); 
-                }
+                const noDataBar = document.getElementById('noDataBar'); const barCanvas = document.getElementById('barChart');
+                if(!Object.values(dailyExp).some(v=>v>0)){ barCanvas.style.display='none'; noDataBar.style.display='flex'; } 
+                else { barCanvas.style.display='block'; noDataBar.style.display='none'; barChart.data.labels=Object.keys(dailyExp); barChart.data.datasets[0].data=Object.values(dailyExp); barChart.update(); }
             });
         }
+
+        // ==========================================
+        // 創建群組與圖片壓縮上傳
+        // ==========================================
+        window.openCreateGroupModal = () => { document.getElementById('createGroupModal').style.display = 'flex'; };
+        window.closeModal = (id) => { document.getElementById(id).style.display = 'none'; };
+        
+        window.previewImage = (event) => {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = e => { document.getElementById('avatarPreview').src = e.target.result; document.getElementById('avatarPreview').style.display = 'block'; }
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.handleCreateGroup = async () => {
+            const name = document.getElementById('groupNameInput').value.trim();
+            const fileInput = document.getElementById('groupAvatarInput');
+            const btn = document.getElementById('btnCreateGroup');
+
+            if(!name) return alert("請輸入群組名稱！");
+            btn.innerText = "創建中..."; btn.disabled = true;
+
+            try {
+                let avatarUrl = "";
+                // 1. 如果有圖片，進行強制壓縮與上傳
+                if (fileInput.files.length > 0) {
+                    const imageFile = fileInput.files[0];
+                    const options = { maxSizeMB: 0.2, maxWidthOrHeight: 500, useWebWorker: true }; // 強制壓縮到 200KB 以下
+                    const compressedFile = await imageCompression(imageFile, options);
+                    
+                    // 上傳到 Firebase Storage
+                    const storageRef = ref(storage, `group_avatars/${Date.now()}_${compressedFile.name}`);
+                    await uploadBytes(storageRef, compressedFile);
+                    avatarUrl = await getDownloadURL(storageRef);
+                }
+
+                // 2. 寫入群組資料庫
+                const groupId = "G" + Math.floor(10000000 + Math.random() * 90000000).toString(); // 隨機產生群組ID
+                await setDoc(doc(db, "groups", groupId), {
+                    name: name,
+                    avatarUrl: avatarUrl,
+                    owner: lineUserId,
+                    members: [lineUserId], // 創建者預設加入
+                    createdAt: serverTimestamp()
+                });
+
+                alert("✅ 群組創建成功！");
+                closeModal('createGroupModal');
+                document.getElementById('groupNameInput').value = "";
+                document.getElementById('avatarPreview').style.display = "none";
+                fileInput.value = "";
+                
+                // 自動切換到剛建好的群組
+                window.switchAccount(groupId, name);
+            } catch (error) {
+                console.error(error); alert("創建失敗，請稍後再試。");
+            } finally {
+                btn.innerText = "確認創建"; btn.disabled = false;
+            }
+        };
+
+        // ==========================================
+        // 邀請系統 (連結、QR Code、LINE分享)
+        // ==========================================
+        let qrcodeObj = null;
+
+        window.openInviteModal = () => {
+            if(!currentGroupId) return;
+            document.getElementById('inviteModal').style.display = 'flex';
+            
+            // 產生邀請連結
+            const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${currentGroupId}`;
+            
+            // 渲染 QR Code
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = "";
+            qrcodeObj = new QRCode(qrContainer, { text: inviteUrl, width: 150, height: 150, colorDark : "#000000", colorLight : "#ffffff" });
+            
+            // 綁定按鈕動作
+            window.copyInviteLink = () => {
+                navigator.clipboard.writeText(inviteUrl).then(() => alert("✅ 連結已複製！請傳送給朋友。"));
+            };
+            window.shareToLine = () => {
+                // 利用 LINE URL Scheme 開啟分享畫面
+                window.open(`https://line.me/R/msg/text/?邀請您加入玉露寶庫記帳群組！\n點擊連結立即加入：\n${encodeURIComponent(inviteUrl)}`, '_blank');
+            };
+        };
+
     </script>
 </body>
 </html>
