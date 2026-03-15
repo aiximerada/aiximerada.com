@@ -18,7 +18,7 @@
             --deep-space: #0f172a;      
             --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
-            --line-green: #06C755; /* LINE 官方品牌綠 */
+            --line-green: #06C755; 
             --glass-bg: rgba(15, 23, 42, 0.75); 
             --glass-border: rgba(255, 255, 255, 0.1);
         }
@@ -30,7 +30,7 @@
             overflow: hidden; position: relative;
         }
 
-        /* --- ✨ 背景特效 (同步星維加斯) --- */
+        /* 背景特效 */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
         
@@ -41,7 +41,7 @@
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* --- 登入卡片 --- */
+        /* 登入卡片 */
         .login-box {
             background: var(--glass-bg); 
             border: 1px solid var(--glass-border);
@@ -83,7 +83,6 @@
         .register-btn { background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px; }
         .register-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 15px var(--nebula-blue); color: #fff; }
 
-        /* 🟢 LINE 登入按鈕專屬樣式 */
         .line-btn { background: var(--line-green); color: #ffffff; margin-top: 15px; border: none; }
         .line-btn:hover { background: #05A044; box-shadow: 0 10px 20px rgba(6, 199, 85, 0.3); color: #fff; }
 
@@ -95,7 +94,6 @@
         .error { color: var(--danger-red); font-size: 0.9rem; margin-top: 15px; min-height: 20px; font-weight: bold; }
         .back-link { margin-top: 25px; display: block; font-size: 0.9rem; color: #64748b; text-decoration: none; transition: 0.3s; }
         .back-link:hover { color: #fff; }
-
     </style>
 </head>
 <body>
@@ -123,7 +121,7 @@
             <input type="password" id="password" placeholder="密碼">
         </div>
 
-        <button onclick="handleLogin()">
+        <button id="emailLoginBtn" onclick="handleLogin()">
             <i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入
         </button>
         
@@ -148,7 +146,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Firebase 初始化
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -164,14 +161,17 @@
         // ==========================================
         // 🌟 LINE LIFF 初始化設定
         // ==========================================
-        const myLiffId = "2009464550-Odl0cheD"; // 您的專屬 LIFF ID
+        const myLiffId = "2009464550-Odl0cheD"; // 您的 LIFF ID
 
         document.addEventListener("DOMContentLoaded", () => {
             liff.init({ liffId: myLiffId })
                 .then(() => {
-                    // 如果一打開網頁發現已經用 LINE 登入過了，直接幫他跳轉到帳務頁面
                     if (liff.isLoggedIn()) {
-                        window.location.href = "帳務.html"; 
+                        // 取得用戶資料後，將 LINE ID 存入 localStorage，並導向帳務頁面
+                        liff.getProfile().then(profile => {
+                            localStorage.setItem("lineUserId", profile.userId);
+                            window.location.href = "帳務.html"; 
+                        }).catch(err => console.error("無法取得 Profile:", err));
                     }
                 })
                 .catch((err) => {
@@ -179,28 +179,25 @@
                 });
         });
 
-        // 點擊 LINE 登入按鈕執行的動作
+        // 點擊 LINE 登入按鈕
         window.handleLineLogin = () => {
             const btn = document.getElementById('lineLoginBtn');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
             
             if (!liff.isLoggedIn()) {
-                // 如果沒登入，呼叫 LINE 登入畫面，並設定登入後跳轉回您的網域下的 帳務.html
-                const redirectUrl = window.location.origin + "/帳務.html";
-                liff.login({ redirectUri: redirectUrl });
+                // 不使用 redirectUri，讓它預設跳回您在 LINE 後台設定的 Endpoint URL
+                liff.login();
             } else {
                 window.location.href = "帳務.html";
             }
         };
 
-        // ==========================================
-        // 原本的 Email 登入功能 (保留不變)
-        // ==========================================
+        // 點擊信箱密碼登入按鈕
         window.handleLogin = () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMsg');
-            const btn = document.querySelector('button'); 
+            const btn = document.getElementById('emailLoginBtn'); 
 
             if(!email || !password) {
                 errorDiv.innerText = "請輸入帳號與密碼";
@@ -212,6 +209,7 @@
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
+                    // 登入成功後跳轉至會員中心
                     window.location.href = "vip_area.html";
                 })
                 .catch((error) => {
