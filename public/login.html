@@ -167,10 +167,10 @@
             liff.init({ liffId: myLiffId })
                 .then(() => {
                     if (liff.isLoggedIn()) {
-                        // 取得用戶資料後，將 LINE ID 存入 localStorage，並導向帳務頁面
                         liff.getProfile().then(profile => {
                             localStorage.setItem("lineUserId", profile.userId);
-                            window.location.href = "帳務.html"; 
+                            // 登入成功後跳轉至會員中心
+                            window.location.href = "vip_area.html"; 
                         }).catch(err => console.error("無法取得 Profile:", err));
                     }
                 })
@@ -185,10 +185,9 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
             
             if (!liff.isLoggedIn()) {
-                // 不使用 redirectUri，讓它預設跳回您在 LINE 後台設定的 Endpoint URL
                 liff.login();
             } else {
-                window.location.href = "帳務.html";
+                window.location.href = "vip_area.html";
             }
         };
 
@@ -209,7 +208,6 @@
 
             signInWithEmailAndPassword(auth, email, password)
                 .then((userCredential) => {
-                    // 登入成功後跳轉至會員中心
                     window.location.href = "vip_area.html";
                 })
                 .catch((error) => {

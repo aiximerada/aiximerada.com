@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <style>
@@ -308,8 +308,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        // 🔴 確保這裡有引入 setDoc 函數
-        import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔴 引入需要的 Firebase 模組，包含跨資料庫查詢的功能
+        import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -332,44 +332,80 @@
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
         const CHECKIN_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                document.body.style.opacity = "1";
-                const name = user.displayName || user.email.split('@')[0];
-                document.getElementById('current-user').innerText = name;
+        // 🌟 智慧啟動系統
+        async function initSystem() {
+            try {
+                await liff.init({ liffId: myLiffId });
+            } catch (err) {
+                console.error("LIFF 初始化錯誤:", err);
+            }
 
-                const avatar = document.getElementById('header-avatar');
-                avatar.src = user.photoURL || DEFAULT_STAR_AVATAR;
-                avatar.style.display = 'block';
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // 情況 A：有使用信箱登入
+                    currentUser = user;
+                    setupBaseUI(user.displayName || user.email.split('@')[0], user.photoURL);
 
-                await loadUserData();
-                checkAutoPopUp(); 
-
-                // 🌟 LINE 串聯核心邏輯
-                try {
-                    await liff.init({ liffId: myLiffId });
-                    
-                    // 1. 檢查資料庫是否已經綁定過
                     const docSnap = await getDoc(doc(db, "users", currentUser.uid));
                     const userData = docSnap.exists() ? docSnap.data() : {};
 
                     if (userData.lineUserId) {
-                        // 如果已經綁定，更新 UI 為已綁定並顯示報表按鈕
                         setupBoundUI(userData.lineUserId);
                     } else if (liff.isLoggedIn()) {
-                        // 如果還沒綁定，但 LIFF 呈現登入狀態 (代表他剛點完綁定按鈕回來)
                         const profile = await liff.getProfile();
                         await linkAccounts(currentUser, profile);
                     }
-                } catch (err) {
-                    console.error("LIFF 初始化錯誤:", err);
-                }
+                    await loadUserData();
+                    checkAutoPopUp();
 
-            } else {
-                window.location.href = "login.html";
-            }
-        });
+                } else {
+                    // 情況 B：沒有信箱登入，檢查是否有 LINE 登入
+                    if (liff.isLoggedIn()) {
+                        try {
+                            const profile = await liff.getProfile();
+                            
+                            // 去資料庫找找看，這個 LINE ID 有沒有綁定過任何信箱會員？
+                            const q = query(collection(db, "users"), where("lineUserId", "==", profile.userId));
+                            const querySnapshot = await getDocs(q);
+
+                            if (!querySnapshot.empty) {
+                                // 🎉 找到了！他已經綁定過了，直接載入他的會員資料
+                                const userDoc = querySnapshot.docs[0];
+                                currentUser = { uid: userDoc.id }; // 模擬登入身份
+
+                                setupBaseUI(profile.displayName, profile.pictureUrl);
+                                setupBoundUI(profile.userId);
+                                await loadUserData();
+                                checkAutoPopUp();
+                            } else {
+                                // ❌ 有 LINE 登入，但是資料庫找不到綁定紀錄 (防護機制)
+                                alert("⚠️ 此 LINE 帳號尚未綁定任何會員！\n\n請先使用「信箱密碼」登入後，點擊會員中心的「綁定我的 LINE」來進行串聯解鎖。");
+                                liff.logout();
+                                window.location.href = "login.html";
+                            }
+                        } catch(e) {
+                            console.error("驗證 LINE 綁定失敗:", e);
+                            window.location.href = "login.html";
+                        }
+                    } else {
+                        // 情況 C：什麼都沒登入，踢回登入頁
+                        window.location.href = "login.html";
+                    }
+                }
+            });
+        }
+
+        // 啟動系統
+        initSystem(); 
+
+        // 共用 UI 渲染函數
+        function setupBaseUI(name, photo) {
+            document.body.style.opacity = "1";
+            document.getElementById('current-user').innerText = name;
+            const avatar = document.getElementById('header-avatar');
+            avatar.src = photo || DEFAULT_STAR_AVATAR;
+            avatar.style.display = 'block';
+        }
 
         // 🌟 點擊綁定 LINE 按鈕
         window.startLineBind = () => {
