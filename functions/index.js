@@ -5,29 +5,25 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
-// 🔴 您的 LINE 官方帳號 Channel Access Token
 const LINE_TOKEN = "p6ugh27GDssmbdkmySR4Z/6QykwBCwpxyQzRvpjJqJAR8zGbTUH0MbhlsMYKAZFrcEWozoAXRflXW+z5P0+EWNPPgVXfjkeYAcFrRleCM3Spwdjsy43Af2S3yNwEoY+G8Us2LtzKXcMpjVQ8DnOovAdB04t89/1O/w1cDnyilFU=";
 
-// 輔助函數：免費且快速的 LINE 回覆 API
 async function replyLineMessage(replyToken, messages) {
-    try {
-        await axios.post('https://api.line.me/v2/bot/message/reply', {
-            replyToken: replyToken,
-            messages: messages
-        }, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${LINE_TOKEN}`
-            }
-        });
-    } catch (error) {
-        console.error("回覆失敗:", error.response ? error.response.data : error.message);
-    }
+    await axios.post('https://api.line.me/v2/bot/message/reply', {
+        replyToken: replyToken,
+        messages: messages
+    }, { headers: { 'Authorization': `Bearer ${LINE_TOKEN}` } });
 }
 
-// =====================================================================
-// 核心對話大腦：處理所有 LINE 傳來的訊息
-// =====================================================================
+// 獲取用戶 LINE 暱稱的輔助函數
+async function getUserProfile(userId) {
+    try {
+        const res = await axios.get(`https://api.line.me/v2/bot/profile/${userId}`, {
+            headers: { 'Authorization': `Bearer ${LINE_TOKEN}` }
+        });
+        return res.data.displayName;
+    } catch (e) { return "神祕用戶"; }
+}
+
 exports.lineWebhook = functions.https.onRequest(async (req, res) => {
     const events = req.body.events;
     if (!events || events.length === 0) return res.status(200).send("OK");
@@ -37,105 +33,107 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             const userId = event.source.userId;
             const text = event.message.text.trim();
             const replyToken = event.replyToken;
-
-            // 1. 去資料庫讀取這個用戶「現在正在做什麼 (狀態)」
             const userRef = db.collection("users").doc(userId);
             const userDoc = await userRef.get();
-            let userState = "IDLE"; // 預設是閒置狀態
-            
-            if (userDoc.exists && userDoc.data().state) {
-                userState = userDoc.data().state;
-            } else {
-                await userRef.set({ userId: userId, state: "IDLE" }, { merge: true });
-            }
+            const userData = userDoc.data() || {};
 
-            // ================= 邏輯判斷區 =================
-
-            // 狀況 A：使用者點擊了快速選單
-            if (text === "🙋‍♂️ 個人記帳" || text === "👥 群組記帳") {
-                const isGroup = (text === "👥 群組記帳");
-                // 更新使用者狀態為「等待輸入金額中」
-                await userRef.set({ state: isGroup ? "WAITING_GROUP" : "WAITING_PERSONAL" }, { merge: true });
-                
-                await replyLineMessage(replyToken, [{
-                    type: "text",
-                    text: `您選擇了【${isGroup ? '群組' : '個人'}記帳】📝\n\n請輸入「金額 項目」\n例如：150 午餐\n\n(輸入「取消」可中斷記帳)`
-                }]);
-                continue;
-            }
-
-            // 狀況 B：使用者中途想取消
-            if (text === "取消") {
-                await userRef.set({ state: "IDLE" }, { merge: true });
-                await replyLineMessage(replyToken, [{ type: "text", text: "👌 已取消本次記帳動作。" }]);
-                continue;
-            }
-
-            // 狀況 C：使用者正在輸入記帳的詳細內容（狀態不是 IDLE）
-            if (userState === "WAITING_PERSONAL" || userState === "WAITING_GROUP") {
-                // 用空白把文字切開 (例如把 "150 午餐" 切成 "150" 和 "午餐")
-                const parts = text.split(/\s+/); 
-                const amount = parseInt(parts[0]);
-                const item = parts.slice(1).join(" "); // 剩下的全當作項目名稱
-
-                // 檢查格式對不對
-                if (isNaN(amount) || !item) {
-                    await replyLineMessage(replyToken, [{
-                        type: "text",
-                        text: "⚠️ 格式好像不太對喔！\n請用「數字 + 空白 + 項目名稱」\n例如：150 午餐\n\n(輸入「取消」可中斷記帳)"
-                    }]);
-                    continue;
-                }
-
-                // 存入對應的資料庫 (個人或群組)
-                const collectionName = userState === "WAITING_PERSONAL" ? "records_personal" : "records_group";
-                await db.collection(collectionName).add({
-                    userId: userId,
-                    amount: amount,
-                    item: item,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+            // 1. 處理「創建群組」
+            if (text === "創建群組") {
+                const inviteCode = Math.floor(100000 + Math.random() * 900000).toString();
+                await db.collection("groups").doc(inviteCode).set({
+                    owner: userId,
+                    members: [userId],
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
                 });
-
-                // 記帳完成，把大腦狀態洗掉變回閒置
-                await userRef.set({ state: "IDLE" }, { merge: true });
-
-                await replyLineMessage(replyToken, [{
-                    type: "text",
-                    text: `✅ 記錄成功！\n\n💰 帳本：${userState === "WAITING_PERSONAL" ? '個人' : '群組'}\n📍 項目：${item}\n💵 金額：${amount} 元`
-                }]);
+                await userRef.set({ groupId: inviteCode, state: "IDLE" }, { merge: true });
+                await replyLineMessage(replyToken, [{ type: "text", text: `✅ 群組創建成功！\n您的群組邀請碼為：${inviteCode}\n請另一位用戶輸入「加入群組 ${inviteCode}」即可完成連動。` }]);
                 continue;
             }
 
-            // 狀況 D：使用者在閒置狀態，我們用「模糊判斷」觸發懶人選單
-            // 只要文字裡面包含「記、帳、賬、報、花、錢」，或者一開頭就是打數字，就跳出選單
-            const triggerWords = ["記", "帳", "賬", "報", "花", "錢", "買"];
-            const isTrigger = triggerWords.some(word => text.includes(word)) || !isNaN(parseInt(text[0]));
-            
-            if (isTrigger) { 
+            // 2. 處理「加入群組 XXX」
+            if (text.startsWith("加入群組")) {
+                const code = text.replace("加入群組", "").trim();
+                const groupRef = db.collection("groups").doc(code);
+                const groupDoc = await groupRef.get();
+
+                if (groupDoc.exists()) {
+                    await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion(userId) });
+                    await userRef.set({ groupId: code, state: "IDLE" }, { merge: true });
+                    await replyLineMessage(replyToken, [{ type: "text", text: `🎉 成功加入群組 ${code}！現在你們可以共同記帳了。` }]);
+                } else {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "❌ 找不到這個邀請碼，請確認後再試一次。" }]);
+                }
+                continue;
+            }
+
+            // 3. 懶人選單觸發 (包含錯字容錯)
+            const triggerWords = ["記", "帳", "賬", "報", "錢", "買"];
+            if (triggerWords.some(w => text.includes(w)) && userData.state !== "WAITING_PERSONAL" && userData.state !== "WAITING_GROUP") {
                 await replyLineMessage(replyToken, [{
                     type: "text",
-                    text: "要記帳嗎？請問這筆花費要記在哪裡呢？👇",
-                    quickReply: { // 這就是 LINE 超好用的懶人泡泡按鈕
+                    text: "要記帳嗎？請選擇本筆金額存放位置：",
+                    quickReply: {
                         items: [
-                            {
-                                type: "action",
-                                action: { type: "message", label: "🙋‍♂️ 個人記帳", text: "🙋‍♂️ 個人記帳" }
-                            },
-                            {
-                                type: "action",
-                                action: { type: "message", label: "👥 群組記帳", text: "👥 群組記帳" }
-                            }
+                            { type: "action", action: { type: "message", label: "🙋‍♂️ 個人帳本", text: "🙋‍♂️ 個人記帳" } },
+                            { type: "action", action: { type: "message", label: "👥 群組共用", text: "👥 群組記帳" } }
                         ]
                     }
                 }]);
                 continue;
             }
 
-            // 如果打的話完全無關，可以隨意聊一句
-            await replyLineMessage(replyToken, [{
-                type: "text",
-                text: "收到！如果您想記帳，隨便輸入包含「記帳」的字或是「花費金額」就可以囉！"
-            }]);
+            // 4. 處理選擇後的狀態
+            if (text === "🙋‍♂️ 個人記帳" || text === "👥 群組記帳") {
+                const isGroup = text.includes("群組");
+                if (isGroup && !userData.groupId) {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "⚠️ 您尚未加入任何群組喔！請先輸入「創建群組」來開始。" }]);
+                    continue;
+                }
+                await userRef.update({ state: isGroup ? "WAITING_GROUP" : "WAITING_PERSONAL" });
+                await replyLineMessage(replyToken, [{ type: "text", text: `已進入【${isGroup ? '群組' : '個人'}】模式\n請輸入「金額 項目」(例如: 100 晚餐)` }]);
+                continue;
+            }
+
+            // 5. 執行儲存
+            if (userData.state === "WAITING_PERSONAL" || userData.state === "WAITING_GROUP") {
+                if (text === "取消") {
+                    await userRef.update({ state: "IDLE" });
+                    await replyLineMessage(replyToken, [{ type: "text", text: "已取消。" }]);
+                    continue;
+                }
+
+                const parts = text.split(/\s+/);
+                const amount = parseInt(parts[0]);
+                const item = parts.slice(1).join(" ");
+
+                if (isNaN(amount) || !item) {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "格式錯誤，請輸入「金額 項目」或打「取消」。" }]);
+                    continue;
+                }
+
+                const userName = await getUserProfile(userId);
+                const isGroup = userData.state === "WAITING_GROUP";
+                const collectionName = isGroup ? "records_group" : "records_personal";
+                
+                const record = {
+                    userId: userId,
+                    userName: userName, // 紀錄誰付錢
+                    amount: amount,
+                    item: item,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (isGroup) record.groupId = userData.groupId;
+
+                await db.collection(collectionName).add(record);
+                await userRef.update({ state: "IDLE" });
+
+                await replyLineMessage(replyToken, [{
+                    type: "text",
+                    text: `✅ 紀錄成功！\n💰 類型：${isGroup ? '群組共用' : '個人'}\n👤 付款人：${userName}\n📍 項目：${item}\n💵 金額：${amount}`
+                }]);
+                continue;
+            }
         }
     }
     res.status(200).send("OK");

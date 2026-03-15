@@ -1,0 +1,30 @@
+name: 自動部署後端 (Firebase Functions)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'functions/**' # 只有當 functions 資料夾內的程式碼有變動時才執行，節省資源
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得最新程式碼
+        uses: actions/checkout@v4
+
+      - name: 安裝 Node.js 環境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 對應我們設定的 Node 20
+
+      - name: 安裝 Firebase 發布工具
+        run: npm install -g firebase-tools
+
+      - name: 安裝後端套件 (axios 等)
+        run: npm install
+        working-directory: ./functions
+
+      - name: 執行後端發布
+        run: firebase deploy --only functions --token ${{ secrets.FIREBASE_TOKEN }}
