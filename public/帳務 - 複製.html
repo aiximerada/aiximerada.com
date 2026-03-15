@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>會員中心 - 玉露寶庫</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <style>
+        :root {
+            var(--main-gold): #FFD700; var(--accent-amber): #FDB931; var(--line-green): #06C755;
+            var(--glass-bg): rgba(15, 23, 42, 0.75); var(--glass-border): rgba(255, 255, 255, 0.1);
+        }
+        body {
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+        }
+        .vip-box {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            padding: 40px 30px; border-radius: 20px; width: 90%; max-width: 400px;
+            text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        h2 { color: #FFD700; margin-bottom: 20px; }
+        .user-info { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 25px; word-break: break-all; }
+        
+        button {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #FFD700, #FDB931);
+            color: #0f172a; border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
+            margin-top: 15px; font-size: 1.1rem; transition: 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
+        
+        .line-bind-btn { background: #06C755; color: white; display: none; }
+        .line-bind-btn:hover { background: #05A044; box-shadow: 0 10px 20px rgba(6, 199, 85, 0.3); }
+        
+        .success-msg { color: #06C755; font-weight: bold; margin-top: 20px; display: none; background: rgba(6, 199, 85, 0.1); padding: 15px; border-radius: 10px;}
+        .logout-btn { background: transparent; border: 1px solid #ff4757; color: #ff4757; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="vip-box">
+        <h2><i class="fa-solid fa-crown"></i> 會員中心</h2>
+        
+        <div class="user-info">
+            <p>登入信箱：<br><strong id="userEmail">載入中...</strong></p>
+        </div>
+
+        <button id="bindLineBtn" class="line-bind-btn" onclick="startLineBind()">
+            <i class="fa-brands fa-line" style="font-size: 1.2rem;"></i> 綁定我的 LINE 帳號
+        </button>
+
+        <div id="successMsg" class="success-msg">
+            <i class="fa-solid fa-circle-check"></i> 已成功與 LINE 串聯！<br>
+            <span id="lineNameText" style="color:white; font-size:0.9em; display:block; margin-top:5px;"></span>
+        </div>
+
+        <button id="goToChartBtn" style="display: none;" onclick="window.location.href='帳務.html'">
+            <i class="fa-solid fa-chart-pie"></i> 查看我的專屬帳本
+        </button>
+
+        <button class="logout-btn" onclick="handleLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i> 登出
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const myLiffId = "2009464550-Odl0cheD"; // 您的 LIFF ID
+        let currentFirebaseUser = null;
+
+        // 1. 檢查 Firebase 信箱登入狀態
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentFirebaseUser = user;
+                document.getElementById('userEmail').innerText = user.email;
+
+                // 2. 初始化 LIFF
+                await liff.init({ liffId: myLiffId });
+
+                // 3. 判斷綁定邏輯
+                if (liff.isLoggedIn()) {
+                    // 如果 LINE 已經登入，代表他剛剛按了綁定按鈕跳轉回來，我們執行資料庫寫入！
+                    const profile = await liff.getProfile();
+                    linkAccounts(user, profile);
+                } else {
+                    // 如果 LINE 還沒登入，顯示綠色的綁定按鈕
+                    document.getElementById('bindLineBtn').style.display = 'block';
+                }
+            } else {
+                // 沒登入就踢回首頁
+                window.location.href = "login.html";
+            }
+        });
+
+        // 點擊綁定按鈕
+        window.startLineBind = () => {
+            // 呼叫 LINE 登入，登入完自動跳回這頁 (vip_area.html)
+            liff.login({ redirectUri: window.location.href });
+        };
+
+        // 執行資料庫串聯魔法
+        async function linkAccounts(firebaseUser, lineProfile) {
+            try {
+                // 將兩邊的資料寫入 Firestore (把 Email 存進 LINE ID 的資料夾裡)
+                const userRef = doc(db, "users", lineProfile.userId);
+                await setDoc(userRef, {
+                    firebaseUid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    lineName: lineProfile.displayName,
+                    isBound: true
+                }, { merge: true });
+
+                // 把 LINE ID 存在瀏覽器，讓帳務頁面可以抓得到
+                localStorage.setItem("lineUserId", lineProfile.userId);
+
+                // 更新畫面 UI
+                document.getElementById('bindLineBtn').style.display = 'none';
+                document.getElementById('successMsg').style.display = 'block';
+                document.getElementById('lineNameText').innerText = `LINE 暱稱：${lineProfile.displayName}`;
+                document.getElementById('goToChartBtn').style.display = 'block';
+
+            } catch (error) {
+                console.error("綁定失敗", error);
+                alert("綁定過程中發生錯誤！");
+            }
+        }
+
+        // 登出功能
+        window.handleLogout = () => {
+            signOut(auth).then(() => {
+                if (liff.isLoggedIn()) liff.logout(); // 順便登出 LINE
+                localStorage.removeItem("lineUserId");
+                window.location.href = "login.html";
+            });
+        };
+    </script>
+</body>
+</html>

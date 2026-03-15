@@ -11,6 +11,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <style>
         :root {
@@ -21,6 +23,7 @@
             --nebula-blue: #00f3ff;     
             --danger-red: #ff4757;      
             --neon-green: #00ff9d;
+            --line-green: #06C755;
             
             /* 玻璃擬態 */
             --glass-bg: rgba(15, 23, 42, 0.65); 
@@ -95,8 +98,6 @@
         .card-files { border-bottom: 3px solid var(--nebula-blue); }
         .card-checkin { border-bottom: 3px solid var(--neon-green); }
         .card-checkin i { color: var(--neon-green); }
-        
-        /* 🔥 3D 模型卡片顏色 */
         .card-3d { border-bottom: 3px solid #d946ef; } 
         .card-3d i { color: #d946ef; }
 
@@ -119,35 +120,16 @@
         }
         @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
 
-        .checkin-steps {
-            display: flex; justify-content: space-between; gap: 5px; margin: 25px 0;
-            position: relative;
-        }
-        /* 進度條連線 */
-        .checkin-steps::before {
-            content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px;
-            background: rgba(255,255,255,0.1); z-index: 0;
-        }
-
-        .step-item {
-            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1;
-            opacity: 0.5; transition: 0.3s;
-        }
-        .step-circle {
-            width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b;
-            display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
-            color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
+        .checkin-steps { display: flex; justify-content: space-between; gap: 5px; margin: 25px 0; position: relative; }
+        .checkin-steps::before { content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.1); z-index: 0; }
+        .step-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1; opacity: 0.5; transition: 0.3s; }
+        .step-circle { width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
         .step-reward { font-size: 0.7rem; color: var(--main-gold); }
         .step-label { font-size: 0.7rem; color: #94a3b8; }
-        
-        /* 已簽到樣式 */
         .step-item.active { opacity: 1; }
         .step-item.active .step-circle { background: var(--main-gold); border-color: #fff; color: #000; box-shadow: 0 0 15px var(--main-gold); }
-        
-        /* 巨大獎勵 */
-        .step-item.grand .step-circle { width: 45px; height: 45px; border-color: var(--nebula-purple); }
-        .step-item.grand.active .step-circle { background: var(--nebula-purple); box-shadow: 0 0 20px var(--nebula-purple); color: #fff; }
+        .step-item.grand .step-circle { width: 45px; height: 45px; border-color: var(--nebula-blue); }
+        .step-item.grand.active .step-circle { background: var(--nebula-blue); box-shadow: 0 0 20px var(--nebula-blue); color: #fff; }
 
         .btn-checkin {
             background: linear-gradient(135deg, var(--neon-green), #059669);
@@ -196,6 +178,20 @@
             <i class="fa-solid fa-user-pen"></i>
             <h3>個人設定</h3>
             <p>更改用戶名稱及頭像</p>
+        </a>
+
+        <div id="lineBindCard" class="secret-card" style="border-bottom: 3px solid var(--line-green); cursor: pointer;" onclick="startLineBind()">
+            <span class="tag" id="lineBindStatus" style="background: #64748b; color: #fff;">未綁定</span>
+            <i class="fa-brands fa-line" style="color: var(--line-green);"></i>
+            <h3>LINE 帳號串聯</h3>
+            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務圖表功能。</p>
+        </div>
+
+        <a href="帳務.html" id="financeCard" class="secret-card" style="border-bottom: 3px solid #10b981; display: none;">
+            <span class="tag" style="background: #10b981; color: #fff;">解鎖</span>
+            <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i>
+            <h3>專屬帳務報表</h3>
+            <p>查看您的即時記帳圖表與收支紀錄</p>
         </a>
 
         <a href="shop.html" class="secret-card card-shop">
@@ -303,8 +299,7 @@
             <h2 style="color:var(--main-gold); margin:0 0 10px 0;">每日簽到簿</h2>
             <p style="color:#94a3b8; font-size:0.9rem;">連續登入 7 天可獲得大獎！</p>
             
-            <div class="checkin-steps" id="checkinSteps">
-                </div>
+            <div class="checkin-steps" id="checkinSteps"></div>
 
             <button id="btnCheckIn" class="btn-checkin" onclick="performCheckIn()">立即簽到</button>
         </div>
@@ -313,7 +308,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, runTransaction, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔴 確保這裡有引入 setDoc 函數
+        import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -329,10 +325,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // 🔴 LINE LIFF 設定
+        const myLiffId = "2009464550-Odl0cheD";
+
         let currentUser = null;
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
-        
-        // 簽到獎勵設定
         const CHECKIN_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 
         onAuthStateChanged(auth, async (user) => {
@@ -347,11 +344,88 @@
                 avatar.style.display = 'block';
 
                 await loadUserData();
-                checkAutoPopUp(); // 🔥 檢查是否自動彈出簽到
+                checkAutoPopUp(); 
+
+                // 🌟 LINE 串聯核心邏輯
+                try {
+                    await liff.init({ liffId: myLiffId });
+                    
+                    // 1. 檢查資料庫是否已經綁定過
+                    const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+                    const userData = docSnap.exists() ? docSnap.data() : {};
+
+                    if (userData.lineUserId) {
+                        // 如果已經綁定，更新 UI 為已綁定並顯示報表按鈕
+                        setupBoundUI(userData.lineUserId);
+                    } else if (liff.isLoggedIn()) {
+                        // 如果還沒綁定，但 LIFF 呈現登入狀態 (代表他剛點完綁定按鈕回來)
+                        const profile = await liff.getProfile();
+                        await linkAccounts(currentUser, profile);
+                    }
+                } catch (err) {
+                    console.error("LIFF 初始化錯誤:", err);
+                }
+
             } else {
                 window.location.href = "login.html";
             }
         });
+
+        // 🌟 點擊綁定 LINE 按鈕
+        window.startLineBind = () => {
+            liff.login({ redirectUri: window.location.href });
+        };
+
+        // 🌟 執行資料庫串聯魔法
+        async function linkAccounts(firebaseUser, lineProfile) {
+            try {
+                // 1. 將 Email 寫入 LINE ID 的資料夾
+                const lineRef = doc(db, "users", lineProfile.userId);
+                await setDoc(lineRef, {
+                    firebaseUid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    lineName: lineProfile.displayName,
+                    isBound: true
+                }, { merge: true });
+
+                // 2. 將 LINE ID 寫入 Firebase UID 的資料夾
+                const fbRef = doc(db, "users", firebaseUser.uid);
+                await setDoc(fbRef, {
+                    lineUserId: lineProfile.userId,
+                    lineName: lineProfile.displayName
+                }, { merge: true });
+
+                // 3. 更新畫面
+                setupBoundUI(lineProfile.userId);
+                alert("🎉 成功綁定 LINE 帳號！隱藏功能已解鎖。");
+            } catch (error) {
+                console.error("綁定失敗", error);
+                alert("綁定過程中發生錯誤！");
+            }
+        }
+
+        // 🌟 綁定成功後的 UI 改變
+        function setupBoundUI(lineId) {
+            const statusTag = document.getElementById('lineBindStatus');
+            const desc = document.getElementById('lineBindDesc');
+            const card = document.getElementById('lineBindCard');
+            const financeCard = document.getElementById('financeCard');
+
+            statusTag.innerText = "已綁定";
+            statusTag.style.background = "#06C755";
+            desc.innerText = "您的帳號已成功與 LINE 串聯。";
+            
+            // 讓卡片變成不可再次點擊
+            card.onclick = null;
+            card.style.cursor = "default";
+            card.style.opacity = "0.7";
+
+            // 解鎖隱藏的報表卡片
+            financeCard.style.display = "flex";
+
+            // 將 LINE ID 存入本機，供帳務頁面讀取
+            localStorage.setItem("lineUserId", lineId);
+        }
 
         async function loadUserData() {
             try {
@@ -375,7 +449,7 @@
             } catch(e) { console.log("Profile load error", e); }
         }
 
-        // --- 📅 簽到邏輯 (綁定到 window 以供 onclick 呼叫) ---
+        // --- 📅 簽到邏輯 ---
         window.openCheckIn = async () => {
             const modal = document.getElementById('checkinModal');
             modal.style.display = 'flex';
@@ -392,7 +466,7 @@
             const docSnap = await getDoc(doc(db, "users", currentUser.uid));
             if(!docSnap.exists()) return;
             const data = docSnap.data();
-            const lastDate = data.lastCheckInDate || ""; // "YYYY-MM-DD"
+            const lastDate = data.lastCheckInDate || ""; 
             const today = new Date().toISOString().split('T')[0];
             
             if (lastDate !== today) {
@@ -413,18 +487,16 @@
             const lastDate = data.lastCheckInDate || "";
             let streak = data.checkInStreak || 0;
 
-            // 判斷是否斷簽 (昨天的日期)
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
             if (lastDate !== today && lastDate !== yesterdayStr) {
-                streak = 0; // 斷簽重置
+                streak = 0; 
             }
 
             const isSignedToday = (lastDate === today);
             
-            // 產生 UI
             stepsContainer.innerHTML = '';
             for(let i=0; i<7; i++) {
                 const dayNum = i + 1;
@@ -485,7 +557,7 @@
                     const currentReward = CHECKIN_REWARDS[streak % 7];
                     const newStars = (data.stars || 0) + currentReward;
                     let nextStreak = streak + 1;
-                    if (nextStreak > 7) nextStreak = 1; // 滿7天後重置回 Day 1
+                    if (nextStreak > 7) nextStreak = 1; 
 
                     t.update(userRef, {
                         stars: newStars,
@@ -546,6 +618,8 @@
 
         window.handleLogout = function() {
             signOut(auth).then(() => {
+                if(liff.isLoggedIn()) liff.logout();
+                localStorage.removeItem("lineUserId");
                 window.location.href = 'index.html';
             }).catch((error) => { console.error(error); });
         }
