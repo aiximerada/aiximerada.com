@@ -2,70 +2,100 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>玉露寶庫 - 座標回報系統</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="星際雷達">
+    <meta name="theme-color" content="#090A0F">
+    
+    <title>星際車位雷達 - 玉露寶庫</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- 🔥 Leaflet.js 地圖引擎 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 10px; }
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.65);
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(12px);
+        /* 強制滿版，徹底消滅容器塌陷導致的黑屏 */
+        html, body { 
+            width: 100vw; height: 100vh; margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #090A0F; color: #fff;
+            overflow: hidden; 
+            -webkit-tap-highlight-color: transparent;
         }
+        
+        #root { width: 100vw; height: 100vh; }
+        
+        ::-webkit-scrollbar { display: none; }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .leaflet-container { font-family: inherit; background: #090A0F; outline: none; }
+        .leaflet-control-attribution { display: none !important; }
+        
+        /* 🔥 地圖暗黑濾鏡：將 Google Maps 轉為超高質感的星際深色 */
+        .dark-map-tiles {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+        
+        /* 客製化彈窗 (Popup) */
+        .leaflet-popup-content-wrapper {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #00f3ff; color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.3);
+            padding: 0; overflow: hidden;
+        }
+        .leaflet-popup-content { margin: 0; width: 220px !important; }
+        .leaflet-popup-tip { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid #00f3ff; border-right: 1px solid #00f3ff; }
+        .leaflet-popup-close-button { color: #fff !important; text-shadow: 0 0 5px black; top: 5px !important; right: 5px !important; }
+        
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .bottom-sheet { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     </style>
 </head>
-<body class="min-h-screen bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)] text-white p-4 flex justify-center items-start">
+<body>
 
-    <div id="root" class="w-full max-w-md mt-4 pb-10"></div>
+    <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // === 1. Firebase 初始化 (CDN 引入模式) ===
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // 🔥 新增 signInAnonymously 來處理訪客權限
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 你的專屬 Firebase 金鑰
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
             projectId: "yulubox",
             storageBucket: "yulubox.firebasestorage.app",
             messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
+            appId: "1:256466567852:web:233b74668908ffcb9b9509"
         };
         
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const storage = getStorage(app);
 
-        // 台灣縣市列表
-        const TAIWAN_CITIES = [
-            '基隆市', '台北市', '新北市', '桃園市', '新竹市', '新竹縣', '苗栗縣', 
-            '台中市', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '台南市', 
-            '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'
-        ];
+        const TAIWAN_CITIES = ['基隆市', '台北市', '新北市', '桃園市', '新竹市', '新竹縣', '苗栗縣', '台中市', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '台南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'];
 
-        // === 2. 核心 App 元件 ===
         function App() {
-            const [currentTab, setCurrentTab] = useState('report');
+            const [view, setView] = useState('map'); 
             const [user, setUser] = useState(null);
             const [role, setRole] = useState(null);
 
@@ -73,7 +103,6 @@
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
-                        // 判斷是否為真實登入還是訪客
                         if (!currentUser.isAnonymous) {
                             try {
                                 const userDoc = await getDoc(doc(db, "users", currentUser.uid));
@@ -86,21 +115,19 @@
                                     snap.forEach(d => { if(d.data().role) foundRole = d.data().role; });
                                     setRole(foundRole);
                                 }
-                            } catch (error) {
-                                console.error("權限讀取失敗：", error);
-                                setRole('member');
-                            }
+                            } catch (error) { setRole('member'); }
                         } else {
-                            setRole('guest'); // 匿名訪客
+                            setRole('guest'); 
                         }
                     } else {
-                        setUser(null);
-                        setRole(null);
-                        // 🔥 訪客進入時自動靜默匿名登入，確保能夠上傳照片與資料
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (e) {
-                            console.error("匿名登入失敗，請確認 Firebase Auth 是否已開啟匿名登入", e);
+                        setUser(null); setRole(null);
+                        try { 
+                            await signInAnonymously(auth); 
+                        } catch (e) { 
+                            console.error("匿名登入失敗", e); 
+                            if (e.code === 'auth/admin-restricted-operation') {
+                                alert("【系統提示】您的 Firebase 專案尚未開啟「匿名登入」功能！");
+                            }
                         }
                     }
                 });
@@ -108,361 +135,410 @@
             }, []);
 
             return (
-                <div className="relative w-full">
-                    {/* 頂部狀態列 */}
-                    <div className="flex justify-between items-center mb-6">
-                        <a href="index.html" className="text-gray-400 hover:text-white transition-colors text-sm">
-                            <i className="fa-solid fa-chevron-left mr-1"></i> 返回
-                        </a>
-                        <div className="text-xs font-bold px-3 py-1 rounded-full bg-white/10 text-gray-300">
-                            {role === 'admin' ? '🎖️ 指揮官' : (role === 'silver' ? '🌟 銀星會員' : (role === 'member' ? '👤 一般星員' : '👻 訪客模式'))}
+                <div className="w-full h-full relative bg-black flex flex-col overflow-hidden">
+                    {view === 'map' ? (
+                        <MapScreen db={db} storage={storage} user={user} role={role} onSwitchToAdmin={() => setView('admin')} />
+                    ) : (
+                        <div className="w-full h-full overflow-y-auto pt-6 px-4 pb-12 bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
+                            <div className="max-w-md mx-auto relative">
+                                <button onClick={() => setView('map')} className="absolute -top-2 left-0 text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5">
+                                    <i className="fa-solid fa-chevron-left"></i> 返回地圖
+                                </button>
+                                <div className="mt-12">
+                                    <AdminPanel db={db} auth={auth} user={user} role={role} />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="flex justify-center space-x-4 mb-6">
-                        <button onClick={() => setCurrentTab('report')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'report' ? 'bg-[#00f3ff] text-black shadow-[0_0_15px_rgba(0,243,255,0.6)]' : 'bg-white/10 text-gray-300'}`}>
-                            <i className="fa-solid fa-satellite-dish mr-2"></i>車位回報
-                        </button>
-                        
-                        {/* 🔥 加入判斷：只要不是訪客 (guest) 就顯示管理中心按鈕 */}
-                        {role !== 'guest' && (
-                            <button onClick={() => setCurrentTab('admin')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'admin' ? 'bg-[#bc13fe] text-white shadow-[0_0_15px_rgba(188,19,254,0.6)]' : 'bg-white/10 text-gray-300'}`}>
-                                <i className="fa-solid fa-user-shield mr-2"></i>管理中心
-                            </button>
-                        )}
-                    </div>
-                    
-                    {currentTab === 'report' && <ReportForm db={db} storage={storage} user={user} />}
-                    {currentTab === 'admin' && <AdminPanel db={db} auth={auth} user={user} role={role} />}
+                    )}
                 </div>
             );
         }
 
-        // === 3. 車友回報表單元件 ===
-        function ReportForm({ db, storage, user }) {
+        function MapScreen({ db, storage, user, role, onSwitchToAdmin }) {
+            const mapRef = useRef(null);
+            const mapInstanceRef = useRef(null);
+            const markerGroupRef = useRef(null); 
+            
+            const [locations, setLocations] = useState([]);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [isSearching, setIsSearching] = useState(false);
+            const [isReportOpen, setIsReportOpen] = useState(false);
+
+            useEffect(() => {
+                const fetchApprovedSpots = async () => {
+                    const q = query(collection(db, "parking_locations"), where("status", "==", "approved"));
+                    const snap = await getDocs(q);
+                    const spots = [];
+                    snap.forEach(doc => spots.push({ id: doc.id, ...doc.data() }));
+                    setLocations(spots);
+                };
+                fetchApprovedSpots();
+            }, []);
+
+            // 🚀 地圖初始化 (使用 Google Maps 引擎，穩定不黑屏)
+            useEffect(() => {
+                if (!mapRef.current) return;
+                if (mapInstanceRef.current) return; 
+
+                const map = L.map(mapRef.current, { zoomControl: false }).setView([23.6978, 120.9605], 8);
+                
+                // 🔥 穩定版 Google Maps 圖磚 + CSS 濾鏡
+                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    className: 'dark-map-tiles'
+                }).addTo(map);
+
+                mapInstanceRef.current = map;
+                markerGroupRef.current = L.layerGroup().addTo(map);
+
+                // 🔥 連續強制觸發重新計算尺寸，徹底避免高度塌陷
+                setTimeout(() => map.invalidateSize(), 100);
+                setTimeout(() => map.invalidateSize(), 500);
+                setTimeout(() => map.invalidateSize(), 1000);
+
+                return () => {
+                    if (mapInstanceRef.current) {
+                        mapInstanceRef.current.remove();
+                        mapInstanceRef.current = null;
+                    }
+                };
+            }, []);
+
+            useEffect(() => {
+                if (!mapInstanceRef.current || !markerGroupRef.current) return;
+
+                const map = mapInstanceRef.current;
+                markerGroupRef.current.clearLayers(); 
+
+                locations.forEach(spot => {
+                    if (spot.lat && spot.lng) {
+                        const customIcon = L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div class="w-4 h-4 bg-[#00f3ff] rounded-full border-2 border-white shadow-[0_0_15px_#00f3ff]"></div>`,
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8]
+                        });
+
+                        const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
+                        
+                        const navLink = spot.gmap || `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+                        const popupHtml = `
+                            <div class="flex flex-col">
+                                ${spot.image_url ? `<img src="${spot.image_url}" class="w-full h-32 object-cover border-b border-[#00f3ff]/30" />` : ''}
+                                <div class="p-3">
+                                    <h3 class="text-lg font-bold text-[#00f3ff] mb-1 leading-tight">${spot.name}</h3>
+                                    <p class="text-xs text-gray-300 mb-1 truncate"><i class="fa-solid fa-location-dot"></i> ${spot.city}</p>
+                                    <p class="text-sm font-bold text-[#00ff9d] mb-2"><i class="fa-solid fa-coins"></i> ${spot.price}</p>
+                                    ${spot.note ? `<p class="text-xs text-gray-400 bg-white/10 p-2 rounded mb-2">${spot.note}</p>` : ''}
+                                    <a href="${navLink}" target="_blank" class="block w-full py-2 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-center text-white font-bold rounded-lg text-sm transition-all hover:opacity-90">
+                                        <i class="fa-solid fa-location-arrow"></i> 導航前往
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                        marker.bindPopup(popupHtml);
+                        markerGroupRef.current.addLayer(marker);
+                    }
+                });
+            }, [locations]);
+
+            const handleSearch = async (e) => {
+                e.preventDefault();
+                if (!searchQuery.trim()) return;
+                setIsSearching(true);
+                
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=tw&limit=1`);
+                    const data = await res.json();
+                    
+                    if (data && data.length > 0) {
+                        const { lat, lon } = data[0];
+                        mapInstanceRef.current.flyTo([lat, lon], 16, { duration: 1.5 });
+                    } else {
+                        alert("找不到該地標，請嘗試其他關鍵字！");
+                    }
+                } catch (err) { console.error(err); }
+                setIsSearching(false);
+                document.activeElement.blur(); 
+            };
+
+            const locateMe = () => {
+                if (!navigator.geolocation) return alert('不支援定位功能');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const { latitude, longitude } = pos.coords;
+                        mapInstanceRef.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
+                        
+                        L.circleMarker([latitude, longitude], {
+                            icon: L.divIcon({
+                                className: 'user-loc',
+                                html: `<div class="w-5 h-5 bg-[#ff4757] rounded-full border-[3px] border-white shadow-[0_0_20px_#ff4757] animate-pulse"></div>`,
+                                iconSize: [20, 20], iconAnchor: [10, 10]
+                            })
+                        }).addTo(mapInstanceRef.current).bindPopup("您目前的位置").openPopup();
+                    },
+                    (err) => alert('無法取得定位，請確認手機已開啟位置權限。'),
+                    { enableHighAccuracy: true }
+                );
+            };
+
+            return (
+                <div className="w-full h-full relative overflow-hidden flex-1">
+                    {/* 地圖容器 */}
+                    <div ref={mapRef} style={{width: '100%', height: '100%'}} className="absolute inset-0 z-0"></div>
+
+                    {/* --- 浮動 UI 層 --- */}
+                    <div className="absolute inset-0 z-[50] pointer-events-none">
+                        
+                        {/* 頂部搜尋列 */}
+                        <div className="absolute top-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] pointer-events-auto">
+                            <form onSubmit={handleSearch} className="flex items-center glass-panel rounded-full overflow-hidden shadow-lg p-1">
+                                <a href="index.html" className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                                    <i className="fa-solid fa-house"></i>
+                                </a>
+                                <input 
+                                    type="text" 
+                                    placeholder="搜尋地標或縣市..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="flex-1 bg-transparent border-none text-white px-2 focus:outline-none text-base"
+                                />
+                                <button type="submit" className="w-10 h-10 bg-[#00f3ff]/20 text-[#00f3ff] rounded-full flex items-center justify-center hover:bg-[#00f3ff] hover:text-black transition-colors">
+                                    {isSearching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-magnifying-glass"></i>}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* 右上角：管理員入口 */}
+                        {role !== 'guest' && (
+                            <button 
+                                onClick={onSwitchToAdmin}
+                                className="absolute top-20 right-4 w-12 h-12 glass-panel rounded-full text-[#bc13fe] flex items-center justify-center shadow-lg pointer-events-auto hover:bg-[#bc13fe]/20"
+                                title="管理中心"
+                            >
+                                <i className="fa-solid fa-user-shield text-xl"></i>
+                            </button>
+                        )}
+
+                        {/* 右下角：定位按鈕 */}
+                        <button 
+                            onClick={locateMe}
+                            className="absolute bottom-28 right-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white/20 transition-colors"
+                        >
+                            <i className="fa-solid fa-crosshairs text-xl"></i>
+                        </button>
+
+                        {/* 右下角：超巨大回報 FAB */}
+                        <button 
+                            onClick={() => setIsReportOpen(true)}
+                            className="absolute bottom-8 right-5 w-16 h-16 bg-gradient-to-tr from-[#00f3ff] to-[#bc13fe] text-white rounded-full flex items-center justify-center shadow-[0_5px_25px_rgba(0,243,255,0.5)] pointer-events-auto hover:scale-105 active:scale-95 transition-all z-[60]"
+                        >
+                            <i className="fa-solid fa-plus text-3xl"></i>
+                        </button>
+                    </div>
+
+                    {/* --- 回報車位 Bottom Sheet Modal --- */}
+                    {isReportOpen && (
+                        <div className="absolute inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
+                            <div className="absolute inset-0" onClick={() => setIsReportOpen(false)}></div>
+                            
+                            <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#00f3ff]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden">
+                                <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto my-3 sm:hidden"></div>
+                                
+                                <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+                                    <i className="fa-solid fa-xmark text-white"></i>
+                                </button>
+
+                                <div className="p-6">
+                                    <ReportForm db={db} storage={storage} user={user} onClose={() => setIsReportOpen(false)} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // === 4. 車位回報表單 ===
+        function ReportForm({ db, storage, user, onClose }) {
             const [formData, setFormData] = useState({ 
                 name: '', city: '台北市', address: '', lat: '', lng: '', 
-                priceType: '免費', priceAmount: '',
-                gmap: '', amap: '', note: '', provider: '熱心車友' 
+                priceType: '免費', priceAmount: '', gmap: '', note: '', provider: '熱心車友' 
             });
             const [imageFile, setImageFile] = useState(null);
             const [previewUrl, setPreviewUrl] = useState('');
             const [loading, setLoading] = useState(false);
             const [msg, setMsg] = useState('');
 
-            // 🔥 若使用者有登入，自動將他的暱稱填入「提供者」欄位
             useEffect(() => {
                 if (user && !user.isAnonymous) {
-                    const fetchUserName = async () => {
-                        try {
-                            const d = await getDoc(doc(db, "users", user.uid));
-                            if (d.exists()) {
-                                setFormData(prev => ({...prev, provider: d.data().displayName || d.data().lineName || '熱心車友'}));
-                            }
-                        } catch(e) { /* ignore */ }
-                    };
-                    fetchUserName();
+                    getDoc(doc(db, "users", user.uid)).then(d => {
+                        if (d.exists()) setFormData(prev => ({...prev, provider: d.data().displayName || d.data().lineName || '熱心車友'}));
+                    }).catch(()=>{});
                 }
+                autoLocate();
             }, [user]);
 
-            const getLocation = () => {
-                if (!navigator.geolocation) return alert('瀏覽器不支援定位');
-                setMsg('🛰️ 正在掃描星系座標...');
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        setFormData(prev => ({ ...prev, lat: pos.coords.latitude, lng: pos.coords.longitude }));
-                        setMsg('✅ 座標鎖定成功');
-                        setTimeout(() => setMsg(''), 2000);
-                    },
-                    (err) => { alert('無法取得座標，請確認已開啟定位權限。'); setMsg(''); },
-                    { enableHighAccuracy: true }
-                );
-            };
-
-            const handleImageChange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                setImageFile(file);
-                setPreviewUrl(URL.createObjectURL(file));
+            const autoLocate = () => {
+                setMsg('🛰️ 正在掃描座標...');
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            setFormData(prev => ({ ...prev, lat: pos.coords.latitude, lng: pos.coords.longitude }));
+                            setMsg('✅ 已鎖定座標');
+                            setTimeout(() => setMsg(''), 2000);
+                        },
+                        (err) => { setMsg('⚠️ 定位失敗，請手動輸入地址'); },
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                }
             };
 
             const compressImage = (file) => {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
-                    reader.onload = (event) => {
-                        const img = new Image();
-                        img.src = event.target.result;
+                    reader.onload = (e) => {
+                        const img = new Image(); img.src = e.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            const MAX_SIZE = 800;
-                            let width = img.width; let height = img.height;
-                            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-                            else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                            let { width, height } = img;
+                            if (width > 800) { height *= 800 / width; width = 800; }
                             canvas.width = width; canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
-                            canvas.toBlob((blob) => {
-                                if(!blob) return reject(new Error('壓縮失敗'));
-                                resolve(new File([blob], `parking_${Date.now()}.webp`, { type: 'image/webp' }));
-                            }, 'image/webp', 0.4);
+                            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                            canvas.toBlob(blob => blob ? resolve(new File([blob], `${Date.now()}.webp`, { type: 'image/webp' })) : reject(), 'image/webp', 0.5);
                         };
                     };
-                    reader.onerror = error => reject(new Error('讀取失敗'));
                 });
             };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setLoading(true);
-                setMsg('🚀 正在啟動引擎傳輸資料...');
+                setLoading(true); setMsg('🚀 傳輸中...');
                 try {
-                    let finalImageUrl = "";
+                    let url = "";
                     if (imageFile) {
-                        setMsg('📦 正在壓縮並上傳影像資料...');
-                        const compressedFile = await compressImage(imageFile);
-                        const storageRef = ref(storage, `parking_images/${compressedFile.name}`);
-                        const uploadTask = await uploadBytesResumable(storageRef, compressedFile);
-                        finalImageUrl = await getDownloadURL(uploadTask.ref);
+                        const file = await compressImage(imageFile);
+                        const uploadTask = await uploadBytesResumable(ref(storage, `parking_images/${file.name}`), file);
+                        url = await getDownloadURL(uploadTask.ref);
                     }
-
-                    setMsg('💾 寫入玉露寶庫核心...');
-                    const finalPrice = formData.priceType === '免費' 
-                        ? '免費' 
-                        : (formData.priceAmount ? `${formData.priceType}：${formData.priceAmount}` : formData.priceType);
+                    const price = formData.priceType === '免費' ? '免費' : (formData.priceAmount ? `${formData.priceType}：${formData.priceAmount}` : formData.priceType);
 
                     await addDoc(collection(db, "parking_locations"), {
-                        name: formData.name,
-                        city: formData.city, 
-                        address: formData.address,
-                        lat: parseFloat(formData.lat) || 0,
-                        lng: parseFloat(formData.lng) || 0,
-                        price: finalPrice,
-                        gmap: formData.gmap,
-                        amap: formData.amap,
-                        note: formData.note,
-                        provider: formData.provider,
-                        image_url: finalImageUrl,
-                        status: "pending", 
-                        created_at: serverTimestamp()
+                        ...formData, 
+                        lat: parseFloat(formData.lat) || 0, lng: parseFloat(formData.lng) || 0,
+                        price: price, image_url: url, status: "pending", created_at: serverTimestamp()
                     });
                     
-                    setMsg('✨ 回報成功！已送交指揮中心審核。');
-                    setFormData(prev => ({ ...prev, name: '', address: '', lat: '', lng: '', priceAmount: '', gmap: '', amap: '', note: '' }));
-                    setImageFile(null); setPreviewUrl('');
-                } catch (error) {
-                    console.error(error);
-                    setMsg('❌ 傳輸失敗：' + error.message);
-                }
+                    alert('✨ 回報成功！已送交總部審核。');
+                    onClose(); 
+                } catch (error) { setMsg('❌ 傳輸失敗：' + error.message); }
                 setLoading(false);
             };
 
             return (
-                <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-                    <div className="absolute top-[-50px] right-[-50px] w-32 h-32 bg-[#00f3ff]/20 rounded-full blur-3xl"></div>
-                    <h2 className="text-2xl font-bold mb-6 text-center tracking-wider text-[#00f3ff] drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]">
-                        新增車位情報
-                    </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <h2 className="text-2xl font-bold mb-4 text-center text-[#00f3ff]"><i className="fa-solid fa-satellite-dish"></i> 情報回報</h2>
                     
-                    <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                        <div className="flex flex-col">
-                            <label className="text-sm text-[#00f3ff] mb-1">停車場名稱 *</label>
-                            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：羅東夜市機車格" />
-                        </div>
-
-                        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-                            <div className="flex-1 flex flex-col">
-                                <label className="text-sm text-[#00f3ff] mb-1">所在縣市 *</label>
-                                <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
-                                    className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors appearance-none">
-                                    {TAIWAN_CITIES.map(city => <option key={city} value={city} className="bg-[#090A0F]">{city}</option>)}
-                                </select>
-                            </div>
-                            <div className="flex-[2] flex flex-col">
-                                <label className="text-sm text-[#00f3ff] mb-1">詳細地址 *</label>
-                                <input required type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
-                                    className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="輸入完整地址" />
-                            </div>
-                        </div>
-
-                        <div className="p-3 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
-                            <div className="text-xs text-gray-400">
-                                <div>緯度 Lat: <span className="text-[#FFD700]">{formData.lat || '未鎖定'}</span></div>
-                                <div>經度 Lng: <span className="text-[#FFD700]">{formData.lng || '未鎖定'}</span></div>
-                            </div>
-                            <button type="button" onClick={getLocation} className="px-3 py-2 bg-white/10 hover:bg-[#00f3ff]/20 text-[#00f3ff] rounded-lg border border-[#00f3ff]/50 transition-all text-sm flex items-center">
-                                <i className="fa-solid fa-crosshairs mr-2"></i>自動定位
-                            </button>
-                        </div>
-
-                        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-                            <div className="flex-1 flex flex-col">
-                                <label className="text-sm text-[#00f3ff] mb-1">收費方式</label>
-                                <select value={formData.priceType} onChange={e => setFormData({...formData, priceType: e.target.value})}
-                                    className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors appearance-none">
-                                    <option className="bg-[#090A0F]" value="免費">免費</option>
-                                    <option className="bg-[#090A0F]" value="計時">計時</option>
-                                    <option className="bg-[#090A0F]" value="計次">計次</option>
-                                    <option className="bg-[#090A0F]" value="其他">其他</option>
-                                </select>
-                            </div>
-                            
-                            {formData.priceType !== '免費' && (
-                                <div className="flex-1 flex flex-col">
-                                    <label className="text-sm text-[#00f3ff] mb-1">費率 / 金額區間</label>
-                                    <input type="text" value={formData.priceAmount} onChange={e => setFormData({...formData, priceAmount: e.target.value})}
-                                        className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：30元/H 或 20-50元" />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-[#00f3ff] mb-1">Google Maps 連結</label>
-                            <input type="url" value={formData.gmap} onChange={e => setFormData({...formData, gmap: e.target.value})}
-                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="貼上 Google Maps 分享網址" />
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-[#00f3ff] mb-1">實景照片 (選填)</label>
-                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#00f3ff]/30 rounded-xl cursor-pointer hover:bg-[#00f3ff]/10 transition-all overflow-hidden relative">
-                                {previewUrl ? (
-                                    <img src={previewUrl} className="absolute inset-0 w-full h-full object-cover opacity-80" alt="預覽" />
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center text-gray-400">
-                                        <i className="fa-solid fa-camera text-2xl mb-2 text-[#00f3ff]"></i>
-                                        <p className="text-sm">點擊上傳影像</p>
-                                    </div>
-                                )}
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                            </label>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-[#00f3ff] mb-1">備註事項 (選填)</label>
-                            <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})}
-                                className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：有遮雨棚、斜坡陡" />
-                        </div>
-
-                        <div className="flex flex-col mt-4 pt-4 border-t border-white/10">
-                            <label className="text-sm text-gray-400 mb-1">提供者暱稱</label>
-                            <input type="text" value={formData.provider} onChange={e => setFormData({...formData, provider: e.target.value})}
-                                className="bg-transparent border-b border-[#00f3ff]/30 px-2 py-1 text-[#FFD700] focus:outline-none focus:border-[#bc13fe] text-right" />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2">
+                            <label className="text-xs text-[#00f3ff]">停車場名稱 *</label>
+                            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]" placeholder="例：羅東夜市周邊" />
                         </div>
                         
-                        {msg && <div className="text-center text-[#00ff9d] animate-pulse text-sm my-2">{msg}</div>}
+                        <div>
+                            <label className="text-xs text-[#00f3ff]">縣市 *</label>
+                            <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]">
+                                {TAIWAN_CITIES.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
+                            </select>
+                        </div>
                         
-                        <button disabled={loading} type="submit" 
-                            className={`w-full py-4 mt-2 rounded-xl font-bold tracking-widest text-white transition-all shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:shadow-[0_0_25px_rgba(188,19,254,0.6)] ${loading ? 'bg-gray-600' : 'bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] hover:opacity-90'}`}>
-                            {loading ? <i className="fa-solid fa-spinner fa-spin mr-2"></i> : null}
-                            {loading ? '傳輸中...' : '提交回報'}
-                        </button>
-                    </form>
-                </div>
+                        <div>
+                            <label className="text-xs text-[#00f3ff]">詳細地址</label>
+                            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]" />
+                        </div>
+                    </div>
+
+                    <div className="bg-black/30 border border-white/10 rounded-xl p-3 flex justify-between items-center">
+                        <div className="text-xs text-gray-400">Lat: <span className="text-[#FFD700]">{formData.lat || '-'}</span> | Lng: <span className="text-[#FFD700]">{formData.lng || '-'}</span></div>
+                        <button type="button" onClick={autoLocate} className="px-3 py-1 bg-white/10 text-[#00f3ff] rounded-lg text-xs"><i className="fa-solid fa-arrows-rotate"></i></button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-[#00f3ff]">收費</label>
+                            <select value={formData.priceType} onChange={e => setFormData({...formData, priceType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none">
+                                <option value="免費" className="bg-gray-900">免費</option><option value="計時" className="bg-gray-900">計時</option><option value="計次" className="bg-gray-900">計次</option>
+                            </select>
+                        </div>
+                        {formData.priceType !== '免費' && (
+                            <div>
+                                <label className="text-xs text-[#00f3ff]">費率</label>
+                                <input type="text" value={formData.priceAmount} onChange={e => setFormData({...formData, priceAmount: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="例：30/H" />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="col-span-2">
+                        <label className="text-xs text-[#00f3ff]">實景照片</label>
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#00f3ff]/30 rounded-xl cursor-pointer hover:bg-[#00f3ff]/10 relative overflow-hidden">
+                            {previewUrl ? <img src={previewUrl} className="absolute inset-0 w-full h-full object-cover" /> : <div className="text-gray-400 text-sm"><i className="fa-solid fa-camera text-[#00f3ff] mb-1"></i> 上傳照片</div>}
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => { if(e.target.files[0]){ setImageFile(e.target.files[0]); setPreviewUrl(URL.createObjectURL(e.target.files[0])); } }} />
+                        </label>
+                    </div>
+
+                    <div>
+                        <label className="text-xs text-[#00f3ff]">備註事項</label>
+                        <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮？" />
+                    </div>
+
+                    {msg && <div className="text-[#00ff9d] text-center text-xs animate-pulse">{msg}</div>}
+                    
+                    <button disabled={loading} type="submit" className="w-full py-3 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold rounded-xl mt-2">
+                        {loading ? '上傳中...' : '提交審核'}
+                    </button>
+                </form>
             );
         }
 
-        // === 4. 管理員後台元件 ===
+        // === 5. 管理員後台元件 ===
         function AdminPanel({ db, auth, user, role }) {
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
             const [pendingSpots, setPendingSpots] = useState([]);
-            const [loading, setLoading] = useState(false);
-
-            const fetchPendingSpots = async () => {
-                if (!user || user.isAnonymous || (role !== 'admin' && role !== 'silver')) return;
-                setLoading(true);
-                try {
-                    const q = query(collection(db, "parking_locations"), where("status", "==", "pending"));
-                    const querySnapshot = await getDocs(q);
-                    const spots = [];
-                    querySnapshot.forEach((doc) => spots.push({ id: doc.id, ...doc.data() }));
-                    setPendingSpots(spots);
-                } catch (error) { alert("讀取失敗，請確認權限！"); }
-                setLoading(false);
-            };
+            const [loading, setLoading] = useState(true);
 
             useEffect(() => { 
                 if(user && !user.isAnonymous && (role === 'admin' || role === 'silver')) {
-                    fetchPendingSpots(); 
+                    getDocs(query(collection(db, "parking_locations"), where("status", "==", "pending"))).then(snap => {
+                        const spots = []; snap.forEach(d => spots.push({ id: d.id, ...d.data() })); setPendingSpots(spots); setLoading(false);
+                    }).catch(()=>setLoading(false));
                 }
             }, [user, role]);
 
-            const handleLogin = async (e) => {
-                e.preventDefault();
-                try { 
-                    await signInWithEmailAndPassword(auth, email, password); 
-                } catch (error) { 
-                    alert('登入失敗：請確認帳號與密碼'); 
-                }
-            };
+            if (!user || user.isAnonymous || role === 'guest') return <div className="text-center mt-10">請先從首頁登入</div>;
+            if (role !== 'admin' && role !== 'silver') return <div className="text-center mt-10 text-red-500 font-bold">權限不足</div>;
 
-            const handleApprove = async (id) => {
-                if(!window.confirm('確定要核准並上架嗎？ (LINE Bot 將可讀取此筆資料)')) return;
+            const handleAction = async (id, action) => {
+                if(!confirm(`確定要${action==='approved'?'核准':'刪除'}這筆資料嗎？`)) return;
                 try {
-                    await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
-                    setPendingSpots(pendingSpots.filter(spot => spot.id !== id));
-                } catch (error) { alert('核准失敗：' + error.message); }
+                    if(action==='approved') await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
+                    else await deleteDoc(doc(db, "parking_locations", id));
+                    setPendingSpots(pendingSpots.filter(s => s.id !== id));
+                } catch (e) { alert("操作失敗"); }
             };
-
-            const handleReject = async (id) => {
-                if(!window.confirm('確定要刪除這筆回報嗎？')) return;
-                try {
-                    await deleteDoc(doc(db, "parking_locations", id));
-                    setPendingSpots(pendingSpots.filter(spot => spot.id !== id));
-                } catch (error) { alert('刪除失敗：' + error.message); }
-            };
-
-            // ⛔ 攔截訪客與匿名身份，顯示登入表單
-            if (!user || user.isAnonymous || !role || role === 'guest') {
-                return (
-                    <div className="glass-panel rounded-2xl p-6">
-                        <h2 className="text-xl font-bold mb-4 text-[#bc13fe] text-center"><i className="fa-solid fa-lock mr-2"></i>指揮中心登入</h2>
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <input type="email" placeholder="管理員信箱" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-3 text-white" />
-                            <input type="password" placeholder="密碼" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-3 text-white" />
-                            <button type="submit" className="w-full py-3 rounded-xl font-bold bg-[#bc13fe] text-white hover:bg-white hover:text-black transition-all">登入系統</button>
-                        </form>
-                        <p className="text-center text-xs text-gray-500 mt-4">僅開放管理員登入查閱審核名單</p>
-                    </div>
-                );
-            }
-
-            // ⛔ 攔截不具備管理權限的普通會員
-            if (role !== 'admin' && role !== 'silver') {
-                return (
-                    <div className="glass-panel rounded-2xl p-6 text-center animate-pulse border-[#ff4757]/50">
-                        <h2 className="text-2xl font-bold mb-4 text-[#ff4757]"><i className="fa-solid fa-triangle-exclamation mr-2"></i> 權限不足</h2>
-                        <p className="text-gray-300 mb-6 leading-relaxed">您目前的身份為「一般星員」，<br/>僅限<span className="text-[#FFD700] font-bold">「指揮官」</span>與<span className="text-[#C0C0C0] font-bold">「銀星會員」</span>可進入審核中心。</p>
-                        <button onClick={() => signOut(auth)} className="w-full py-3 border border-gray-500 text-gray-300 rounded-xl hover:bg-white hover:text-black transition-all font-bold">
-                            登出並切換帳號
-                        </button>
-                    </div>
-                );
-            }
 
             return (
-                <div className="glass-panel rounded-2xl p-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-[#bc13fe]"><i className="fa-solid fa-clipboard-check mr-2"></i> 待審核名單</h2>
-                        <button onClick={() => signOut(auth)} className="text-sm text-gray-400 hover:text-white border border-gray-500 px-3 py-1 rounded-lg">登出</button>
-                    </div>
-                    
-                    {loading ? <p className="text-center">讀取中...</p> : pendingSpots.length === 0 ? <p className="text-center text-gray-400 my-8">✅ 目前沒有待審核資料</p> : 
+                <div className="glass-panel rounded-3xl p-6 mb-10">
+                    <h2 className="text-xl font-bold text-[#bc13fe] mb-6"><i className="fa-solid fa-clipboard-check"></i> 待審核名單 ({pendingSpots.length})</h2>
+                    {loading ? <p className="text-center">讀取中...</p> : pendingSpots.length === 0 ? <p className="text-center text-gray-500">無待審資料</p> : 
                         <div className="space-y-4">
                             {pendingSpots.map(spot => (
-                                <div key={spot.id} className="bg-black/40 border border-white/10 rounded-xl p-4 relative">
-                                    {spot.image_url && <img src={spot.image_url} alt="實景" className="w-full h-32 object-cover rounded-lg mb-3 border border-white/20" />}
-                                    <div className="text-lg font-bold text-[#FFD700] mb-1">{spot.name}</div>
-                                    <div className="text-sm text-gray-300 mb-1"><i className="fa-solid fa-location-dot mr-1"></i>【{spot.city}】{spot.address}</div>
-                                    <div className="text-sm text-gray-300 mb-1"><i className="fa-solid fa-coins mr-1"></i>{spot.price || '未提供'}</div>
-                                    <div className="text-xs text-gray-400 mb-3">
-                                        座標: {spot.lat}, {spot.lng}<br/>
-                                        備註: {spot.note || '無'} | 提供者: <span className="text-[#00f3ff]">{spot.provider}</span>
-                                    </div>
-                                    <div className="flex space-x-2">
-                                        <button onClick={() => handleApprove(spot.id)} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] border border-[#00ff9d]/50 py-2 rounded-lg hover:bg-[#00ff9d] hover:text-black transition-all font-bold"><i className="fa-solid fa-check mr-1"></i>核准</button>
-                                        <button onClick={() => handleReject(spot.id)} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] border border-[#ff4757]/50 py-2 rounded-lg hover:bg-[#ff4757] hover:text-white transition-all font-bold"><i className="fa-solid fa-trash mr-1"></i>退回</button>
+                                <div key={spot.id} className="bg-black/40 border border-white/10 rounded-2xl p-4">
+                                    {spot.image_url && <img src={spot.image_url} className="w-full h-32 object-cover rounded-xl mb-3" />}
+                                    <div className="font-bold text-[#FFD700] mb-1">{spot.name}</div>
+                                    <div className="text-sm text-gray-300 mb-2">【{spot.city}】{spot.address}</div>
+                                    <div className="flex gap-2 mt-4">
+                                        <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2 rounded-xl font-bold">核准</button>
+                                        <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2 rounded-xl font-bold">退回</button>
                                     </div>
                                 </div>
                             ))}

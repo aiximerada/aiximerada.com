@@ -107,6 +107,43 @@ function generateParkingFlexMessage(spots, altText) {
 }
 
 // =====================================================================
+// 🚫 輔助函數：產生「找不到車位」並附帶回報按鈕的 Flex Message
+// =====================================================================
+function generateNotFoundFlexMessage(title, description) {
+    return {
+        "type": "flex",
+        "altText": title,
+        "contents": {
+            "type": "bubble",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    { "type": "text", "text": title, "weight": "bold", "size": "xl", "color": "#ff4757", "wrap": true },
+                    { "type": "text", "text": description, "wrap": true, "margin": "md", "color": "#888888" }
+                ]
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "color": "#bc13fe",
+                        "action": {
+                            "type": "uri",
+                            "label": "📍 立即回報車位",
+                            "uri": encodeURI("https://yulubox.web.app/車位回報.html")
+                        }
+                    }
+                ]
+            }
+        }
+    };
+}
+
+// =====================================================================
 // 🌤️ 輔助函數：抓取氣象署即時天氣資訊與降雨機率判斷
 // =====================================================================
 async function getWeather(city) {
@@ -208,15 +245,20 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                     const spot = doc.data();
                     if (spot.lat && spot.lng) {
                         const distance = calculateDistance(userLat, userLng, spot.lat, spot.lng);
-                        // 過濾出半徑 15 公里內的車位
-                        if (distance <= 15) {
+                        // 🔥 過濾出半徑 5 公里內的車位
+                        if (distance <= 5) {
                             nearbySpots.push({ ...spot, distance: distance });
                         }
                     }
                 });
 
                 if (nearbySpots.length === 0) {
-                    await replyLineMessage(replyToken, [{ type: "text", text: "😭 您的附近 15 公里內，目前尚未有熱心車友回報的重機車位情報。\n\n歡迎前往「車位回報系統」貢獻您的私房車位！" }]);
+                    // 🔥 附近找不到車位時，顯示自訂的引導按鈕卡片
+                    const notFoundMsg = generateNotFoundFlexMessage(
+                        "😭 附近查無車位", 
+                        "方圓 5 公里內，目前還沒有熱心車友回報的重機車位情報。\n\n點擊下方按鈕，成為第一位貢獻者吧！"
+                    );
+                    await replyLineMessage(replyToken, [notFoundMsg]);
                     continue;
                 }
 
@@ -274,7 +316,12 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                             .get();
 
                         if (snapshot.empty) {
-                            await replyLineMessage(replyToken, [{ type: "text", text: `😭 目前系統中尚未有【${searchCity}】的重機車位情報。\n\n歡迎前往「玉露寶庫車位回報系統」貢獻您的私房車位！` }]);
+                            // 🔥 該縣市找不到車位時，顯示自訂的引導按鈕卡片
+                            const notFoundMsg = generateNotFoundFlexMessage(
+                                `😭 查無【${searchCity}】車位`, 
+                                `目前系統中尚未有【${searchCity}】的重機車位情報。\n\n點擊下方按鈕，貢獻您的私房車位吧！`
+                            );
+                            await replyLineMessage(replyToken, [notFoundMsg]);
                         } else {
                             let spots = [];
                             snapshot.forEach(doc => spots.push(doc.data()));
@@ -533,10 +580,10 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                             ]
                         }
                     }]);
-                    continue; // 🔥 新增：確保觸發記帳後跳出迴圈
+                    continue; 
                 }
 
-                // 🔥 新增：當系統完全找不到對應的指令時，發送「防呆導航選單 (Quick Replies)」
+                // 當系統完全找不到對應的指令時，發送「防呆導航選單」
                 await replyLineMessage(replyToken, [{
                     type: "text",
                     text: "🤖 系統無法辨識您的指令喔！\n\n您可以傳送「📍位置資訊」給我尋找附近車位，或直接點擊下方的快捷按鈕：👇",
