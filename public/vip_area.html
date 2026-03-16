@@ -136,19 +136,9 @@
             color: #000; border: none; padding: 12px 40px; border-radius: 50px;
             font-size: 1.1rem; font-weight: 900; cursor: pointer; margin-top: 15px;
             box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); width: 100%;
-            transition: transform 0.2s;
         }
-        .btn-checkin:active { transform: scale(0.95); }
-        .btn-checkin:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; transform: none; }
+        .btn-checkin:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
 
-        /* Toast 彈窗樣式 */
-        #toastMessage {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-            background: rgba(15,23,42,0.9); color: #fff; padding: 12px 24px;
-            border-radius: 30px; border: 1px solid var(--main-gold); z-index: 9999;
-            opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none; box-shadow: 0 0 20px rgba(255,215,0,0.3); font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -159,9 +149,6 @@
         <div class="star-field stars-mid"></div>
         <div class="gold-twinklers"></div>
     </div>
-
-    <!-- 安全防護 Toast -->
-    <div id="toastMessage"></div>
 
     <button class="logout-btn" onclick="handleLogout()">
         <i class="fa-solid fa-right-from-bracket"></i> 登出系統
@@ -327,39 +314,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // 🔥 加入 signInAnonymously 來處理自動註冊
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // 🔥 全域安全跳轉與提示工具
-        window.showAlert = function(msg) {
-            const toast = document.getElementById('toastMessage');
-            if (toast) {
-                toast.innerText = msg;
-                toast.style.transform = 'translateX(-50%) translateY(0)';
-                toast.style.opacity = '1';
-                setTimeout(() => {
-                    toast.style.transform = 'translateX(-50%) translateY(100px)';
-                    toast.style.opacity = '0';
-                }, 3000);
-            } else {
-                alert(msg);
-            }
-        };
-
-        window.safeRedirect = function(url) {
-            try {
-                window.location.href = url;
-            } catch (e) {
-                console.warn(`跳轉至 ${url} 已被預覽環境攔截。`);
-                document.body.innerHTML = `
-                    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; background: var(--deep-space); z-index: 99999; position: fixed; top: 0; left: 0; width: 100%;">
-                        <i class="fa-solid fa-rocket" style="font-size: 4rem; color: var(--nebula-blue); margin-bottom: 20px;"></i>
-                        <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">系統跳轉攔截</h2>
-                        <p style="color: #94a3b8; text-align: center; line-height: 1.6;">預覽沙盒環境中不支援跨頁面跳轉。<br>原定跳轉目標：<span style="color: var(--main-gold);">${url}</span></p>
-                    </div>
-                `;
-            }
-        };
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -379,68 +336,97 @@
         const myLiffId = "2009464550-Odl0cheD";
 
         let currentUser = null;
-        let cachedUserData = null; // 🔥 加入本地暫存，避免重複讀取浪費讀取次數
-        
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
         const CHECKIN_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 
-        // 🌟 智慧啟動系統
+        // 🌟 智慧啟動系統：升級版免密碼 LINE 註冊
         async function initSystem() {
             try {
-                if (typeof liff !== 'undefined') {
-                    await liff.init({ liffId: myLiffId });
-                }
+                await liff.init({ liffId: myLiffId });
             } catch (err) {
                 console.error("LIFF 初始化錯誤:", err);
             }
 
             onAuthStateChanged(auth, async (user) => {
+                // 如果有 Firebase 授權身分，且「不是」剛剛產生的匿名註冊帳號
                 if (user && !user.isAnonymous) {
-                    // 情況 A：有使用信箱登入
+                    // 情況 A：有使用信箱密碼登入的舊星員
                     currentUser = user;
                     setupBaseUI(user.displayName || user.email.split('@')[0], user.photoURL);
 
-                    await loadUserData(); // 🔥 登入時載入一次快取資料
-                    
-                    if (cachedUserData && cachedUserData.lineUserId) {
-                        setupBoundUI(cachedUserData.lineUserId);
-                    } else if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
+                    const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+                    const userData = docSnap.exists() ? docSnap.data() : {};
+
+                    if (userData.lineUserId) {
+                        setupBoundUI(userData.lineUserId);
+                    } else if (liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
                         await linkAccounts(currentUser, profile);
                     }
-                    checkAutoPopUp(); // 讀取快取決定是否彈出簽到
+                    await loadUserData();
+                    checkAutoPopUp();
 
                 } else {
-                    // 情況 B：沒有信箱登入，檢查是否有 LINE 登入
-                    if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
+                    // 情況 B：沒有信箱登入，我們檢查 LINE 是否有登入
+                    if (liff.isLoggedIn()) {
+                        
+                        // 為了能夠順利讀寫資料庫，必須確保系統有一個 Firebase 身份。如果連匿名身份都沒有，就馬上建立一個。
+                        if (!user) {
+                            try {
+                                await signInAnonymously(auth);
+                                return; // 登入成功後 Firebase 會自動再次觸發這個 onAuthStateChanged，因此這裡直接中斷
+                            } catch (err) {
+                                console.error("系統自動匿名登入失敗:", err);
+                            }
+                        }
+
+                        // 到這裡代表確定已經擁有 Firebase 匿名授權了，可以開始資料庫操作
                         try {
                             const profile = await liff.getProfile();
                             
+                            // 去資料庫找找看，這個 LINE ID 有沒有綁定/自動註冊過？
                             const q = query(collection(db, "users"), where("lineUserId", "==", profile.userId));
                             const querySnapshot = await getDocs(q);
 
                             if (!querySnapshot.empty) {
-                                // 🎉 找到了！他已經綁定過了，直接載入他的會員資料
+                                // 🎉 找到了！他已經自動註冊過了，直接載入他的會員資料
                                 const userDoc = querySnapshot.docs[0];
-                                currentUser = { uid: userDoc.id, email: userDoc.data().email || 'Line User' };
-                                
+                                currentUser = { uid: userDoc.id }; // 鎖定該資料庫文件的 ID 作為系統識別
+
                                 setupBaseUI(profile.displayName, profile.pictureUrl);
                                 setupBoundUI(profile.userId);
                                 await loadUserData();
                                 checkAutoPopUp();
                             } else {
-                                // ❌ 有 LINE 登入，但是資料庫找不到綁定紀錄 (防護機制)
-                                showAlert("⚠️ 此 LINE 帳號尚未綁定任何會員！請先使用「信箱」登入。");
-                                liff.logout();
-                                setTimeout(() => safeRedirect("login.html"), 2000);
+                                // ✨ 全新 LINE 用戶！自動幫他創建專屬的星員帳號
+                                const newUserUid = user.uid; // 使用剛才取得的匿名 UID 當作資料庫文件 ID
+
+                                await setDoc(doc(db, "users", newUserUid), {
+                                    lineUserId: profile.userId,
+                                    lineName: profile.displayName,
+                                    email: profile.userId + "@line.me", // 塞一個虛擬信箱讓資料庫好辨識
+                                    role: "member", // 🔥 自動註冊的帳號一律賦予普通會員權限
+                                    stars: 0, // 新星員 0 點起步
+                                    isBound: true,
+                                    createdAt: serverTimestamp()
+                                });
+
+                                currentUser = { uid: newUserUid };
+                                
+                                setupBaseUI(profile.displayName, profile.pictureUrl);
+                                setupBoundUI(profile.userId);
+                                await loadUserData();
+                                checkAutoPopUp();
+                                
+                                alert("🎉 註冊成功！\n已透過您的 LINE 自動建立專屬的一般星員帳號，歡迎加入玉露寶庫！");
                             }
                         } catch(e) {
-                            console.error("驗證 LINE 綁定失敗:", e);
-                            safeRedirect("login.html");
+                            console.error("驗證 LINE 綁定或註冊失敗:", e);
+                            window.location.href = "login.html";
                         }
                     } else {
-                        // 情況 C：什麼都沒登入，踢回登入頁
-                        safeRedirect("login.html");
+                        // 情況 C：什麼都沒登入 (沒信箱也沒開 LINE)，踢回登入頁
+                        window.location.href = "login.html";
                     }
                 }
             });
@@ -458,13 +444,9 @@
             avatar.style.display = 'block';
         }
 
-        // 🌟 點擊綁定 LINE 按鈕
+        // 🌟 點擊綁定 LINE 按鈕 (使用預設跳轉作為跳板，解決 400 Bad Request)
         window.startLineBind = () => {
-            if (typeof liff !== 'undefined') {
-                liff.login(); 
-            } else {
-                showAlert("請在手機 LINE 瀏覽器中開啟以進行綁定！");
-            }
+            liff.login(); 
         };
 
         // 🌟 執行資料庫串聯魔法
@@ -474,7 +456,7 @@
                 const lineRef = doc(db, "users", lineProfile.userId);
                 await setDoc(lineRef, {
                     firebaseUid: firebaseUser.uid,
-                    email: firebaseUser.email || 'unknown',
+                    email: firebaseUser.email,
                     lineName: lineProfile.displayName,
                     isBound: true
                 }, { merge: true });
@@ -486,13 +468,12 @@
                     lineName: lineProfile.displayName
                 }, { merge: true });
 
-                // 3. 更新快取與畫面
-                if(cachedUserData) cachedUserData.lineUserId = lineProfile.userId;
+                // 3. 更新畫面
                 setupBoundUI(lineProfile.userId);
-                showAlert("🎉 成功綁定 LINE 帳號！隱藏功能已解鎖。");
+                alert("🎉 成功綁定 LINE 帳號！隱藏功能已解鎖。");
             } catch (error) {
                 console.error("綁定失敗", error);
-                showAlert("綁定過程中發生錯誤！");
+                alert("綁定過程中發生錯誤！");
             }
         }
 
@@ -503,64 +484,49 @@
             const card = document.getElementById('lineBindCard');
             const financeCard = document.getElementById('financeCard');
 
-            if(statusTag) {
-                statusTag.innerText = "已綁定";
-                statusTag.style.background = "#06C755";
-            }
-            if(desc) desc.innerText = "您的帳號已成功與 LINE 串聯。";
+            statusTag.innerText = "已綁定";
+            statusTag.style.background = "#06C755";
+            desc.innerText = "您的帳號已成功與 LINE 串聯。";
             
-            if(card) {
-                card.onclick = null;
-                card.style.cursor = "default";
-                card.style.opacity = "0.7";
-            }
+            // 讓卡片變成不可再次點擊
+            card.onclick = null;
+            card.style.cursor = "default";
+            card.style.opacity = "0.7";
 
             // 解鎖隱藏的報表卡片
-            if(financeCard) financeCard.style.display = "flex";
+            financeCard.style.display = "flex";
 
             // 將 LINE ID 存入本機，供帳務頁面讀取
             localStorage.setItem("lineUserId", lineId);
         }
 
-        // 🔥 優化後的集中讀取與介面更新機制
         async function loadUserData() {
-            if(!currentUser) return;
             try {
                 const docSnap = await getDoc(doc(db, "users", currentUser.uid));
                 if (docSnap.exists()) {
-                    cachedUserData = docSnap.data();
-                    updateProfileUI(cachedUserData);
-                } else {
-                    cachedUserData = {};
+                    const data = docSnap.data();
+                    document.getElementById('star-count').innerText = data.stars !== undefined ? data.stars : 0;
+
+                    if (data.themeColor) {
+                        const userIdEl = document.querySelector('.user-id');
+                        const userAvatarEl = document.querySelector('.user-avatar');
+                        userIdEl.style.color = data.themeColor;
+                        userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
+                        userAvatarEl.style.borderColor = data.themeColor;
+                        userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
+                    }
+                    if (data.role === 'admin') {
+                        document.querySelectorAll('.admin-hidden').forEach(el => el.classList.remove('admin-hidden'));
+                    }
                 }
             } catch(e) { console.log("Profile load error", e); }
         }
 
-        function updateProfileUI(data) {
-            document.getElementById('star-count').innerText = data.stars !== undefined ? data.stars : 0;
-
-            if (data.themeColor) {
-                const userIdEl = document.querySelector('.user-id');
-                const userAvatarEl = document.querySelector('.user-avatar');
-                if(userIdEl) {
-                    userIdEl.style.color = data.themeColor;
-                    userIdEl.style.textShadow = `0 0 10px ${data.themeColor}`;
-                }
-                if(userAvatarEl) {
-                    userAvatarEl.style.borderColor = data.themeColor;
-                    userAvatarEl.style.boxShadow = `0 0 10px ${data.themeColor}`;
-                }
-            }
-            if (data.role === 'admin') {
-                document.querySelectorAll('.admin-hidden').forEach(el => el.classList.remove('admin-hidden'));
-            }
-        }
-
         // --- 📅 簽到邏輯 ---
-        window.openCheckIn = () => {
+        window.openCheckIn = async () => {
             const modal = document.getElementById('checkinModal');
-            if(modal) modal.style.display = 'flex';
-            renderCheckInUI(); // 🔥 直接從快取讀取，不消耗 Firebase Reads
+            modal.style.display = 'flex';
+            await renderCheckInUI();
         };
 
         window.closeCheckIn = (e) => {
@@ -569,9 +535,11 @@
             }
         };
 
-        function checkAutoPopUp() {
-            if(!cachedUserData) return;
-            const lastDate = cachedUserData.lastCheckInDate || ""; 
+        async function checkAutoPopUp() {
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if(!docSnap.exists()) return;
+            const data = docSnap.data();
+            const lastDate = data.lastCheckInDate || ""; 
             const today = new Date().toISOString().split('T')[0];
             
             if (lastDate !== today) {
@@ -579,19 +547,18 @@
             }
         }
 
-        function renderCheckInUI() {
+        async function renderCheckInUI() {
             const stepsContainer = document.getElementById('checkinSteps');
             const btn = document.getElementById('btnCheckIn');
-            if(!stepsContainer || !btn) return;
+            stepsContainer.innerHTML = '<div style="color:#aaa;">讀取中...</div>';
             
-            if (!cachedUserData) {
-                stepsContainer.innerHTML = '<div style="color:#aaa;">讀取中...</div>';
-                return;
-            }
+            const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+            if (!docSnap.exists()) return;
+            const data = docSnap.data();
 
             const today = new Date().toISOString().split('T')[0];
-            const lastDate = cachedUserData.lastCheckInDate || "";
-            let streak = cachedUserData.checkInStreak || 0;
+            const lastDate = data.lastCheckInDate || "";
+            let streak = data.checkInStreak || 0;
 
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -637,8 +604,6 @@
 
         window.performCheckIn = async () => {
             const btn = document.getElementById('btnCheckIn');
-            if(!btn || !currentUser) return;
-
             btn.disabled = true;
             btn.innerText = "處理中...";
 
@@ -648,9 +613,6 @@
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
                 const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-                let finalStars = 0;
-                let finalStreak = 0;
 
                 await runTransaction(db, async (t) => {
                     const docSnap = await t.get(userRef);
@@ -666,14 +628,14 @@
                     }
 
                     const currentReward = CHECKIN_REWARDS[streak % 7];
-                    finalStars = (data.stars || 0) + currentReward;
-                    finalStreak = streak + 1;
-                    if (finalStreak > 7) finalStreak = 1; 
+                    const newStars = (data.stars || 0) + currentReward;
+                    let nextStreak = streak + 1;
+                    if (nextStreak > 7) nextStreak = 1; 
 
                     t.update(userRef, {
-                        stars: finalStars,
+                        stars: newStars,
                         lastCheckInDate: today,
-                        checkInStreak: finalStreak
+                        checkInStreak: nextStreak
                     });
 
                     t.set(doc(collection(db, "transactions")), {
@@ -685,31 +647,24 @@
                     });
                 });
 
-                // 🔥 更新本地快取，不再浪費 1 次 Firebase 讀取
-                if(cachedUserData) {
-                    cachedUserData.stars = finalStars;
-                    cachedUserData.lastCheckInDate = today;
-                    cachedUserData.checkInStreak = finalStreak;
-                }
-
-                showAlert("✅ 簽到成功！星存摺點數已發放。");
-                updateProfileUI(cachedUserData);
+                alert("簽到成功！");
+                await loadUserData();
                 renderCheckInUI();
                 
             } catch (e) {
                 console.error(e);
                 if (e === "Checked In") {
-                    showAlert("今日已簽到過囉！");
+                    alert("今日已簽到過");
                     renderCheckInUI();
                 } else {
-                    showAlert("❌ 簽到失敗，請確認網路或稍後再試");
+                    alert("簽到失敗，請稍後再試");
                     btn.disabled = false;
                     btn.innerText = "立即簽到";
                 }
             }
         };
 
-        // 🔥 流星產生器
+        // 🔥 流星產生
         function initMeteors() {
             setInterval(() => {
                 const meteor = document.createElement('div');
@@ -723,13 +678,8 @@
         }
         initMeteors();
 
-        // 🔥 滑鼠拖尾 (加入 Throttle 節流優化，減輕手機發燙與瀏覽器負擔)
-        let lastTrailTime = 0;
+        // 🔥 滑鼠拖尾
         document.addEventListener('mousemove', (e) => {
-            const now = Date.now();
-            if (now - lastTrailTime < 50) return; // 限制每 50ms 最多畫一顆星星
-            lastTrailTime = now;
-
             if(Math.random() > 0.5) return;
             const star = document.createElement('div');
             star.className = 'trail-particle';
@@ -741,11 +691,9 @@
 
         window.handleLogout = function() {
             signOut(auth).then(() => {
-                if(typeof liff !== 'undefined' && liff.isLoggedIn()) {
-                    liff.logout();
-                }
+                if(liff.isLoggedIn()) liff.logout();
                 localStorage.removeItem("lineUserId");
-                safeRedirect('index.html');
+                window.location.href = 'index.html';
             }).catch((error) => { console.error(error); });
         }
     </script>

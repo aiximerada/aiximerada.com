@@ -34,8 +34,9 @@
         // === 1. Firebase 初始化 (CDN 引入模式) ===
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔥 新增 signInAnonymously 來處理訪客權限
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         // 你的專屬 Firebase 金鑰
@@ -66,30 +67,79 @@
         function App() {
             const [currentTab, setCurrentTab] = useState('report');
             const [user, setUser] = useState(null);
+            const [role, setRole] = useState(null);
 
             useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
+                const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+                    if (currentUser) {
+                        setUser(currentUser);
+                        // 判斷是否為真實登入還是訪客
+                        if (!currentUser.isAnonymous) {
+                            try {
+                                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+                                if (userDoc.exists() && userDoc.data().role) {
+                                    setRole(userDoc.data().role);
+                                } else {
+                                    const q = query(collection(db, "users"), where("email", "==", currentUser.email));
+                                    const snap = await getDocs(q);
+                                    let foundRole = 'member';
+                                    snap.forEach(d => { if(d.data().role) foundRole = d.data().role; });
+                                    setRole(foundRole);
+                                }
+                            } catch (error) {
+                                console.error("權限讀取失敗：", error);
+                                setRole('member');
+                            }
+                        } else {
+                            setRole('guest'); // 匿名訪客
+                        }
+                    } else {
+                        setUser(null);
+                        setRole(null);
+                        // 🔥 訪客進入時自動靜默匿名登入，確保能夠上傳照片與資料
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (e) {
+                            console.error("匿名登入失敗，請確認 Firebase Auth 是否已開啟匿名登入", e);
+                        }
+                    }
+                });
                 return () => unsubscribe();
             }, []);
 
             return (
                 <div className="relative w-full">
+                    {/* 頂部狀態列 */}
+                    <div className="flex justify-between items-center mb-6">
+                        <a href="index.html" className="text-gray-400 hover:text-white transition-colors text-sm">
+                            <i className="fa-solid fa-chevron-left mr-1"></i> 返回
+                        </a>
+                        <div className="text-xs font-bold px-3 py-1 rounded-full bg-white/10 text-gray-300">
+                            {role === 'admin' ? '🎖️ 指揮官' : (role === 'silver' ? '🌟 銀星會員' : (role === 'member' ? '👤 一般星員' : '👻 訪客模式'))}
+                        </div>
+                    </div>
+
                     <div className="flex justify-center space-x-4 mb-6">
                         <button onClick={() => setCurrentTab('report')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'report' ? 'bg-[#00f3ff] text-black shadow-[0_0_15px_rgba(0,243,255,0.6)]' : 'bg-white/10 text-gray-300'}`}>
                             <i className="fa-solid fa-satellite-dish mr-2"></i>車位回報
                         </button>
-                        <button onClick={() => setCurrentTab('admin')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'admin' ? 'bg-[#bc13fe] text-white shadow-[0_0_15px_rgba(188,19,254,0.6)]' : 'bg-white/10 text-gray-300'}`}>
-                            <i className="fa-solid fa-user-shield mr-2"></i>管理中心
-                        </button>
+                        
+                        {/* 🔥 加入判斷：只要不是訪客 (guest) 就顯示管理中心按鈕 */}
+                        {role !== 'guest' && (
+                            <button onClick={() => setCurrentTab('admin')} className={`px-4 py-2 rounded-full font-bold transition-all ${currentTab === 'admin' ? 'bg-[#bc13fe] text-white shadow-[0_0_15px_rgba(188,19,254,0.6)]' : 'bg-white/10 text-gray-300'}`}>
+                                <i className="fa-solid fa-user-shield mr-2"></i>管理中心
+                            </button>
+                        )}
                     </div>
-                    {currentTab === 'report' && <ReportForm db={db} storage={storage} />}
-                    {currentTab === 'admin' && <AdminPanel db={db} auth={auth} user={user} />}
+                    
+                    {currentTab === 'report' && <ReportForm db={db} storage={storage} user={user} />}
+                    {currentTab === 'admin' && <AdminPanel db={db} auth={auth} user={user} role={role} />}
                 </div>
             );
         }
 
         // === 3. 車友回報表單元件 ===
-        function ReportForm({ db, storage }) {
+        function ReportForm({ db, storage, user }) {
             const [formData, setFormData] = useState({ 
                 name: '', city: '台北市', address: '', lat: '', lng: '', 
                 priceType: '免費', priceAmount: '',
@@ -99,6 +149,21 @@
             const [previewUrl, setPreviewUrl] = useState('');
             const [loading, setLoading] = useState(false);
             const [msg, setMsg] = useState('');
+
+            // 🔥 若使用者有登入，自動將他的暱稱填入「提供者」欄位
+            useEffect(() => {
+                if (user && !user.isAnonymous) {
+                    const fetchUserName = async () => {
+                        try {
+                            const d = await getDoc(doc(db, "users", user.uid));
+                            if (d.exists()) {
+                                setFormData(prev => ({...prev, provider: d.data().displayName || d.data().lineName || '熱心車友'}));
+                            }
+                        } catch(e) { /* ignore */ }
+                    };
+                    fetchUserName();
+                }
+            }, [user]);
 
             const getLocation = () => {
                 if (!navigator.geolocation) return alert('瀏覽器不支援定位');
@@ -166,10 +231,9 @@
                         ? '免費' 
                         : (formData.priceAmount ? `${formData.priceType}：${formData.priceAmount}` : formData.priceType);
 
-                    // 🔥 LINE API 將會讀取這個資料表 (parking_locations)
                     await addDoc(collection(db, "parking_locations"), {
                         name: formData.name,
-                        city: formData.city, // 新增縣市欄位，供 LINE 機器人篩選
+                        city: formData.city, 
                         address: formData.address,
                         lat: parseFloat(formData.lat) || 0,
                         lng: parseFloat(formData.lng) || 0,
@@ -179,12 +243,12 @@
                         note: formData.note,
                         provider: formData.provider,
                         image_url: finalImageUrl,
-                        status: "pending", // 狀態預設 pending，管理員核准後變 approved
+                        status: "pending", 
                         created_at: serverTimestamp()
                     });
                     
                     setMsg('✨ 回報成功！已送交指揮中心審核。');
-                    setFormData({ name: '', city: '台北市', address: '', lat: '', lng: '', priceType: '免費', priceAmount: '', gmap: '', amap: '', note: '', provider: '熱心車友' });
+                    setFormData(prev => ({ ...prev, name: '', address: '', lat: '', lng: '', priceAmount: '', gmap: '', amap: '', note: '' }));
                     setImageFile(null); setPreviewUrl('');
                 } catch (error) {
                     console.error(error);
@@ -207,7 +271,6 @@
                                 className="bg-black/40 border border-[#00f3ff]/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#bc13fe] transition-colors" placeholder="例：羅東夜市機車格" />
                         </div>
 
-                        {/* 新增縣市下拉選單 */}
                         <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
                             <div className="flex-1 flex flex-col">
                                 <label className="text-sm text-[#00f3ff] mb-1">所在縣市 *</label>
@@ -300,14 +363,14 @@
         }
 
         // === 4. 管理員後台元件 ===
-        function AdminPanel({ db, auth, user }) {
+        function AdminPanel({ db, auth, user, role }) {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [pendingSpots, setPendingSpots] = useState([]);
             const [loading, setLoading] = useState(false);
 
             const fetchPendingSpots = async () => {
-                if (!user) return;
+                if (!user || user.isAnonymous || (role !== 'admin' && role !== 'silver')) return;
                 setLoading(true);
                 try {
                     const q = query(collection(db, "parking_locations"), where("status", "==", "pending"));
@@ -319,18 +382,24 @@
                 setLoading(false);
             };
 
-            useEffect(() => { if(user) fetchPendingSpots(); }, [user]);
+            useEffect(() => { 
+                if(user && !user.isAnonymous && (role === 'admin' || role === 'silver')) {
+                    fetchPendingSpots(); 
+                }
+            }, [user, role]);
 
             const handleLogin = async (e) => {
                 e.preventDefault();
-                try { await signInWithEmailAndPassword(auth, email, password); } 
-                catch (error) { alert('登入失敗'); }
+                try { 
+                    await signInWithEmailAndPassword(auth, email, password); 
+                } catch (error) { 
+                    alert('登入失敗：請確認帳號與密碼'); 
+                }
             };
 
             const handleApprove = async (id) => {
                 if(!window.confirm('確定要核准並上架嗎？ (LINE Bot 將可讀取此筆資料)')) return;
                 try {
-                    // 🔥 將狀態改為 approved，LINE 機器人才抓得到
                     await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
                     setPendingSpots(pendingSpots.filter(spot => spot.id !== id));
                 } catch (error) { alert('核准失敗：' + error.message); }
@@ -344,7 +413,8 @@
                 } catch (error) { alert('刪除失敗：' + error.message); }
             };
 
-            if (!user) {
+            // ⛔ 攔截訪客與匿名身份，顯示登入表單
+            if (!user || user.isAnonymous || !role || role === 'guest') {
                 return (
                     <div className="glass-panel rounded-2xl p-6">
                         <h2 className="text-xl font-bold mb-4 text-[#bc13fe] text-center"><i className="fa-solid fa-lock mr-2"></i>指揮中心登入</h2>
@@ -353,6 +423,20 @@
                             <input type="password" placeholder="密碼" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-3 text-white" />
                             <button type="submit" className="w-full py-3 rounded-xl font-bold bg-[#bc13fe] text-white hover:bg-white hover:text-black transition-all">登入系統</button>
                         </form>
+                        <p className="text-center text-xs text-gray-500 mt-4">僅開放管理員登入查閱審核名單</p>
+                    </div>
+                );
+            }
+
+            // ⛔ 攔截不具備管理權限的普通會員
+            if (role !== 'admin' && role !== 'silver') {
+                return (
+                    <div className="glass-panel rounded-2xl p-6 text-center animate-pulse border-[#ff4757]/50">
+                        <h2 className="text-2xl font-bold mb-4 text-[#ff4757]"><i className="fa-solid fa-triangle-exclamation mr-2"></i> 權限不足</h2>
+                        <p className="text-gray-300 mb-6 leading-relaxed">您目前的身份為「一般星員」，<br/>僅限<span className="text-[#FFD700] font-bold">「指揮官」</span>與<span className="text-[#C0C0C0] font-bold">「銀星會員」</span>可進入審核中心。</p>
+                        <button onClick={() => signOut(auth)} className="w-full py-3 border border-gray-500 text-gray-300 rounded-xl hover:bg-white hover:text-black transition-all font-bold">
+                            登出並切換帳號
+                        </button>
                     </div>
                 );
             }
@@ -360,7 +444,7 @@
             return (
                 <div className="glass-panel rounded-2xl p-4">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-[#bc13fe]">待審核名單</h2>
+                        <h2 className="text-xl font-bold text-[#bc13fe]"><i className="fa-solid fa-clipboard-check mr-2"></i> 待審核名單</h2>
                         <button onClick={() => signOut(auth)} className="text-sm text-gray-400 hover:text-white border border-gray-500 px-3 py-1 rounded-lg">登出</button>
                     </div>
                     
@@ -374,11 +458,11 @@
                                     <div className="text-sm text-gray-300 mb-1"><i className="fa-solid fa-coins mr-1"></i>{spot.price || '未提供'}</div>
                                     <div className="text-xs text-gray-400 mb-3">
                                         座標: {spot.lat}, {spot.lng}<br/>
-                                        備註: {spot.note || '無'} | 提供者: {spot.provider}
+                                        備註: {spot.note || '無'} | 提供者: <span className="text-[#00f3ff]">{spot.provider}</span>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handleApprove(spot.id)} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] border border-[#00ff9d]/50 py-2 rounded-lg hover:bg-[#00ff9d] hover:text-black transition-all"><i className="fa-solid fa-check mr-1"></i>核准上架</button>
-                                        <button onClick={() => handleReject(spot.id)} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] border border-[#ff4757]/50 py-2 rounded-lg hover:bg-[#ff4757] hover:text-white transition-all"><i className="fa-solid fa-trash mr-1"></i>退回刪除</button>
+                                        <button onClick={() => handleApprove(spot.id)} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] border border-[#00ff9d]/50 py-2 rounded-lg hover:bg-[#00ff9d] hover:text-black transition-all font-bold"><i className="fa-solid fa-check mr-1"></i>核准</button>
+                                        <button onClick={() => handleReject(spot.id)} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] border border-[#ff4757]/50 py-2 rounded-lg hover:bg-[#ff4757] hover:text-white transition-all font-bold"><i className="fa-solid fa-trash mr-1"></i>退回</button>
                                     </div>
                                 </div>
                             ))}

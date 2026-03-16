@@ -4,20 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星員檔案庫 - 指揮官後台</title>
+    
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root {
             /* 🎨 星際配色 */
             --main-gold: #FFD700;       
-            --silver-starlight: #C0C0C0; /* 新增：銀色星光 */
-            --accent-amber: #FDB931;    
+            --silver-starlight: #C0C0C0; 
             --deep-space: #0f172a;      
             --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;
+            --success-green: #00ff9d;
             
             /* 玻璃擬態 */
             --glass-bg: rgba(15, 23, 42, 0.75); 
             --glass-border: rgba(255, 255, 255, 0.1);
-            --card-radius: 16px;
+            --card-radius: 20px;
         }
 
         body {
@@ -25,6 +29,7 @@
             color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
             min-height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center;
             overflow-x: hidden; padding-bottom: 80px; position: relative;
+            opacity: 0; transition: opacity 0.5s ease;
         }
 
         /* --- 背景星空 --- */
@@ -45,35 +50,65 @@
         /* --- UI 元件 --- */
         .header {
             width: 100%; padding: 15px 20px; 
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-border);
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box; position: sticky; top: 0; z-index: 100;
         }
-        .back-btn { color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 5px; transition:0.3s; }
-        .back-btn:hover { color: #fff; }
+        .back-btn { color: var(--main-gold); text-decoration: none; display: flex; align-items: center; gap: 8px; transition:0.3s; font-weight: bold; }
+        .back-btn:hover { color: #fff; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
 
-        .page-title { text-align: center; margin: 40px 0 30px 0; }
+        .page-title { text-align: center; margin: 40px 0 20px 0; }
         .page-title h1 {
             margin: 0; font-size: 2.5rem; letter-spacing: 5px; font-weight: 900;
             background: linear-gradient(to bottom, #fff 0%, var(--main-gold) 100%);
             -webkit-background-clip: text; color: transparent;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
         }
         .page-title p { color: #64748b; margin-top: 5px; font-size: 1rem; letter-spacing: 3px; text-transform: uppercase; }
 
-        .toolbar { width: 90%; max-width: 1000px; display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center; }
-        .search-box { flex: 1; position: relative; min-width: 250px; }
+        /* --- 數據儀表板 --- */
+        .stats-board {
+            display: flex; gap: 20px; width: 90%; max-width: 1000px; margin-bottom: 30px;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .stat-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            padding: 20px; border-radius: 16px; flex: 1; min-width: 150px; text-align: center;
+            backdrop-filter: blur(12px); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .stat-value { font-size: 2rem; font-weight: 900; color: #fff; margin-bottom: 5px; }
+        .stat-label { font-size: 0.85rem; color: #94a3b8; font-weight: bold; letter-spacing: 1px; }
+        .stat-gold .stat-value { color: var(--main-gold); text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+        .stat-silver .stat-value { color: var(--silver-starlight); text-shadow: 0 0 10px rgba(192,192,192,0.4); }
+        .stat-all .stat-value { color: var(--nebula-blue); text-shadow: 0 0 10px rgba(0,243,255,0.4); }
+
+        /* --- 工具列 --- */
+        .toolbar { 
+            width: 90%; max-width: 1000px; display: flex; gap: 15px; 
+            margin-bottom: 30px; flex-wrap: wrap; justify-content: space-between; 
+            background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border);
+            backdrop-filter: blur(12px);
+        }
+        .search-box { flex: 2; position: relative; min-width: 200px; }
         .search-input {
-            width: 100%; padding: 15px 20px 15px 50px; background: var(--glass-bg);
-            border: 1px solid var(--glass-border); border-radius: 50px; color: #fff;
+            width: 100%; padding: 12px 20px 12px 45px; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border); border-radius: 12px; color: #fff;
             font-size: 1rem; box-sizing: border-box; transition: 0.3s;
         }
         .search-input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
-        .search-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #64748b; }
+        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; }
+        
+        .filter-select {
+            flex: 1; min-width: 150px; padding: 12px; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border); border-radius: 12px; color: #fff;
+            font-size: 1rem; cursor: pointer; outline: none; transition: 0.3s;
+        }
+        .filter-select:focus { border-color: var(--main-gold); }
+        .filter-select option { background: var(--deep-space); color: #fff; }
 
         /* --- 人員列表 (Grid) --- */
         .member-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 25px; width: 90%; max-width: 1000px;
         }
 
@@ -82,72 +117,91 @@
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: var(--card-radius); padding: 25px;
             position: relative; overflow: hidden; transition: 0.3s;
-            backdrop-filter: blur(12px); display: flex; align-items: center; gap: 20px;
-        }
-        .member-card::before {
-            content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%;
-            background: #444; /* 預設一般會員 */
+            backdrop-filter: blur(12px); display: flex; flex-direction: column; gap: 15px;
         }
         
         /* 指揮官 (Gold) */
-        .member-card.is-admin { border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05); }
-        .member-card.is-admin::before { background: var(--main-gold); box-shadow: 0 0 15px var(--main-gold); }
+        .member-card.is-admin { border-color: rgba(255, 215, 0, 0.4); background: rgba(255, 215, 0, 0.08); box-shadow: 0 10px 20px rgba(255,215,0,0.1); }
+        .member-card.is-admin::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--main-gold); box-shadow: 0 0 10px var(--main-gold); }
         
         /* 銀星會員 (Silver) */
-        .member-card.is-silver { border-color: rgba(192, 192, 192, 0.3); background: rgba(192, 192, 192, 0.05); }
-        .member-card.is-silver::before { background: var(--silver-starlight); box-shadow: 0 0 15px var(--silver-starlight); }
+        .member-card.is-silver { border-color: rgba(192, 192, 192, 0.4); background: rgba(192, 192, 192, 0.05); }
+        .member-card.is-silver::before { content:''; position:absolute; top:0; left:0; width:100%; height:4px; background:var(--silver-starlight); box-shadow: 0 0 10px var(--silver-starlight); }
         
-        .member-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.8); }
+        .member-card:hover { transform: translateY(-5px); background: rgba(30, 41, 59, 0.9); }
 
+        .card-top { display: flex; align-items: center; gap: 15px; }
         .avatar {
-            width: 70px; height: 70px; border-radius: 50%; object-fit: cover;
+            width: 60px; height: 60px; border-radius: 50%; object-fit: cover;
             border: 2px solid var(--glass-border); box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: #000;
         }
         .member-info { flex: 1; overflow: hidden; }
-        .member-name { font-weight: bold; font-size: 1.1rem; color: #fff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+        .member-name { font-weight: 900; font-size: 1.2rem; color: #fff; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
         
-        .role-badge { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; font-weight: 900; }
-        .badge-gold { background: var(--main-gold); color: #000; }
+        .role-badge { font-size: 0.65rem; padding: 3px 8px; border-radius: 20px; font-weight: 900; letter-spacing: 1px; }
+        .badge-gold { background: var(--main-gold); color: #000; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
         .badge-silver { background: var(--silver-starlight); color: #000; }
+        .badge-member { background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid rgba(255,255,255,0.2); }
         
-        .member-email { font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .member-email { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .stars-tag { color: var(--main-gold); font-size: 0.9rem; font-weight: bold; }
+        .card-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--glass-border); }
+        .stars-tag { color: var(--main-gold); font-size: 1rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .line-tag { color: #06C755; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; background: rgba(6, 199, 85, 0.1); padding: 4px 8px; border-radius: 12px; }
 
         .btn-manage {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 8px 15px; border-radius: 10px; cursor: pointer;
-            transition: 0.2s; white-space: nowrap;
+            background: linear-gradient(135deg, var(--nebula-blue), #0284c7); border: none;
+            color: #fff; padding: 8px 20px; border-radius: 12px; cursor: pointer;
+            transition: 0.2s; font-weight: bold; box-shadow: 0 5px 15px rgba(0,243,255,0.2);
         }
-        .btn-manage:hover { background: #fff; color: #000; }
+        .btn-manage:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,243,255,0.4); }
 
         /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
             display: none; justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; transition: opacity 0.3s;
         }
-        .modal-box {
-            background: #1e293b; border: 1px solid var(--main-gold);
-            padding: 30px; border-radius: 20px; width: 90%; max-width: 450px;
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.15); color: #fff;
-        }
-
-        .modal-header { font-size: 1.3rem; font-weight: bold; color: var(--main-gold); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .modal-overlay.show { display: flex; opacity: 1; }
         
-        .form-group { margin-bottom: 15px; }
-        .form-label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 0.9rem; }
-        .form-input, select {
-            width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid #475569;
-            color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 1rem;
+        .modal-box {
+            background: #0f172a; border: 1px solid var(--main-gold);
+            padding: 35px 30px; border-radius: 24px; width: 90%; max-width: 400px;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); color: #fff;
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .form-input:focus { border-color: var(--main-gold); outline: none; }
+        .modal-overlay.show .modal-box { transform: scale(1); }
 
-        .modal-footer { margin-top: 25px; text-align: right; display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-submit { background: var(--main-gold); color: #000; padding: 10px 25px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-cancel { background: transparent; color: #aaa; border: 1px solid #555; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .modal-header { font-size: 1.5rem; font-weight: 900; color: var(--main-gold); margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-label { display: block; margin-bottom: 8px; color: #cbd5e1; font-size: 0.95rem; font-weight: bold; }
+        .form-input, select {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.5); border: 1px solid #475569;
+            color: #fff; border-radius: 12px; box-sizing: border-box; font-size: 1.05rem; transition: 0.3s;
+        }
+        .form-input:focus, select:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255,215,0,0.2); }
+        .form-input:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .modal-footer { margin-top: 30px; display: flex; gap: 15px; }
+        .btn-submit { flex: 2; background: var(--main-gold); color: #000; padding: 14px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+        .btn-submit:active { transform: scale(0.95); }
+        .btn-cancel { flex: 1; background: transparent; color: #94a3b8; border: 1px solid #475569; padding: 14px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-cancel:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-        .loading-text { color: #64748b; text-align: center; grid-column: 1/-1; padding: 30px; }
+        .loading-text { color: #64748b; text-align: center; grid-column: 1/-1; padding: 40px; font-size: 1.2rem; font-weight: bold; display: flex; flex-direction: column; gap: 15px; align-items: center; }
+
+        /* Toast 彈窗樣式 */
+        #toastMessage {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: rgba(15,23,42,0.95); color: #fff; padding: 14px 28px;
+            border-radius: 30px; border: 1px solid var(--success-green); z-index: 9999;
+            opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; box-shadow: 0 10px 30px rgba(0, 255, 157, 0.3); font-weight: bold; display: flex; align-items: center; gap: 10px;
+        }
+        #toastMessage.error { border-color: var(--danger-red); box-shadow: 0 10px 30px rgba(255, 71, 87, 0.3); }
 
     </style>
 </head>
@@ -158,53 +212,80 @@
         <div class="gold-twinklers"></div>
     </div>
 
+    <!-- 安全防護 Toast -->
+    <div id="toastMessage"><i class="fa-solid fa-circle-check" id="toastIcon"></i> <span id="toastText"></span></div>
+
     <div class="header">
-        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回星員區</a>
+        <a href="vip_area.html" class="back-btn"><i class="fa-solid fa-chevron-left"></i> 返回控制中樞</a>
+        <span style="color:var(--main-gold); font-size:0.85rem; font-weight:bold; border:1px solid var(--main-gold); padding:4px 10px; border-radius:20px;"><i class="fa-solid fa-shield-halved"></i> 最高權限</span>
     </div>
 
     <div class="page-title">
         <h1>星員檔案庫</h1>
-        <p>STAR MEMBER ARCHIVES</p>
+        <p>User Management System</p>
     </div>
 
-    <div class="toolbar">
+    <!-- 數據統計 -->
+    <div class="stats-board" id="statsBoard" style="display: none;">
+        <div class="stat-card stat-all">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">總星員人數</div>
+        </div>
+        <div class="stat-card stat-gold">
+            <div class="stat-value" id="stat-admin">0</div>
+            <div class="stat-label">指揮官 (Admin)</div>
+        </div>
+        <div class="stat-card stat-silver">
+            <div class="stat-value" id="stat-silver">0</div>
+            <div class="stat-label">銀星 (Silver)</div>
+        </div>
+    </div>
+
+    <div class="toolbar" id="toolbar" style="display: none;">
         <div class="search-box">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" class="search-input" id="searchInput" placeholder="搜尋暱稱、信箱..." onkeyup="filterMembers()">
+            <input type="text" class="search-input" id="searchInput" placeholder="搜尋暱稱或信箱..." onkeyup="filterMembers()">
         </div>
-        </div>
-
-    <div class="member-grid" id="memberGrid">
-        <div class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> 正在讀取檔案...</div>
+        <select class="filter-select" id="roleFilter" onchange="filterMembers()">
+            <option value="all">所有階級</option>
+            <option value="admin">僅顯示指揮官 (Admin)</option>
+            <option value="silver">僅顯示銀星 (Silver)</option>
+            <option value="member">僅顯示一般星員 (Member)</option>
+        </select>
     </div>
 
+    <div class="member-grid" id="memberGrid">
+        <div class="loading-text"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-[#FFD700]"></i> 正在讀取星際檔案庫...</div>
+    </div>
+
+    <!-- 編輯 Modal -->
     <div class="modal-overlay" id="manageModal">
         <div class="modal-box">
-            <div class="modal-header"><i class="fa-solid fa-user-gear"></i> 管理星員</div>
+            <div class="modal-header"><i class="fa-solid fa-user-pen"></i> 星員權限設定</div>
             <input type="hidden" id="editUserId">
             
             <div class="form-group">
-                <label class="form-label">暱稱</label>
-                <input type="text" id="editName" class="form-input" disabled>
+                <label class="form-label"><i class="fa-solid fa-id-card"></i> 顯示名稱</label>
+                <input type="text" id="editName" class="form-input" placeholder="可修改用戶暱稱">
             </div>
             
             <div class="form-group">
-                <label class="form-label">星星數量</label>
-                <input type="number" id="editStars" class="form-input">
+                <label class="form-label"><i class="fa-solid fa-star" style="color:var(--main-gold);"></i> 賦予星星數量</label>
+                <input type="number" id="editStars" class="form-input" min="0">
             </div>
 
             <div class="form-group">
-                <label class="form-label">身份權限</label>
+                <label class="form-label"><i class="fa-solid fa-crown"></i> 身份權限</label>
                 <select id="editRole" class="form-input">
                     <option value="member">一般星員 (Member)</option>
                     <option value="silver">銀星會員 (Silver)</option>
-                    <option value="admin">指揮官 (Gold/Admin)</option>
+                    <option value="admin" style="color:var(--main-gold); font-weight:bold;">指揮官 (Gold/Admin)</option>
                 </select>
             </div>
 
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeModal()">取消</button>
-                <button class="btn-submit" onclick="saveMemberChanges()">儲存變更</button>
+                <button class="btn-submit" id="btnSubmitChange" onclick="saveMemberChanges()">儲存變更</button>
             </div>
         </div>
     </div>
@@ -212,7 +293,31 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 Toast 提示系統
+        window.showToast = function(msg, isError = false) {
+            const toast = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastText');
+            
+            if(isError) {
+                toast.classList.add('error');
+                icon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                toast.classList.remove('error');
+                icon.className = "fa-solid fa-circle-check";
+            }
+            
+            text.innerText = msg;
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+            toast.style.opacity = '1';
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(-50%) translateY(100px)';
+                toast.style.opacity = '0';
+            }, 3000);
+        };
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -230,95 +335,140 @@
 
         let allMembers = [];
 
-        onAuthStateChanged(auth, (user) => {
+        // 🛡️ 嚴格權限驗證
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                loadMembers();
+                try {
+                    // 驗證是否真的為 Admin
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        document.body.style.opacity = "1";
+                        loadMembers();
+                    } else {
+                        alert("⚠️ 存取拒絕：您沒有指揮官權限！");
+                        window.location.href = "vip_area.html";
+                    }
+                } catch (error) {
+                    console.error("權限驗證失敗", error);
+                    window.location.href = "vip_area.html";
+                }
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        // 載入與排序 (Admin > Silver > Member)
+        // 載入資料
         async function loadMembers() {
             try {
                 const querySnapshot = await getDocs(collection(db, "users"));
                 allMembers = [];
+                
+                let countAdmin = 0;
+                let countSilver = 0;
+
                 querySnapshot.forEach((doc) => {
-                    allMembers.push({ id: doc.id, ...doc.data() });
+                    const data = doc.data();
+                    allMembers.push({ id: doc.id, ...data });
+                    
+                    if(data.role === 'admin') countAdmin++;
+                    if(data.role === 'silver') countSilver++;
                 });
 
-                // 🔥 排序邏輯更新
+                // 更新統計面板
+                document.getElementById('stat-total').innerText = allMembers.length;
+                document.getElementById('stat-admin').innerText = countAdmin;
+                document.getElementById('stat-silver').innerText = countSilver;
+                
+                document.getElementById('statsBoard').style.display = 'flex';
+                document.getElementById('toolbar').style.display = 'flex';
+
+                // 排序邏輯 (Admin > Silver > Member，星星數高優先)
                 allMembers.sort((a, b) => {
-                    // 定義權重：Admin=3, Silver=2, Member=1
                     const getRoleWeight = (role) => {
                         if (role === 'admin') return 3;
                         if (role === 'silver') return 2;
                         return 1;
                     };
-                    
                     const weightA = getRoleWeight(a.role);
                     const weightB = getRoleWeight(b.role);
 
-                    if (weightA !== weightB) return weightB - weightA; // 權重高者排前
-                    return (b.stars || 0) - (a.stars || 0); // 同權重比星星
+                    if (weightA !== weightB) return weightB - weightA; 
+                    return (b.stars || 0) - (a.stars || 0); 
                 });
 
                 renderMembers(allMembers);
             } catch (e) {
                 console.error(e);
-                document.getElementById('memberGrid').innerHTML = '<div class="loading-text">讀取失敗</div>';
+                document.getElementById('memberGrid').innerHTML = '<div class="loading-text"><i class="fa-solid fa-triangle-exclamation text-red-500 text-3xl"></i> 資料庫讀取失敗，請確認網路連線。</div>';
             }
         }
 
+        // 渲染卡片
         window.renderMembers = (members) => {
             const grid = document.getElementById('memberGrid');
             grid.innerHTML = '';
 
             if (members.length === 0) {
-                grid.innerHTML = '<div class="loading-text">沒有符合的資料</div>';
+                grid.innerHTML = '<div class="loading-text"><i class="fa-solid fa-ghost text-3xl"></i> 找不到符合條件的星員</div>';
                 return;
             }
 
             members.forEach(m => {
                 const role = m.role || 'member';
                 let cardClass = '';
-                let badgeHtml = '';
+                let badgeHtml = '<span class="role-badge badge-member">MEMBER</span>';
 
-                // 判斷角色樣式
                 if (role === 'admin') {
                     cardClass = 'is-admin';
-                    badgeHtml = '<span class="role-badge badge-gold">GOLD</span>';
+                    badgeHtml = '<span class="role-badge badge-gold"><i class="fa-solid fa-crown"></i> ADMIN</span>';
                 } else if (role === 'silver') {
                     cardClass = 'is-silver';
-                    badgeHtml = '<span class="role-badge badge-silver">SILVER</span>';
+                    badgeHtml = '<span class="role-badge badge-silver"><i class="fa-solid fa-star"></i> SILVER</span>';
                 }
 
                 const avatar = m.photoURL || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-                const name = m.displayName || '未命名星員';
+                const name = m.displayName || m.lineName || '未命名星員'; // 兼容 LINE 名字
+                const email = m.email || '無 Email 紀錄';
                 const stars = m.stars !== undefined ? m.stars : 0;
+                const hasLine = !!m.lineUserId; // 是否綁定 LINE
 
                 grid.innerHTML += `
                     <div class="member-card ${cardClass}">
-                        <img src="${avatar}" class="avatar">
-                        <div class="member-info">
-                            <div class="member-name">${name} ${badgeHtml}</div>
-                            <div class="member-email">${m.email}</div>
-                            <div class="stars-tag">
-                                <i class="fa-solid fa-star"></i> ${stars}
+                        <div class="card-top">
+                            <img src="${avatar}" class="avatar">
+                            <div class="member-info">
+                                <div class="member-name">${name} ${badgeHtml}</div>
+                                <div class="member-email" title="${email}">${email}</div>
                             </div>
                         </div>
-                        <button class="btn-manage" onclick="openManageModal('${m.id}')">管理</button>
+                        <div class="card-bottom">
+                            <div class="flex items-center gap-3">
+                                <div class="stars-tag"><i class="fa-solid fa-star"></i> ${stars}</div>
+                                ${hasLine ? '<div class="line-tag" title="已綁定 LINE 帳號"><i class="fa-brands fa-line"></i> 已綁定</div>' : ''}
+                            </div>
+                            <button class="btn-manage" onclick="openManageModal('${m.id}')">
+                                <i class="fa-solid fa-pen-to-square"></i> 管理
+                            </button>
+                        </div>
                     </div>
                 `;
             });
         };
 
+        // 複合篩選
         window.filterMembers = () => {
             const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allMembers.filter(m => 
-                (m.displayName && m.displayName.toLowerCase().includes(term)) || 
-                (m.email && m.email.toLowerCase().includes(term))
-            );
+            const roleFilter = document.getElementById('roleFilter').value;
+
+            const filtered = allMembers.filter(m => {
+                const matchSearch = (m.displayName && m.displayName.toLowerCase().includes(term)) || 
+                                    (m.lineName && m.lineName.toLowerCase().includes(term)) || 
+                                    (m.email && m.email.toLowerCase().includes(term));
+                
+                const matchRole = roleFilter === 'all' || (m.role || 'member') === roleFilter;
+
+                return matchSearch && matchRole;
+            });
             renderMembers(filtered);
         };
 
@@ -328,37 +478,52 @@
             if(!member) return;
 
             document.getElementById('editUserId').value = id;
-            document.getElementById('editName').value = member.displayName || '無';
+            document.getElementById('editName').value = member.displayName || member.lineName || '';
             document.getElementById('editStars').value = member.stars || 0;
-            // 設定目前的選單值
             document.getElementById('editRole').value = member.role || 'member';
             
-            document.getElementById('manageModal').style.display = 'flex';
+            const modal = document.getElementById('manageModal');
+            modal.classList.add('show');
         };
 
         window.saveMemberChanges = async () => {
+            const btn = document.getElementById('btnSubmitChange');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
+            btn.disabled = true;
+
             const id = document.getElementById('editUserId').value;
+            const newName = document.getElementById('editName').value.trim();
             const newStars = parseInt(document.getElementById('editStars').value);
             const newRole = document.getElementById('editRole').value;
 
             try {
+                // 更新資料庫
                 await updateDoc(doc(db, "users", id), {
+                    displayName: newName,
                     stars: newStars,
                     role: newRole
                 });
-                alert("更新成功");
+                
+                showToast("✅ 星員資料已成功更新！");
                 closeModal();
-                loadMembers();
-            } catch(e) { alert("更新失敗: " + e.message); }
+                loadMembers(); // 重新讀取刷新畫面
+            } catch(e) { 
+                showToast("更新失敗: " + e.message, true); 
+            } finally {
+                btn.innerHTML = '儲存變更';
+                btn.disabled = false;
+            }
         };
 
-        window.closeModal = () => document.getElementById('manageModal').style.display = 'none';
+        window.closeModal = () => {
+            document.getElementById('manageModal').classList.remove('show');
+        };
 
-        // 點擊背景關閉
+        // 點擊背景關閉 Modal
         window.onclick = function(event) {
             const modal = document.getElementById('manageModal');
             if (event.target == modal) {
-                modal.style.display = "none";
+                closeModal();
             }
         }
     </script>
