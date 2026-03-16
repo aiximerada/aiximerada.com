@@ -12,15 +12,22 @@
     <title>重機停車</title>
     
     <!-- 🔥 APP 預設藍色星星圖示 (Base64 SVG) -->
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpath d='M50 15 L61 38 L85 41 L67 58 L72 82 L50 70 L28 82 L33 58 L15 41 L39 38 Z' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpath d='M50 15 L61 38 L85 41 L67 58 L72 82 L50 70 L28 82 L33 58 L15 41 L39 38 Z' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
     
+    <!-- 預先連線 CDN 以加速載入 -->
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- 🔥 Leaflet.js 地圖引擎 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- 🔥 加入 SheetJS 用於 Excel 解析與匯入/匯出 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -73,10 +80,27 @@
         .safe-top-admin { top: calc(4.5rem + env(safe-area-inset-top, 0px)); }
         .safe-bottom-fab { bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); }
         .safe-bottom-locate { bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)); }
-        .safe-padding-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        
+        /* 管理中心專用安全墊距，防止被瀏海蓋住 */
+        .safe-padding-top { padding-top: calc(1.5rem + env(safe-area-inset-top, 20px)); }
+        .safe-padding-bottom { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 20px)); }
+
+        /* 啟動畫面特效 */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #090A0F; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 999999; color: #00f3ff; transition: opacity 0.5s ease-out;
+        }
     </style>
 </head>
 <body>
+
+    <!-- 🔥 啟動畫面 (Splash Screen)：大幅降低手機端等待編譯時的無聊感 -->
+    <div id="splash-screen">
+        <i class="fa-solid fa-star fa-spin text-6xl mb-6 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]"></i>
+        <h2 class="text-2xl font-black tracking-widest">系統初始化...</h2>
+        <p class="text-gray-400 mt-2 text-sm">載入星際雷達地圖</p>
+    </div>
 
     <div id="root"></div>
 
@@ -84,7 +108,7 @@
         const { useState, useEffect, useRef } = React;
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -104,12 +128,28 @@
 
         const TAIWAN_CITIES = ['基隆市', '台北市', '新北市', '桃園市', '新竹市', '新竹縣', '苗栗縣', '台中市', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '台南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'];
 
+        // 🔥 時間格式化工具
+        const formatTime = (ts) => {
+            if (!ts) return '未知時間';
+            try {
+                if (ts.toDate) return ts.toDate().toLocaleString('zh-TW', { hour12: false });
+                return new Date(ts).toLocaleString('zh-TW', { hour12: false });
+            } catch(e) { return '時間解析錯誤'; }
+        };
+
         function App() {
             const [view, setView] = useState('map'); 
             const [user, setUser] = useState(null);
             const [role, setRole] = useState(null);
 
             useEffect(() => {
+                // 系統載入完畢，隱藏 Splash Screen
+                const splash = document.getElementById('splash-screen');
+                if(splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 500);
+                }
+
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser) {
                         setUser(currentUser);
@@ -146,12 +186,15 @@
                     {view === 'map' ? (
                         <MapScreen db={db} storage={storage} user={user} role={role} onSwitchToAdmin={() => setView('admin')} />
                     ) : (
-                        <div className="w-full h-full overflow-y-auto pt-6 px-4 pb-12 safe-padding-bottom bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
-                            <div className="max-w-md mx-auto relative pt-10">
-                                <button onClick={() => setView('map')} className="absolute top-0 left-0 text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                                    <i className="fa-solid fa-chevron-left"></i> 返回地圖
-                                </button>
-                                <div className="mt-8">
+                        <div className="w-full h-full flex flex-col bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
+                            {/* 🔥 頂部安全區域防護塊，徹底阻擋瀏海覆蓋 */}
+                            <div style={{ height: 'env(safe-area-inset-top)' }} className="w-full shrink-0"></div>
+                            
+                            <div className="flex-1 overflow-y-auto px-4 pb-12" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                                <div className="max-w-lg mx-auto pt-4 relative">
+                                    <button onClick={() => setView('map')} className="mb-6 inline-flex items-center text-gray-400 hover:text-white px-4 py-2 rounded-xl bg-white/5 border border-white/10 z-10 transition-colors shadow-lg">
+                                        <i className="fa-solid fa-chevron-left mr-2"></i> 返回地圖
+                                    </button>
                                     <AdminPanel db={db} auth={auth} user={user} role={role} />
                                 </div>
                             </div>
@@ -173,6 +216,15 @@
             
             // 儲存從地圖中心擷取的座標
             const [reportLocation, setReportLocation] = useState(null);
+
+            // 🔥 控制拖曳提示文字的顯示狀態
+            const [showDragHint, setShowDragHint] = useState(true);
+
+            useEffect(() => {
+                // 進入畫面後 4 秒自動讓提示字消失 (或是拖曳時消失)
+                const timer = setTimeout(() => setShowDragHint(false), 4000);
+                return () => clearTimeout(timer);
+            }, []);
 
             useEffect(() => {
                 const fetchApprovedSpots = async () => {
@@ -197,6 +249,10 @@
                     className: 'dark-map-tiles'
                 }).addTo(map);
 
+                // 🔥 當使用者觸摸或拖曳地圖時，立即隱藏提示文字
+                map.on('dragstart', () => setShowDragHint(false));
+                map.on('touchstart', () => setShowDragHint(false));
+
                 mapInstanceRef.current = map;
                 markerGroupRef.current = L.layerGroup().addTo(map);
 
@@ -212,7 +268,7 @@
                 };
             }, []);
 
-            // 畫圖釘
+            // 🔥 畫圖釘 (使用藍色星星)
             useEffect(() => {
                 if (!mapInstanceRef.current || !markerGroupRef.current) return;
 
@@ -223,14 +279,18 @@
                     if (spot.lat && spot.lng) {
                         const customIcon = L.divIcon({
                             className: 'custom-div-icon',
-                            html: `<div class="w-4 h-4 bg-[#00f3ff] rounded-full border-2 border-white shadow-[0_0_15px_#00f3ff]"></div>`,
-                            iconSize: [16, 16],
-                            iconAnchor: [8, 8]
+                            html: `<div class="text-[#00f3ff] text-2xl drop-shadow-[0_0_10px_rgba(0,243,255,1)] text-center leading-none">
+                                     <i class="fa-solid fa-star"></i>
+                                   </div>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
                         });
 
                         const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
                         
-                        const navLink = spot.gmap || `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+                        // 🔥 導航網址優化：使用 dir API 強制開啟手機導航模式
+                        const navLink = spot.gmap || `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+                        
                         const popupHtml = `
                             <div class="flex flex-col">
                                 ${spot.image_url ? `<img src="${spot.image_url}" class="w-full h-32 object-cover border-b border-[#00f3ff]/30" />` : ''}
@@ -239,7 +299,7 @@
                                     <p class="text-xs text-gray-300 mb-1 truncate"><i class="fa-solid fa-location-dot"></i> ${spot.city}</p>
                                     <p class="text-sm font-bold text-[#00ff9d] mb-2"><i class="fa-solid fa-coins"></i> ${spot.price}</p>
                                     ${spot.note ? `<p class="text-xs text-gray-400 bg-white/10 p-2 rounded mb-2">${spot.note}</p>` : ''}
-                                    <a href="${navLink}" target="_blank" class="block w-full py-2 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-center text-white font-bold rounded-lg text-sm transition-all hover:opacity-90">
+                                    <a href="${navLink}" target="_blank" class="block w-full py-2 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-center text-white font-bold rounded-lg text-sm transition-all hover:opacity-90 mt-2">
                                         <i class="fa-solid fa-location-arrow"></i> 導航前往
                                     </a>
                                 </div>
@@ -340,12 +400,16 @@
                             </button>
                         )}
 
-                        {/* 🔥 畫面正中央：拖曳定位準心 */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[40] pointer-events-none flex flex-col items-center">
-                            <div className="bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(188,19,254,0.6)] mb-1 whitespace-nowrap border border-white/20">
-                                拖曳地圖以定出車位
+                        {/* 🔥 畫面正中央：拖曳定位常駐準心與提示字 */}
+                        {showDragHint && (
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[130%] z-[40] pointer-events-none flex flex-col items-center">
+                                <div className="bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(188,19,254,0.6)] mb-1 whitespace-nowrap border border-white/20 animate-pulse">
+                                    拖曳地圖以定出車位
+                                </div>
                             </div>
-                            <i className="fa-solid fa-location-dot text-4xl text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
+                        )}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[40] pointer-events-none flex flex-col items-center">
+                            <i className="fa-solid fa-location-crosshairs text-4xl text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
                         </div>
 
                         {/* 右下角：定位按鈕 */}
@@ -391,7 +455,7 @@
             );
         }
 
-        // === 4. 車位回報表單 (支援直接輸入座標 & 拖曳定位解析) ===
+        // === 4. 車位回報表單 (支援直接輸入座標 & 拖曳定位解析 & 自動帶入暱稱) ===
         function ReportForm({ db, storage, user, onClose, initialLocation }) {
             const [formData, setFormData] = useState({ 
                 name: '', city: '台北市', address: '', lat: '', lng: '', 
@@ -404,9 +468,13 @@
 
             // 初始化時讀取使用者名稱，以及進行反向地理編碼 (Reverse Geocoding)
             useEffect(() => {
+                // 🔥 如果是已註冊星員，自動帶入真實暱稱；若無登入(訪客)則維持"熱心車友"
                 if (user && !user.isAnonymous) {
                     getDoc(doc(db, "users", user.uid)).then(d => {
-                        if (d.exists()) setFormData(prev => ({...prev, provider: d.data().displayName || d.data().lineName || '熱心車友'}));
+                        if (d.exists()) {
+                            const name = d.data().displayName || d.data().lineName;
+                            if (name) setFormData(prev => ({...prev, provider: name}));
+                        }
                     }).catch(()=>{});
                 }
                 
@@ -414,7 +482,6 @@
                     setFormData(prev => ({...prev, lat: initialLocation.lat, lng: initialLocation.lng}));
                     setMsg('🌍 正在自動解析此處地點資訊...');
                     
-                    // 透過 OpenStreetMap 進行免費的反向解析
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${initialLocation.lat}&lon=${initialLocation.lng}&zoom=18&addressdetails=1`)
                     .then(res => res.json())
                     .then(data => {
@@ -506,10 +573,9 @@
                         </div>
                     </div>
 
-                    {/* 🔥 開放手動修改與直接輸入座標 */}
                     <div className="bg-black/30 border border-white/10 rounded-xl p-3">
                         <div className="flex justify-between items-center mb-2">
-                            <div className="text-xs text-[#00f3ff] font-bold"><i className="fa-solid fa-location-crosshairs"></i> 據點座標 (可直接修改)</div>
+                            <div className="text-xs text-[#00f3ff] font-bold"><i className="fa-solid fa-location-crosshairs"></i> 據點座標 (擷取自地圖中心點)</div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <input type="number" step="any" placeholder="緯度 Lat" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} className="w-full bg-black/50 border border-gray-600 rounded-md px-2 py-1 text-sm text-[#FFD700] outline-none focus:border-[#bc13fe]" />
@@ -540,63 +606,252 @@
                         </label>
                     </div>
 
-                    <div>
-                        <label className="text-xs text-[#00f3ff]">備註事項</label>
-                        <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮、是否陡坡？" />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-[#00f3ff]">備註事項</label>
+                            <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮？" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-[#00f3ff]">提供者 (可修改)</label>
+                            <input type="text" value={formData.provider} onChange={e => setFormData({...formData, provider: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-[#FFD700] outline-none" />
+                        </div>
                     </div>
 
                     {msg && <div className="text-[#00ff9d] text-center text-xs animate-pulse font-bold">{msg}</div>}
                     
                     <button disabled={loading} type="submit" className="w-full py-3 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold rounded-xl mt-2 active:scale-95 transition-transform">
-                        {loading ? '上傳中...' : '提交審核'}
+                        {loading ? '上傳中...' : '提交資料'}
                     </button>
                 </form>
             );
         }
 
-        // === 5. 管理員後台元件 ===
+        // === 5. 管理員後台元件 (加入編輯與詳細資訊功能) ===
         function AdminPanel({ db, auth, user, role }) {
-            const [pendingSpots, setPendingSpots] = useState([]);
+            const [spots, setSpots] = useState([]);
             const [loading, setLoading] = useState(true);
+            const [adminTab, setAdminTab] = useState('pending'); // 'pending' | 'approved'
+            const [editingSpot, setEditingSpot] = useState(null); // 正在編輯的車位
+
+            const fetchAllSpots = async () => {
+                if(user && !user.isAnonymous && (role === 'admin' || role === 'silver')) {
+                    setLoading(true);
+                    try {
+                        const snap = await getDocs(collection(db, "parking_locations"));
+                        const allSpots = []; 
+                        snap.forEach(d => allSpots.push({ id: d.id, ...d.data() })); 
+                        // 照時間排序 (新 -> 舊)
+                        allSpots.sort((a,b) => (b.created_at?.seconds || 0) - (a.created_at?.seconds || 0));
+                        setSpots(allSpots);
+                    } catch(e) { alert("讀取失敗"); }
+                    setLoading(false);
+                }
+            };
 
             useEffect(() => { 
-                if(user && !user.isAnonymous && (role === 'admin' || role === 'silver')) {
-                    getDocs(query(collection(db, "parking_locations"), where("status", "==", "pending"))).then(snap => {
-                        const spots = []; snap.forEach(d => spots.push({ id: d.id, ...d.data() })); setPendingSpots(spots); setLoading(false);
-                    }).catch(()=>setLoading(false));
-                }
+                fetchAllSpots();
             }, [user, role]);
 
             if (!user || user.isAnonymous || role === 'guest') return <div className="text-center mt-10">請先從首頁登入</div>;
             if (role !== 'admin' && role !== 'silver') return <div className="text-center mt-10 text-red-500 font-bold">權限不足</div>;
 
+            const displaySpots = spots.filter(s => s.status === adminTab);
+
             const handleAction = async (id, action) => {
-                if(!confirm(`確定要${action==='approved'?'核准':'刪除'}這筆資料嗎？`)) return;
+                const actionName = action === 'approved' ? '核准上架' : '強制刪除';
+                if(!confirm(`確定要【${actionName}】這筆資料嗎？`)) return;
                 try {
-                    if(action==='approved') await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
-                    else await deleteDoc(doc(db, "parking_locations", id));
-                    setPendingSpots(pendingSpots.filter(s => s.id !== id));
+                    if(action === 'approved') {
+                        await updateDoc(doc(db, "parking_locations", id), { status: "approved" });
+                        setSpots(spots.map(s => s.id === id ? { ...s, status: 'approved' } : s));
+                    } else {
+                        await deleteDoc(doc(db, "parking_locations", id));
+                        setSpots(spots.filter(s => s.id !== id));
+                    }
                 } catch (e) { alert("操作失敗"); }
             };
 
+            const saveEdit = async () => {
+                try {
+                    await updateDoc(doc(db, "parking_locations", editingSpot.id), {
+                        name: editingSpot.name,
+                        address: editingSpot.address,
+                        price: editingSpot.price,
+                        note: editingSpot.note,
+                        provider: editingSpot.provider
+                    });
+                    setSpots(spots.map(s => s.id === editingSpot.id ? editingSpot : s));
+                    setEditingSpot(null);
+                    alert("✅ 修改成功！");
+                } catch(e) { alert("❌ 修改失敗"); }
+            };
+
+            // 🔥 新增：下載 Excel 範本
+            const handleDownloadTemplate = () => {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ['停車場名稱', '縣市', '詳細地址', '緯度', '經度', '收費標準', '備註', '提供者'],
+                    ['羅東夜市重機格', '宜蘭縣', '民生路', '24.676', '121.768', '免費', '無雨遮', '官方管理員']
+                ]);
+                XLSX.utils.book_append_sheet(wb, ws, "車位批次上傳範本");
+                XLSX.writeFile(wb, "重機車位_批次上傳範本.xlsx");
+            };
+
+            // 🔥 新增：Excel 批次匯入處理
+            const handleExcelImport = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                        
+                        if(confirm(`確認直接上架這 ${jsonData.length} 筆車位資料嗎？\n(上架後將直接公開於地圖)`)) {
+                            setLoading(true);
+                            let chunks = [];
+                            for (let i = 0; i < jsonData.length; i += 400) chunks.push(jsonData.slice(i, i + 400));
+
+                            for (let chunk of chunks) {
+                                const chunkBatch = writeBatch(db);
+                                chunk.forEach(row => {
+                                    const newRef = doc(collection(db, 'parking_locations'));
+                                    chunkBatch.set(newRef, {
+                                        name: row['停車場名稱'] || '未命名車位',
+                                        city: row['縣市'] || '台北市',
+                                        address: row['詳細地址'] || '',
+                                        lat: parseFloat(row['緯度']) || 0,
+                                        lng: parseFloat(row['經度']) || 0,
+                                        price: String(row['收費標準'] || '免費'),
+                                        note: String(row['備註'] || ''),
+                                        provider: row['提供者'] || '官方管理員',
+                                        status: 'approved', // Excel上傳直接核准上架
+                                        image_url: '',
+                                        gmap: '',
+                                        created_at: serverTimestamp()
+                                    });
+                                });
+                                await chunkBatch.commit();
+                            }
+                            alert("✅ 批次上架成功！");
+                            fetchAllSpots(); // 重新讀取資料
+                        }
+                    } catch(err) {
+                        console.error(err);
+                        alert("❌ 匯入失敗，請確認格式是否與範本相符！");
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+                e.target.value = null; // 清空選取，允許重複上傳相同檔案
+            };
+
             return (
-                <div className="glass-panel rounded-3xl p-6 mb-10">
-                    <h2 className="text-xl font-bold text-[#bc13fe] mb-6"><i className="fa-solid fa-clipboard-check"></i> 待審核名單 ({pendingSpots.length})</h2>
-                    {loading ? <p className="text-center">讀取中...</p> : pendingSpots.length === 0 ? <p className="text-center text-gray-500">無待審資料</p> : 
+                <div className="glass-panel rounded-3xl p-5 md:p-8 mb-10 relative">
+                    <h2 className="text-xl font-bold text-[#bc13fe] mb-6 flex items-center justify-center gap-2">
+                        <i className="fa-solid fa-shield-halved"></i> 指揮官審核中心
+                    </h2>
+                    
+                    {/* 🔥 頁籤切換與 Excel 批次按鈕 */}
+                    <div className="flex flex-col md:flex-row gap-3 mb-6">
+                        <div className="flex flex-1 gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
+                            <button onClick={()=>setAdminTab('pending')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='pending'?'bg-[#bc13fe] text-white shadow-md':'text-gray-400 hover:text-white'}`}>
+                                待審核 ({spots.filter(s=>s.status==='pending').length})
+                            </button>
+                            <button onClick={()=>setAdminTab('approved')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='approved'?'bg-[#00f3ff] text-black shadow-md':'text-gray-400 hover:text-white'}`}>
+                                已上架 ({spots.filter(s=>s.status==='approved').length})
+                            </button>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleDownloadTemplate} className="flex-1 md:flex-none px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm font-bold hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center gap-2">
+                                <i className="fa-solid fa-file-arrow-down"></i> 下載範本
+                            </button>
+                            <label className="flex-1 md:flex-none px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2">
+                                <i className="fa-solid fa-file-excel"></i> 批次匯入
+                                <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelImport} />
+                            </label>
+                        </div>
+                    </div>
+
+                    {loading ? <p className="text-center py-10 text-[#00f3ff]"><i className="fa-solid fa-spinner fa-spin mr-2"></i>資料載入中...</p> : displaySpots.length === 0 ? <p className="text-center text-gray-500 py-10">此區域目前無資料</p> : 
                         <div className="space-y-4">
-                            {pendingSpots.map(spot => (
-                                <div key={spot.id} className="bg-black/40 border border-white/10 rounded-2xl p-4">
-                                    {spot.image_url && <img src={spot.image_url} className="w-full h-32 object-cover rounded-xl mb-3" />}
-                                    <div className="font-bold text-[#FFD700] mb-1">{spot.name}</div>
-                                    <div className="text-sm text-gray-300 mb-2">【{spot.city}】{spot.address}</div>
+                            {displaySpots.map(spot => (
+                                <div key={spot.id} className="bg-black/50 border border-white/10 rounded-2xl p-5 relative group overflow-hidden">
+                                    {/* 狀態邊線 */}
+                                    <div className={`absolute top-0 left-0 w-1 h-full ${spot.status === 'approved' ? 'bg-[#00f3ff]' : 'bg-[#bc13fe]'}`}></div>
+                                    
+                                    {spot.image_url && <img src={spot.image_url} className="w-full h-40 object-cover rounded-xl mb-4 border border-white/5" />}
+                                    
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="font-bold text-[#FFD700] text-lg leading-tight pr-2">{spot.name}</div>
+                                        <div className="text-xs text-gray-500 whitespace-nowrap bg-white/5 px-2 py-1 rounded">
+                                            {formatTime(spot.created_at)}
+                                        </div>
+                                    </div>
+
+                                    <div className="text-sm text-gray-300 mb-2 bg-white/5 p-2 rounded-lg"><i className="fa-solid fa-location-dot text-[#00f3ff] mr-2"></i>【{spot.city}】{spot.address}</div>
+                                    <div className="text-sm font-bold text-[#00ff9d] mb-4"><i className="fa-solid fa-coins mr-2"></i>{spot.price || '免費'}</div>
+                                    
+                                    <div className="text-xs text-gray-400 mb-4 bg-black/40 p-3 rounded-lg border border-white/5 space-y-1">
+                                        <p>📍 <span className="text-gray-500">座標：</span> {spot.lat}, {spot.lng}</p>
+                                        <p>📝 <span className="text-gray-500">備註：</span> {spot.note || '無'}</p>
+                                        <p>👤 <span className="text-gray-500">上傳者：</span> <span className="text-[#bc13fe] font-bold">{spot.provider || '未知車友'}</span></p>
+                                    </div>
+                                    
                                     <div className="flex gap-2 mt-4">
-                                        <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2 rounded-xl font-bold">核准</button>
-                                        <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2 rounded-xl font-bold">退回</button>
+                                        {spot.status === 'pending' ? (
+                                            <>
+                                                <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2.5 rounded-xl font-bold hover:bg-[#00ff9d] hover:text-black transition-colors"><i className="fa-solid fa-check mr-1"></i> 核准上架</button>
+                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash mr-1"></i> 拒絕刪除</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => setEditingSpot(spot)} className="flex-1 bg-blue-500/20 text-blue-400 py-2.5 rounded-xl font-bold hover:bg-blue-500 hover:text-white transition-colors"><i className="fa-solid fa-pen mr-1"></i> 編輯修改</button>
+                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash-can mr-1"></i> 下架刪除</button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     }
+
+                    {/* 🔥 編輯用 Modal */}
+                    {editingSpot && (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                            <div className="bg-[#0f172a] rounded-3xl border border-[#00f3ff]/30 p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                                <h3 className="text-xl font-bold text-[#00f3ff] mb-4"><i className="fa-solid fa-pen-to-square"></i> 修改車位資訊</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs text-gray-400">名稱</label>
+                                        <input type="text" value={editingSpot.name} onChange={e=>setEditingSpot({...editingSpot, name: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400">詳細地址</label>
+                                        <input type="text" value={editingSpot.address} onChange={e=>setEditingSpot({...editingSpot, address: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400">收費標準</label>
+                                        <input type="text" value={editingSpot.price} onChange={e=>setEditingSpot({...editingSpot, price: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400">提供者</label>
+                                        <input type="text" value={editingSpot.provider} onChange={e=>setEditingSpot({...editingSpot, provider: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-[#FFD700] outline-none focus:border-[#bc13fe]"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400">備註</label>
+                                        <textarea value={editingSpot.note} onChange={e=>setEditingSpot({...editingSpot, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe] h-20 resize-none"></textarea>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 mt-6">
+                                    <button onClick={()=>setEditingSpot(null)} className="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-800">取消</button>
+                                    <button onClick={saveEdit} className="flex-1 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white py-3 rounded-xl font-bold">儲存修改</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
