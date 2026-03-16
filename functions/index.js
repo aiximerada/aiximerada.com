@@ -533,7 +533,23 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                             ]
                         }
                     }]);
+                    continue; // 🔥 新增：確保觸發記帳後跳出迴圈
                 }
+
+                // 🔥 新增：當系統完全找不到對應的指令時，發送「防呆導航選單 (Quick Replies)」
+                await replyLineMessage(replyToken, [{
+                    type: "text",
+                    text: "🤖 系統無法辨識您的指令喔！\n\n您可以傳送「📍位置資訊」給我尋找附近車位，或直接點擊下方的快捷按鈕：👇",
+                    quickReply: {
+                        items: [
+                            { type: "action", action: { type: "message", label: "✍️ 開始記帳", text: "個人記帳" } },
+                            { type: "action", action: { type: "message", label: "📊 帳務報表", text: "看報表" } },
+                            { type: "action", action: { type: "message", label: "🏍️ 找車位 (範例)", text: "台北市車位" } },
+                            { type: "action", action: { type: "message", label: "🌤️ 查天氣 (範例)", text: "台北天氣" } },
+                            { type: "action", action: { type: "message", label: "🌐 會員專區", text: "官網" } }
+                        ]
+                    }
+                }]);
             }
         }
     }
