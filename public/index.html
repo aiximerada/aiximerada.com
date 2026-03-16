@@ -2,8 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <!-- 🔥 支援 PWA 與 iOS 全螢幕 Web App 的關鍵設定 -->
+    <!-- 🔥 移除原先的 no-cache 設定，允許瀏覽器快取以達「秒開」效果 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,9 +11,15 @@
     
     <title>玉露寶庫 - AIXIMERADA</title>
     
-    <!-- 🔥 桌面捷徑預設圖示：深藍色星星 -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+    <!-- 🔥 DNS 預先連線與模組預載：大幅縮短手機端載入時間 -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
 
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -38,12 +43,17 @@
             display: flex; flex-direction: column; align-items: center;
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
-            user-select: none; /* 讓畫面有原生的 APP 觸控感 */
+            user-select: none; 
         }
 
-        /* --- ✨ 星空背景特效 --- */
+        /* --- ✨ 星空背景特效 (加入 GPU 硬體加速) --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
-        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
+        .star-field { 
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; 
+            animation-timing-function: linear; animation-iteration-count: infinite;
+            will-change: transform; /* 🔥 強制 GPU 渲染 */
+            transform: translateZ(0); 
+        }
         
         .stars-distant {
             background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent);
@@ -59,10 +69,21 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
             background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
+            will-change: opacity; /* 🔥 強制 GPU 渲染 */
+            transform: translateZ(0);
         }
 
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+
+        /* --- 啟動畫面 --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #090A0F; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 999999; color: var(--suisei-cyan); transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .splash-icon { font-size: 4.5rem; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(59,198,228,0.6)); animation: pulseStar 1.5s infinite alternate ease-in-out; }
+        @keyframes pulseStar { 0% { transform: scale(0.9) translateY(0); opacity: 0.8; } 100% { transform: scale(1.1) translateY(-10px); opacity: 1; filter: drop-shadow(0 0 25px rgba(59,198,228,1)); } }
 
         /* --- 主內容 --- */
         header { text-align: center; padding: calc(80px + env(safe-area-inset-top)) 20px 40px; position: relative; z-index: 1; }
@@ -88,15 +109,17 @@
             transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative; overflow: hidden;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            will-change: transform; /* 🔥 強制 GPU 渲染 */
+            transform: translateZ(0);
         }
         
         .portal-card:hover { 
-            transform: translateY(-8px); 
+            transform: translateY(-8px) translateZ(0); 
             background: rgba(59, 198, 228, 0.15); 
             border-color: var(--suisei-cyan); 
             box-shadow: 0 20px 50px rgba(59, 198, 228, 0.3); 
         }
-        .portal-card:active { transform: scale(0.96); }
+        .portal-card:active { transform: scale(0.96) translateZ(0); }
         
         .portal-card i { font-size: 4rem; color: var(--suisei-cyan); margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(59,198,228,0.5)); }
         .portal-card:hover i { transform: scale(1.1) rotate(10deg); color: #fff; }
@@ -108,8 +131,8 @@
             background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(254, 243, 199, 0.9) 100%); 
             color: #0b1021; min-height: 220px; flex-direction: row; justify-content: space-between; padding: 0 80px; 
         }
-        .parking-portal:hover { transform: translateY(-8px); box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); border-color: #fff; background: #fff; }
-        .parking-portal:active { transform: scale(0.96); }
+        .parking-portal:hover { transform: translateY(-8px) translateZ(0); box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); border-color: #fff; background: #fff; }
+        .parking-portal:active { transform: scale(0.96) translateZ(0); }
         .parking-portal i { color: #0b1021; font-size: 5rem; order: 2; filter: none; }
         .parking-portal:hover i { color: #f59e0b; transform: scale(1.1) rotate(-10deg); }
         .parking-info { order: 1; text-align: left; }
@@ -145,6 +168,13 @@
     </style>
 </head>
 <body>
+
+    <!-- 🔥 極速啟動畫面 -->
+    <div id="splash-screen">
+        <i class="fa-solid fa-rocket splash-icon"></i>
+        <h2 style="font-size: 1.8rem; font-weight: 900; letter-spacing: 4px; margin:0;">玉露寶庫</h2>
+        <p style="color: #94a3b8; font-size: 0.9rem; mt-2; letter-spacing: 2px;">系統引擎啟動中...</p>
+    </div>
 
     <div class="space-container">
         <div class="star-field stars-distant"></div>
@@ -185,8 +215,9 @@
         </button>
     </div>
 
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
+    <!-- 🔥 延遲載入 (Defer) 外部套件，防止阻擋畫面繪製 -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" defer></script>
+    <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js" defer></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -233,7 +264,14 @@
             }
         }
 
+        // 🔥 當 DOM 載入完成，移除啟動畫面並初始化動畫
         window.addEventListener('load', () => {
+            const splash = document.getElementById('splash-screen');
+            if(splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.remove(), 600); // 動畫結束後徹底從 DOM 移除，釋放記憶體
+            }
+
             AOS.init({ duration: 800, once: true });
             
             new Typed('#typed-title', {
