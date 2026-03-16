@@ -11,10 +11,9 @@
     
     <title>重機停車</title>
     
-    <!-- 🔥 解決 iOS 顯示文字的問題：改用標準 PNG 圖片作為桌面圖示 -->
-    <!-- 這裡暫時為您串接一個精美的藍色星星 PNG 圖片 -->
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
+    <!-- 🔥 桌面捷徑圖示 (改用您上傳的 頭像.png) -->
+    <link rel="icon" type="image/png" href="./頭像.png">
+    <link rel="apple-touch-icon" href="./頭像.png">
     
     <!-- 預先連線 CDN 以加速載入 -->
     <link rel="preconnect" href="https://unpkg.com">
@@ -27,7 +26,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-    <!-- 🔥 加入 SheetJS 用於 Excel 解析與匯入/匯出 -->
+    <!-- 加入 SheetJS 用於 Excel 解析與匯入/匯出 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -46,7 +45,9 @@
         
         #root { width: 100vw; height: 100vh; }
         
-        ::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #00f3ff; border-radius: 10px; }
         
         .glass-panel {
             background: rgba(15, 23, 42, 0.85);
@@ -58,7 +59,7 @@
         .leaflet-container { font-family: inherit; background: #090A0F; outline: none; }
         .leaflet-control-attribution { display: none !important; }
         
-        /* 地圖暗黑濾鏡：將 Google Maps 轉為超高質感的星際深色 */
+        /* 地圖暗黑濾鏡 */
         .dark-map-tiles { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
         
         /* 客製化彈窗 (Popup) */
@@ -96,7 +97,7 @@
 </head>
 <body>
 
-    <!-- 🔥 啟動畫面 (Splash Screen) -->
+    <!-- 啟動畫面 -->
     <div id="splash-screen">
         <i class="fa-solid fa-star fa-spin text-6xl mb-6 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]"></i>
         <h2 class="text-2xl font-black tracking-widest">系統初始化...</h2>
@@ -189,11 +190,14 @@
                             <div style={{ height: 'env(safe-area-inset-top)' }} className="w-full shrink-0"></div>
                             
                             <div className="flex-1 overflow-y-auto px-4 pb-12" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                                <div className="max-w-lg mx-auto pt-4 relative">
+                                {/* 🔥 修改容器寬度，讓電腦版 Dashboard 有滿版的感覺 */}
+                                <div className="max-w-6xl mx-auto pt-4 relative w-full">
                                     <button onClick={() => setView('map')} className="mb-6 inline-flex items-center text-gray-400 hover:text-white px-4 py-2 rounded-xl bg-white/5 border border-white/10 z-10 transition-colors shadow-lg">
                                         <i className="fa-solid fa-chevron-left mr-2"></i> 返回地圖
                                     </button>
-                                    <AdminPanel db={db} auth={auth} user={user} role={role} />
+                                    <div className="w-full">
+                                        <AdminPanel db={db} auth={auth} user={user} role={role} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -211,6 +215,7 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [isReportOpen, setIsReportOpen] = useState(false);
+            const [isIssueOpen, setIsIssueOpen] = useState(false); // 控制問題回報彈窗
             
             const [reportLocation, setReportLocation] = useState(null);
             const [showDragHint, setShowDragHint] = useState(true);
@@ -333,7 +338,13 @@
                                 html: `<div class="w-5 h-5 bg-[#ff4757] rounded-full border-[3px] border-white shadow-[0_0_20px_#ff4757] animate-pulse"></div>`,
                                 iconSize: [20, 20], iconAnchor: [10, 10]
                             })
-                        }).addTo(mapInstanceRef.current).bindPopup("您目前的位置").openPopup();
+                        }).addTo(mapInstanceRef.current).bindPopup(`
+                            <div class="flex flex-col items-center justify-center p-1">
+                                <div class="text-[#ff4757] font-black text-[15px] mb-2 drop-shadow-md"><i class="fa-solid fa-crosshairs"></i> 您目前的位置</div>
+                                <div class="bg-white/10 px-3 py-1.5 rounded-lg text-xs text-gray-300 font-mono border border-white/5 w-full text-center">Lat: ${latitude.toFixed(5)}</div>
+                                <div class="bg-white/10 px-3 py-1.5 rounded-lg text-xs text-gray-300 font-mono border border-white/5 w-full text-center mt-1">Lng: ${longitude.toFixed(5)}</div>
+                            </div>
+                        `, { closeButton: false }).openPopup();
                     },
                     (err) => alert('無法取得定位，請確認手機已開啟位置權限。'),
                     { enableHighAccuracy: true }
@@ -371,7 +382,8 @@
                             </form>
                         </div>
 
-                        {role !== 'guest' && (
+                        {/* 🔥 確保：只有管理員才能看到後台按鈕 */}
+                        {(role === 'admin' || role === 'silver') && (
                             <button 
                                 onClick={onSwitchToAdmin}
                                 className="absolute right-4 w-12 h-12 glass-panel rounded-full text-[#bc13fe] flex items-center justify-center shadow-lg pointer-events-auto hover:bg-[#bc13fe]/20 safe-top-admin"
@@ -380,21 +392,34 @@
                                 <i className="fa-solid fa-user-shield text-xl"></i>
                             </button>
                         )}
-
+                        
+                        {/* 🔥 畫面正中央：高度還原截圖的「拖曳定位指示」與紅心座標 */}
                         {showDragHint && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[130%] z-[40] pointer-events-none flex flex-col items-center">
-                                <div className="bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(188,19,254,0.6)] mb-1 whitespace-nowrap border border-white/20 animate-pulse">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55px] z-[40] pointer-events-none flex flex-col items-center animate-pulse">
+                                <div className="bg-[#af3dff] text-white text-[13px] font-extrabold px-4 py-2 rounded-full shadow-[0_5px_15px_rgba(175,61,255,0.5)] whitespace-nowrap">
                                     拖曳地圖以定出車位
                                 </div>
+                                {/* 紫色倒三角形指標 */}
+                                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#af3dff] -mt-[1px]"></div>
                             </div>
                         )}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[40] pointer-events-none flex flex-col items-center">
-                            <i className="fa-solid fa-location-crosshairs text-4xl text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[40] pointer-events-none flex flex-col items-center">
+                            <i className="fa-solid fa-location-dot text-[40px] text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
                         </div>
+
+                        {/* 🔥 新增：左下角問題回報按鈕 */}
+                        <button 
+                            onClick={() => setIsIssueOpen(true)}
+                            className="absolute left-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-[#ff4757]/40 hover:border-[#ff4757] hover:text-[#ff4757] transition-colors safe-bottom-locate"
+                            title="問題回報與建議"
+                        >
+                            <i className="fa-solid fa-headset text-xl"></i>
+                        </button>
 
                         <button 
                             onClick={locateMe}
                             className="absolute right-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white/20 transition-colors safe-bottom-locate"
+                            title="目前位置"
                         >
                             <i className="fa-solid fa-crosshairs text-xl"></i>
                         </button>
@@ -402,28 +427,39 @@
                         <button 
                             onClick={handleOpenReport}
                             className="absolute right-5 w-16 h-16 bg-gradient-to-tr from-[#00f3ff] to-[#bc13fe] text-white rounded-full flex items-center justify-center shadow-[0_5px_25px_rgba(0,243,255,0.5)] pointer-events-auto hover:scale-105 active:scale-95 transition-all z-[60] safe-bottom-fab"
+                            title="新增車位"
                         >
                             <i className="fa-solid fa-plus text-3xl"></i>
                         </button>
                     </div>
 
+                    {/* 車位回報 Modal */}
                     {isReportOpen && (
                         <div className="absolute inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
                             <div className="absolute inset-0" onClick={() => setIsReportOpen(false)}></div>
-                            
                             <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#00f3ff]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden safe-padding-bottom">
                                 <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto my-3 sm:hidden"></div>
-                                
                                 <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10">
                                     <i className="fa-solid fa-xmark text-white"></i>
                                 </button>
-
                                 <div className="p-6 pt-2">
-                                    <ReportForm 
-                                        db={db} storage={storage} user={user} 
-                                        onClose={() => setIsReportOpen(false)} 
-                                        initialLocation={reportLocation}
-                                    />
+                                    <ReportForm db={db} storage={storage} user={user} onClose={() => setIsReportOpen(false)} initialLocation={reportLocation} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 問題回報 Modal */}
+                    {isIssueOpen && (
+                        <div className="absolute inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
+                            <div className="absolute inset-0" onClick={() => setIsIssueOpen(false)}></div>
+                            <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#ff4757]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden safe-padding-bottom">
+                                <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto my-3 sm:hidden"></div>
+                                <button onClick={() => setIsIssueOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10">
+                                    <i className="fa-solid fa-xmark text-white"></i>
+                                </button>
+                                <div className="p-6 pt-2">
+                                    <IssueForm db={db} user={user} onClose={() => setIsIssueOpen(false)} />
                                 </div>
                             </div>
                         </div>
@@ -432,7 +468,89 @@
             );
         }
 
-        // === 4. 車位回報表單 (🔥🔥 座標文字排版與 UI 大幅優化) ===
+        // === 新增：問題回報表單 (防呆 & 防垃圾訊息) ===
+        function IssueForm({ db, user, onClose }) {
+            const [content, setContent] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [msg, setMsg] = useState('');
+
+            // 防垃圾訊息過濾機制
+            const isSpam = (text) => {
+                // 1. 拒絕包含外部連結的留言 (防止廣告網址)
+                if (/(http|https):\/\/[^\s]+/g.test(text)) return true;
+                // 2. 拒絕連續重複 4 次以上的字元 (例如 aaaaa)
+                if (/(.)\1{4,}/.test(text)) return true;
+                // 3. 拒絕字數過少
+                if (text.trim().length < 5) return true;
+                // 4. 常見廣告詐騙詞彙黑名單
+                const badWords = ['加賴', '加line', '借款', '娛樂城', '博役', '博弈', '投注', '詐騙', '援交', '私訊', '賺錢'];
+                if (badWords.some(word => text.toLowerCase().includes(word))) return true;
+                
+                return false;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setMsg('');
+
+                // 檢查冷卻時間 (防惡意連點，限制 60 秒發一次)
+                const lastReportTime = localStorage.getItem('lastParkingIssueTime');
+                if (lastReportTime && Date.now() - parseInt(lastReportTime) < 60000) {
+                    return setMsg('⏳ 您的手速太快了，請稍後 1 分鐘再提交新的回報！');
+                }
+
+                // 防呆檢查
+                if (isSpam(content)) {
+                    return setMsg('⚠️ 系統偵測到您的內容可能包含不合規的字眼、網址或字數過短，請修正後再送出。');
+                }
+
+                setLoading(true);
+                try {
+                    await addDoc(collection(db, "parking_issues"), {
+                        content: content.trim(),
+                        userId: user ? user.uid : 'anonymous',
+                        status: 'unread',
+                        createdAt: serverTimestamp()
+                    });
+
+                    // 寫入本地端冷卻時間紀錄
+                    localStorage.setItem('lastParkingIssueTime', Date.now().toString());
+
+                    alert('✅ 感謝您的回報！總部已收到您的建議。');
+                    onClose();
+                } catch (error) {
+                    setMsg('❌ 傳送失敗，請確認網路連線。');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <h2 className="text-2xl font-bold mb-4 text-center text-[#ff4757]"><i className="fa-solid fa-headset"></i> 意見反饋與報錯</h2>
+                    <p className="text-sm text-gray-400 text-center mb-6">任何系統 Bug、車位標示錯誤或是建議，都歡迎告訴我們！</p>
+                    
+                    <div>
+                        <textarea 
+                            required
+                            rows="5"
+                            placeholder="請詳細描述您的問題或建議 (最少 5 個字)..."
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            className="w-full bg-black/40 border border-[#ff4757]/30 rounded-xl p-4 text-white outline-none focus:border-[#ff4757] resize-none"
+                        ></textarea>
+                    </div>
+
+                    {msg && <div className="text-[#FFD700] text-center text-sm font-bold bg-black/40 p-2 rounded-lg">{msg}</div>}
+                    
+                    <button disabled={loading} type="submit" className="w-full py-4 bg-gradient-to-r from-[#ff4757] to-[#bc13fe] text-white font-bold rounded-xl mt-2 active:scale-95 transition-transform disabled:opacity-50">
+                        {loading ? '傳送中...' : '送出回報'}
+                    </button>
+                </form>
+            );
+        }
+
+        // === 車位回報表單 ===
         function ReportForm({ db, storage, user, onClose, initialLocation }) {
             const [formData, setFormData] = useState({ 
                 name: '', city: '台北市', address: '', lat: '', lng: '', 
@@ -548,7 +666,6 @@
                         </div>
                     </div>
 
-                    {/* 🔥 優化後的座標區域排版 */}
                     <div className="bg-black/40 border border-[#00f3ff]/20 rounded-2xl p-4 shadow-inner">
                         <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-2">
@@ -561,14 +678,22 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* 🔥 優化表單內的經緯度排版 (附帶小標籤與等寬字體) */}
                         <div className="flex items-center gap-3">
                             <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-mono">Lat</span>
-                                <input type="number" step="any" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm text-[#FFD700] outline-none focus:border-[#00f3ff] transition-colors" />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                    <div className="w-1.5 h-4 bg-[#00f3ff] rounded-full"></div>
+                                    <span className="text-xs text-gray-400 font-bold">緯度</span>
+                                </div>
+                                <input type="number" step="any" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} className="w-full bg-black/60 border border-white/10 rounded-xl pl-16 pr-3 py-3 text-sm text-[#FFD700] outline-none focus:border-[#00f3ff] transition-colors font-mono tracking-wider shadow-inner" />
                             </div>
                             <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-mono">Lng</span>
-                                <input type="number" step="any" value={formData.lng} onChange={e => setFormData({...formData, lng: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-3 py-2 text-sm text-[#FFD700] outline-none focus:border-[#00f3ff] transition-colors" />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                    <div className="w-1.5 h-4 bg-[#bc13fe] rounded-full"></div>
+                                    <span className="text-xs text-gray-400 font-bold">經度</span>
+                                </div>
+                                <input type="number" step="any" value={formData.lng} onChange={e => setFormData({...formData, lng: e.target.value})} className="w-full bg-black/60 border border-white/10 rounded-xl pl-16 pr-3 py-3 text-sm text-[#FFD700] outline-none focus:border-[#bc13fe] transition-colors font-mono tracking-wider shadow-inner" />
                             </div>
                         </div>
                     </div>
@@ -616,30 +741,40 @@
             );
         }
 
-        // === 5. 管理員後台元件 ===
+        // === 5. 管理員後台元件 (🔥🔥 電腦版排版與網格系統大幅優化) ===
         function AdminPanel({ db, auth, user, role }) {
             const [spots, setSpots] = useState([]);
+            const [issues, setIssues] = useState([]); // 問題回報的 State
             const [loading, setLoading] = useState(true);
-            const [adminTab, setAdminTab] = useState('pending'); // 'pending' | 'approved'
-            const [editingSpot, setEditingSpot] = useState(null); // 正在編輯的車位
+            const [adminTab, setAdminTab] = useState('pending'); // 'pending' | 'approved' | 'issues'
+            const [editingSpot, setEditingSpot] = useState(null);
 
-            const fetchAllSpots = async () => {
+            const fetchAllData = async () => {
                 if(user && !user.isAnonymous && (role === 'admin' || role === 'silver')) {
                     setLoading(true);
                     try {
+                        // 1. 抓取車位
                         const snap = await getDocs(collection(db, "parking_locations"));
                         const allSpots = []; 
                         snap.forEach(d => allSpots.push({ id: d.id, ...d.data() })); 
                         allSpots.sort((a,b) => (b.created_at?.seconds || 0) - (a.created_at?.seconds || 0));
                         setSpots(allSpots);
-                    } catch(e) { alert("讀取失敗"); }
+
+                        // 2. 抓取問題回報
+                        const issuesSnap = await getDocs(collection(db, "parking_issues"));
+                        const allIssues = [];
+                        issuesSnap.forEach(d => allIssues.push({ id: d.id, ...d.data() }));
+                        allIssues.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                        setIssues(allIssues);
+
+                    } catch(e) { alert("讀取資料失敗"); }
                     setLoading(false);
                 }
             };
 
-            useEffect(() => { fetchAllSpots(); }, [user, role]);
+            useEffect(() => { fetchAllData(); }, [user, role]);
 
-            if (!user || user.isAnonymous || role === 'guest') return <div className="text-center mt-10">請先從首頁登入</div>;
+            if (!user || user.isAnonymous || role === 'guest') return <div className="text-center mt-10">請先登入管理員帳號</div>;
             if (role !== 'admin' && role !== 'silver') return <div className="text-center mt-10 text-red-500 font-bold">權限不足</div>;
 
             const displaySpots = spots.filter(s => s.status === adminTab);
@@ -670,7 +805,20 @@
                 } catch(e) { alert("❌ 修改失敗"); }
             };
 
-            // 下載 Excel 範本
+            // 問題回報的處理 (標記已讀 / 刪除)
+            const handleIssueAction = async (id, action) => {
+                try {
+                    if (action === 'read') {
+                        await updateDoc(doc(db, "parking_issues", id), { status: 'read' });
+                        setIssues(issues.map(i => i.id === id ? { ...i, status: 'read' } : i));
+                    } else if (action === 'delete') {
+                        if (!confirm("確定要刪除這筆回報嗎？")) return;
+                        await deleteDoc(doc(db, "parking_issues", id));
+                        setIssues(issues.filter(i => i.id !== id));
+                    }
+                } catch (e) { alert("操作失敗"); }
+            };
+
             const handleDownloadTemplate = () => {
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet([
@@ -681,7 +829,6 @@
                 XLSX.writeFile(wb, "重機車位_批次上傳範本.xlsx");
             };
 
-            // Excel 批次匯入
             const handleExcelImport = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -717,7 +864,7 @@
                                 await chunkBatch.commit();
                             }
                             alert("✅ 批次上架成功！");
-                            fetchAllSpots(); 
+                            fetchAllData(); 
                         }
                     } catch(err) { alert("❌ 匯入失敗，請確認格式是否與範本相符！"); } 
                     finally { setLoading(false); }
@@ -727,73 +874,107 @@
             };
 
             return (
-                <div className="glass-panel rounded-3xl p-5 md:p-8 mb-10 relative">
-                    <h2 className="text-xl font-bold text-[#bc13fe] mb-6 flex items-center justify-center gap-2">
+                <div className="glass-panel rounded-3xl p-5 md:p-8 mb-10 w-full shadow-2xl">
+                    <h2 className="text-2xl font-bold text-[#bc13fe] mb-8 flex items-center justify-center gap-2 drop-shadow-[0_0_10px_rgba(188,19,254,0.5)]">
                         <i className="fa-solid fa-shield-halved"></i> 指揮官審核中心
                     </h2>
                     
-                    <div className="flex flex-col md:flex-row gap-3 mb-6">
-                        <div className="flex flex-1 gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
-                            <button onClick={()=>setAdminTab('pending')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='pending'?'bg-[#bc13fe] text-white shadow-md':'text-gray-400 hover:text-white'}`}>
+                    {/* 控制列 (分頁標籤與 Excel 按鈕) */}
+                    <div className="flex flex-col xl:flex-row gap-4 mb-8 justify-between items-center">
+                        <div className="flex flex-wrap w-full xl:w-auto gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+                            <button onClick={()=>setAdminTab('pending')} className={`flex-1 min-w-[100px] py-2.5 rounded-xl text-sm font-bold transition-all ${adminTab==='pending'?'bg-[#bc13fe] text-white shadow-md':'text-gray-400 hover:text-white'}`}>
                                 待審核 ({spots.filter(s=>s.status==='pending').length})
                             </button>
-                            <button onClick={()=>setAdminTab('approved')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='approved'?'bg-[#00f3ff] text-black shadow-md':'text-gray-400 hover:text-white'}`}>
+                            <button onClick={()=>setAdminTab('approved')} className={`flex-1 min-w-[100px] py-2.5 rounded-xl text-sm font-bold transition-all ${adminTab==='approved'?'bg-[#00f3ff] text-black shadow-md':'text-gray-400 hover:text-white'}`}>
                                 已上架 ({spots.filter(s=>s.status==='approved').length})
                             </button>
+                            <button onClick={()=>setAdminTab('issues')} className={`flex-1 min-w-[100px] py-2.5 rounded-xl text-sm font-bold transition-all relative ${adminTab==='issues'?'bg-[#ff4757] text-white shadow-md':'text-gray-400 hover:text-white'}`}>
+                                問題回報 
+                                {issues.filter(i=>i.status==='unread').length > 0 && <span className="absolute top-1 right-2 w-2 h-2 bg-white rounded-full animate-ping"></span>}
+                            </button>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={handleDownloadTemplate} className="flex-1 md:flex-none px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-sm font-bold hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <div className="flex gap-3 w-full xl:w-auto">
+                            <button onClick={handleDownloadTemplate} className="flex-1 xl:flex-none px-5 py-3 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-2xl text-sm font-bold hover:bg-emerald-600 hover:text-white transition-colors flex items-center justify-center gap-2">
                                 <i className="fa-solid fa-file-arrow-down"></i> 下載範本
                             </button>
-                            <label className="flex-1 md:flex-none px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2">
+                            <label className="flex-1 xl:flex-none px-5 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2">
                                 <i className="fa-solid fa-file-excel"></i> 批次匯入
                                 <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelImport} />
                             </label>
                         </div>
                     </div>
 
-                    {loading ? <p className="text-center py-10 text-[#00f3ff]"><i className="fa-solid fa-spinner fa-spin mr-2"></i>資料載入中...</p> : displaySpots.length === 0 ? <p className="text-center text-gray-500 py-10">此區域目前無資料</p> : 
-                        <div className="space-y-4">
-                            {displaySpots.map(spot => (
-                                <div key={spot.id} className="bg-black/50 border border-white/10 rounded-2xl p-5 relative group overflow-hidden">
-                                    <div className={`absolute top-0 left-0 w-1 h-full ${spot.status === 'approved' ? 'bg-[#00f3ff]' : 'bg-[#bc13fe]'}`}></div>
-                                    
-                                    {spot.image_url && <img src={spot.image_url} className="w-full h-40 object-cover rounded-xl mb-4 border border-white/5" />}
-                                    
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="font-bold text-[#FFD700] text-lg leading-tight pr-2">{spot.name}</div>
-                                        <div className="text-xs text-gray-500 whitespace-nowrap bg-white/5 px-2 py-1 rounded">
-                                            {formatTime(spot.created_at)}
-                                        </div>
+                    {loading ? (
+                        <p className="text-center py-20 text-[#00f3ff] text-lg font-bold animate-pulse"><i className="fa-solid fa-spinner fa-spin mr-2"></i>資料載入中...</p>
+                    ) : (
+                        <>
+                            {/* 問題回報分頁內容 */}
+                            {adminTab === 'issues' ? (
+                                issues.length === 0 ? <p className="text-center text-gray-500 py-20 font-bold">目前無任何問題回報</p> : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {issues.map(issue => (
+                                            <div key={issue.id} className={`bg-black/50 border ${issue.status === 'unread' ? 'border-[#ff4757]/50' : 'border-white/10'} rounded-2xl p-5 relative flex flex-col h-full`}>
+                                                {issue.status === 'unread' && <div className="absolute top-0 right-0 bg-[#ff4757] text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">未讀</div>}
+                                                <div className="text-xs text-gray-500 mb-3 flex items-center gap-2">
+                                                    <i className="fa-regular fa-clock"></i> {formatTime(issue.createdAt)}
+                                                </div>
+                                                <div className="text-sm text-gray-200 mb-4 flex-1 whitespace-pre-wrap leading-relaxed">{issue.content}</div>
+                                                <div className="flex gap-2 mt-auto border-t border-white/5 pt-4">
+                                                    {issue.status === 'unread' && (
+                                                        <button onClick={() => handleIssueAction(issue.id, 'read')} className="flex-1 bg-[#00f3ff]/10 text-[#00f3ff] py-2 rounded-xl text-sm font-bold hover:bg-[#00f3ff] hover:text-black transition-colors">標記已讀</button>
+                                                    )}
+                                                    <button onClick={() => handleIssueAction(issue.id, 'delete')} className="flex-1 bg-[#ff4757]/10 text-[#ff4757] py-2 rounded-xl text-sm font-bold hover:bg-[#ff4757] hover:text-white transition-colors">刪除</button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
+                                )
+                            ) : (
+                                /* 車位審核分頁內容 (採用強大的 Grid 網格佈局) */
+                                displaySpots.length === 0 ? <p className="text-center text-gray-500 py-20 font-bold">此區域目前無資料</p> : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {displaySpots.map(spot => (
+                                            <div key={spot.id} className="bg-black/50 border border-white/10 rounded-2xl p-5 relative group flex flex-col h-full hover:border-[#bc13fe]/50 transition-colors">
+                                                <div className={`absolute top-0 left-0 w-1.5 h-full ${spot.status === 'approved' ? 'bg-[#00f3ff]' : 'bg-[#bc13fe]'} rounded-l-2xl`}></div>
+                                                
+                                                {spot.image_url && <img src={spot.image_url} className="w-full h-40 object-cover rounded-xl mb-4 border border-white/5" />}
+                                                
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="font-bold text-[#FFD700] text-lg leading-tight pr-2 line-clamp-1" title={spot.name}>{spot.name}</div>
+                                                </div>
 
-                                    <div className="text-sm text-gray-300 mb-2 bg-white/5 p-2 rounded-lg"><i className="fa-solid fa-location-dot text-[#00f3ff] mr-2"></i>【{spot.city}】{spot.address}</div>
-                                    <div className="text-sm font-bold text-[#00ff9d] mb-4"><i className="fa-solid fa-coins mr-2"></i>{spot.price || '免費'}</div>
-                                    
-                                    <div className="text-xs text-gray-400 mb-4 bg-black/40 p-3 rounded-lg border border-white/5 space-y-1">
-                                        <p>📍 <span className="text-gray-500">座標：</span> {spot.lat}, {spot.lng}</p>
-                                        <p>📝 <span className="text-gray-500">備註：</span> {spot.note || '無'}</p>
-                                        <p>👤 <span className="text-gray-500">上傳者：</span> <span className="text-[#bc13fe] font-bold">{spot.provider || '未知車友'}</span></p>
+                                                <div className="text-sm text-gray-300 mb-2 bg-white/5 p-2.5 rounded-lg line-clamp-2"><i className="fa-solid fa-location-dot text-[#00f3ff] mr-2"></i>【{spot.city}】{spot.address}</div>
+                                                <div className="text-sm font-bold text-[#00ff9d] mb-4"><i className="fa-solid fa-coins mr-2"></i>{spot.price || '免費'}</div>
+                                                
+                                                <div className="text-xs text-gray-400 mb-4 bg-black/40 p-3 rounded-lg border border-white/5 space-y-1.5 flex-1">
+                                                    <p className="flex justify-between"><span>📍 座標</span> <span className="text-gray-300 font-mono">{spot.lat}, {spot.lng}</span></p>
+                                                    <p className="flex justify-between"><span>📝 備註</span> <span className="text-gray-300 truncate max-w-[120px]" title={spot.note}>{spot.note || '無'}</span></p>
+                                                    <p className="flex justify-between"><span>👤 提供者</span> <span className="text-[#bc13fe] font-bold truncate max-w-[120px]">{spot.provider || '未知車友'}</span></p>
+                                                    <p className="flex justify-between pt-1 mt-1 border-t border-white/10"><span>🕒 時間</span> <span className="text-gray-500">{formatTime(spot.created_at)}</span></p>
+                                                </div>
+                                                
+                                                <div className="flex gap-2 mt-auto">
+                                                    {spot.status === 'pending' ? (
+                                                        <>
+                                                            <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2.5 rounded-xl font-bold hover:bg-[#00ff9d] hover:text-black transition-colors shadow-sm"><i className="fa-solid fa-check mr-1"></i> 核准上架</button>
+                                                            <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors shadow-sm"><i className="fa-solid fa-trash mr-1"></i> 拒絕</button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button onClick={() => setEditingSpot(spot)} className="flex-1 bg-blue-500/20 text-blue-400 py-2.5 rounded-xl font-bold hover:bg-blue-500 hover:text-white transition-colors shadow-sm"><i className="fa-solid fa-pen mr-1"></i> 編輯</button>
+                                                            <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors shadow-sm"><i className="fa-solid fa-trash-can mr-1"></i> 下架</button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    
-                                    <div className="flex gap-2 mt-4">
-                                        {spot.status === 'pending' ? (
-                                            <>
-                                                <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2.5 rounded-xl font-bold hover:bg-[#00ff9d] hover:text-black transition-colors"><i className="fa-solid fa-check mr-1"></i> 核准上架</button>
-                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash mr-1"></i> 拒絕刪除</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button onClick={() => setEditingSpot(spot)} className="flex-1 bg-blue-500/20 text-blue-400 py-2.5 rounded-xl font-bold hover:bg-blue-500 hover:text-white transition-colors"><i className="fa-solid fa-pen mr-1"></i> 編輯修改</button>
-                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash-can mr-1"></i> 下架刪除</button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    }
+                                )
+                            )}
+                        </>
+                    )}
 
+                    {/* 編輯用 Modal */}
                     {editingSpot && (
                         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                             <div className="bg-[#0f172a] rounded-3xl border border-[#00f3ff]/30 p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95">
@@ -806,8 +987,8 @@
                                     <div><label className="text-xs text-gray-400">備註</label><textarea value={editingSpot.note} onChange={e=>setEditingSpot({...editingSpot, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe] h-20 resize-none"></textarea></div>
                                 </div>
                                 <div className="flex gap-3 mt-6">
-                                    <button onClick={()=>setEditingSpot(null)} className="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-800">取消</button>
-                                    <button onClick={saveEdit} className="flex-1 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white py-3 rounded-xl font-bold">儲存修改</button>
+                                    <button onClick={()=>setEditingSpot(null)} className="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors">取消</button>
+                                    <button onClick={saveEdit} className="flex-1 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white py-3 rounded-xl font-bold active:scale-95 transition-transform">儲存修改</button>
                                 </div>
                             </div>
                         </div>
