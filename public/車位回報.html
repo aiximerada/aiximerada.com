@@ -2,13 +2,18 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <!-- 🔥 完美支援 PWA 與 iOS 瀏海 (viewport-fit=cover) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="星際雷達">
+    <meta name="apple-mobile-web-app-title" content="重機停車">
     <meta name="theme-color" content="#090A0F">
     
-    <title>星際車位雷達 - 玉露寶庫</title>
+    <title>重機停車</title>
+    
+    <!-- 🔥 APP 預設藍色星星圖示 (Base64 SVG) -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpath d='M50 15 L61 38 L85 41 L67 58 L72 82 L50 70 L28 82 L33 58 L15 41 L39 38 Z' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpath d='M50 15 L61 38 L85 41 L67 58 L72 82 L50 70 L28 82 L33 58 L15 41 L39 38 Z' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -22,7 +27,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* 強制滿版，徹底消滅容器塌陷導致的黑屏 */
+        /* 強制滿版，徹底消滅容器塌陷，支援手機原生滑動手勢 */
         html, body { 
             width: 100vw; height: 100vh; margin: 0; padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -45,10 +50,8 @@
         .leaflet-container { font-family: inherit; background: #090A0F; outline: none; }
         .leaflet-control-attribution { display: none !important; }
         
-        /* 🔥 地圖暗黑濾鏡：將 Google Maps 轉為超高質感的星際深色 */
-        .dark-map-tiles {
-            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
+        /* 地圖暗黑濾鏡：將 Google Maps 轉為超高質感的星際深色 */
+        .dark-map-tiles { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
         
         /* 客製化彈窗 (Popup) */
         .leaflet-popup-content-wrapper {
@@ -64,6 +67,13 @@
         
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .bottom-sheet { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* 🔥 iOS 瀏海與底部安全區域防護 (Safe Area Insets) */
+        .safe-top-search { top: calc(1rem + env(safe-area-inset-top, 0px)); }
+        .safe-top-admin { top: calc(4.5rem + env(safe-area-inset-top, 0px)); }
+        .safe-bottom-fab { bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); }
+        .safe-bottom-locate { bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)); }
+        .safe-padding-bottom { padding-bottom: env(safe-area-inset-bottom, 20px); }
     </style>
 </head>
 <body>
@@ -75,7 +85,7 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
@@ -125,9 +135,6 @@
                             await signInAnonymously(auth); 
                         } catch (e) { 
                             console.error("匿名登入失敗", e); 
-                            if (e.code === 'auth/admin-restricted-operation') {
-                                alert("【系統提示】您的 Firebase 專案尚未開啟「匿名登入」功能！");
-                            }
                         }
                     }
                 });
@@ -139,12 +146,12 @@
                     {view === 'map' ? (
                         <MapScreen db={db} storage={storage} user={user} role={role} onSwitchToAdmin={() => setView('admin')} />
                     ) : (
-                        <div className="w-full h-full overflow-y-auto pt-6 px-4 pb-12 bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
-                            <div className="max-w-md mx-auto relative">
-                                <button onClick={() => setView('map')} className="absolute -top-2 left-0 text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5">
+                        <div className="w-full h-full overflow-y-auto pt-6 px-4 pb-12 safe-padding-bottom bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
+                            <div className="max-w-md mx-auto relative pt-10">
+                                <button onClick={() => setView('map')} className="absolute top-0 left-0 text-gray-400 hover:text-white px-3 py-2 rounded-lg bg-white/5 border border-white/10">
                                     <i className="fa-solid fa-chevron-left"></i> 返回地圖
                                 </button>
-                                <div className="mt-12">
+                                <div className="mt-8">
                                     <AdminPanel db={db} auth={auth} user={user} role={role} />
                                 </div>
                             </div>
@@ -163,6 +170,9 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [isReportOpen, setIsReportOpen] = useState(false);
+            
+            // 儲存從地圖中心擷取的座標
+            const [reportLocation, setReportLocation] = useState(null);
 
             useEffect(() => {
                 const fetchApprovedSpots = async () => {
@@ -175,14 +185,13 @@
                 fetchApprovedSpots();
             }, []);
 
-            // 🚀 地圖初始化 (使用 Google Maps 引擎，穩定不黑屏)
+            // 🚀 地圖初始化 (Google Maps 引擎)
             useEffect(() => {
                 if (!mapRef.current) return;
                 if (mapInstanceRef.current) return; 
 
                 const map = L.map(mapRef.current, { zoomControl: false }).setView([23.6978, 120.9605], 8);
                 
-                // 🔥 穩定版 Google Maps 圖磚 + CSS 濾鏡
                 L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
                     maxZoom: 20,
                     className: 'dark-map-tiles'
@@ -191,7 +200,6 @@
                 mapInstanceRef.current = map;
                 markerGroupRef.current = L.layerGroup().addTo(map);
 
-                // 🔥 連續強制觸發重新計算尺寸，徹底避免高度塌陷
                 setTimeout(() => map.invalidateSize(), 100);
                 setTimeout(() => map.invalidateSize(), 500);
                 setTimeout(() => map.invalidateSize(), 1000);
@@ -204,6 +212,7 @@
                 };
             }, []);
 
+            // 畫圖釘
             useEffect(() => {
                 if (!mapInstanceRef.current || !markerGroupRef.current) return;
 
@@ -242,6 +251,7 @@
                 });
             }, [locations]);
 
+            // 搜尋地標
             const handleSearch = async (e) => {
                 e.preventDefault();
                 if (!searchQuery.trim()) return;
@@ -262,12 +272,13 @@
                 document.activeElement.blur(); 
             };
 
+            // 定位目前位置
             const locateMe = () => {
                 if (!navigator.geolocation) return alert('不支援定位功能');
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         const { latitude, longitude } = pos.coords;
-                        mapInstanceRef.current.flyTo([latitude, longitude], 15, { duration: 1.5 });
+                        mapInstanceRef.current.flyTo([latitude, longitude], 16, { duration: 1.5 });
                         
                         L.circleMarker([latitude, longitude], {
                             icon: L.divIcon({
@@ -282,6 +293,15 @@
                 );
             };
 
+            // 開啟回報視窗 (自動擷取地圖中心點)
+            const handleOpenReport = () => {
+                if (mapInstanceRef.current) {
+                    const center = mapInstanceRef.current.getCenter();
+                    setReportLocation({ lat: center.lat, lng: center.lng });
+                }
+                setIsReportOpen(true);
+            };
+
             return (
                 <div className="w-full h-full relative overflow-hidden flex-1">
                     {/* 地圖容器 */}
@@ -290,8 +310,8 @@
                     {/* --- 浮動 UI 層 --- */}
                     <div className="absolute inset-0 z-[50] pointer-events-none">
                         
-                        {/* 頂部搜尋列 */}
-                        <div className="absolute top-4 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] pointer-events-auto">
+                        {/* 頂部搜尋列 (適配瀏海 Safe Area) */}
+                        <div className="absolute left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] pointer-events-auto safe-top-search">
                             <form onSubmit={handleSearch} className="flex items-center glass-panel rounded-full overflow-hidden shadow-lg p-1">
                                 <a href="index.html" className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
                                     <i className="fa-solid fa-house"></i>
@@ -309,29 +329,37 @@
                             </form>
                         </div>
 
-                        {/* 右上角：管理員入口 */}
+                        {/* 右上角：管理員入口 (適配瀏海 Safe Area) */}
                         {role !== 'guest' && (
                             <button 
                                 onClick={onSwitchToAdmin}
-                                className="absolute top-20 right-4 w-12 h-12 glass-panel rounded-full text-[#bc13fe] flex items-center justify-center shadow-lg pointer-events-auto hover:bg-[#bc13fe]/20"
+                                className="absolute right-4 w-12 h-12 glass-panel rounded-full text-[#bc13fe] flex items-center justify-center shadow-lg pointer-events-auto hover:bg-[#bc13fe]/20 safe-top-admin"
                                 title="管理中心"
                             >
                                 <i className="fa-solid fa-user-shield text-xl"></i>
                             </button>
                         )}
 
+                        {/* 🔥 畫面正中央：拖曳定位準心 */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[40] pointer-events-none flex flex-col items-center">
+                            <div className="bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(188,19,254,0.6)] mb-1 whitespace-nowrap border border-white/20">
+                                拖曳地圖以定出車位
+                            </div>
+                            <i className="fa-solid fa-location-dot text-4xl text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
+                        </div>
+
                         {/* 右下角：定位按鈕 */}
                         <button 
                             onClick={locateMe}
-                            className="absolute bottom-28 right-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white/20 transition-colors"
+                            className="absolute right-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white/20 transition-colors safe-bottom-locate"
                         >
                             <i className="fa-solid fa-crosshairs text-xl"></i>
                         </button>
 
                         {/* 右下角：超巨大回報 FAB */}
                         <button 
-                            onClick={() => setIsReportOpen(true)}
-                            className="absolute bottom-8 right-5 w-16 h-16 bg-gradient-to-tr from-[#00f3ff] to-[#bc13fe] text-white rounded-full flex items-center justify-center shadow-[0_5px_25px_rgba(0,243,255,0.5)] pointer-events-auto hover:scale-105 active:scale-95 transition-all z-[60]"
+                            onClick={handleOpenReport}
+                            className="absolute right-5 w-16 h-16 bg-gradient-to-tr from-[#00f3ff] to-[#bc13fe] text-white rounded-full flex items-center justify-center shadow-[0_5px_25px_rgba(0,243,255,0.5)] pointer-events-auto hover:scale-105 active:scale-95 transition-all z-[60] safe-bottom-fab"
                         >
                             <i className="fa-solid fa-plus text-3xl"></i>
                         </button>
@@ -342,15 +370,19 @@
                         <div className="absolute inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
                             <div className="absolute inset-0" onClick={() => setIsReportOpen(false)}></div>
                             
-                            <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#00f3ff]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden">
+                            <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#00f3ff]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden safe-padding-bottom">
                                 <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto my-3 sm:hidden"></div>
                                 
-                                <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
+                                <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10">
                                     <i className="fa-solid fa-xmark text-white"></i>
                                 </button>
 
-                                <div className="p-6">
-                                    <ReportForm db={db} storage={storage} user={user} onClose={() => setIsReportOpen(false)} />
+                                <div className="p-6 pt-2">
+                                    <ReportForm 
+                                        db={db} storage={storage} user={user} 
+                                        onClose={() => setIsReportOpen(false)} 
+                                        initialLocation={reportLocation}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -359,8 +391,8 @@
             );
         }
 
-        // === 4. 車位回報表單 ===
-        function ReportForm({ db, storage, user, onClose }) {
+        // === 4. 車位回報表單 (支援直接輸入座標 & 拖曳定位解析) ===
+        function ReportForm({ db, storage, user, onClose, initialLocation }) {
             const [formData, setFormData] = useState({ 
                 name: '', city: '台北市', address: '', lat: '', lng: '', 
                 priceType: '免費', priceAmount: '', gmap: '', note: '', provider: '熱心車友' 
@@ -370,29 +402,44 @@
             const [loading, setLoading] = useState(false);
             const [msg, setMsg] = useState('');
 
+            // 初始化時讀取使用者名稱，以及進行反向地理編碼 (Reverse Geocoding)
             useEffect(() => {
                 if (user && !user.isAnonymous) {
                     getDoc(doc(db, "users", user.uid)).then(d => {
                         if (d.exists()) setFormData(prev => ({...prev, provider: d.data().displayName || d.data().lineName || '熱心車友'}));
                     }).catch(()=>{});
                 }
-                autoLocate();
-            }, [user]);
-
-            const autoLocate = () => {
-                setMsg('🛰️ 正在掃描座標...');
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            setFormData(prev => ({ ...prev, lat: pos.coords.latitude, lng: pos.coords.longitude }));
-                            setMsg('✅ 已鎖定座標');
-                            setTimeout(() => setMsg(''), 2000);
-                        },
-                        (err) => { setMsg('⚠️ 定位失敗，請手動輸入地址'); },
-                        { enableHighAccuracy: true, timeout: 5000 }
-                    );
+                
+                if (initialLocation) {
+                    setFormData(prev => ({...prev, lat: initialLocation.lat, lng: initialLocation.lng}));
+                    setMsg('🌍 正在自動解析此處地點資訊...');
+                    
+                    // 透過 OpenStreetMap 進行免費的反向解析
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${initialLocation.lat}&lon=${initialLocation.lng}&zoom=18&addressdetails=1`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data && data.address) {
+                            const addr = data.address;
+                            const city = addr.city || addr.county || addr.town || '台北市';
+                            const matchedCity = TAIWAN_CITIES.find(c => city.includes(c) || c.includes(city)) || '台北市';
+                            const road = addr.road || '';
+                            const suburb = addr.suburb || addr.village || '';
+                            const finalAddress = `${suburb}${road}` || data.display_name.split(',')[0];
+                            
+                            setFormData(prev => ({
+                                ...prev, 
+                                city: matchedCity, 
+                                address: finalAddress
+                            }));
+                            setMsg('✅ 地理資訊自動填入成功');
+                            setTimeout(() => setMsg(''), 2500);
+                        } else {
+                            setMsg('');
+                        }
+                    })
+                    .catch(() => setMsg(''));
                 }
-            };
+            }, [user, initialLocation]);
 
             const compressImage = (file) => {
                 return new Promise((resolve, reject) => {
@@ -430,7 +477,7 @@
                         price: price, image_url: url, status: "pending", created_at: serverTimestamp()
                     });
                     
-                    alert('✨ 回報成功！已送交總部審核。');
+                    alert('✨ 回報成功！已送交總部審核，感謝您的熱心貢獻！');
                     onClose(); 
                 } catch (error) { setMsg('❌ 傳輸失敗：' + error.message); }
                 setLoading(false);
@@ -438,7 +485,7 @@
 
             return (
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <h2 className="text-2xl font-bold mb-4 text-center text-[#00f3ff]"><i className="fa-solid fa-satellite-dish"></i> 情報回報</h2>
+                    <h2 className="text-2xl font-bold mb-4 text-center text-[#00f3ff]"><i className="fa-solid fa-satellite-dish"></i> 停車情報回報</h2>
                     
                     <div className="grid grid-cols-2 gap-3">
                         <div className="col-span-2">
@@ -459,9 +506,15 @@
                         </div>
                     </div>
 
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-3 flex justify-between items-center">
-                        <div className="text-xs text-gray-400">Lat: <span className="text-[#FFD700]">{formData.lat || '-'}</span> | Lng: <span className="text-[#FFD700]">{formData.lng || '-'}</span></div>
-                        <button type="button" onClick={autoLocate} className="px-3 py-1 bg-white/10 text-[#00f3ff] rounded-lg text-xs"><i className="fa-solid fa-arrows-rotate"></i></button>
+                    {/* 🔥 開放手動修改與直接輸入座標 */}
+                    <div className="bg-black/30 border border-white/10 rounded-xl p-3">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="text-xs text-[#00f3ff] font-bold"><i className="fa-solid fa-location-crosshairs"></i> 據點座標 (可直接修改)</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" placeholder="緯度 Lat" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} className="w-full bg-black/50 border border-gray-600 rounded-md px-2 py-1 text-sm text-[#FFD700] outline-none focus:border-[#bc13fe]" />
+                            <input type="number" step="any" placeholder="經度 Lng" value={formData.lng} onChange={e => setFormData({...formData, lng: e.target.value})} className="w-full bg-black/50 border border-gray-600 rounded-md px-2 py-1 text-sm text-[#FFD700] outline-none focus:border-[#bc13fe]" />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -489,12 +542,12 @@
 
                     <div>
                         <label className="text-xs text-[#00f3ff]">備註事項</label>
-                        <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮？" />
+                        <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮、是否陡坡？" />
                     </div>
 
-                    {msg && <div className="text-[#00ff9d] text-center text-xs animate-pulse">{msg}</div>}
+                    {msg && <div className="text-[#00ff9d] text-center text-xs animate-pulse font-bold">{msg}</div>}
                     
-                    <button disabled={loading} type="submit" className="w-full py-3 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold rounded-xl mt-2">
+                    <button disabled={loading} type="submit" className="w-full py-3 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold rounded-xl mt-2 active:scale-95 transition-transform">
                         {loading ? '上傳中...' : '提交審核'}
                     </button>
                 </form>
