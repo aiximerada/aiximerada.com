@@ -90,25 +90,26 @@
         .portal-card i { font-size: 4rem; color: var(--suisei-cyan); margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(59,198,228,0.5)); }
         .portal-card:hover i { transform: scale(1.1) rotate(10deg); color: #fff; }
         
-        .portal-title { font-size: 2rem; font-weight: bold; letter-spacing: 5px; } /* 增加字距 */
+        .portal-title { font-size: 2rem; font-weight: bold; letter-spacing: 5px; }
 
-        /* 商城卡片特別樣式 */
-        .shop-portal { 
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(224, 247, 250, 0.9) 100%); 
+        /* 車位回報卡片特別樣式 */
+        .parking-portal { 
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(254, 243, 199, 0.9) 100%); 
             color: #0b1021; min-height: 220px; flex-direction: row; justify-content: space-between; padding: 0 80px; 
         }
-        .shop-portal:hover { transform: translateY(-8px); box-shadow: 0 0 60px rgba(255, 255, 255, 0.5); border-color: #fff; background: #fff; }
-        .shop-portal i { color: #0b1021; font-size: 5rem; order: 2; filter: none; }
-        .shop-portal:hover i { color: var(--suisei-cyan); transform: scale(1.1) rotate(-10deg); }
-        .shop-info { order: 1; text-align: left; }
-        .shop-info h2 { font-size: 2.8rem; margin: 0; font-weight: 900; letter-spacing: 5px; } /* 增加字距 */
+        .parking-portal:hover { transform: translateY(-8px); box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); border-color: #fff; background: #fff; }
+        .parking-portal i { color: #0b1021; font-size: 5rem; order: 2; filter: none; }
+        .parking-portal:hover i { color: #f59e0b; transform: scale(1.1) rotate(-10deg); }
+        .parking-info { order: 1; text-align: left; }
+        .parking-info h2 { font-size: 2.8rem; margin: 0; font-weight: 900; letter-spacing: 5px; } 
+        .parking-info p { font-size: 1.1rem; margin: 10px 0 0 0; color: #4b5563; font-weight: bold; letter-spacing: 2px; }
 
         @media (max-width: 768px) {
             .portal-split { flex-direction: column; min-height: auto; }
             .portal-card { min-height: 200px; }
-            .shop-portal { padding: 30px; flex-direction: column-reverse; text-align: center; }
-            .shop-portal i { margin-bottom: 20px; order: 1; }
-            .shop-info { order: 2; text-align: center; }
+            .parking-portal { padding: 30px; flex-direction: column-reverse; text-align: center; }
+            .parking-portal i { margin-bottom: 20px; order: 1; }
+            .parking-info { order: 2; text-align: center; }
         }
 
         /* 浮動按鈕 */
@@ -155,11 +156,13 @@
             </a>
         </div>
         
-        <a href="shop.html" class="portal-card shop-portal" data-aos="fade-up">
-            <div class="shop-info">
-                <h2>商城</h2>
+        <!-- 🔥 替換成車位回報系統 -->
+        <a href="車位回報.html" class="portal-card parking-portal" data-aos="fade-up">
+            <div class="parking-info">
+                <h2>車位回報</h2>
+                <p>重機友善停車情報網</p>
             </div>
-            <i class="fa-solid fa-store"></i>
+            <i class="fa-solid fa-motorcycle"></i>
         </a>
     </main>
 

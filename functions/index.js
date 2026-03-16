@@ -35,6 +35,78 @@ async function getUserProfile(userId) {
 }
 
 // =====================================================================
+// 📍 輔助函數：計算兩個經緯度之間的距離 (Haversine 公式，單位：公里)
+// =====================================================================
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+}
+
+// =====================================================================
+// 🗺️ 輔助函數：產生車位推薦的 LINE Flex Message (滑動卡片)
+// =====================================================================
+function generateParkingFlexMessage(spots, altText) {
+    const bubbles = spots.map(spot => {
+        const distanceText = spot.distance ? `${spot.distance.toFixed(1)} km` : spot.city;
+        // 若沒附照片，給一張預設的重機/停車場意象圖
+        const fallbackImage = "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=800&auto=format&fit=crop";
+
+        return {
+            "type": "bubble",
+            "hero": {
+                "type": "image",
+                "url": spot.image_url || fallbackImage,
+                "size": "full",
+                "aspectRatio": "20:13",
+                "aspectMode": "cover"
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    { "type": "text", "text": spot.name || "未命名車位", "weight": "bold", "size": "xl", "wrap": true },
+                    { "type": "text", "text": `📍 ${spot.address}`, "size": "sm", "color": "#888888", "wrap": true, "margin": "md" },
+                    { "type": "text", "text": `💰 ${spot.price || '未提供'}`, "size": "sm", "color": "#06C755", "weight": "bold", "margin": "sm" },
+                    { "type": "text", "text": `🛵 距離/區域：${distanceText}`, "size": "xs", "color": "#f59e0b", "margin": "sm" },
+                    { "type": "text", "text": `📝 ${spot.note || '無備註'}`, "size": "xs", "color": "#aaaaaa", "wrap": true, "margin": "sm" }
+                ]
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "color": "#0f172a",
+                        "action": {
+                            "type": "uri",
+                            "label": "📍 導航前往",
+                            "uri": spot.gmap || `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`
+                        }
+                    }
+                ]
+            }
+        };
+    });
+
+    return {
+        "type": "flex",
+        "altText": altText,
+        "contents": {
+            "type": "carousel",
+            "contents": bubbles
+        }
+    };
+}
+
+// =====================================================================
 // 🌤️ 輔助函數：抓取氣象署即時天氣資訊與降雨機率判斷
 // =====================================================================
 async function getWeather(city) {
@@ -119,6 +191,52 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
     if (!events || events.length === 0) return res.status(200).send("OK");
 
     for (const event of events) {
+        // ---------------------------------------------------------
+        // 【處理：傳送位置資訊 Location Message】尋找附近車位
+        // ---------------------------------------------------------
+        if (event.type === "message" && event.message.type === "location") {
+            const userLat = event.message.latitude;
+            const userLng = event.message.longitude;
+            const replyToken = event.replyToken;
+
+            try {
+                // 撈出所有已經被管理員「核准(approved)」的車位
+                const snapshot = await db.collection('parking_locations').where('status', '==', 'approved').get();
+                let nearbySpots = [];
+
+                snapshot.forEach(doc => {
+                    const spot = doc.data();
+                    if (spot.lat && spot.lng) {
+                        const distance = calculateDistance(userLat, userLng, spot.lat, spot.lng);
+                        // 過濾出半徑 15 公里內的車位
+                        if (distance <= 15) {
+                            nearbySpots.push({ ...spot, distance: distance });
+                        }
+                    }
+                });
+
+                if (nearbySpots.length === 0) {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "😭 您的附近 15 公里內，目前尚未有熱心車友回報的重機車位情報。\n\n歡迎前往「車位回報系統」貢獻您的私房車位！" }]);
+                    continue;
+                }
+
+                // 依照距離由近到遠排序，並取前 5 名
+                nearbySpots.sort((a, b) => a.distance - b.distance);
+                const topSpots = nearbySpots.slice(0, 5);
+
+                const flexMessage = generateParkingFlexMessage(topSpots, "為您找到附近的重機車位");
+                await replyLineMessage(replyToken, [flexMessage]);
+
+            } catch (err) {
+                console.error("位置搜尋車位失敗:", err);
+                await replyLineMessage(replyToken, [{ type: "text", text: "系統資料庫讀取失敗，請稍後再試。" }]);
+            }
+            continue;
+        }
+
+        // ---------------------------------------------------------
+        // 【處理：一般文字訊息 Text Message】
+        // ---------------------------------------------------------
         if (event.type === "message" && event.message.type === "text") {
             const userId = event.source.userId;
             const text = event.message.text.trim();
@@ -129,12 +247,44 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             let userData = userDoc.exists ? userDoc.data() : { state: "IDLE" };
             let state = userData.state || "IDLE";
 
-            // ---------------------------------------------------------
             // 【最高優先級指令】
-            // ---------------------------------------------------------
             if (text === "取消") {
                 await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
                 await replyLineMessage(replyToken, [{ type: "text", text: "👌 系統已終止目前的操作程序。" }]);
+                continue;
+            }
+
+            // 🌟 關鍵字：找特定縣市的重機車位
+            if (text.endsWith("車位")) {
+                let city = text.replace("車位", "").trim();
+                
+                if (city === "") {
+                    await replyLineMessage(replyToken, [{ type: "text", text: "🏍️ 尋找車位指令錯誤！\n\n1️⃣ 搜尋特定縣市：請輸入「縣市+車位」（例如：台北市車位、台中車位）\n\n2️⃣ 搜尋附近車位：請直接點擊左下角「+」，傳送您的「位置資訊」給我！" }]);
+                } else {
+                    try {
+                        // 修正容錯：如果使用者只打「台北」，自動補上「市」去尋找
+                        const searchCity = (city.includes("市") || city.includes("縣")) ? city : city + "市";
+
+                        const snapshot = await db.collection('parking_locations')
+                            .where('status', '==', 'approved')
+                            // 簡易的模糊搜尋 (前綴搜尋)
+                            .where('city', '>=', searchCity)
+                            .where('city', '<=', searchCity + '\uf8ff')
+                            .limit(5)
+                            .get();
+
+                        if (snapshot.empty) {
+                            await replyLineMessage(replyToken, [{ type: "text", text: `😭 目前系統中尚未有【${searchCity}】的重機車位情報。\n\n歡迎前往「玉露寶庫車位回報系統」貢獻您的私房車位！` }]);
+                        } else {
+                            let spots = [];
+                            snapshot.forEach(doc => spots.push(doc.data()));
+                            const flexMessage = generateParkingFlexMessage(spots, `為您找到【${searchCity}】的推薦車位`);
+                            await replyLineMessage(replyToken, [flexMessage]);
+                        }
+                    } catch (err) {
+                        console.error("縣市搜尋車位失敗:", err);
+                    }
+                }
                 continue;
             }
 
