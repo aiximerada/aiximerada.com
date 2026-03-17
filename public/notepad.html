@@ -26,17 +26,17 @@
         ::-webkit-scrollbar { display: none; }
         
         .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
         
         .cyber-input {
-            width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.5); border: 1px solid #475569;
-            color: #fff; border-radius: 12px; box-sizing: border-box; transition: 0.3s;
+            width: 100%; padding: 14px 18px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; border-radius: 16px; box-sizing: border-box; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .cyber-input:focus { border-color: #00f3ff; outline: none; box-shadow: 0 0 15px rgba(0,243,255,0.2); background: rgba(0,0,0,0.7); }
+        .cyber-input:focus { border-color: #00f3ff; outline: none; box-shadow: 0 0 20px rgba(0,243,255,0.15); background: rgba(0,0,0,0.7); }
         
         /* 背景星空 (開啟 GPU 加速) */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
@@ -44,26 +44,25 @@
         .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent); background-size: 300px 300px; }
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
 
-        /* 自訂核取方塊 */
+        /* 自訂核取方塊 (現代化設計) */
         .custom-checkbox {
-            appearance: none; background-color: rgba(0,0,0,0.5);
-            margin: 0; width: 28px; height: 28px; border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 8px; display: grid; place-content: center; cursor: pointer;
-            transition: 0.2s; flex-shrink: 0;
+            appearance: none; background-color: rgba(0,0,0,0.3);
+            margin: 0; width: 26px; height: 26px; border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%; display: grid; place-content: center; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0;
         }
         .custom-checkbox::before {
-            content: ""; width: 14px; height: 14px; transform: scale(0);
+            content: ""; width: 12px; height: 12px; transform: scale(0);
             transition: 120ms transform ease-in-out;
-            box-shadow: inset 1em 1em #00ff9d; background-color: #00ff9d;
+            box-shadow: inset 1em 1em #000; background-color: #000;
             transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
         }
-        .custom-checkbox:checked { border-color: #00ff9d; background: rgba(0,255,157,0.1); }
+        .custom-checkbox:hover { border-color: #00f3ff; }
+        .custom-checkbox:checked { border-color: #00ff9d; background: #00ff9d; box-shadow: 0 0 15px rgba(0,255,157,0.4); }
         .custom-checkbox:checked::before { transform: scale(1); }
 
-        .task-completed { opacity: 0.6; text-decoration: line-through; color: #94a3b8; transition: 0.3s; }
-        .task-card { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; border: 1px solid rgba(255,255,255,0.05); }
-        .task-card:hover { transform: translateY(-2px); border-color: rgba(0, 243, 255, 0.4); box-shadow: 0 5px 15px rgba(0,243,255,0.1); }
-
+        .task-completed { opacity: 0.5; text-decoration: line-through; color: #64748b; transition: 0.3s; }
+        
         /* 浮動提示 Toast 動畫 */
         .toast-enter { animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes toastIn { from { transform: translate(-50%, 100px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
@@ -78,7 +77,7 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, getDoc, query, where, orderBy, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, getDoc, query, where, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // 🔥 動態配置，支援本地 Sandbox 環境
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -112,9 +111,9 @@
             const [filter, setFilter] = useState('pending'); // pending, completed, all
             
             const [authError, setAuthError] = useState(false);
-            const [ruleError, setRuleError] = useState(false); // 🔥 新增：攔截權限不足錯誤
+            const [ruleError, setRuleError] = useState(false); 
             const [toast, setToast] = useState(null);
-            const [hasLine, setHasLine] = useState(false); // 🔥 新增：判斷是否有綁定 LINE
+            const [hasLine, setHasLine] = useState(false); 
             
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [editingId, setEditingId] = useState(null);
@@ -127,7 +126,7 @@
                 setTimeout(() => setToast(null), 3000);
             };
 
-            // 1. 初始化與讀取資料 (加入 Sandbox 驗證相容性)
+            // 1. 初始化與讀取資料
             useEffect(() => {
                 const initAuth = async () => {
                     try {
@@ -152,7 +151,7 @@
                             }
                         } catch (e) {}
 
-                        if (lineId) setHasLine(true); // 🔥 設定 LINE 綁定狀態
+                        if (lineId) setHasLine(true); 
                         else setHasLine(false);
 
                         const searchIds = [currentUser.uid];
@@ -201,7 +200,6 @@
 
                     setTodos(data);
                 } catch (e) {
-                    // 🔥 隱藏 console.error，避免 Sandbox 擷取錯誤後彈出遮罩擋住 UI
                     if (e.code === 'permission-denied' || (e.message && e.message.includes('permission'))) {
                         setRuleError(true);
                     } else {
@@ -302,7 +300,7 @@
                 return Math.round((completed / total) * 100);
             }, [todos]);
 
-            // === 🔥 UI：資料庫規則權限不足提示 ===
+            // === UI：資料庫規則權限不足提示 ===
             if (ruleError) {
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4 text-center z-10 relative">
@@ -344,107 +342,122 @@
 
             // === UI：載入中 ===
             if (loading && todos.length === 0) {
-                return <div className="min-h-screen flex flex-col items-center justify-center text-[#00f3ff]"><i className="fa-solid fa-circle-notch fa-spin text-5xl mb-4"></i><p className="font-bold tracking-widest">系統資料核對中...</p></div>;
+                return <div className="min-h-screen flex flex-col items-center justify-center text-[#00f3ff]"><i className="fa-solid fa-circle-notch fa-spin text-5xl mb-4"></i><p className="font-bold tracking-widest mt-3">連結資料庫中...</p></div>;
             }
 
             return (
-                <div className="w-full max-w-3xl mx-auto px-4 py-8 pb-20 relative z-10">
+                <div className="w-full max-w-4xl mx-auto px-4 py-8 pb-20 relative z-10">
                     
                     {/* Toast 提示元件 */}
                     {toast && (
-                        <div className={`fixed bottom-[100px] left-1/2 -translate-x-1/2 px-6 py-3 rounded-full font-bold flex items-center gap-2 z-[9999] shadow-lg toast-enter ${toast.isError ? 'bg-[#ff4757] text-white' : 'bg-[#00ff9d] text-black'}`}>
+                        <div className={`fixed bottom-[100px] left-1/2 -translate-x-1/2 px-6 py-3 rounded-full font-bold flex items-center gap-2 z-[9999] shadow-[0_10px_40px_rgba(0,0,0,0.5)] toast-enter backdrop-blur-md ${toast.isError ? 'bg-[#ff4757]/90 border border-[#ff4757] text-white' : 'bg-[#00ff9d]/90 border border-[#00ff9d] text-black'}`}>
                             <i className={`fa-solid ${toast.isError ? 'fa-circle-exclamation' : 'fa-circle-check'}`}></i> {toast.msg}
                         </div>
                     )}
 
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-8">
-                        <a href="vip_area.html" className="text-[#00f3ff] hover:text-white transition-colors font-bold flex items-center gap-2">
-                            <i className="fa-solid fa-chevron-left"></i> 返回星員區
+                    <div className="flex justify-between items-center mb-10">
+                        <a href="vip_area.html" className="text-[#00f3ff] hover:text-white transition-colors font-bold flex items-center gap-2 group">
+                            <i className="fa-solid fa-chevron-left group-hover:-translate-x-1 transition-transform"></i> 返回星員區
                         </a>
-                        <button onClick={openAddModal} className="bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] px-5 py-2.5 rounded-full text-sm font-bold text-white shadow-[0_0_15px_rgba(0,243,255,0.4)] hover:scale-105 transition-transform">
+                        <button onClick={openAddModal} className="bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] px-5 py-2.5 rounded-full text-sm font-bold text-white shadow-[0_0_20px_rgba(0,243,255,0.4)] hover:shadow-[0_0_30px_rgba(0,243,255,0.6)] hover:-translate-y-0.5 transition-all">
                             <i className="fa-solid fa-plus"></i> 新增記事
                         </button>
                     </div>
 
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">
+                    <div className="text-center mb-10">
+                        <h1 className="text-4xl md:text-5xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-r from-white to-[#00f3ff] drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
                             記事本
                         </h1>
-                        <p className="text-gray-400 text-sm">Task & Notepad System</p>
+                        <p className="text-gray-400 tracking-widest text-sm uppercase">Task & Notepad System</p>
                     </div>
 
-                    {/* 進度條 */}
-                    <div className="glass-panel p-6 rounded-3xl mb-8">
-                        <div className="flex justify-between items-end mb-3">
+                    {/* 🔥 優化：霓虹進度條 */}
+                    <div className="glass-panel p-6 md:p-8 rounded-3xl mb-8">
+                        <div className="flex justify-between items-end mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-white">任務達成率</h3>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2"><i className="fa-solid fa-chart-line text-[#00f3ff]"></i> 任務達成率</h3>
                                 <p className="text-xs text-gray-400 mt-1">完成的任務將在 30 天後自動銷毀</p>
                             </div>
-                            <span className="text-3xl font-black text-[#00ff9d]">{progress}%</span>
+                            <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-t from-[#00ff9d] to-[#00f3ff] drop-shadow-[0_0_10px_rgba(0,255,157,0.4)]">{progress}%</span>
                         </div>
-                        <div className="w-full h-3 bg-black/50 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-[#00f3ff] to-[#00ff9d] transition-all duration-500" style={{width: `${progress}%`}}></div>
+                        <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/5 relative">
+                            <div className="h-full bg-gradient-to-r from-[#00f3ff] via-[#bc13fe] to-[#00ff9d] transition-all duration-1000 ease-out relative" style={{width: `${progress}%`}}>
+                                <div className="absolute right-0 top-0 bottom-0 w-4 bg-white blur-[2px] opacity-50"></div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 篩選器 */}
-                    <div className="flex gap-2 mb-6 bg-black/40 p-1.5 rounded-2xl border border-white/10 w-fit mx-auto">
-                        <button onClick={() => setFilter('pending')} className={`px-6 py-2 rounded-xl text-sm font-bold transition-colors ${filter==='pending' ? 'bg-[#00f3ff] text-black shadow-md' : 'text-gray-400 hover:text-white'}`}>待辦事項</button>
-                        <button onClick={() => setFilter('completed')} className={`px-6 py-2 rounded-xl text-sm font-bold transition-colors ${filter==='completed' ? 'bg-gray-700 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>已完成</button>
-                        <button onClick={() => setFilter('all')} className={`px-6 py-2 rounded-xl text-sm font-bold transition-colors ${filter==='all' ? 'bg-white/20 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}>全部顯示</button>
+                    {/* 🔥 優化：膠囊狀分類標籤 (Segmented Control) */}
+                    <div className="flex p-1.5 bg-[#0f172a]/80 backdrop-blur-xl rounded-2xl border border-white/10 w-full max-w-md mx-auto mb-8 shadow-inner relative z-10">
+                        <button onClick={() => setFilter('pending')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${filter==='pending' ? 'bg-gradient-to-r from-[#00f3ff] to-[#3bc6e4] text-black shadow-[0_0_15px_rgba(0,243,255,0.4)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>待辦事項</button>
+                        <button onClick={() => setFilter('completed')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${filter==='completed' ? 'bg-gray-700 text-white shadow-md border border-gray-600' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>已完成</button>
+                        <button onClick={() => setFilter('all')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${filter==='all' ? 'bg-white/20 text-white shadow-md border border-white/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>全部顯示</button>
                     </div>
 
                     {/* 任務列表 */}
                     <div className="space-y-4">
                         {filteredTodos.length === 0 ? (
-                            <div className="text-center py-16 text-gray-500 flex flex-col items-center">
-                                <i className="fa-solid fa-clipboard-check text-5xl mb-4 opacity-50"></i>
-                                <p>這個區域目前空空如也</p>
+                            // 🔥 優化：沉浸式空狀態 (Empty State)
+                            <div className="text-center py-20 px-4 glass-panel rounded-3xl border border-dashed border-white/20 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+                                <div className="w-24 h-24 bg-gradient-to-tr from-[#00f3ff]/20 to-[#bc13fe]/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,243,255,0.1)]">
+                                    <i className="fa-solid fa-clipboard-list text-5xl text-transparent bg-clip-text bg-gradient-to-b from-white to-[#00f3ff] opacity-80"></i>
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-2 tracking-wide">宇宙中沒有待辦事項</h3>
+                                <p className="text-gray-400 mb-8 max-w-sm text-sm leading-relaxed">這個區域目前空空如也。點擊下方按鈕，開始建立您的第一個星際任務吧！</p>
+                                <button onClick={openAddModal} className="bg-[#00f3ff]/10 text-[#00f3ff] border border-[#00f3ff]/50 px-8 py-3 rounded-full font-bold hover:bg-[#00f3ff] hover:text-black transition-all shadow-[0_0_15px_rgba(0,243,255,0.2)]">
+                                    <i className="fa-solid fa-plus mr-2"></i> 建立新任務
+                                </button>
                             </div>
                         ) : (
                             filteredTodos.map(task => {
                                 const daysLeft = getDaysLeft(task.deadline);
                                 const isCompleted = task.status === 'completed';
                                 
-                                // 優先級顏色
-                                let prioColor = 'text-green-400 border-green-400/30 bg-green-400/10';
-                                if(task.priority === 'high') prioColor = 'text-red-400 border-red-400/30 bg-red-400/10';
-                                else if(task.priority === 'medium') prioColor = 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10';
+                                // 優先級顏色光條
+                                let prioColor = 'bg-[#00ff9d]';
+                                let prioBadge = 'text-[#00ff9d] border-[#00ff9d]/30 bg-[#00ff9d]/10';
+                                if(task.priority === 'high') { prioColor = 'bg-[#ff4757]'; prioBadge = 'text-[#ff4757] border-[#ff4757]/30 bg-[#ff4757]/10'; }
+                                else if(task.priority === 'medium') { prioColor = 'bg-[#FFD700]'; prioBadge = 'text-[#FFD700] border-[#FFD700]/30 bg-[#FFD700]/10'; }
 
                                 // 倒數標籤
                                 let deadlineTag = null;
                                 if (!isCompleted && task.deadline) {
-                                    if (daysLeft < 0) deadlineTag = <span className="text-xs font-bold text-[#ff4757] bg-[#ff4757]/10 px-2 py-1 rounded-md"><i className="fa-solid fa-fire"></i> 已逾期</span>;
-                                    else if (daysLeft === 0) deadlineTag = <span className="text-xs font-bold text-[#FFD700] bg-[#FFD700]/10 px-2 py-1 rounded-md"><i className="fa-solid fa-clock"></i> 今天到期</span>;
-                                    else if (daysLeft === 1) deadlineTag = <span className="text-xs font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded-md">明天到期</span>;
-                                    else deadlineTag = <span className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-md">剩 {daysLeft} 天</span>;
+                                    if (daysLeft < 0) deadlineTag = <span className="text-xs font-bold text-[#ff4757] bg-[#ff4757]/10 border border-[#ff4757]/20 px-2.5 py-1 rounded-md flex items-center gap-1"><i className="fa-solid fa-fire"></i> 已逾期</span>;
+                                    else if (daysLeft === 0) deadlineTag = <span className="text-xs font-bold text-[#FFD700] bg-[#FFD700]/10 border border-[#FFD700]/20 px-2.5 py-1 rounded-md flex items-center gap-1"><i className="fa-solid fa-clock"></i> 今天到期</span>;
+                                    else if (daysLeft === 1) deadlineTag = <span className="text-xs font-bold text-orange-400 bg-orange-400/10 border border-orange-400/20 px-2.5 py-1 rounded-md">明天到期</span>;
+                                    else deadlineTag = <span className="text-xs text-gray-400 bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">剩 {daysLeft} 天</span>;
                                 }
 
                                 return (
-                                    <div key={task.id} className={`task-card bg-black/40 rounded-2xl p-4 md:p-5 flex items-start gap-4 ${isCompleted ? 'opacity-70' : ''}`}>
-                                        <div className="pt-1">
+                                    // 🔥 優化：立體感任務卡片
+                                    <div key={task.id} className={`relative bg-[#0f172a]/60 backdrop-blur-md rounded-2xl p-5 pl-6 flex items-start gap-4 border transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] group overflow-hidden ${isCompleted ? 'border-gray-800 opacity-60' : 'border-white/10 hover:border-[#00f3ff]/40'}`}>
+                                        
+                                        {/* 左側發光優先級指示條 */}
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${prioColor} shadow-[0_0_10px_${prioColor}] opacity-80`}></div>
+
+                                        <div className="pt-0.5">
                                             <input type="checkbox" className="custom-checkbox" checked={isCompleted} onChange={() => toggleComplete(task)} />
                                         </div>
                                         <div className={`flex-1 min-w-0 ${isCompleted ? 'task-completed' : ''}`}>
-                                            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                            <div className="flex flex-wrap items-center gap-2.5 mb-2">
                                                 <h3 className="text-lg font-bold text-white break-all">{task.title}</h3>
-                                                {task.priority && !isCompleted && <span className={`text-[10px] px-2 py-0.5 rounded-full border ${prioColor} font-bold uppercase`}>{task.priority}</span>}
-                                                {task.remind && !isCompleted && <span className="text-[#00f3ff] text-xs" title="已開啟提醒"><i className="fa-solid fa-bell"></i></span>}
+                                                {task.priority && !isCompleted && <span className={`text-[10px] px-2 py-0.5 rounded-full border ${prioBadge} font-bold uppercase tracking-wider`}>{task.priority}</span>}
+                                                {task.remind && !isCompleted && <span className="text-[#00f3ff] text-xs bg-[#00f3ff]/10 p-1 rounded-full w-6 h-6 flex items-center justify-center" title="已開啟 LINE 提醒"><i className="fa-solid fa-bell"></i></span>}
                                             </div>
                                             
-                                            {task.note && <p className="text-sm text-gray-400 mb-3 break-all whitespace-pre-wrap"><i className="fa-solid fa-align-left mr-1"></i> {task.note}</p>}
+                                            {task.note && <p className="text-sm text-gray-400 mb-4 break-all whitespace-pre-wrap leading-relaxed"><i className="fa-solid fa-align-left mr-1.5 opacity-50"></i>{task.note}</p>}
                                             
-                                            <div className="flex flex-wrap items-center justify-between gap-3 mt-2 pt-3 border-t border-white/5">
+                                            <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-4 border-t border-white/5">
                                                 <div className="flex items-center gap-3">
                                                     {task.deadline && (
-                                                        <span className="text-xs text-gray-500 font-mono"><i className="fa-regular fa-calendar mr-1"></i> {task.deadline}</span>
+                                                        <span className="text-xs text-gray-500 font-mono flex items-center gap-1.5"><i className="fa-regular fa-calendar"></i> {task.deadline}</span>
                                                     )}
                                                     {deadlineTag}
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => openEditModal(task)} className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors"><i className="fa-solid fa-pen text-xs"></i></button>
-                                                    <button onClick={() => deleteTask(task.id)} className="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><i className="fa-solid fa-trash text-xs"></i></button>
+                                                <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                                                    <button onClick={() => openEditModal(task)} className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors border border-blue-500/20 hover:border-transparent"><i className="fa-solid fa-pen text-sm"></i></button>
+                                                    <button onClick={() => deleteTask(task.id)} className="w-9 h-9 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors border border-red-500/20 hover:border-transparent"><i className="fa-solid fa-trash text-sm"></i></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -456,26 +469,29 @@
 
                     {/* 新增/編輯 Modal */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                            <div className="glass-panel rounded-3xl p-6 md:p-8 w-full max-w-md animate-in zoom-in-95 border border-[#00f3ff]/50 shadow-[0_0_40px_rgba(0,243,255,0.2)]">
-                                <h3 className="text-2xl font-bold text-[#00f3ff] mb-6 flex items-center gap-2">
-                                    <i className="fa-solid fa-clipboard-list"></i> {editingId ? '修改記事' : '新增記事'}
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-opacity">
+                            <div className="glass-panel rounded-3xl p-6 md:p-8 w-full max-w-md animate-in zoom-in-95 border border-[#00f3ff]/40 shadow-[0_0_50px_rgba(0,243,255,0.15)] relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe]"></div>
+                                
+                                <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-[#00f3ff]/20 flex items-center justify-center"><i className="fa-solid fa-rocket text-[#00f3ff] text-sm"></i></div>
+                                    {editingId ? '修改星際任務' : '建立新任務'}
                                 </h3>
                                 
-                                <form onSubmit={handleSubmit} className="space-y-4">
+                                <form onSubmit={handleSubmit} className="space-y-5">
                                     <div>
-                                        <label className="text-xs text-gray-400 font-bold mb-1 block">事項名稱 <span className="text-red-400">*</span></label>
+                                        <label className="text-xs text-gray-400 font-bold mb-1.5 block tracking-widest">任務名稱 <span className="text-red-400">*</span></label>
                                         <input type="text" required value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} className="cyber-input font-bold" placeholder="例如：機車保養" />
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-xs text-gray-400 font-bold mb-1 block">截止日期 (選填)</label>
-                                            <input type="date" value={formData.deadline} onChange={e=>setFormData({...formData, deadline: e.target.value})} className="cyber-input text-sm" />
+                                            <label className="text-xs text-gray-400 font-bold mb-1.5 block tracking-widest">截止日期 (選填)</label>
+                                            <input type="date" value={formData.deadline} onChange={e=>setFormData({...formData, deadline: e.target.value})} className="cyber-input text-sm text-gray-300" />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-gray-400 font-bold mb-1 block">優先級</label>
-                                            <select value={formData.priority} onChange={e=>setFormData({...formData, priority: e.target.value})} className="cyber-input text-sm appearance-none cursor-pointer">
+                                            <label className="text-xs text-gray-400 font-bold mb-1.5 block tracking-widest">優先級別</label>
+                                            <select value={formData.priority} onChange={e=>setFormData({...formData, priority: e.target.value})} className="cyber-input text-sm appearance-none cursor-pointer text-gray-300">
                                                 <option value="low">🟢 低 (Low)</option>
                                                 <option value="medium">🟡 中 (Medium)</option>
                                                 <option value="high">🔴 高 (High)</option>
@@ -484,27 +500,28 @@
                                     </div>
 
                                     <div>
-                                        <label className="text-xs text-gray-400 font-bold mb-1 block">備註 (選填)</label>
-                                        <textarea rows="3" value={formData.note} onChange={e=>setFormData({...formData, note: e.target.value})} className="cyber-input resize-none text-sm" placeholder="細節描述..."></textarea>
+                                        <label className="text-xs text-gray-400 font-bold mb-1.5 block tracking-widest">備註細節 (選填)</label>
+                                        <textarea rows="3" value={formData.note} onChange={e=>setFormData({...formData, note: e.target.value})} className="cyber-input resize-none text-sm text-gray-300" placeholder="補充描述..."></textarea>
                                     </div>
 
-                                    <div className={`bg-black/30 p-3 rounded-xl border border-white/10 flex items-center justify-between mt-2 ${!hasLine ? 'opacity-50 grayscale' : ''}`}>
+                                    <div className={`bg-black/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between mt-4 transition-all ${!hasLine ? 'opacity-50 grayscale' : 'hover:border-[#FFD700]/30'}`}>
                                         <div>
-                                            <div className="text-sm font-bold text-white"><i className="fa-solid fa-bell text-[#FFD700] mr-1"></i> LINE 提醒功能</div>
-                                            <div className="text-xs text-gray-500">
-                                                {hasLine ? '將於截止日前一天發送通知' : '尚未綁定 LINE，提醒功能無法使用'}
+                                            <div className="text-sm font-bold text-white mb-0.5"><i className="fa-solid fa-bell text-[#FFD700] mr-1.5"></i> LINE 推播提醒</div>
+                                            <div className="text-[11px] text-gray-500">
+                                                {hasLine ? '系統將於截止日前一天發送通知' : '尚未綁定 LINE，提醒功能無法使用'}
                                             </div>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" checked={hasLine && formData.remind} disabled={!hasLine} onChange={e=>setFormData({...formData, remind: e.target.checked})} />
-                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff9d]"></div>
+                                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00ff9d] peer-checked:shadow-[0_0_10px_rgba(0,255,157,0.5)]"></div>
                                         </label>
                                     </div>
                                     
                                     <div className="flex gap-3 mt-8 pt-4">
-                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-800 font-bold transition-colors">取消</button>
-                                        <button type="submit" disabled={loading} className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] transition-all active:scale-95 disabled:opacity-50">
-                                            {loading ? '儲存中...' : '儲存事項'}
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white font-bold transition-colors">取消</button>
+                                        <button type="submit" disabled={loading} className="flex-[2] py-3.5 rounded-xl bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold hover:shadow-[0_0_25px_rgba(0,243,255,0.4)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                                            {loading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-check"></i>}
+                                            {loading ? '儲存中...' : '儲存任務'}
                                         </button>
                                     </div>
                                 </form>
