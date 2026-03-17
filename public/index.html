@@ -2,24 +2,35 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 🔥 移除原先的 no-cache 設定，允許瀏覽器快取以達「秒開」效果 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="玉露寶庫">
     <meta name="theme-color" content="#090A0F">
     
-    <!-- 🔥 SEO 搜尋引擎最佳化 (優化搜尋排名與能見度) -->
-    <title>玉露寶庫 AIXIMERADA | 重機車位地圖、實用工具與資源社群</title>
-    <meta name="description" content="玉露寶庫 (Yulu Box) 提供全台最完整的重機友善車位地圖、實用日常工具、娛樂功能與專屬星員社群。立即探索，尋找您的專屬資源！">
-    <meta name="keywords" content="玉露寶庫, AIXIMERADA, 重機車位, 重機停車, 機車停車地圖, 實用工具, 線上工具, 網址傳送門, 星際社群">
+    <!-- 🔥 SEO 搜尋引擎最佳化：標題前置品牌字，加強首頁權重 -->
+    <title>玉露寶庫 - 官方首頁 | 重機車位地圖與實用線上工具</title>
+    <meta name="description" content="玉露寶庫 (Yulu Box) 官方網站。提供全台最完整的重機友善車位地圖、圖片壓縮、線上實用工具、娛樂功能與專屬星員社群。立刻登入玉露寶庫探索！">
+    <meta name="keywords" content="玉露寶庫, AIXIMERADA, 玉露寶庫首頁, 重機車位, 重機停車, 圖片壓縮, 線上工具, 網址傳送門, 星際社群">
     <meta name="author" content="玉露">
     <link rel="canonical" href="https://yulubox.web.app/">
 
-    <!-- 🔥 Open Graph / LINE / Facebook 社群分享預覽設定 -->
+    <!-- 🔥 Google 結構化資料 (JSON-LD)：強迫 Google 認知這是官方首頁 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "玉露寶庫",
+      "alternateName": ["Yulu Box", "AIXIMERADA"],
+      "url": "https://yulubox.web.app/",
+      "description": "提供重機友善車位地圖、線上實用工具與專屬社群的綜合型入口網站。"
+    }
+    </script>
+
+    <!-- Open Graph / LINE / Facebook 社群分享預覽設定 -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://yulubox.web.app/">
-    <meta property="og:title" content="玉露寶庫 AIXIMERADA | 探索重機車位與資源">
+    <meta property="og:title" content="玉露寶庫 - 官方首頁 | 探索重機車位與線上資源">
     <meta property="og:description" content="全台重機友善車位情報、各式好用日常工具盡在玉露寶庫，立刻加入星際導航！">
     <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/826/826963.png">
     
@@ -27,7 +38,6 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Cpolygon points='50,10 61,35 88,35 67,52 75,79 50,65 25,79 33,52 12,35 39,35' fill='%2300f3ff' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
 
-    <!-- 🔥 DNS 預先連線與模組預載：大幅縮短手機端載入時間 -->
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -59,13 +69,11 @@
             user-select: none; 
         }
 
-        /* --- ✨ 星空背景特效 (加入 GPU 硬體加速) --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { 
             position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; 
             animation-timing-function: linear; animation-iteration-count: infinite;
-            will-change: transform; /* 🔥 強制 GPU 渲染 */
-            transform: translateZ(0); 
+            will-change: transform; transform: translateZ(0); 
         }
         
         .stars-distant {
@@ -82,14 +90,12 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent);
             background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite;
-            will-change: opacity; /* 🔥 強制 GPU 渲染 */
-            transform: translateZ(0);
+            will-change: opacity; transform: translateZ(0);
         }
 
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* --- 啟動畫面 --- */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #090A0F; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -98,9 +104,10 @@
         .splash-icon { font-size: 4.5rem; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(59,198,228,0.6)); animation: pulseStar 1.5s infinite alternate ease-in-out; }
         @keyframes pulseStar { 0% { transform: scale(0.9) translateY(0); opacity: 0.8; } 100% { transform: scale(1.1) translateY(-10px); opacity: 1; filter: drop-shadow(0 0 25px rgba(59,198,228,1)); } }
 
-        /* --- 主內容 --- */
         header { text-align: center; padding: calc(80px + env(safe-area-inset-top)) 20px 40px; position: relative; z-index: 1; }
-        h1 { font-size: 3.5rem; margin: 0; text-shadow: 0 0 25px var(--suisei-cyan); font-weight: 900; letter-spacing: 2px; }
+        
+        /* 🔥 將原本的 h1 樣式移轉到 class 上，讓 SEO 隱藏標題生效 */
+        .visual-title { font-size: 3.5rem; margin: 0; text-shadow: 0 0 25px var(--suisei-cyan); font-weight: 900; letter-spacing: 2px; }
         
         .portal-wrapper {
             width: 100%; max-width: 1000px; padding: 20px;
@@ -110,40 +117,21 @@
         }
         .portal-split { display: flex; gap: 30px; width: 100%; min-height: 260px; }
         
-        /* 卡片樣式優化 */
         .portal-card {
-            flex: 1;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            text-decoration: none; color: #fff;
+            flex: 1; background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 24px; text-decoration: none; color: #fff;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative; overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            will-change: transform; /* 🔥 強制 GPU 渲染 */
-            transform: translateZ(0);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4); will-change: transform; transform: translateZ(0);
         }
         
-        .portal-card:hover { 
-            transform: translateY(-8px) translateZ(0); 
-            background: rgba(59, 198, 228, 0.15); 
-            border-color: var(--suisei-cyan); 
-            box-shadow: 0 20px 50px rgba(59, 198, 228, 0.3); 
-        }
+        .portal-card:hover { transform: translateY(-8px) translateZ(0); background: rgba(59, 198, 228, 0.15); border-color: var(--suisei-cyan); box-shadow: 0 20px 50px rgba(59, 198, 228, 0.3); }
         .portal-card:active { transform: scale(0.96) translateZ(0); }
-        
         .portal-card i { font-size: 4rem; color: var(--suisei-cyan); margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(59,198,228,0.5)); }
         .portal-card:hover i { transform: scale(1.1) rotate(10deg); color: #fff; }
-        
         .portal-title { font-size: 2rem; font-weight: bold; letter-spacing: 5px; }
 
-        /* 車位回報卡片特別樣式 */
-        .parking-portal { 
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(254, 243, 199, 0.9) 100%); 
-            color: #0b1021; min-height: 220px; flex-direction: row; justify-content: space-between; padding: 0 80px; 
-        }
+        .parking-portal { background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(254, 243, 199, 0.9) 100%); color: #0b1021; min-height: 220px; flex-direction: row; justify-content: space-between; padding: 0 80px; }
         .parking-portal:hover { transform: translateY(-8px) translateZ(0); box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); border-color: #fff; background: #fff; }
         .parking-portal:active { transform: scale(0.96) translateZ(0); }
         .parking-portal i { color: #0b1021; font-size: 5rem; order: 2; filter: none; }
@@ -160,29 +148,22 @@
             .parking-info { order: 2; text-align: center; }
         }
 
-        /* 浮動按鈕 */
         #admin-fab-container { position: fixed; bottom: calc(40px + env(safe-area-inset-bottom)); right: 30px; z-index: 9999; }
-        .fab-btn { 
-            width: 65px; height: 65px; border-radius: 50%; 
-            background: var(--suisei-cyan); border: none; color: #fff; 
-            font-size: 1.6rem; cursor: pointer; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; align-items: center; justify-content: center;
-        }
+        .fab-btn { width: 65px; height: 65px; border-radius: 50%; background: var(--suisei-cyan); border: none; color: #fff; font-size: 1.6rem; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; }
         .fab-btn:hover { transform: scale(1.15) rotate(15deg); box-shadow: 0 0 30px var(--suisei-cyan); }
         .fab-btn:active { transform: scale(0.9); }
-        
-        .fab-btn.logged-in {
-            background: linear-gradient(135deg, var(--neon-green), #059669);
-            color: #0b1021;
-        }
+        .fab-btn.logged-in { background: linear-gradient(135deg, var(--neon-green), #059669); color: #0b1021; }
         .fab-btn.logged-in:hover { box-shadow: 0 0 30px var(--neon-green); }
+
+        /* SEO 底部說明文字樣式 */
+        .seo-footer {
+            text-align: center; padding: 20px; color: #64748b; font-size: 0.75rem; 
+            margin-top: auto; max-width: 800px; line-height: 1.6;
+        }
     </style>
 </head>
 <body>
 
-    <!-- 🔥 極速啟動畫面 -->
     <div id="splash-screen">
         <i class="fa-solid fa-rocket splash-icon"></i>
         <h2 style="font-size: 1.8rem; font-weight: 900; letter-spacing: 4px; margin:0;">玉露寶庫</h2>
@@ -196,7 +177,11 @@
     </div>
     
     <header>
-        <h1><span id="typed-title"></span></h1>
+        <!-- 🔥 隱藏的 H1：專門給 Google 爬蟲看的強烈 SEO 訊號 -->
+        <h1 class="sr-only">玉露寶庫 - 官方首頁</h1>
+        
+        <!-- 原本酷炫的打字機特效 (使用 aria-hidden 避免與 H1 衝突) -->
+        <div class="visual-title" aria-hidden="true"><span id="typed-title"></span></div>
     </header>
 
     <main class="portal-wrapper">
@@ -212,7 +197,6 @@
             </a>
         </div>
         
-        <!-- 重機停車專屬入口 -->
         <a href="車位回報.html" class="portal-card parking-portal" data-aos="fade-up">
             <div class="parking-info">
                 <h2>重機停車</h2>
@@ -222,13 +206,18 @@
         </a>
     </main>
 
+    <!-- 🔥 增加網站的文字豐富度，有助於「玉露寶庫」關鍵字搜尋排名 -->
+    <footer class="seo-footer">
+        <p>玉露寶庫 (Yulu Box) 是您專屬的星際綜合入口網站。提供最即時的重機車位地圖、圖片極速壓縮工具、娛樂遊戲以及專屬會員社群。</p>
+        <p>&copy; 2026 玉露寶庫 版權所有</p>
+    </footer>
+
     <div id="admin-fab-container">
         <button id="authBtn" class="fab-btn" onclick="checkAuthRedirect()" title="會員系統">
             <i class="fa-solid fa-right-to-bracket"></i>
         </button>
     </div>
 
-    <!-- 🔥 延遲載入 (Defer) 外部套件，防止阻擋畫面繪製 -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" defer></script>
     <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js" defer></script>
     
@@ -236,7 +225,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // 🔥 Config
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -253,7 +241,6 @@
         const authBtn = document.getElementById('authBtn');
         let isUserLoggedIn = false;
 
-        // 偵測是否已登入
         onAuthStateChanged(auth, (user) => {
             if (user && !user.isAnonymous) {
                 isUserLoggedIn = true;
@@ -268,7 +255,6 @@
             }
         });
 
-        // 按鈕點擊行為
         window.checkAuthRedirect = function() {
             if (isUserLoggedIn) {
                 window.location.href = 'vip_area.html';
@@ -277,12 +263,11 @@
             }
         }
 
-        // 🔥 當 DOM 載入完成，移除啟動畫面並初始化動畫
         window.addEventListener('load', () => {
             const splash = document.getElementById('splash-screen');
             if(splash) {
                 splash.style.opacity = '0';
-                setTimeout(() => splash.remove(), 600); // 動畫結束後徹底從 DOM 移除，釋放記憶體
+                setTimeout(() => splash.remove(), 600); 
             }
 
             AOS.init({ duration: 800, once: true });
