@@ -16,6 +16,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- 🔥 導入 Chart.js 用於繪製圖表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- React 核心 -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -66,11 +69,10 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        // 🔥 加入 getDoc 以讀取使用者綁定的 LINE ID
         import { getFirestore, collection, getDocs, updateDoc, doc, getDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -85,6 +87,35 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // 🔥 Chart.js 通用元件包裝器
+        const ChartComponent = ({ type, data, options }) => {
+            const canvasRef = useRef(null);
+            const chartInstance = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current) return;
+                const ctx = canvasRef.current.getContext('2d');
+                
+                // 銷毀舊圖表實例
+                if (chartInstance.current) {
+                    chartInstance.current.destroy();
+                }
+                
+                // 創建新圖表
+                chartInstance.current = new Chart(ctx, {
+                    type: type,
+                    data: data,
+                    options: options
+                });
+
+                return () => {
+                    if (chartInstance.current) chartInstance.current.destroy();
+                };
+            }, [type, data, options]);
+
+            return <canvas ref={canvasRef}></canvas>;
+        };
 
         function App() {
             const [user, setUser] = useState(null);
@@ -105,7 +136,6 @@
                     if (currentUser && !currentUser.isAnonymous) {
                         setUser(currentUser);
                         
-                        // 🔥 尋找使用者是否綁定了 LINE，並取出 lineUserId
                         let lineId = localStorage.getItem("lineUserId");
                         try {
                             const userDoc = await getDoc(doc(db, "users", currentUser.uid));
@@ -116,7 +146,6 @@
                             console.error("讀取用戶資料庫失敗:", e);
                         }
 
-                        // 🔥 組合查詢條件：同時查 Web(Firebase UID) 以及 LINE(lineUserId)
                         const searchIds = [currentUser.uid];
                         if (lineId && !searchIds.includes(lineId)) {
                             searchIds.push(lineId);
@@ -131,11 +160,9 @@
                 return () => unsubscribe();
             }, []);
 
-            // 接收 searchIds 陣列進行查詢
             const fetchRecords = async (searchIds, defaultMonth) => {
                 setLoading(true);
                 try {
-                    // 🔥 改用 "in" 同時合併搜尋 Firebase UID 與 LINE ID 的記帳紀錄
                     const q = query(collection(db, "records_personal"), where("userId", "in", searchIds));
                     const snap = await getDocs(q);
                     let data = [];
@@ -146,7 +173,6 @@
                         }
                     });
 
-                    // 🔥 前端手動排序 (由新到舊)，避免產生 Firestore 複合索引錯誤
                     data.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
 
                     data = data.map(rec => {
@@ -160,7 +186,6 @@
 
                     setRecords(data);
                     
-                    // 如果有當月紀錄，預設篩選當月，否則顯示全部
                     if (data.some(r => r.monthKey === defaultMonth)) {
                         setFilterMonth(defaultMonth);
                     } else {
@@ -173,10 +198,89 @@
             };
 
             // 計算篩選後的資料與總計
-            const filteredRecords = records.filter(r => filterMonth === 'all' || r.monthKey === filterMonth);
+            const filteredRecords = useMemo(() => {
+                return records.filter(r => filterMonth === 'all' || r.monthKey === filterMonth);
+            }, [records, filterMonth]);
+
             const totalIncome = filteredRecords.filter(r => r.transactionType === 'income').reduce((sum, r) => sum + r.amount, 0);
             const totalExpense = filteredRecords.filter(r => r.transactionType === 'expense').reduce((sum, r) => sum + r.amount, 0);
             const netIncome = totalIncome - totalExpense;
+
+            // ==========================================
+            // 🔥 圖表資料處理 (Data Parsing for Charts)
+            // ==========================================
+            
+            // 1. 圓餅圖：支出類別分佈
+            const doughnutData = useMemo(() => {
+                const categorySums = {};
+                filteredRecords.forEach(r => {
+                    if (r.transactionType === 'expense') {
+                        categorySums[r.category] = (categorySums[r.category] || 0) + r.amount;
+                    }
+                });
+                
+                return {
+                    labels: Object.keys(categorySums),
+                    datasets: [{
+                        data: Object.values(categorySums),
+                        backgroundColor: ['#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#3742fa', '#bc13fe', '#FFD700', '#ff6348'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                };
+            }, [filteredRecords]);
+
+            // 2. 長條圖：收支趨勢對比
+            const barData = useMemo(() => {
+                const trendData = {};
+                filteredRecords.forEach(r => {
+                    // 若看全部，顯示「月份」；若看單月，顯示「日期」
+                    const key = filterMonth === 'all' ? r.monthKey : r.dateStr.split('/')[2]; 
+                    if (!trendData[key]) trendData[key] = { income: 0, expense: 0 };
+                    trendData[key][r.transactionType] += r.amount;
+                });
+
+                const sortedKeys = Object.keys(trendData).sort();
+                
+                return {
+                    labels: sortedKeys.map(k => filterMonth === 'all' ? k : `${k}日`),
+                    datasets: [
+                        { label: '收入', data: sortedKeys.map(k => trendData[k].income), backgroundColor: '#00ff9d', borderRadius: 4 },
+                        { label: '支出', data: sortedKeys.map(k => trendData[k].expense), backgroundColor: '#ff4757', borderRadius: 4 }
+                    ]
+                };
+            }, [filteredRecords, filterMonth]);
+
+            // 3. 圖表 Options 設定 (深色模式優化)
+            const doughnutOptions = useMemo(() => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#e2e8f0', padding: 20, font: { family: 'Microsoft JhengHei' } } }
+                },
+                cutout: '70%',
+            }), []);
+
+            const barOptions = useMemo(() => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e2e8f0', font: { family: 'Microsoft JhengHei' } } }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { color: '#94a3b8' }, 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        border: { display: false }
+                    },
+                    x: { 
+                        ticks: { color: '#94a3b8', font: { family: 'Microsoft JhengHei' } }, 
+                        grid: { display: false },
+                        border: { display: false }
+                    }
+                }
+            }), []);
 
             // 匯出 Excel
             const exportExcel = () => {
@@ -188,7 +292,6 @@
                     '備註': r.note || '無'
                 }));
                 
-                // 加入總結列
                 exportData.push({});
                 exportData.push({'日期': '總收入', '類型': totalIncome});
                 exportData.push({'日期': '總支出', '類型': totalExpense});
@@ -203,25 +306,24 @@
             // 下載 PDF
             const exportPDF = () => {
                 const element = document.getElementById('report-area');
-                
-                // 為了避免 PDF 截圖時跑版，暫時切換成 PDF 列印專用樣式
                 element.classList.add('pdf-export-mode'); 
                 
                 const opt = {
-                    margin:       [10, 10, 10, 10], // 上左右下邊距
+                    margin:       [10, 10, 10, 10], 
                     filename:     `玉露寶庫_財務報表_${filterMonth === 'all' ? '全部' : filterMonth}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
                     html2canvas:  { scale: 2, useCORS: true },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
-                html2pdf().set(opt).from(element).save().then(() => {
-                    // 恢復原本的暗色系風格
-                    element.classList.remove('pdf-export-mode');
-                });
+                // html2pdf 不保證完美渲染 Canvas，列印前設定一秒延遲以確保樣式轉換完成
+                setTimeout(() => {
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        element.classList.remove('pdf-export-mode');
+                    });
+                }, 100);
             };
 
-            // 編輯視窗操作
             const openEditModal = (record) => {
                 setEditingRecord(record);
                 setEditForm({
@@ -234,7 +336,6 @@
 
             const saveEdit = async () => {
                 if (!editForm.category || !editForm.amount) return alert("請填寫完整資訊");
-                
                 try {
                     await updateDoc(doc(db, "records_personal", editingRecord.id), {
                         category: editForm.category,
@@ -243,10 +344,8 @@
                         note: editForm.note
                     });
                     
-                    // 更新本地狀態，免重新讀取資料庫
-                    setRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...r, ...editForm } : r));
+                    setRecords(prev => prev.map(r => r.id === editingRecord.id ? { ...r, ...editForm, amount: Number(editForm.amount) } : r));
                     setEditingRecord(null);
-                    alert("✅ 修改成功！");
                 } catch (e) {
                     alert("修改失敗：" + e.message);
                 }
@@ -281,35 +380,50 @@
                 );
             }
 
-            // 抓取所有有資料的月份選項
             const monthOptions = Array.from(new Set(records.map(r => r.monthKey)));
 
             return (
-                <div className="w-full max-w-4xl mx-auto px-4 py-8 pb-20 relative z-10">
+                <div className="w-full max-w-5xl mx-auto px-4 py-8 pb-20 relative z-10">
+                    {/* 頭部操作列 */}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-                        <a href="vip_area.html" className="text-[#00f3ff] hover:text-white transition-colors font-bold self-start md:self-auto">
+                        <a href="vip_area.html" className="text-[#00f3ff] hover:text-white transition-colors font-bold self-start md:self-auto flex items-center gap-2">
                             <i className="fa-solid fa-chevron-left"></i> 返回星員區
                         </a>
                         <div className="flex gap-2 w-full md:w-auto">
-                            <button onClick={exportExcel} className="flex-1 md:flex-none bg-emerald-600/80 hover:bg-emerald-500 border border-emerald-500 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                            <button onClick={exportExcel} className="flex-1 md:flex-none bg-emerald-600/80 hover:bg-emerald-500 border border-emerald-500 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2">
                                 <i className="fa-solid fa-file-excel"></i> 匯出 Excel
                             </button>
-                            <button onClick={exportPDF} className="flex-1 md:flex-none bg-red-600/80 hover:bg-red-500 border border-red-500 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                            <button onClick={exportPDF} className="flex-1 md:flex-none bg-red-600/80 hover:bg-red-500 border border-red-500 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] flex items-center justify-center gap-2">
                                 <i className="fa-solid fa-file-pdf"></i> 下載 PDF
                             </button>
                         </div>
                     </div>
 
-                    {/* PDF 擷取範圍開始 */}
+                    {/* === 列印與顯示區域開始 === */}
                     <div id="report-area" className="p-2">
-                        <div className="text-center mb-10">
-                            <h1 className="text-3xl md:text-4xl font-black mb-2 text-[#FFD700] tracking-widest drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
-                                財務結算報表
-                            </h1>
-                            <p className="text-gray-400 text-sm">Personal Financial Report</p>
+                        
+                        {/* 報表標題與篩選 */}
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                            <div className="text-center md:text-left">
+                                <h1 className="text-3xl md:text-4xl font-black text-[#FFD700] tracking-widest drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]">
+                                    財務結算報表
+                                </h1>
+                                <p className="text-gray-400 text-sm mt-1">Personal Financial Report</p>
+                            </div>
+                            <div className="relative w-full md:w-auto" data-html2canvas-ignore>
+                                <i className="fa-regular fa-calendar absolute left-4 top-1/2 -translate-y-1/2 text-[#00f3ff]"></i>
+                                <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full md:w-auto bg-black/60 border border-[#00f3ff]/50 rounded-xl pl-10 pr-6 py-3 text-white font-bold outline-none focus:border-[#FFD700] transition-colors appearance-none shadow-[0_0_10px_rgba(0,243,255,0.2)]">
+                                    <option value="all">顯示所有歷史紀錄</option>
+                                    {monthOptions.map(m => <option key={m} value={m}>{m.replace('-', ' 年 ')} 月份</option>)}
+                                </select>
+                            </div>
+                            {/* 列印時顯示的替代文字 */}
+                            <div className="hidden pdf-show text-lg font-bold text-gray-600">
+                                報表區間: {filterMonth === 'all' ? '所有紀錄' : filterMonth}
+                            </div>
                         </div>
 
-                        {/* 統計總覽 */}
+                        {/* 統計總覽卡片 */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             <div className="glass-panel p-6 rounded-2xl text-center border-t-4 border-[#00ff9d]">
                                 <p className="text-gray-400 text-sm font-bold mb-2">總收入</p>
@@ -323,33 +437,49 @@
                                     $ {totalExpense.toLocaleString()}
                                 </p>
                             </div>
-                            <div className="glass-panel p-6 rounded-2xl text-center border-t-4 border-[#00f3ff]">
-                                <p className="text-gray-400 text-sm font-bold mb-2">本期結餘</p>
-                                <p className={`text-4xl font-black drop-shadow-[0_0_10px_rgba(0,243,255,0.5)] ${netIncome >= 0 ? 'text-[#00f3ff]' : 'text-[#ff4757]'}`}>
+                            <div className="glass-panel p-6 rounded-2xl text-center border-t-4 border-[#00f3ff] relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#00f3ff]/10 to-transparent pointer-events-none"></div>
+                                <p className="text-gray-400 text-sm font-bold mb-2 relative z-10">本期結餘</p>
+                                <p className={`text-4xl font-black drop-shadow-[0_0_10px_rgba(0,243,255,0.5)] relative z-10 ${netIncome >= 0 ? 'text-[#00f3ff]' : 'text-[#ff4757]'}`}>
                                     $ {netIncome.toLocaleString()}
                                 </p>
                             </div>
                         </div>
 
-                        {/* 列表區塊 */}
-                        <div className="glass-panel rounded-3xl p-6 md:p-8">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-white/10 pb-4">
-                                <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-                                    <i className="fa-solid fa-list-ul text-[#bc13fe]"></i> 收支明細紀錄
-                                </h2>
-                                
-                                <div className="w-full md:w-auto relative" data-html2canvas-ignore>
-                                    <i className="fa-regular fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                    <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="w-full md:w-auto bg-black/50 border border-gray-600 rounded-lg pl-9 pr-4 py-2 text-white outline-none focus:border-[#FFD700] transition-colors appearance-none">
-                                        <option value="all">顯示所有歷史紀錄</option>
-                                        {monthOptions.map(m => <option key={m} value={m}>{m.replace('-', ' 年 ')} 月</option>)}
-                                    </select>
+                        {/* 🔥 數據可視化圖表區 (Charts) */}
+                        {filteredRecords.length > 0 && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" data-html2canvas-ignore>
+                                {/* 圓餅圖：支出分佈 */}
+                                <div className="glass-panel p-6 rounded-3xl">
+                                    <h3 className="text-lg font-bold mb-4 text-white flex items-center gap-2">
+                                        <i className="fa-solid fa-chart-pie text-[#FFD700]"></i> 支出分類佔比
+                                    </h3>
+                                    <div className="relative h-64 w-full">
+                                        {totalExpense > 0 ? (
+                                            <ChartComponent type="doughnut" data={doughnutData} options={doughnutOptions} />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">無支出紀錄</div>
+                                        )}
+                                    </div>
                                 </div>
-                                {/* 供 PDF 列印顯示的隱藏文字 */}
-                                <div className="hidden pdf-show text-sm font-bold text-gray-500">
-                                    報表區間: {filterMonth === 'all' ? '所有紀錄' : filterMonth}
+                                
+                                {/* 長條圖：收支趨勢 */}
+                                <div className="glass-panel p-6 rounded-3xl">
+                                    <h3 className="text-lg font-bold mb-4 text-white flex items-center gap-2">
+                                        <i className="fa-solid fa-chart-column text-[#00f3ff]"></i> 收支趨勢圖
+                                    </h3>
+                                    <div className="relative h-64 w-full">
+                                        <ChartComponent type="bar" data={barData} options={barOptions} />
+                                    </div>
                                 </div>
                             </div>
+                        )}
+
+                        {/* 列表明細區塊 */}
+                        <div className="glass-panel rounded-3xl p-6 md:p-8">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-white mb-6 border-b border-white/10 pb-4">
+                                <i className="fa-solid fa-list-ul text-[#bc13fe]"></i> 收支明細紀錄
+                            </h2>
 
                             {filteredRecords.length === 0 ? (
                                 <div className="text-center py-16 text-gray-500 flex flex-col items-center gap-3">
@@ -396,7 +526,7 @@
                             )}
                         </div>
                     </div>
-                    {/* PDF 擷取範圍結束 */}
+                    {/* === 列印與顯示區域結束 === */}
 
                     {/* 編輯紀錄 Modal */}
                     {editingRecord && (

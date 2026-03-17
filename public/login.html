@@ -11,9 +11,9 @@
     
     <title>登入 - 玉露寶庫</title>
     
-    <!-- 🔥 解決 iOS 顯示問題：改用標準 PNG 圖片作為桌面圖示 -->
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
+    <!-- 🔥 換上您專屬的流星 APP 圖示 -->
+    <link rel="icon" type="image/png" href="APP圖示.png">
+    <link rel="apple-touch-icon" href="APP圖示.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -140,7 +140,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // 🔥 加入 onAuthStateChanged 用來監聽自動登入
+        import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -153,6 +154,16 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+
+        // ==========================================
+        // 🔥 自動登入偵測機制：如果快取有記憶，一瞬間自動跳轉！
+        // ==========================================
+        onAuthStateChanged(auth, (user) => {
+            // 如果有使用者，且不是訪客(匿名)，立刻送進星員區
+            if (user && !user.isAnonymous) {
+                window.location.href = "vip_area.html";
+            }
+        });
 
         // ==========================================
         // 🌟 LINE LIFF 初始化與嚴格綁定事件
