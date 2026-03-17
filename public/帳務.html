@@ -70,7 +70,8 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, query, where, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // 🔥 加入 getDoc 以讀取使用者綁定的 LINE ID
+        import { getFirestore, collection, getDocs, updateDoc, doc, getDoc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -103,7 +104,25 @@
                 const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
                     if (currentUser && !currentUser.isAnonymous) {
                         setUser(currentUser);
-                        fetchRecords(currentUser.uid, currentMonthStr);
+                        
+                        // 🔥 尋找使用者是否綁定了 LINE，並取出 lineUserId
+                        let lineId = localStorage.getItem("lineUserId");
+                        try {
+                            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+                            if (userDoc.exists() && userDoc.data().lineUserId) {
+                                lineId = userDoc.data().lineUserId;
+                            }
+                        } catch (e) {
+                            console.error("讀取用戶資料庫失敗:", e);
+                        }
+
+                        // 🔥 組合查詢條件：同時查 Web(Firebase UID) 以及 LINE(lineUserId)
+                        const searchIds = [currentUser.uid];
+                        if (lineId && !searchIds.includes(lineId)) {
+                            searchIds.push(lineId);
+                        }
+
+                        fetchRecords(searchIds, currentMonthStr);
                     } else {
                         setAuthError(true);
                         setLoading(false);
@@ -112,24 +131,33 @@
                 return () => unsubscribe();
             }, []);
 
-            const fetchRecords = async (uid, defaultMonth) => {
+            // 接收 searchIds 陣列進行查詢
+            const fetchRecords = async (searchIds, defaultMonth) => {
                 setLoading(true);
                 try {
-                    const q = query(collection(db, "records_personal"), where("userId", "==", uid), orderBy("timestamp", "desc"));
+                    // 🔥 改用 "in" 同時合併搜尋 Firebase UID 與 LINE ID 的記帳紀錄
+                    const q = query(collection(db, "records_personal"), where("userId", "in", searchIds));
                     const snap = await getDocs(q);
-                    const data = [];
+                    let data = [];
                     snap.forEach(doc => {
                         const rec = doc.data();
                         if (rec.timestamp) {
-                            const date = new Date(rec.timestamp.seconds * 1000);
-                            data.push({
-                                id: doc.id,
-                                ...rec,
-                                dateStr: `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`,
-                                monthKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-                            });
+                            data.push({ id: doc.id, ...rec });
                         }
                     });
+
+                    // 🔥 前端手動排序 (由新到舊)，避免產生 Firestore 複合索引錯誤
+                    data.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+
+                    data = data.map(rec => {
+                        const date = new Date(rec.timestamp.seconds * 1000);
+                        return {
+                            ...rec,
+                            dateStr: `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`,
+                            monthKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+                        };
+                    });
+
                     setRecords(data);
                     
                     // 如果有當月紀錄，預設篩選當月，否則顯示全部
