@@ -147,7 +147,7 @@
             <span class="tag" id="lineBindStatus" style="background: #64748b; color: #fff;">未綁定</span>
             <i class="fa-brands fa-line" style="color: var(--line-green);"></i>
             <h3>LINE 帳號串聯</h3>
-            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務與記事本功能。</p>
+            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務圖表與任務提醒功能。</p>
         </div>
 
         <a href="notepad.html" class="secret-card" style="border-bottom: 3px solid #3b82f6;">
@@ -225,23 +225,23 @@
         </a>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <!-- 🔥 極簡版：版權與隱私條款 (點擊直接向下展開，無彈窗) -->
+    <footer class="mt-12 mb-8 text-center w-full relative z-10">
+        <details class="group">
+            <summary class="text-gray-500 text-xs hover:text-[#00f3ff] transition-colors outline-none cursor-pointer list-none flex items-center justify-center gap-1.5 [&::-webkit-details-marker]:hidden">
+                <i class="fa-solid fa-shield-halved"></i> 隱私權政策與服務條款 (點擊展開)
+            </summary>
+            <div class="mt-4 p-5 bg-[#0f172a]/80 border border-white/10 rounded-2xl text-gray-400 text-xs text-left max-w-2xl mx-auto leading-relaxed shadow-lg cursor-default">
+                <p class="mb-1.5"><strong class="text-white">🔒 資料安全：</strong>您的私有資料（如記帳、待辦）受嚴格的資料庫安全鎖保護，僅您本人可讀取。</p>
+                <p class="mb-1.5"><strong class="text-white">📢 社群規範：</strong>於公開區上傳之內容視同同意共享，系統保留隨時下架違規內容之權利。</p>
+                <p class="mb-3"><strong class="text-white">⚠️ 免責聲明：</strong>本平台為免費非營利工具，對不可抗力之資料遺失恕不負損害賠償責任。</p>
+                <p class="pt-3 border-t border-white/10 text-center text-gray-500 tracking-widest">&copy; 2026 玉露寶庫 (Yulu Box). All Rights Reserved.</p>
+            </div>
+        </details>
+    </footer>
 
-        // 🔥 動態配置
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
-            authDomain: "yulubox.firebaseapp.com",
-            projectId: "yulubox",
-            storageBucket: "yulubox.firebasestorage.app",
-            messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
-        };
-
-        const app = initializeApp(firebaseConfig);
+    <div id="checkinModal" class="checkin-overlay" onclick="closeCheckIn(event)">
+        <div class="checkin-box">
         const auth = getAuth(app);
         const db = getFirestore(app);
 
