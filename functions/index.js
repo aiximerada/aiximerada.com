@@ -90,25 +90,13 @@ function generateChartFlexMessage(title, totalAmount, chartUrl) {
     };
 }
 
-// 產生 QuickChart 圓餅圖 URL
 function getQuickChartUrl(dataMap) {
     const labels = Object.keys(dataMap);
     const data = Object.values(dataMap);
     const chartConfig = {
         type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{ 
-                data: data,
-                backgroundColor: ['#00f3ff', '#bc13fe', '#FFD700', '#ff4757', '#00ff9d', '#ff9f43', '#1e90ff']
-            }]
-        },
-        options: {
-            plugins: {
-                legend: { labels: { fontColor: '#ffffff', fontSize: 14 } },
-                datalabels: { color: '#ffffff', font: { weight: 'bold', size: 14 } }
-            }
-        }
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#00f3ff', '#bc13fe', '#FFD700', '#ff4757', '#00ff9d', '#ff9f43', '#1e90ff'] }] },
+        options: { plugins: { legend: { labels: { fontColor: '#ffffff', fontSize: 14 } }, datalabels: { color: '#ffffff', font: { weight: 'bold', size: 14 } } } }
     };
     return `https://quickchart.io/chart?w=500&h=300&bkg=0f172a&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
 }
@@ -237,7 +225,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
     if (!events || events.length === 0) return res.status(200).send("OK");
 
     for (const event of events) {
-        // 📍 車位定位搜尋
+        // 📍 車位定位搜尋 (接收 GPS 座標)
         if (event.type === "message" && event.message.type === "location") {
             const { latitude: userLat, longitude: userLng } = event.message;
             const replyToken = event.replyToken;
@@ -263,6 +251,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             continue;
         }
 
+        // 💬 文字訊息處理
         if (event.type === "message" && event.message.type === "text") {
             const userId = event.source.userId;
             const text = event.message.text.trim();
@@ -273,6 +262,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             let userData = userDoc.exists ? userDoc.data() : { state: "IDLE" };
             let state = userData.state || "IDLE";
 
+            // 全局取消指令
             if (text === "取消") {
                 await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
                 await replyLineMessage(replyToken, [createCardMessage("系統提示", "👌 系統已終止目前的操作程序。", "#00ff9d")]);
@@ -280,11 +270,66 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             }
 
             // ==========================================
-            // 📝 記事本功能：查看代辦
+            // 🗺️ 智慧選單導航 1：記事本選單
             // ==========================================
-            const notepadKeywords = ["記事本", "記事", "代辦", "待辦", "待辦事項", "代辦事項"];
-            if (notepadKeywords.includes(text)) {
-                // 找出該用戶所有未完成的任務
+            const notepadMenuKeywords = ["記事本", "記事", "筆記", "任務"];
+            if (notepadMenuKeywords.includes(text)) {
+                const todosSnap = await db.collection("todos").where("userId", "==", userId).where("status", "==", "pending").get();
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "📝 記事本中樞",
+                    `您目前共有 ${todosSnap.size} 個待辦事項。\n請選擇您要進行的操作：👇`,
+                    "#3b82f6",
+                    [
+                        { type: "action", action: { type: "message", label: "📋 顯示近期待辦", text: "我的待辦" } },
+                        { type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } },
+                        { type: "action", action: { type: "uri", label: "🌐 開啟網頁版", uri: "https://yulubox.web.app/notepad.html" } }
+                    ]
+                )]);
+                continue;
+            }
+
+            // ==========================================
+            // 🗺️ 智慧選單導航 2：車位選單
+            // ==========================================
+            const parkingMenuKeywords = ["車位", "停車位", "找車位", "停車", "重機車位", "重機停車"];
+            if (parkingMenuKeywords.includes(text)) {
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "🏍️ 車位搜尋系統",
+                    "請選擇您要尋找車位的方式：\n\n📍 自動定位：點擊下方「傳送定位」按鈕，為您尋找半徑 15 公里內的車位。\n\n🔍 縣市搜尋：請直接輸入「縣市+車位」(例如：台北市車位)。",
+                    "#f59e0b",
+                    [
+                        { type: "action", action: { type: "location", label: "📍 傳送定位" } },
+                        { type: "action", action: { type: "message", label: "台北市車位", text: "台北市車位" } },
+                        { type: "action", action: { type: "uri", label: "🌐 車位回報系統", uri: "https://yulubox.web.app/車位回報.html" } }
+                    ]
+                )]);
+                continue;
+            }
+
+            // ==========================================
+            // 🗺️ 智慧選單導航 3：記帳選單
+            // ==========================================
+            const accountingMenuKeywords = ["記帳", "帳本", "理財", "財務", "花費"];
+            if (accountingMenuKeywords.includes(text)) {
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "💰 帳務中樞",
+                    "偵測到帳務管理需求！請選擇要將資金寫入哪一個帳本，或調閱分析圖表：👇",
+                    "#FFD700",
+                    [
+                        { type: "action", action: { type: "message", label: "🙋‍♂️ 個人記帳", text: "個人記帳" } },
+                        { type: "action", action: { type: "message", label: "👥 群組記帳", text: "群組記帳" } },
+                        { type: "action", action: { type: "message", label: "📊 日支出圖表", text: "日支出" } },
+                        { type: "action", action: { type: "uri", label: "🌐 開啟完整報表", uri: "https://yulubox.web.app/帳務.html" } }
+                    ]
+                )]);
+                continue;
+            }
+
+            // ==========================================
+            // 📝 記事本功能：查看近期代辦清單
+            // ==========================================
+            const showTodosKeywords = ["我的待辦", "待辦事項", "代辦事項", "代辦", "待辦", "近期待辦"];
+            if (showTodosKeywords.includes(text)) {
                 const todosSnap = await db.collection("todos")
                     .where("userId", "==", userId)
                     .where("status", "==", "pending")
@@ -479,9 +524,9 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             }
 
             // ==========================================
-            // 🏍️ 車位查詢 (文字)
+            // 🏍️ 車位查詢 (文字縣市搜尋，排除總選單指令)
             // ==========================================
-            if (text.endsWith("車位")) {
+            if (text.endsWith("車位") && !parkingMenuKeywords.includes(text)) {
                 let city = text.replace("車位", "").trim();
                 if (city === "") {
                     await replyLineMessage(replyToken, [createCardMessage("指令錯誤", "🏍️ 尋找車位指令錯誤！\n\n1️⃣ 搜尋特定縣市：請輸入「縣市+車位」（例如：台北市車位）\n\n2️⃣ 搜尋附近車位：請直接點擊左下角「+」，傳送您的「位置資訊」給我！", "#ff4757")]);
@@ -657,23 +702,21 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             }
 
             // ==========================================
-            // 🤷‍♂️ 預設防呆回覆
+            // 🤷‍♂️ 預設防呆回覆 (更溫和、準確的推薦)
             // ==========================================
             if (state === "IDLE") {
-                const triggerWords = ["記", "帳", "賬", "錢", "買", "支", "收", "資"];
+                const triggerWords = ["買", "支", "收", "資"];
                 if (triggerWords.some(w => text.includes(w)) || !isNaN(parseInt(text[0]))) {
-                    await replyLineMessage(replyToken, [createCardMessage("帳務紀錄需求", "✨ 偵測到帳務紀錄需求！\n請選擇要將這筆資金寫入哪一個帳本？👇", "#FFD700", [
-                        { type: "action", action: { type: "message", label: "🙋‍♂️ 個人帳本", text: "個人記帳" } },
-                        { type: "action", action: { type: "message", label: "👥 群組帳本", text: "群組記帳" } }
+                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "✨ 偵測到疑似帳務紀錄需求！\n若要開始記帳，請點擊下方按鈕：👇", "#FFD700", [
+                        { type: "action", action: { type: "message", label: "✍️ 開始記帳", text: "記帳" } }
                     ])]);
                     continue; 
                 }
 
-                await replyLineMessage(replyToken, [createCardMessage("系統導航", "🤖 系統無法辨識您的指令喔！\n\n您可以傳送「📍位置資訊」找車位，或直接點擊下方快捷按鈕：👇", "#00f3ff", [
-                    { type: "action", action: { type: "message", label: "✍️ 開始記帳", text: "個人記帳" } },
-                    { type: "action", action: { type: "message", label: "📝 我的待辦", text: "待辦事項" } },
-                    { type: "action", action: { type: "message", label: "📊 支出圖表", text: "本月支出" } },
-                    { type: "action", action: { type: "message", label: "🏍️ 找車位", text: "台北市車位" } }
+                await replyLineMessage(replyToken, [createCardMessage("系統導航", "🤖 系統無法辨識您的指令喔！\n\n您可以點擊下方快捷按鈕，開啟各項功能選單：👇", "#00f3ff", [
+                    { type: "action", action: { type: "message", label: "💰 記帳系統", text: "記帳" } },
+                    { type: "action", action: { type: "message", label: "📝 記事本", text: "記事本" } },
+                    { type: "action", action: { type: "message", label: "🏍️ 找車位", text: "車位" } }
                 ])]);
             }
         }
