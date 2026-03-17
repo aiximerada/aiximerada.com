@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星員區 - 玉露寶庫</title>
     
-    <!-- 🔥 1. DNS 預先連線：大幅縮短外部資源載入時間 -->
+    <!-- 🔥 1. DNS 與模組預先載入：讓瀏覽器提早抓取 Firebase，省去等待時間 -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://static.line-scdn.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js">
 
     <link rel="icon" type="image/png" href="APP圖示.png">
     <link rel="apple-touch-icon" href="APP圖示.png">
@@ -17,7 +21,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- 🔥 2. 加入 defer 讓腳本不阻擋畫面渲染 -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
 
     <style>
@@ -50,14 +53,14 @@
             cursor: default;
         }
 
-        /* 🔥 3. 極速全螢幕載入畫面 (體感秒開的關鍵) */
+        /* 載入畫面 */
         #global-loader {
             position: fixed; inset: 0; background: #090A0F; z-index: 99999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.3s ease;
         }
 
-        /* --- 背景特效 (加入 GPU 加速優化效能) --- */
+        /* --- 背景特效 --- */
         .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; transform: translateZ(0); }
         .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s; }
@@ -66,12 +69,12 @@
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
-        /* 流星 (加入 GPU 加速) */
+        /* 流星 */
         .meteor { position: absolute; top: 50%; left: 50%; height: 2px; background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,215,0,1) 100%); opacity: 0; transform: rotate(-45deg) translateZ(0); animation: meteor-fall 3s linear infinite; filter: drop-shadow(0 0 5px var(--main-gold)); pointer-events: none; z-index: -1; will-change: transform, opacity; }
         .meteor::before { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #fff, 0 0 20px var(--main-gold); }
         @keyframes meteor-fall { 0% { opacity: 0; transform: rotate(-45deg) translateX(200px) translateZ(0); } 10% { opacity: 1; } 20% { opacity: 0; transform: rotate(-45deg) translateX(-800px) translateZ(0); } 100% { opacity: 0; } }
 
-        /* 滑鼠拖尾 (加入 GPU 加速) */
+        /* 滑鼠拖尾 */
         .trail-particle { position: absolute; width: 6px; height: 6px; background: var(--main-gold); border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%) translateZ(0); z-index: 9999; box-shadow: 0 0 10px var(--main-gold); animation: particle-fade 0.8s ease-out forwards; will-change: transform, opacity; }
         @keyframes particle-fade { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateZ(0); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0) translateY(20px) translateZ(0); } }
 
@@ -110,10 +113,10 @@
 </head>
 <body>
 
-    <!-- 🔥 極速載入畫面 (DOM 載入第一時間顯示) -->
+    <!-- 🔥 極速載入畫面 (等本機快取讀取後會瞬間消失) -->
     <div id="global-loader">
         <i class="fa-solid fa-satellite-dish fa-spin text-5xl mb-4" style="color: var(--nebula-blue); filter: drop-shadow(0 0 15px var(--nebula-blue));"></i>
-        <h2 style="color: #fff; letter-spacing: 4px; font-weight: bold; font-family: 'Microsoft JhengHei', sans-serif;">連線至星員區...</h2>
+        <h2 style="color: #fff; letter-spacing: 4px; font-weight: bold; font-family: 'Microsoft JhengHei', sans-serif;">安全驗證中...</h2>
     </div>
 
     <div id="meteorContainer" class="space-container"></div>
@@ -225,7 +228,7 @@
         </a>
     </div>
 
-    <!-- 🔥 極簡版：版權與隱私條款 (點擊直接向下展開，無彈窗) -->
+    <!-- 版權與隱私條款 (點擊向下展開) -->
     <footer class="mt-12 mb-8 text-center w-full relative z-10">
         <details class="group">
             <summary class="text-gray-500 text-xs hover:text-[#00f3ff] transition-colors outline-none cursor-pointer list-none flex items-center justify-center gap-1.5 [&::-webkit-details-marker]:hidden">
@@ -240,21 +243,56 @@
         </details>
     </footer>
 
-    <div id="checkinModal" class="checkin-overlay" onclick="closeCheckIn(event)">
-        <div class="checkin-box">
+    <!-- 🔥 徹底修復：移除在此處錯誤斷裂的 checkinModal HTML 結構 -->
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 動態配置
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509",
+            measurementId: "G-YPCY41EKWX"
+        };
+
+        const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
         const myLiffId = "2009464550-Odl0cheD";
-        let currentUser = null;
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
+
+        // =========================================
+        // 🚀 核心優化：樂觀渲染 (Optimistic UI)
+        // 讀取本地快取，不等資料庫連線，直接先秒開畫面！
+        // =========================================
+        const cachedAuth = localStorage.getItem('yulubox_vip_cache');
+        if (cachedAuth) {
+            try {
+                const data = JSON.parse(cachedAuth);
+                document.getElementById('current-user').innerText = data.name;
+                const avatar = document.getElementById('header-avatar');
+                avatar.src = data.photo || DEFAULT_STAR_AVATAR;
+                avatar.style.display = 'block';
+                updateProfileUI(data);
+                if (data.lineId) setupBoundUI(data.lineId);
+                
+                // 瞬間隱藏載入畫面
+                removeLoader();
+            } catch (e) { console.error("快取讀取錯誤", e); }
+        }
 
         // 移除載入畫面 (淡出特效)
         function removeLoader() {
             const loader = document.getElementById('global-loader');
             if (loader) {
                 loader.style.opacity = '0';
-                setTimeout(() => loader.remove(), 400); // 縮短至 0.4 秒移除
+                setTimeout(() => loader.remove(), 300);
             }
         }
 
@@ -320,25 +358,39 @@
                 console.error("LIFF 初始化錯誤:", err);
             }
 
+            // Firebase 實際背景驗證
             onAuthStateChanged(auth, async (user) => {
                 if (user && !user.isAnonymous) {
-                    currentUser = user;
-                    setupBaseUI(user.displayName || user.email.split('@')[0], user.photoURL);
+                    const name = user.displayName || user.email.split('@')[0];
+                    setupBaseUI(name, user.photoURL);
 
-                    const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
                     const userData = docSnap.exists() ? docSnap.data() : {};
+                    const lineId = userData.lineUserId || localStorage.getItem("lineUserId");
 
-                    if (userData.lineUserId) {
-                        setupBoundUI(userData.lineUserId);
+                    if (lineId) {
+                        setupBoundUI(lineId);
                     } else if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
-                        await linkAccounts(currentUser, profile);
+                        await linkAccounts(user, profile);
                     }
                     
                     updateProfileUI(userData);
-                    removeLoader(); // 🔥 驗證完成後立即移除全螢幕載入畫面
+                    
+                    // 將最新資料存入快取，供下次秒開使用
+                    localStorage.setItem('yulubox_vip_cache', JSON.stringify({
+                        name: name,
+                        photo: user.photoURL,
+                        themeColor: userData.themeColor,
+                        role: userData.role,
+                        lineId: lineId
+                    }));
+
+                    removeLoader(); // 確保防護網解除
 
                 } else {
+                    // 若訪客或未授權，移除快取並顯示錯誤鎖屏
+                    localStorage.removeItem('yulubox_vip_cache');
                     showAuthError();
                 }
             });
@@ -455,6 +507,7 @@
         window.handleLogout = function() {
             signOut(auth).then(() => {
                 localStorage.removeItem("lineUserId");
+                localStorage.removeItem("yulubox_vip_cache"); // 登出時清空快取
                 showLogoutSuccess();
             }).catch((error) => { console.error(error); });
         }
