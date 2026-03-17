@@ -270,321 +270,8 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             }
 
             // ==========================================
-            // 🗺️ 智慧選單導航 1：記事本選單
+            // 🔄 狀態機流程控制 (WAITING 狀態)
             // ==========================================
-            const notepadMenuKeywords = ["記事本", "記事", "筆記", "任務"];
-            if (notepadMenuKeywords.includes(text)) {
-                const todosSnap = await db.collection("todos").where("userId", "==", userId).where("status", "==", "pending").get();
-                await replyLineMessage(replyToken, [createCardMessage(
-                    "📝 記事本中樞",
-                    `您目前共有 ${todosSnap.size} 個待辦事項。\n請選擇您要進行的操作：👇`,
-                    "#3b82f6",
-                    [
-                        { type: "action", action: { type: "message", label: "📋 顯示近期待辦", text: "我的待辦" } },
-                        { type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } },
-                        { type: "action", action: { type: "uri", label: "🌐 開啟網頁版", uri: "https://yulubox.web.app/notepad.html" } }
-                    ]
-                )]);
-                continue;
-            }
-
-            // ==========================================
-            // 🗺️ 智慧選單導航 2：車位選單
-            // ==========================================
-            const parkingMenuKeywords = ["車位", "停車位", "找車位", "停車", "重機車位", "重機停車"];
-            if (parkingMenuKeywords.includes(text)) {
-                await replyLineMessage(replyToken, [createCardMessage(
-                    "🏍️ 車位搜尋系統",
-                    "請選擇您要尋找車位的方式：\n\n📍 自動定位：點擊下方「傳送定位」按鈕，為您尋找半徑 15 公里內的車位。\n\n🔍 縣市搜尋：請直接輸入「縣市+車位」(例如：台北市車位)。",
-                    "#f59e0b",
-                    [
-                        { type: "action", action: { type: "location", label: "📍 傳送定位" } },
-                        { type: "action", action: { type: "message", label: "台北市車位", text: "台北市車位" } },
-                        { type: "action", action: { type: "uri", label: "🌐 車位回報系統", uri: "https://yulubox.web.app/車位回報.html" } }
-                    ]
-                )]);
-                continue;
-            }
-
-            // ==========================================
-            // 🗺️ 智慧選單導航 3：記帳選單
-            // ==========================================
-            const accountingMenuKeywords = ["記帳", "帳本", "理財", "財務", "花費"];
-            if (accountingMenuKeywords.includes(text)) {
-                await replyLineMessage(replyToken, [createCardMessage(
-                    "💰 帳務中樞",
-                    "偵測到帳務管理需求！請選擇要將資金寫入哪一個帳本，或調閱分析圖表：👇",
-                    "#FFD700",
-                    [
-                        { type: "action", action: { type: "message", label: "🙋‍♂️ 個人記帳", text: "個人記帳" } },
-                        { type: "action", action: { type: "message", label: "👥 群組記帳", text: "群組記帳" } },
-                        { type: "action", action: { type: "message", label: "📊 日支出圖表", text: "日支出" } },
-                        { type: "action", action: { type: "uri", label: "🌐 開啟完整報表", uri: "https://yulubox.web.app/帳務.html" } }
-                    ]
-                )]);
-                continue;
-            }
-
-            // ==========================================
-            // 📝 記事本功能：查看近期代辦清單
-            // ==========================================
-            const showTodosKeywords = ["我的待辦", "待辦事項", "代辦事項", "代辦", "待辦", "近期待辦"];
-            if (showTodosKeywords.includes(text)) {
-                const todosSnap = await db.collection("todos")
-                    .where("userId", "==", userId)
-                    .where("status", "==", "pending")
-                    .get();
-
-                if (todosSnap.empty) {
-                    await replyLineMessage(replyToken, [createCardMessage("記事本", "您目前沒有任何待辦事項！太棒了 ✨", "#00ff9d", [{ type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } }])]);
-                    continue;
-                }
-
-                let tasks = [];
-                todosSnap.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
-                // 依截止日近到遠排序 (無截止日的放最後)
-                tasks.sort((a, b) => {
-                    if (!a.deadline) return 1; if (!b.deadline) return -1;
-                    return new Date(a.deadline) - new Date(b.deadline);
-                });
-
-                const topTasks = tasks.slice(0, 3);
-                let bubbles = topTasks.map((t, idx) => {
-                    let color = "#3b82f6";
-                    if (t.priority === 'high') color = "#ff4757";
-                    else if (t.priority === 'medium') color = "#FFD700";
-
-                    return {
-                        "type": "bubble",
-                        "size": "micro",
-                        "styles": { "body": { "backgroundColor": "#0f172a" }, "footer": { "backgroundColor": "#0f172a" } },
-                        "body": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [
-                                { "type": "text", "text": `📌 ${t.title}`, "weight": "bold", "size": "md", "color": color, "wrap": true },
-                                { "type": "text", "text": t.deadline ? `📅 截止: ${t.deadline}` : "📅 無期限", "size": "xs", "color": "#94a3b8", "margin": "sm" },
-                                { "type": "text", "text": t.note || "無備註", "size": "xs", "color": "#e2e8f0", "wrap": true, "margin": "sm" }
-                            ]
-                        },
-                        "footer": {
-                            "type": "box", "layout": "vertical",
-                            "contents": [{
-                                "type": "button", "style": "primary", "color": "#00ff9d", "height": "sm",
-                                "action": { "type": "message", "label": "✅ 標記完成", "text": `${t.title} 完成` }
-                            }]
-                        }
-                    };
-                });
-
-                const msg = { "type": "flex", "altText": "您的待辦事項", "contents": { "type": "carousel", "contents": bubbles } };
-                msg.quickReply = { items: [
-                    { type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } },
-                    { type: "action", action: { type: "uri", label: "🌐 查看全部", uri: "https://yulubox.web.app/notepad.html" } }
-                ]};
-                
-                await replyLineMessage(replyToken, [msg]);
-                continue;
-            }
-
-            // ==========================================
-            // 📝 記事本功能：標記完成 (例如輸入「買牛奶 完成」)
-            // ==========================================
-            if (text.endsWith("完成") && text.length > 2) {
-                const targetTitle = text.replace("完成", "").trim();
-                if (targetTitle) {
-                    const todosSnap = await db.collection("todos")
-                        .where("userId", "==", userId)
-                        .where("status", "==", "pending")
-                        .where("title", "==", targetTitle)
-                        .get();
-                    
-                    if (!todosSnap.empty) {
-                        const taskDoc = todosSnap.docs[0];
-                        await db.collection("todos").doc(taskDoc.id).update({
-                            status: "completed",
-                            completedAt: admin.firestore.FieldValue.serverTimestamp()
-                        });
-                        await replyLineMessage(replyToken, [createCardMessage("任務達成", `✅ 太棒了！您已完成任務：【${targetTitle}】`, "#00ff9d")]);
-                        continue;
-                    }
-                }
-            }
-
-            // ==========================================
-            // 📝 記事本功能：新增待辦流程
-            // ==========================================
-            if (text === "新增記事" || text === "新增待辦") {
-                await userRef.set({ state: "WAITING_TODO_TITLE", tempRecord: {} }, { merge: true });
-                await replyLineMessage(replyToken, [createCardMessage("新增待辦", "📝 請輸入您的「事項名稱」：\n(例如：機車換機油)", "#3b82f6")]);
-                continue;
-            }
-
-            if (state === "WAITING_TODO_TITLE") {
-                await userRef.set({ state: "WAITING_TODO_DEADLINE", tempRecord: { title: text } }, { merge: true });
-                await replyLineMessage(replyToken, [createCardMessage("設定日期", `📌 事項：${text}\n\n請輸入「截止日期」 (格式：YYYY-MM-DD，例如 2026-03-20)。\n點擊下方按鈕可直接選擇今日或跳過。`, "#3b82f6", [
-                    { type: "action", action: { type: "message", label: "📅 今天", text: new Date().toISOString().split('T')[0] } },
-                    { type: "action", action: { type: "message", label: "⏭️ 無期限 (跳過)", text: "跳過" } }
-                ])]);
-                continue;
-            }
-
-            if (state === "WAITING_TODO_DEADLINE") {
-                let deadline = text === "跳過" ? "" : text;
-                if (deadline && !deadline.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    await replyLineMessage(replyToken, [createCardMessage("格式錯誤", "⚠️ 日期格式錯誤，請輸入例如：2026-03-20，或輸入「跳過」。", "#ff4757")]);
-                    continue;
-                }
-                let tempRecord = userData.tempRecord || {};
-                tempRecord.deadline = deadline;
-                await userRef.set({ state: "WAITING_TODO_NOTE", tempRecord: tempRecord }, { merge: true });
-                await replyLineMessage(replyToken, [createCardMessage("輸入備註", "最後，請輸入「備註細節」：\n(若無備註請點擊跳過)", "#3b82f6", [
-                    { type: "action", action: { type: "message", label: "⏭️ 跳過備註", text: "無" } }
-                ])]);
-                continue;
-            }
-
-            if (state === "WAITING_TODO_NOTE") {
-                let note = text === "無" ? "" : text;
-                const record = userData.tempRecord;
-                
-                await db.collection("todos").add({
-                    userId: userId,
-                    title: record.title,
-                    deadline: record.deadline || "",
-                    note: note,
-                    priority: "medium",
-                    remind: true, // 由 LINE 建立的自動開啟提醒
-                    status: "pending",
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-                
-                await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
-                await replyLineMessage(replyToken, [createCardMessage("新增成功", `✅ 已將【${record.title}】加入記事本中！\n系統將在截止日前為您發送提醒。`, "#00ff9d")]);
-                continue;
-            }
-
-            // ==========================================
-            // 📊 記帳功能：查詢日支出 / 月支出 (生成圖表)
-            // ==========================================
-            if (text === "日支出" || text === "月支出") {
-                const isDaily = text === "日支出";
-                const tzStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Taipei"});
-                const nowTw = new Date(tzStr);
-                
-                try {
-                    const recordsSnap = await db.collection("records_personal")
-                        .where("userId", "==", userId)
-                        .where("transactionType", "==", "expense")
-                        .get();
-                    
-                    let total = 0;
-                    let categoryData = {};
-                    
-                    recordsSnap.forEach(doc => {
-                        const data = doc.data();
-                        if (!data.timestamp) return;
-                        const recordDate = new Date(data.timestamp.toDate().toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
-                        
-                        let isMatch = false;
-                        if (isDaily) {
-                            if (recordDate.getFullYear() === nowTw.getFullYear() && 
-                                recordDate.getMonth() === nowTw.getMonth() && 
-                                recordDate.getDate() === nowTw.getDate()) {
-                                isMatch = true;
-                            }
-                        } else {
-                            if (recordDate.getFullYear() === nowTw.getFullYear() && 
-                                recordDate.getMonth() === nowTw.getMonth()) {
-                                isMatch = true;
-                            }
-                        }
-
-                        if (isMatch) {
-                            total += data.amount;
-                            categoryData[data.category] = (categoryData[data.category] || 0) + data.amount;
-                        }
-                    });
-
-                    if (total === 0) {
-                        const title = isDaily ? "今日無支出" : "本月無支出";
-                        const desc = isDaily ? "太棒了！您今天目前為止沒有任何支出紀錄喔！繼續保持 ✨" : "您本月目前還沒有紀錄任何支出喔！";
-                        await replyLineMessage(replyToken, [createCardMessage(title, desc, "#00ff9d")]);
-                        continue;
-                    }
-
-                    const chartUrl = getQuickChartUrl(categoryData);
-                    const flexTitle = isDaily ? `${nowTw.getMonth()+1}/${nowTw.getDate()} 支出分佈` : `${nowTw.getFullYear()}年${nowTw.getMonth()+1}月 支出分佈`;
-                    await replyLineMessage(replyToken, [generateChartFlexMessage(flexTitle, total, chartUrl)]);
-                    
-                } catch (error) {
-                    console.error("產生圖表失敗:", error);
-                    await replyLineMessage(replyToken, [createCardMessage("系統異常", "生成圖表時發生錯誤，請稍後再試。", "#ff4757")]);
-                }
-                continue;
-            }
-
-            // ==========================================
-            // 🏍️ 車位查詢 (文字縣市搜尋，排除總選單指令)
-            // ==========================================
-            if (text.endsWith("車位") && !parkingMenuKeywords.includes(text)) {
-                let city = text.replace("車位", "").trim();
-                if (city === "") {
-                    await replyLineMessage(replyToken, [createCardMessage("指令錯誤", "🏍️ 尋找車位指令錯誤！\n\n1️⃣ 搜尋特定縣市：請輸入「縣市+車位」（例如：台北市車位）\n\n2️⃣ 搜尋附近車位：請直接點擊左下角「+」，傳送您的「位置資訊」給我！", "#ff4757")]);
-                } else {
-                    try {
-                        const searchCity = (city.includes("市") || city.includes("縣")) ? city : city + "市";
-                        const snapshot = await db.collection('parking_locations').where('status', '==', 'approved').where('city', '>=', searchCity).where('city', '<=', searchCity + '\uf8ff').limit(5).get();
-                        if (snapshot.empty) await replyLineMessage(replyToken, [generateNotFoundFlexMessage(`查無【${searchCity}】車位`, `目前資料庫中尚未有【${searchCity}】的重機車位情報。\n\n點擊下方按鈕，前往『車位回報』貢獻您的私房車位！`)]);
-                        else {
-                            let spots = []; snapshot.forEach(doc => spots.push(doc.data()));
-                            await replyLineMessage(replyToken, [generateParkingFlexMessage(spots, `為您找到【${searchCity}】的推薦車位`)]);
-                        }
-                    } catch (err) { console.error("縣市搜尋車位失敗:", err); }
-                }
-                continue;
-            }
-
-            // ==========================================
-            // 🌤️ 天氣觀測
-            // ==========================================
-            if (text.endsWith("天氣")) {
-                const city = text.replace("天氣", "").trim();
-                if (city === "") await replyLineMessage(replyToken, [createCardMessage("指令錯誤", "🌤️ 請輸入「縣市+天氣」來啟動觀測！\n例如：台北天氣、宜蘭天氣", "#ff4757")]);
-                else {
-                    const weatherInfo = await getWeather(city);
-                    await replyLineMessage(replyToken, [createCardMessage("氣象觀測站", weatherInfo.text, weatherInfo.error ? "#ff4757" : "#00f3ff")]);
-                }
-                continue;
-            }
-
-            // ==========================================
-            // 🌐 導覽指令
-            // ==========================================
-            if (text === "官網" || text === "首頁" || text.toLowerCase() === "website") {
-                await replyLineMessage(replyToken, [createCardMessage("啟動傳送門", "歡迎登入寶庫會員中心！\n\n您可以在此管理您的專屬設定、體驗完整帳務與社群功能。✨", "#bc13fe", null, { label: "🚀 前往會員中心", uri: "https://yulubox.web.app" })]);
-                continue;
-            }
-
-            if (text === "看報表" || text === "報表") {
-                await replyLineMessage(replyToken, [createCardMessage("個人帳務中樞", "為您調閱最新的財務分析圖表與收支紀錄。點擊下方按鈕立即查看：", "#00ff9d", null, { label: "📊 查看最新報表", uri: "https://yulubox.web.app/帳務.html" })]);
-                continue;
-            }
-
-            // ==========================================
-            // 🗑️ 刪除紀錄邏輯
-            // ==========================================
-            if (text === "刪除" || text === "刪除紀錄") {
-                const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
-                if (!groupsSnap.empty) {
-                    await userRef.set({ state: "WAITING_DELETE_SCOPE" }, { merge: true });
-                    const quickReplies = [{ type: "action", action: { type: "message", label: "🙋‍♂️ 個人帳本", text: "刪除個人紀錄" } }, { type: "action", action: { type: "message", label: "👥 群組帳本", text: "刪除群組紀錄" } }];
-                    await replyLineMessage(replyToken, [createCardMessage("刪除紀錄", "🗑️ 請問您要調閱哪一個帳本來進行刪除？👇", "#ff4757", quickReplies)]);
-                } else {
-                    await fetchAndDeleteList(userId, "personal", replyToken, userRef, null);
-                }
-                continue;
-            }
-
             if (state === "WAITING_DELETE_SCOPE") {
                 if (text === "刪除個人紀錄") await fetchAndDeleteList(userId, "personal", replyToken, userRef, null);
                 else if (text === "刪除群組紀錄") {
@@ -605,26 +292,6 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 await db.collection(scope === "group" ? "records_group" : "records_personal").doc(candidates[idx].id).delete();
                 await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
                 await replyLineMessage(replyToken, [createCardMessage("刪除成功", "✅ 抹除完成！該筆紀錄已徹底移除。", "#00ff9d")]);
-                continue;
-            }
-
-            // ==========================================
-            // ✍️ 新增記帳邏輯
-            // ==========================================
-            if (text === "個人記帳" || text === "群組記帳") {
-                const isGroup = text === "群組記帳";
-                let groupId = null;
-                if (isGroup) {
-                    const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
-                    if (groupsSnap.empty) {
-                        await replyLineMessage(replyToken, [createCardMessage("系統提示", "⚠️ 您目前尚未連結任何群組喔！請先至網頁中新增群組。", "#ff4757")]);
-                        continue;
-                    }
-                    groupId = groupsSnap.docs[0].id; 
-                }
-                await userRef.set({ state: "WAITING_TRANSACTION_TYPE", tempRecord: { account: isGroup ? "group" : "personal", targetGroupId: groupId } }, { merge: true });
-                const quickReplies = [{ type: "action", action: { type: "message", label: "📉 支出", text: "支出" } }, { type: "action", action: { type: "message", label: "📈 收入", text: "收入" } }, { type: "action", action: { type: "message", label: "🚫 取消", text: "取消" } }];
-                await replyLineMessage(replyToken, [createCardMessage("鎖定帳本", `💳 已鎖定【${isGroup ? '群組公積金' : '個人帳本'}】\n\n請指示這筆資金的流向：`, "#FFD700", quickReplies)]);
                 continue;
             }
 
@@ -701,18 +368,306 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
                 continue;
             }
 
+            if (state === "WAITING_TODO_TITLE") {
+                await userRef.set({ state: "WAITING_TODO_DEADLINE", tempRecord: { title: text } }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage("設定日期", `📌 事項：${text}\n\n請輸入「截止日期」 (格式：YYYY-MM-DD，例如 2026-03-20)。\n點擊下方按鈕可直接選擇今日或跳過。`, "#3b82f6", [
+                    { type: "action", action: { type: "message", label: "📅 今天", text: new Date().toISOString().split('T')[0] } },
+                    { type: "action", action: { type: "message", label: "⏭️ 無期限 (跳過)", text: "跳過" } }
+                ])]);
+                continue;
+            }
+
+            if (state === "WAITING_TODO_DEADLINE") {
+                let deadline = text === "跳過" ? "" : text;
+                if (deadline && !deadline.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    await replyLineMessage(replyToken, [createCardMessage("格式錯誤", "⚠️ 日期格式錯誤，請輸入例如：2026-03-20，或輸入「跳過」。", "#ff4757")]);
+                    continue;
+                }
+                let tempRecord = userData.tempRecord || {};
+                tempRecord.deadline = deadline;
+                await userRef.set({ state: "WAITING_TODO_NOTE", tempRecord: tempRecord }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage("輸入備註", "最後，請輸入「備註細節」：\n(若無備註請點擊跳過)", "#3b82f6", [
+                    { type: "action", action: { type: "message", label: "⏭️ 跳過備註", text: "無" } }
+                ])]);
+                continue;
+            }
+
+            if (state === "WAITING_TODO_NOTE") {
+                let note = text === "無" ? "" : text;
+                const record = userData.tempRecord;
+                
+                await db.collection("todos").add({
+                    userId: userId,
+                    title: record.title,
+                    deadline: record.deadline || "",
+                    note: note,
+                    priority: "medium",
+                    remind: true, // 由 LINE 建立的自動開啟提醒
+                    status: "pending",
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                
+                await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage("新增成功", `✅ 已將【${record.title}】加入記事本中！\n系統將在截止日前為您發送提醒。`, "#00ff9d")]);
+                continue;
+            }
+
             // ==========================================
-            // 🤷‍♂️ 預設防呆回覆 (更溫和、準確的推薦)
+            // 🎯 IDLE 狀態：明確的動作指令 (Action Commands)
             // ==========================================
             if (state === "IDLE") {
-                const triggerWords = ["買", "支", "收", "資"];
-                if (triggerWords.some(w => text.includes(w)) || !isNaN(parseInt(text[0]))) {
-                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "✨ 偵測到疑似帳務紀錄需求！\n若要開始記帳，請點擊下方按鈕：👇", "#FFD700", [
-                        { type: "action", action: { type: "message", label: "✍️ 開始記帳", text: "記帳" } }
+                
+                // 📝 顯示近期代辦清單
+                if (["我的待辦", "待辦清單", "顯示待辦", "近期待辦", "待辦事項", "代辦事項"].includes(text)) {
+                    const todosSnap = await db.collection("todos").where("userId", "==", userId).where("status", "==", "pending").get();
+                    if (todosSnap.empty) {
+                        await replyLineMessage(replyToken, [createCardMessage("記事本", "您目前沒有任何待辦事項！太棒了 ✨", "#00ff9d", [{ type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } }])]);
+                        continue;
+                    }
+
+                    let tasks = [];
+                    todosSnap.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
+                    tasks.sort((a, b) => {
+                        if (!a.deadline) return 1; if (!b.deadline) return -1;
+                        return new Date(a.deadline) - new Date(b.deadline);
+                    });
+
+                    const topTasks = tasks.slice(0, 3);
+                    let bubbles = topTasks.map((t) => {
+                        let color = "#3b82f6";
+                        if (t.priority === 'high') color = "#ff4757";
+                        else if (t.priority === 'medium') color = "#FFD700";
+
+                        return {
+                            "type": "bubble", "size": "micro",
+                            "styles": { "body": { "backgroundColor": "#0f172a" }, "footer": { "backgroundColor": "#0f172a" } },
+                            "body": {
+                                "type": "box", "layout": "vertical",
+                                "contents": [
+                                    { "type": "text", "text": `📌 ${t.title}`, "weight": "bold", "size": "md", "color": color, "wrap": true },
+                                    { "type": "text", "text": t.deadline ? `📅 截止: ${t.deadline}` : "📅 無期限", "size": "xs", "color": "#94a3b8", "margin": "sm" },
+                                    { "type": "text", "text": t.note || "無備註", "size": "xs", "color": "#e2e8f0", "wrap": true, "margin": "sm" }
+                                ]
+                            },
+                            "footer": {
+                                "type": "box", "layout": "vertical",
+                                "contents": [{ "type": "button", "style": "primary", "color": "#00ff9d", "height": "sm", "action": { "type": "message", "label": "✅ 標記完成", "text": `${t.title} 完成` } }]
+                            }
+                        };
+                    });
+
+                    const msg = { "type": "flex", "altText": "您的待辦事項", "contents": { "type": "carousel", "contents": bubbles } };
+                    msg.quickReply = { items: [
+                        { type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } },
+                        { type: "action", action: { type: "uri", label: "🌐 查看全部", uri: "https://yulubox.web.app/notepad.html" } }
+                    ]};
+                    
+                    await replyLineMessage(replyToken, [msg]);
+                    continue;
+                }
+
+                // 📝 標記完成 (例如：買牛奶 完成)
+                if (text.endsWith("完成") && text.length > 2) {
+                    const targetTitle = text.replace("完成", "").trim();
+                    if (targetTitle) {
+                        const todosSnap = await db.collection("todos").where("userId", "==", userId).where("status", "==", "pending").where("title", "==", targetTitle).get();
+                        if (!todosSnap.empty) {
+                            await db.collection("todos").doc(todosSnap.docs[0].id).update({
+                                status: "completed", completedAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            await replyLineMessage(replyToken, [createCardMessage("任務達成", `✅ 太棒了！您已完成任務：【${targetTitle}】`, "#00ff9d")]);
+                            continue;
+                        }
+                    }
+                }
+
+                // 📝 新增待辦流程啟動
+                if (["新增記事", "新增待辦", "新增代辦", "加待辦", "加記事"].includes(text)) {
+                    await userRef.set({ state: "WAITING_TODO_TITLE", tempRecord: {} }, { merge: true });
+                    await replyLineMessage(replyToken, [createCardMessage("新增待辦", "📝 請輸入您的「事項名稱」：\n(例如：機車換機油)", "#3b82f6")]);
+                    continue;
+                }
+
+                // ✍️ 新增記帳流程啟動
+                if (text === "個人記帳" || text === "群組記帳") {
+                    const isGroup = text === "群組記帳";
+                    let groupId = null;
+                    if (isGroup) {
+                        const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
+                        if (groupsSnap.empty) {
+                            await replyLineMessage(replyToken, [createCardMessage("系統提示", "⚠️ 您目前尚未連結任何群組喔！請先至網頁中新增群組。", "#ff4757")]);
+                            continue;
+                        }
+                        groupId = groupsSnap.docs[0].id; 
+                    }
+                    await userRef.set({ state: "WAITING_TRANSACTION_TYPE", tempRecord: { account: isGroup ? "group" : "personal", targetGroupId: groupId } }, { merge: true });
+                    const quickReplies = [{ type: "action", action: { type: "message", label: "📉 支出", text: "支出" } }, { type: "action", action: { type: "message", label: "📈 收入", text: "收入" } }, { type: "action", action: { type: "message", label: "🚫 取消", text: "取消" } }];
+                    await replyLineMessage(replyToken, [createCardMessage("鎖定帳本", `💳 已鎖定【${isGroup ? '群組公積金' : '個人帳本'}】\n\n請指示這筆資金的流向：`, "#FFD700", quickReplies)]);
+                    continue;
+                }
+
+                // 🗑️ 刪除記帳紀錄
+                if (text === "刪除" || text === "刪除紀錄") {
+                    const groupsSnap = await db.collection("groups").where("members", "array-contains", userId).get();
+                    if (!groupsSnap.empty) {
+                        await userRef.set({ state: "WAITING_DELETE_SCOPE" }, { merge: true });
+                        const quickReplies = [{ type: "action", action: { type: "message", label: "🙋‍♂️ 個人帳本", text: "刪除個人紀錄" } }, { type: "action", action: { type: "message", label: "👥 群組帳本", text: "刪除群組紀錄" } }];
+                        await replyLineMessage(replyToken, [createCardMessage("刪除紀錄", "🗑️ 請問您要調閱哪一個帳本來進行刪除？👇", "#ff4757", quickReplies)]);
+                    } else {
+                        await fetchAndDeleteList(userId, "personal", replyToken, userRef, null);
+                    }
+                    continue;
+                }
+
+                // 📊 記帳圖表查詢
+                if (text === "日支出" || text === "月支出") {
+                    const isDaily = text === "日支出";
+                    const tzStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Taipei"});
+                    const nowTw = new Date(tzStr);
+                    
+                    try {
+                        const recordsSnap = await db.collection("records_personal").where("userId", "==", userId).where("transactionType", "==", "expense").get();
+                        let total = 0; let categoryData = {};
+                        
+                        recordsSnap.forEach(doc => {
+                            const data = doc.data();
+                            if (!data.timestamp) return;
+                            const recordDate = new Date(data.timestamp.toDate().toLocaleString("en-US", {timeZone: "Asia/Taipei"}));
+                            let isMatch = false;
+                            if (isDaily) {
+                                if (recordDate.getFullYear() === nowTw.getFullYear() && recordDate.getMonth() === nowTw.getMonth() && recordDate.getDate() === nowTw.getDate()) isMatch = true;
+                            } else {
+                                if (recordDate.getFullYear() === nowTw.getFullYear() && recordDate.getMonth() === nowTw.getMonth()) isMatch = true;
+                            }
+                            if (isMatch) {
+                                total += data.amount;
+                                categoryData[data.category] = (categoryData[data.category] || 0) + data.amount;
+                            }
+                        });
+
+                        if (total === 0) {
+                            const title = isDaily ? "今日無支出" : "本月無支出";
+                            const desc = isDaily ? "太棒了！您今天目前為止沒有任何支出紀錄喔！繼續保持 ✨" : "您本月目前還沒有紀錄任何支出喔！";
+                            await replyLineMessage(replyToken, [createCardMessage(title, desc, "#00ff9d")]);
+                            continue;
+                        }
+
+                        const chartUrl = getQuickChartUrl(categoryData);
+                        const flexTitle = isDaily ? `${nowTw.getMonth()+1}/${nowTw.getDate()} 支出分佈` : `${nowTw.getFullYear()}年${nowTw.getMonth()+1}月 支出分佈`;
+                        await replyLineMessage(replyToken, [generateChartFlexMessage(flexTitle, total, chartUrl)]);
+                    } catch (error) { await replyLineMessage(replyToken, [createCardMessage("系統異常", "生成圖表時發生錯誤，請稍後再試。", "#ff4757")]); }
+                    continue;
+                }
+
+                // 🏍️ 車位縣市搜尋
+                const parkingMenuKeywords = ["車位", "停車位", "找車位", "停車", "重機車位", "重機停車"];
+                if (text.endsWith("車位") && !parkingMenuKeywords.includes(text)) {
+                    let city = text.replace("車位", "").trim();
+                    if (city === "") {
+                        await replyLineMessage(replyToken, [createCardMessage("指令錯誤", "🏍️ 尋找車位指令錯誤！\n\n1️⃣ 搜尋特定縣市：請輸入「縣市+車位」（例如：台北市車位）\n\n2️⃣ 搜尋附近車位：請直接點擊左下角「+」，傳送您的「位置資訊」給我！", "#ff4757")]);
+                    } else {
+                        try {
+                            const searchCity = (city.includes("市") || city.includes("縣")) ? city : city + "市";
+                            const snapshot = await db.collection('parking_locations').where('status', '==', 'approved').where('city', '>=', searchCity).where('city', '<=', searchCity + '\uf8ff').limit(5).get();
+                            if (snapshot.empty) await replyLineMessage(replyToken, [generateNotFoundFlexMessage(`查無【${searchCity}】車位`, `目前資料庫中尚未有【${searchCity}】的重機車位情報。\n\n點擊下方按鈕，前往『車位回報』貢獻您的私房車位！`)]);
+                            else {
+                                let spots = []; snapshot.forEach(doc => spots.push(doc.data()));
+                                await replyLineMessage(replyToken, [generateParkingFlexMessage(spots, `為您找到【${searchCity}】的推薦車位`)]);
+                            }
+                        } catch (err) { console.error(err); }
+                    }
+                    continue;
+                }
+
+                // 🌤️ 天氣觀測
+                if (text.endsWith("天氣")) {
+                    const city = text.replace("天氣", "").trim();
+                    if (city === "") await replyLineMessage(replyToken, [createCardMessage("指令錯誤", "🌤️ 請輸入「縣市+天氣」來啟動觀測！\n例如：台北天氣、宜蘭天氣", "#ff4757")]);
+                    else {
+                        const weatherInfo = await getWeather(city);
+                        await replyLineMessage(replyToken, [createCardMessage("氣象觀測站", weatherInfo.text, weatherInfo.error ? "#ff4757" : "#00f3ff")]);
+                    }
+                    continue;
+                }
+
+                // 🌐 導覽指令
+                if (["官網", "首頁", "website"].includes(text.toLowerCase())) {
+                    await replyLineMessage(replyToken, [createCardMessage("啟動傳送門", "歡迎登入寶庫會員中心！\n\n您可以在此管理您的專屬設定、體驗完整帳務與社群功能。✨", "#bc13fe", null, { label: "🚀 前往會員中心", uri: "https://yulubox.web.app" })]);
+                    continue;
+                }
+                if (["看報表", "報表"].includes(text)) {
+                    await replyLineMessage(replyToken, [createCardMessage("個人帳務中樞", "為您調閱最新的財務分析圖表與收支紀錄。點擊下方按鈕立即查看：", "#00ff9d", null, { label: "📊 查看最新報表", uri: "https://yulubox.web.app/帳務.html" })]);
+                    continue;
+                }
+
+
+                // ==========================================
+                // 🗺️ 智慧選單導航與模糊意圖辨識 (Fuzzy Intent Matching)
+                // 徹底區分「記事」與「記帳」的關鍵字，避免衝突
+                // ==========================================
+                
+                const isNotepadIntent = ["記事", "筆記", "任務", "待辦", "代辦", "備忘"].some(w => text.includes(w));
+                const isAccountingIntent = ["記帳", "記賬", "帳本", "理財", "財務", "花費", "收支", "花錢", "記一筆", "支出", "收入"].some(w => text.includes(w));
+                
+                // 📝 記事本選單 (包含記事關鍵字，且不包含記帳)
+                if (isNotepadIntent && !isAccountingIntent) {
+                    const todosSnap = await db.collection("todos").where("userId", "==", userId).where("status", "==", "pending").get();
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "📝 記事本中樞",
+                        `您目前共有 ${todosSnap.size} 個待辦事項。\n請選擇您要進行的操作：👇`,
+                        "#3b82f6",
+                        [
+                            { type: "action", action: { type: "message", label: "📋 顯示近期待辦", text: "我的待辦" } },
+                            { type: "action", action: { type: "message", label: "➕ 新增待辦", text: "新增待辦" } },
+                            { type: "action", action: { type: "uri", label: "🌐 開啟網頁版", uri: "https://yulubox.web.app/notepad.html" } }
+                        ]
+                    )]);
+                    continue;
+                }
+
+                // 💰 記帳選單 (包含記帳關鍵字，且不包含記事)
+                if (isAccountingIntent && !isNotepadIntent) {
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "💰 帳務中樞",
+                        "偵測到帳務管理需求！請選擇要將資金寫入哪一個帳本，或調閱分析圖表：👇",
+                        "#FFD700",
+                        [
+                            { type: "action", action: { type: "message", label: "🙋‍♂️ 個人記帳", text: "個人記帳" } },
+                            { type: "action", action: { type: "message", label: "👥 群組記帳", text: "群組記帳" } },
+                            { type: "action", action: { type: "message", label: "📊 日支出圖表", text: "日支出" } },
+                            { type: "action", action: { type: "uri", label: "🌐 開啟完整報表", uri: "https://yulubox.web.app/帳務.html" } }
+                        ]
+                    )]);
+                    continue;
+                }
+
+                // 🏍️ 車位選單
+                if (parkingMenuKeywords.some(w => text.includes(w))) {
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "🏍️ 車位搜尋系統",
+                        "請選擇您要尋找車位的方式：\n\n📍 自動定位：點擊下方「傳送定位」按鈕，為您尋找半徑 15 公里內的車位。\n\n🔍 縣市搜尋：請直接輸入「縣市+車位」(例如：台北市車位)。",
+                        "#f59e0b",
+                        [
+                            { type: "action", action: { type: "location", label: "📍 傳送定位" } },
+                            { type: "action", action: { type: "message", label: "台北市車位", text: "台北市車位" } },
+                            { type: "action", action: { type: "uri", label: "🌐 車位回報系統", uri: "https://yulubox.web.app/車位回報.html" } }
+                        ]
+                    )]);
+                    continue;
+                }
+
+                // ==========================================
+                // 🤷‍♂️ 預設防呆回覆 (數字快速防呆與終極導航)
+                // ==========================================
+                const isNumberOrMath = !isNaN(parseInt(text[0])); 
+                if (isNumberOrMath) {
+                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "✨ 偵測到疑似帳務金額！\n若要開始記帳，請點擊下方按鈕：👇", "#FFD700", [
+                        { type: "action", action: { type: "message", label: "✍️ 開始記帳", text: "個人記帳" } }
                     ])]);
                     continue; 
                 }
 
+                // 終極防呆導航
                 await replyLineMessage(replyToken, [createCardMessage("系統導航", "🤖 系統無法辨識您的指令喔！\n\n您可以點擊下方快捷按鈕，開啟各項功能選單：👇", "#00f3ff", [
                     { type: "action", action: { type: "message", label: "💰 記帳系統", text: "記帳" } },
                     { type: "action", action: { type: "message", label: "📝 記事本", text: "記事本" } },
