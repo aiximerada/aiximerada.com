@@ -270,6 +270,18 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             }
 
             // ==========================================
+            // 🛠️ 系統管理功能：版本查詢
+            // ==========================================
+            if (text === "現在版本") {
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "系統狀態報告", 
+                    "🤖 目前 LINE 大腦核心版本：\n\n► 版本號：1", 
+                    "#00ff9d"
+                )]);
+                continue;
+            }
+
+            // ==========================================
             // 🔄 狀態機流程控制 (WAITING 狀態)
             // ==========================================
             if (state === "WAITING_DELETE_SCOPE") {
