@@ -2,116 +2,146 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <!-- 🔥 完美支援 PWA 與 iOS 瀏海 (viewport-fit=cover) -->
+    <!-- 🔥 支援 PWA 與 iOS 全螢幕 Web App 的關鍵設定 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="重機停車">
+    <meta name="apple-mobile-web-app-title" content="會員登入">
     <meta name="theme-color" content="#090A0F">
     
-    <title>重機停車</title>
+    <title>登入 - 玉露寶庫</title>
     
     <!-- 🔥 換上您專屬的流星 APP 圖示 -->
-    <link rel="icon" type="image/jpeg" href="APP圖示.jpg">
-    <link rel="apple-touch-icon" href="APP圖示.jpg">
+    <link rel="icon" type="image/png" href="APP圖示.png">
+    <link rel="apple-touch-icon" href="APP圖示.png">
     
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 🔥 載入 LINE LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <style>
-        html, body { 
-            width: 100vw; height: 100vh; margin: 0; padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: #090A0F; color: #fff;
-            overflow: hidden; 
+        :root {
+            --main-gold: #FFD700;       
+            --accent-amber: #FDB931;    
+            --deep-space: #0f172a;      
+            --nebula-blue: #00f3ff;     
+            --danger-red: #ff4757;      
+            --line-green: #06C755; 
+            --glass-bg: rgba(15, 23, 42, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            opacity: 1 !important; 
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
+            height: 100dvh; 
+            display: flex; align-items: center; justify-content: center; margin: 0;
+            overflow: hidden; position: relative;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
             -webkit-tap-highlight-color: transparent;
         }
-        
-        #root { width: 100vw; height: 100vh; }
-        ::-webkit-scrollbar { display: none; }
-        
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation: rotateSpace 240s linear infinite; }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent); background-size: 300px 300px; }
+        .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent); background-size: 100% 100%; opacity: 0.5; animation: twinkle 5s infinite; }
+        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 
-        .leaflet-container { font-family: inherit; background: #090A0F; outline: none; }
-        .leaflet-control-attribution { display: none !important; }
-        .dark-map-tiles { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+        .login-box {
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border);
+            padding: 40px 30px; border-radius: 24px; width: 90%; max-width: 360px;
+            backdrop-filter: blur(12px); text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeIn 0.8s ease-out;
+            position: relative; z-index: 10;
+            max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
+
+        h2 { 
+            margin-bottom: 25px; color: var(--main-gold); letter-spacing: 2px; font-size: 1.8rem; 
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); font-weight: 900;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+        .title-star { color: var(--nebula-blue); font-size: 1.2rem; filter: drop-shadow(0 0 8px var(--nebula-blue)); animation: pulseStar 2s infinite alternate; }
+        @keyframes pulseStar { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
+
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 1.1rem; }
         
-        .leaflet-popup-content-wrapper {
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid #00f3ff; color: #fff;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.3);
-            padding: 0; overflow: hidden;
+        input {
+            width: 100%; padding: 14px 14px 14px 45px; background: rgba(0,0,0,0.3);
+            border: 1px solid #475569; border-radius: 12px; color: #fff; box-sizing: border-box;
+            font-size: 1rem; transition: 0.3s;
         }
-        .leaflet-popup-content { margin: 0; width: 240px !important; }
-        .leaflet-popup-tip { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid #00f3ff; border-right: 1px solid #00f3ff; }
-        .leaflet-popup-close-button { color: #fff !important; text-shadow: 0 0 5px black; top: 5px !important; right: 5px !important; }
+        input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); background: rgba(0,0,0,0.6); }
+
+        button {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
+            color: #0f172a; border: none; border-radius: 12px; font-weight: 900; cursor: pointer;
+            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; filter: grayscale(50%); transform: none !important; box-shadow: none !important; }
         
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .bottom-sheet { animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .register-btn { background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px; }
+        .register-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 15px var(--nebula-blue); color: #fff; }
 
-        .safe-top-search { top: calc(1rem + env(safe-area-inset-top, 0px)); }
-        .safe-bottom-locate { bottom: calc(2rem + env(safe-area-inset-bottom, 0px)); }
-        .safe-padding-top { padding-top: calc(1.5rem + env(safe-area-inset-top, 20px)); }
-        .safe-padding-bottom { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 20px)); }
+        /* 🔥 LINE 登入按鈕與分隔線樣式 */
+        .line-btn { background: var(--line-green); color: #ffffff; margin-top: 15px; border: none; }
+        .line-btn:hover { background: #05A044; box-shadow: 0 10px 20px rgba(6, 199, 85, 0.3); color: #fff; }
+        
+        .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #64748b; font-size: 0.9rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
 
-        #splash-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #090A0F; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 999999; color: #00f3ff; transition: opacity 0.5s ease-out;
-        }
-
-        /* 自訂 Checkbox 樣式 */
-        .custom-checkbox {
-            appearance: none; background-color: rgba(0,0,0,0.5);
-            margin: 0; font: inherit; color: currentColor;
-            width: 1.5rem; height: 1.5rem; border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 0.35rem; display: grid; place-content: center; cursor: pointer;
-            transition: 0.2s;
-        }
-        .custom-checkbox::before {
-            content: ""; width: 0.8rem; height: 0.8rem; transform: scale(0);
-            transition: 120ms transform ease-in-out;
-            box-shadow: inset 1em 1em #00f3ff; background-color: #00f3ff;
-            transform-origin: center; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
-        }
-        .custom-checkbox:checked { border-color: #00f3ff; }
-        .custom-checkbox:checked::before { transform: scale(1); }
+        .error { color: var(--danger-red); font-size: 0.9rem; margin-top: 15px; min-height: 20px; font-weight: bold; }
+        .back-link { margin-top: 25px; display: block; font-size: 0.9rem; color: #64748b; text-decoration: none; transition: 0.3s; }
+        .back-link:hover { color: #fff; }
     </style>
 </head>
 <body>
-
-    <div id="splash-screen">
-        <i class="fa-solid fa-star fa-spin text-6xl mb-6 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]"></i>
-        <h2 class="text-2xl font-black tracking-widest">系統初始化...</h2>
-        <p class="text-gray-400 mt-2 text-sm">載入星際雷達地圖</p>
+    <div class="space-container">
+        <div class="star-field stars-distant"></div>
+        <div class="gold-twinklers"></div>
     </div>
 
-    <div id="root"></div>
+    <div class="login-box">
+        <h2><i class="fa-solid fa-star title-star"></i> 會員登入 <i class="fa-solid fa-star title-star"></i></h2>
+        
+        <div class="input-group">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="email" placeholder="電子信箱">
+        </div>
+        
+        <div class="input-group">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="password" placeholder="密碼">
+        </div>
+        
+        <button id="emailLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入</button>
+        <button class="register-btn" onclick="location.href='register.html'"><i class="fa-solid fa-user-plus"></i> 加入星員</button>
+        
+        <div class="divider">或</div>
+        
+        <button class="line-btn" id="lineLoginBtn">
+            <i class="fa-brands fa-line" style="font-size: 1.3rem;"></i> LINE 快速登入
+        </button>
 
-    <script type="text/babel" data-type="module">
-        const { useState, useEffect, useRef, useMemo } = React;
+        <div class="error" id="errorMsg"></div>
+        <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> 返回大廳</a>
+    </div>
 
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -121,889 +151,103 @@
             messagingSenderId: "256466567852",
             appId: "1:256466567852:web:233b74668908ffcb9b9509"
         };
-        
+
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
         const auth = getAuth(app);
-        const storage = getStorage(app);
 
-        const TAIWAN_CITIES = ['基隆市', '台北市', '新北市', '桃園市', '新竹市', '新竹縣', '苗栗縣', '台中市', '彰化縣', '南投縣', '雲林縣', '嘉義市', '嘉義縣', '台南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣', '台東縣', '澎湖縣', '金門縣', '連江縣'];
+        // ==========================================
+        // 🌟 LINE LIFF 初始化與嚴格綁定事件
+        // ==========================================
+        const myLiffId = "2009464550-Odl0cheD";
+        const errorDiv = document.getElementById('errorMsg');
+        const lineBtn = document.getElementById('lineLoginBtn');
+        const emailBtn = document.getElementById('emailLoginBtn');
 
-        const formatTime = (ts) => {
-            if (!ts) return '未知時間';
+        let isLiffReady = false;
+
+        document.addEventListener("DOMContentLoaded", async () => {
             try {
-                if (ts.toDate) return ts.toDate().toLocaleString('zh-TW', { hour12: false });
-                return new Date(ts).toLocaleString('zh-TW', { hour12: false });
-            } catch(e) { return '時間解析錯誤'; }
-        };
+                await liff.init({ liffId: myLiffId });
+                isLiffReady = true; // 標記為初始化完成
 
-        function App() {
-            const [view, setView] = useState('map'); 
-            const [user, setUser] = useState(null);
-            const [role, setRole] = useState(null);
-
-            useEffect(() => {
-                const splash = document.getElementById('splash-screen');
-                if(splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(() => splash.style.display = 'none', 500);
-                }
-
-                const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-                    if (currentUser) {
-                        setUser(currentUser);
-                        if (!currentUser.isAnonymous) {
-                            try {
-                                const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-                                if (userDoc.exists() && userDoc.data().role) {
-                                    setRole(userDoc.data().role);
-                                } else {
-                                    const q = query(collection(db, "users"), where("email", "==", currentUser.email));
-                                    const snap = await getDocs(q);
-                                    let foundRole = 'member';
-                                    snap.forEach(d => { if(d.data().role) foundRole = d.data().role; });
-                                    setRole(foundRole);
-                                }
-                            } catch (error) { setRole('member'); }
-                        } else {
-                            setRole('guest'); 
-                        }
-                    } else {
-                        setUser(null); setRole(null);
-                        try { await signInAnonymously(auth); } catch (e) { console.error("匿名登入失敗", e); }
+                if (liff.isLoggedIn()) {
+                    try {
+                        const profile = await liff.getProfile();
+                        localStorage.setItem("lineUserId", profile.userId);
+                        // 登入成功後跳轉至會員中心
+                        window.location.href = "vip_area.html"; 
+                    } catch (profileErr) {
+                        console.error("無法取得 Profile:", profileErr);
+                        errorDiv.innerText = "無法取得您的 LINE 資料，請重新登入";
                     }
-                });
-                return () => unsubscribe();
-            }, []);
-
-            return (
-                <div className="w-full h-full relative bg-black flex flex-col overflow-hidden">
-                    {view === 'map' ? (
-                        <MapScreen db={db} storage={storage} user={user} role={role} onSwitchToAdmin={() => setView('admin')} />
-                    ) : (
-                        <div className="w-full h-full flex flex-col bg-[radial-gradient(ellipse_at_bottom,_#1B2735_0%,_#090A0F_100%)]">
-                            <div style={{ height: 'env(safe-area-inset-top)' }} className="w-full shrink-0"></div>
-                            <div className="flex-1 overflow-y-auto px-4 pb-12" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-                                <div className="max-w-4xl mx-auto pt-4 relative">
-                                    <button onClick={() => setView('map')} className="mb-6 inline-flex items-center text-gray-400 hover:text-white px-4 py-2 rounded-xl bg-white/5 border border-white/10 z-10 transition-colors shadow-lg">
-                                        <i className="fa-solid fa-chevron-left mr-2"></i> 返回地圖
-                                    </button>
-                                    <AdminPanel db={db} auth={auth} user={user} role={role} />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        function MapScreen({ db, storage, user, role, onSwitchToAdmin }) {
-            const mapRef = useRef(null);
-            const mapInstanceRef = useRef(null);
-            const markerGroupRef = useRef(null); 
-            
-            const [locations, setLocations] = useState([]);
-            const [searchQuery, setSearchQuery] = useState('');
-            const [isSearching, setIsSearching] = useState(false);
-            const [isReportOpen, setIsReportOpen] = useState(false);
-            const [isMenuOpen, setIsMenuOpen] = useState(false);
-            
-            // 篩選條件 States
-            const [filterParkType, setFilterParkType] = useState('全部');
-            const [filterEntry, setFilterEntry] = useState('全部');
-            const [filterSpot, setFilterSpot] = useState('全部');
-            const [filterFee, setFilterFee] = useState('全部');
-
-            const [reportLocation, setReportLocation] = useState(null);
-            const [showDragHint, setShowDragHint] = useState(true);
-            const [lastUpdateDate, setLastUpdateDate] = useState('載入中...');
-
-            useEffect(() => {
-                const timer = setTimeout(() => setShowDragHint(false), 4000);
-                return () => clearTimeout(timer);
-            }, []);
-
-            const fetchApprovedSpots = async () => {
-                const q = query(collection(db, "parking_locations"), where("status", "==", "approved"));
-                const snap = await getDocs(q);
-                const spots = [];
-                snap.forEach(doc => spots.push({ id: doc.id, ...doc.data() }));
-                setLocations(spots);
-
-                // 計算最後更新日期
-                const latestTime = spots.reduce((max, spot) => {
-                    const time = spot.reviewed_at?.seconds || spot.created_at?.seconds || 0;
-                    return time > max ? time : max;
-                }, 0);
-                if (latestTime > 0) {
-                    const d = new Date(latestTime * 1000);
-                    setLastUpdateDate(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`);
-                } else {
-                    setLastUpdateDate('無歷史資料');
                 }
-            };
+            } catch (err) {
+                console.error("LIFF 初始化失敗:", err);
+                errorDiv.innerText = "LINE 服務初始化失敗。若您是站長，請確認 LINE Console 中的 Endpoint URL 是否與目前網址一致。";
+            }
+        });
 
-            useEffect(() => { fetchApprovedSpots(); }, []);
-
-            // 地圖初始化
-            useEffect(() => {
-                if (!mapRef.current) return;
-                if (mapInstanceRef.current) return; 
-
-                const map = L.map(mapRef.current, { zoomControl: false }).setView([23.6978, 120.9605], 8);
-                
-                L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                    maxZoom: 20, className: 'dark-map-tiles'
-                }).addTo(map);
-
-                map.on('dragstart', () => setShowDragHint(false));
-                map.on('touchstart', () => setShowDragHint(false));
-
-                mapInstanceRef.current = map;
-                markerGroupRef.current = L.layerGroup().addTo(map);
-
-                setTimeout(() => map.invalidateSize(), 100);
-                setTimeout(() => map.invalidateSize(), 500);
-
-                return () => {
-                    if (mapInstanceRef.current) {
-                        mapInstanceRef.current.remove();
-                        mapInstanceRef.current = null;
-                    }
-                };
-            }, []);
-
-            // 畫圖釘 (加入篩選邏輯)
-            useEffect(() => {
-                if (!mapInstanceRef.current || !markerGroupRef.current) return;
-
-                const map = mapInstanceRef.current;
-                markerGroupRef.current.clearLayers(); 
-
-                const filteredSpots = locations.filter(spot => {
-                    if (filterParkType !== '全部' && spot.parkingType !== filterParkType) return false;
-                    if (filterEntry !== '全部' && spot.entryMethod !== filterEntry) return false;
-                    if (filterSpot !== '全部' && spot.spotType !== filterSpot) return false;
-                    if (filterFee !== '全部' && spot.priceType !== filterFee && spot.price !== filterFee) return false; 
-                    return true;
-                });
-
-                filteredSpots.forEach(spot => {
-                    if (spot.lat && spot.lng) {
-                        // 🔥 根據車格類型動態調整圖示與發光顏色
-                        let iconClass = "fa-star";
-                        let iconColor = "text-[#00f3ff]";
-                        let shadowColor = "rgba(0,243,255,1)";
-                        
-                        if (spot.spotType === '汽車格') {
-                            iconClass = "fa-car";
-                            iconColor = "text-[#00ff9d]"; // 綠色
-                            shadowColor = "rgba(0,255,157,1)";
-                        } else if (spot.spotType === '重機用專用') {
-                            iconClass = "fa-motorcycle";
-                            iconColor = "text-[#00f3ff]"; // 藍色
-                            shadowColor = "rgba(0,243,255,1)";
-                        } else if (spot.spotType === '機車格') {
-                            iconClass = "fa-moped"; 
-                            iconColor = "text-[#bc13fe]"; // 紫色
-                            shadowColor = "rgba(188,19,254,1)";
-                        }
-
-                        const customIcon = L.divIcon({
-                            className: 'custom-div-icon',
-                            html: `<div class="${iconColor} text-2xl drop-shadow-[0_0_10px_${shadowColor}] text-center leading-none">
-                                     <i class="fa-solid ${iconClass}"></i>
-                                   </div>`,
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                        });
-
-                        const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
-                        const navLink = spot.gmap || `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
-                        
-                        const popupHtml = `
-                            <div class="flex flex-col text-sm">
-                                ${spot.image_url ? `<img src="${spot.image_url}" class="w-full h-32 object-cover border-b border-[#00f3ff]/30" />` : ''}
-                                <div class="p-3">
-                                    <h3 class="text-lg font-bold text-[#00f3ff] mb-1 leading-tight">${spot.name}</h3>
-                                    <p class="text-xs text-gray-300 mb-2 truncate"><i class="fa-solid fa-location-dot"></i> ${spot.city}</p>
-                                    
-                                    <div class="bg-black/30 rounded p-2 mb-2 space-y-1">
-                                        <div class="flex justify-between"><span class="text-gray-400">場地：</span><span class="text-white">${spot.parkingType || '未提供'}</span></div>
-                                        <div class="flex justify-between"><span class="text-gray-400">車格：</span><span class="text-[#FFD700]">${spot.spotType || '未提供'}</span></div>
-                                        <div class="flex justify-between"><span class="text-gray-400">入場：</span><span class="text-white">${spot.entryMethod || '未提供'}</span></div>
-                                        <div class="flex justify-between"><span class="text-gray-400">費率：</span><span class="text-[#00ff9d] font-bold">${spot.price || '未提供'}</span></div>
-                                    </div>
-                                    
-                                    ${spot.note ? `<p class="text-xs text-gray-400 bg-white/10 p-2 rounded mb-2">${spot.note}</p>` : ''}
-                                    <a href="${navLink}" target="_blank" class="block w-full py-2 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-center text-white font-bold rounded-lg text-sm transition-all hover:opacity-90 mt-2">
-                                        <i class="fa-solid fa-location-arrow"></i> 導航前往
-                                    </a>
-                                </div>
-                            </div>
-                        `;
-                        marker.bindPopup(popupHtml);
-                        markerGroupRef.current.addLayer(marker);
-                    }
-                });
-            }, [locations, filterParkType, filterEntry, filterSpot, filterFee]);
-
-            const handleSearch = async (e) => {
-                e.preventDefault();
-                if (!searchQuery.trim()) return;
-                setIsSearching(true);
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=tw&limit=1`);
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        mapInstanceRef.current.flyTo([data[0].lat, data[0].lon], 16, { duration: 1.5 });
-                    } else { alert("找不到該地標，請嘗試其他關鍵字！"); }
-                } catch (err) { console.error(err); }
-                setIsSearching(false);
-                document.activeElement.blur(); 
-            };
-
-            const locateMe = () => {
-                if (!navigator.geolocation) return alert('不支援定位功能');
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        const { latitude, longitude } = pos.coords;
-                        mapInstanceRef.current.flyTo([latitude, longitude], 16, { duration: 1.5 });
-                    },
-                    (err) => alert('無法取得定位，請確認手機已開啟位置權限。'),
-                    { enableHighAccuracy: true }
-                );
-            };
-
-            const handleOpenReport = () => {
-                if (mapInstanceRef.current) {
-                    const center = mapInstanceRef.current.getCenter();
-                    setReportLocation({ lat: center.lat, lng: center.lng });
-                }
-                setIsMenuOpen(false);
-                setIsReportOpen(true);
-            };
-
-            const handleReportIssue = async () => {
-                const lastReport = localStorage.getItem('lastIssueReport');
-                if (lastReport && Date.now() - parseInt(lastReport) < 60000) {
-                    return alert("回報過於頻繁，請稍後再試！(防呆機制 60 秒冷卻)");
-                }
-                const issue = prompt("請描述您遇到的問題 (例如：圖標錯誤、系統閃退、建議功能)：");
-                if (!issue || !issue.trim()) return;
-                
-                try {
-                    await addDoc(collection(db, "parking_issues"), {
-                        issue: issue.trim(),
-                        reported_by: user?.uid || 'guest',
-                        created_at: serverTimestamp()
-                    });
-                    localStorage.setItem('lastIssueReport', Date.now());
-                    alert("✅ 感謝您的回報！工程團隊將盡快處理。");
-                } catch(e) {
-                    alert("❌ 回報失敗，請確認網路狀態。");
-                }
-            };
-
-            return (
-                <div className="w-full h-full relative overflow-hidden flex-1">
-                    <div ref={mapRef} style={{width: '100%', height: '100%'}} className="absolute inset-0 z-0"></div>
-
-                    {/* --- 左側抽屜選單 (Sidebar Menu) --- */}
-                    {isMenuOpen && <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-[150]" onClick={() => setIsMenuOpen(false)}></div>}
-                    
-                    <div className={`absolute top-0 left-0 h-full w-[280px] bg-[#0f172a]/95 backdrop-blur-xl shadow-[10px_0_30px_rgba(0,0,0,0.8)] z-[200] transform transition-transform duration-300 ease-in-out flex flex-col border-r border-white/10 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="safe-padding-top px-6 pb-4 border-b border-white/10 flex justify-between items-center bg-black/40">
-                            <h2 className="text-[#00f3ff] text-xl font-black tracking-widest flex items-center gap-2"><i className="fa-solid fa-motorcycle"></i> 重機停車</h2>
-                            <button onClick={() => setIsMenuOpen(false)} className="text-gray-400 hover:text-white text-xl"><i className="fa-solid fa-xmark"></i></button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-                            {/* 篩選器 */}
-                            <div className="space-y-4">
-                                <h3 className="text-gray-300 font-bold text-sm flex items-center gap-2"><i className="fa-solid fa-filter text-[#FFD700]"></i> 條件篩選</h3>
-                                
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">停車場</label>
-                                    <select value={filterParkType} onChange={e => setFilterParkType(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00f3ff]">
-                                        <option value="全部">全部顯示</option><option value="公有停車場">公有停車場</option><option value="私人停車場">私人停車場</option><option value="路邊停車格">路邊停車格</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">入場方式</label>
-                                    <select value={filterEntry} onChange={e => setFilterEntry(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00f3ff]">
-                                        <option value="全部">全部顯示</option><option value="後牌掃描">後牌掃描</option><option value="按鈕取票">按鈕取票</option><option value="悠遊卡">悠遊卡</option><option value="管理員開門">管理員開門</option><option value="倒退入場">倒退入場</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">車格</label>
-                                    <select value={filterSpot} onChange={e => setFilterSpot(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00f3ff]">
-                                        <option value="全部">全部顯示</option><option value="重機用專用">重機用專用</option><option value="汽車格">汽車格</option><option value="機車格">機車格</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">費率</label>
-                                    <select value={filterFee} onChange={e => setFilterFee(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00f3ff]">
-                                        <option value="全部">全部顯示</option><option value="免費">免費</option><option value="計時">計時</option><option value="計次">計次</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <hr className="border-white/10" />
-
-                            {/* 動作按鈕 */}
-                            <div className="space-y-3">
-                                <button onClick={handleOpenReport} className="w-full bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-[0_0_15px_rgba(0,243,255,0.4)] transition-all">
-                                    <i className="fa-solid fa-map-pin"></i> 座標車位回報
-                                </button>
-                                <button onClick={handleReportIssue} className="w-full bg-orange-500/20 text-orange-400 border border-orange-500/30 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-500 hover:text-white transition-all">
-                                    <i className="fa-solid fa-triangle-exclamation"></i> 系統問題回報
-                                </button>
-                                
-                                {/* 🔥 智慧動態導航按鈕 (根據身分狀態切換) */}
-                                {(() => {
-                                    let menuBtnIcon = "fa-right-to-bracket";
-                                    let menuBtnText = "會員登入";
-                                    if (user && !user.isAnonymous && role && role !== 'guest') {
-                                        if (role === 'admin' || role === 'silver') {
-                                            menuBtnIcon = "fa-shield-halved";
-                                            menuBtnText = "指揮官審核區";
-                                        } else {
-                                            menuBtnIcon = "fa-user-astronaut";
-                                            menuBtnText = "會員中心";
-                                        }
-                                    }
-                                    return (
-                                        <button onClick={() => {
-                                            setIsMenuOpen(false);
-                                            if (user && !user.isAnonymous && role && role !== 'guest') {
-                                                if (role === 'admin' || role === 'silver') {
-                                                    onSwitchToAdmin(); // 管理員開啟後台
-                                                } else {
-                                                    window.location.href = 'vip_area.html'; // 一般會員去星員區
-                                                }
-                                            } else {
-                                                window.location.href = 'login.html'; // 未登入去登入頁
-                                            }
-                                        }} className="w-full bg-black/50 border border-[#bc13fe]/30 text-[#bc13fe] py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#bc13fe] hover:text-white transition-all">
-                                            <i className={`fa-solid ${menuBtnIcon}`}></i> {menuBtnText}
-                                        </button>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="safe-padding-bottom px-6 pt-4 border-t border-white/10 bg-black/40 text-center">
-                            <p className="text-xs text-[#00ff9d] mb-2"><i className="fa-solid fa-rotate"></i> 最後更新: {lastUpdateDate}</p>
-                            <p className="text-[10px] text-gray-500 leading-relaxed">
-                                顯示網頁製作：玉露<br/>
-                                © 2026 玉露 版權所有<br/>
-                                未經允許禁止用於任何商業行為
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="absolute inset-0 z-[50] pointer-events-none">
-                        
-                        {/* 頂部導航列 (漢堡選單 + 搜尋) */}
-                        <div className="absolute left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[400px] pointer-events-auto safe-top-search flex gap-3 h-12">
-                            <button onClick={() => setIsMenuOpen(true)} className="w-12 h-12 glass-panel rounded-full text-white flex items-center justify-center shadow-lg hover:text-[#00f3ff] transition-colors flex-shrink-0">
-                                <i className="fa-solid fa-bars text-xl"></i>
-                            </button>
-
-                            <form onSubmit={handleSearch} className="flex-1 flex items-center glass-panel rounded-full overflow-hidden shadow-lg p-1">
-                                <input 
-                                    type="text" 
-                                    placeholder="搜尋地標或縣市..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="flex-1 bg-transparent border-none text-white px-4 focus:outline-none text-base w-full"
-                                />
-                                <button type="submit" className="w-10 h-10 bg-[#00f3ff]/20 text-[#00f3ff] rounded-full flex items-center justify-center hover:bg-[#00f3ff] hover:text-black transition-colors flex-shrink-0">
-                                    {isSearching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-magnifying-glass"></i>}
-                                </button>
-                            </form>
-                        </div>
-
-                        {showDragHint && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[80px] z-[40] pointer-events-none flex flex-col items-center">
-                                <div className="bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white text-sm font-bold px-4 py-2 rounded-full shadow-[0_0_20px_rgba(188,19,254,0.8)] whitespace-nowrap border border-white/20 animate-pulse">
-                                    拖曳地圖以定出車位
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[40] pointer-events-none flex flex-col items-center">
-                            <i className="fa-solid fa-location-dot text-4xl text-[#ff4757] drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)]"></i>
-                        </div>
-
-                        <button 
-                            onClick={locateMe}
-                            className="absolute right-5 w-12 h-12 bg-white/10 backdrop-blur border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg pointer-events-auto hover:bg-white/20 transition-colors safe-bottom-locate"
-                        >
-                            <i className="fa-solid fa-crosshairs text-xl"></i>
-                        </button>
-                    </div>
-
-                    {isReportOpen && (
-                        <div className="absolute inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto">
-                            <div className="absolute inset-0" onClick={() => setIsReportOpen(false)}></div>
-                            
-                            <div className="w-full max-w-lg bg-[#0f172a] rounded-t-3xl sm:rounded-3xl border-t sm:border border-[#00f3ff]/30 shadow-2xl relative bottom-sheet max-h-[90dvh] overflow-y-auto overflow-x-hidden safe-padding-bottom">
-                                <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto my-3 sm:hidden"></div>
-                                
-                                <button onClick={() => setIsReportOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors z-10">
-                                    <i className="fa-solid fa-xmark text-white"></i>
-                                </button>
-
-                                <div className="p-6 pt-2">
-                                    <ReportForm 
-                                        db={db} storage={storage} user={user} 
-                                        onClose={() => { setIsReportOpen(false); fetchApprovedSpots(); }} 
-                                        initialLocation={reportLocation}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        // === 4. 車位回報表單 (擴增完整欄位) ===
-        function ReportForm({ db, storage, user, onClose, initialLocation }) {
-            const [formData, setFormData] = useState({ 
-                name: '', city: '台北市', address: '', lat: '', lng: '', 
-                parkingType: '公有停車場', entryMethod: '後牌掃描', spotType: '重機用專用',
-                priceType: '免費', priceAmount: '', gmap: '', note: '', provider: '熱心車友' 
-            });
-            const [imageFile, setImageFile] = useState(null);
-            const [previewUrl, setPreviewUrl] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [msg, setMsg] = useState('');
-
-            useEffect(() => {
-                if (user && !user.isAnonymous) {
-                    getDoc(doc(db, "users", user.uid)).then(d => {
-                        if (d.exists()) {
-                            const name = d.data().displayName || d.data().lineName;
-                            if (name) setFormData(prev => ({...prev, provider: name}));
-                        }
-                    }).catch(()=>{});
-                }
-                
-                if (initialLocation) {
-                    setFormData(prev => ({...prev, lat: parseFloat(initialLocation.lat).toFixed(6), lng: parseFloat(initialLocation.lng).toFixed(6)}));
-                    setMsg('🌍 正在自動解析此處地點資訊...');
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${initialLocation.lat}&lon=${initialLocation.lng}&zoom=18&addressdetails=1`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if(data && data.address) {
-                            const addr = data.address;
-                            const city = addr.city || addr.county || addr.town || '台北市';
-                            const matchedCity = TAIWAN_CITIES.find(c => city.includes(c) || c.includes(city)) || '台北市';
-                            const road = addr.road || '';
-                            const suburb = addr.suburb || addr.village || '';
-                            const finalAddress = `${suburb}${road}` || data.display_name.split(',')[0];
-                            setFormData(prev => ({ ...prev, city: matchedCity, address: finalAddress }));
-                            setMsg('✅ 地理資訊自動填入成功');
-                            setTimeout(() => setMsg(''), 2500);
-                        } else { setMsg(''); }
-                    }).catch(() => setMsg(''));
-                }
-            }, [user, initialLocation]);
-
-            const compressImage = (file) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = (e) => {
-                        const img = new Image(); img.src = e.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            let { width, height } = img;
-                            if (width > 800) { height *= 800 / width; width = 800; }
-                            canvas.width = width; canvas.height = height;
-                            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                            canvas.toBlob(blob => blob ? resolve(new File([blob], `${Date.now()}.webp`, { type: 'image/webp' })) : reject(), 'image/webp', 0.5);
-                        };
-                    };
-                });
-            };
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true); setMsg('🚀 傳輸中...');
-                try {
-                    let url = "";
-                    if (imageFile) {
-                        const file = await compressImage(imageFile);
-                        const uploadTask = await uploadBytesResumable(ref(storage, `parking_images/${file.name}`), file);
-                        url = await getDownloadURL(uploadTask.ref);
-                    }
-                    const price = formData.priceType === '免費' ? '免費' : (formData.priceAmount ? `${formData.priceType}：${formData.priceAmount}` : formData.priceType);
-
-                    await addDoc(collection(db, "parking_locations"), {
-                        ...formData, 
-                        lat: parseFloat(formData.lat) || 0, lng: parseFloat(formData.lng) || 0,
-                        price: price, image_url: url, status: "pending", created_at: serverTimestamp()
-                    });
-                    
-                    alert('✨ 回報成功！已送交總部審核，感謝您的熱心貢獻！');
-                    onClose(); 
-                } catch (error) { setMsg('❌ 傳輸失敗：' + error.message); }
-                setLoading(false);
-            };
-
-            return (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <h2 className="text-2xl font-bold mb-4 text-center text-[#00f3ff]"><i className="fa-solid fa-satellite-dish"></i> 停車情報回報</h2>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2">
-                            <label className="text-xs text-[#00f3ff] mb-1 block">停車場名稱 *</label>
-                            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]" placeholder="例：羅東夜市周邊" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">縣市 *</label>
-                            <select value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]">
-                                {TAIWAN_CITIES.map(c => <option key={c} value={c} className="bg-gray-900">{c}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">詳細地址</label>
-                            <input type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none focus:border-[#bc13fe]" />
-                        </div>
-                    </div>
-
-                    <div className="bg-black/40 border border-[#00f3ff]/20 rounded-2xl p-4 shadow-inner">
-                        <div className="text-xs text-[#00f3ff] font-bold mb-2"><i className="fa-solid fa-location-crosshairs"></i> 據點座標 (可手動微調)</div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-mono">Lat</span>
-                                <input type="number" step="any" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm text-[#FFD700] outline-none focus:border-[#00f3ff]" />
-                            </div>
-                            <div className="flex-1 relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-mono">Lng</span>
-                                <input type="number" step="any" value={formData.lng} onChange={e => setFormData({...formData, lng: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-3 py-2 text-sm text-[#FFD700] outline-none focus:border-[#00f3ff]" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="text-xs text-[#00f3ff] mb-1 block">停車場</label>
-                            <select value={formData.parkingType} onChange={e => setFormData({...formData, parkingType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none">
-                                <option value="公有停車場" className="bg-gray-900">公有停車場</option><option value="私人停車場" className="bg-gray-900">私人停車場</option><option value="路邊停車格" className="bg-gray-900">路邊停車格</option>
-                            </select>
-                        </div>
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="text-xs text-[#00f3ff] mb-1 block">入場方式</label>
-                            <select value={formData.entryMethod} onChange={e => setFormData({...formData, entryMethod: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none">
-                                <option value="後牌掃描" className="bg-gray-900">後牌掃描</option><option value="按鈕取票" className="bg-gray-900">按鈕取票</option><option value="悠遊卡" className="bg-gray-900">悠遊卡</option><option value="管理員開門" className="bg-gray-900">管理員開門</option><option value="倒退入場" className="bg-gray-900">倒退入場</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">車格</label>
-                            <select value={formData.spotType} onChange={e => setFormData({...formData, spotType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none">
-                                <option value="重機用專用" className="bg-gray-900">重機用專用</option><option value="汽車格" className="bg-gray-900">汽車格</option><option value="機車格" className="bg-gray-900">機車格</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">收費</label>
-                            <select value={formData.priceType} onChange={e => setFormData({...formData, priceType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none">
-                                <option value="免費" className="bg-gray-900">免費</option><option value="計時" className="bg-gray-900">計時</option><option value="計次" className="bg-gray-900">計次</option>
-                            </select>
-                        </div>
-                        {formData.priceType !== '免費' && (
-                            <div className="col-span-2">
-                                <label className="text-xs text-[#00f3ff] mb-1 block">費率說明</label>
-                                <input type="text" value={formData.priceAmount} onChange={e => setFormData({...formData, priceAmount: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="例：30/H" />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="col-span-2">
-                        <label className="text-xs text-[#00f3ff] mb-1 block">實景照片</label>
-                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-[#00f3ff]/30 rounded-xl cursor-pointer hover:bg-[#00f3ff]/10 relative overflow-hidden">
-                            {previewUrl ? <img src={previewUrl} className="absolute inset-0 w-full h-full object-cover" /> : <div className="text-gray-400 text-sm"><i className="fa-solid fa-camera text-[#00f3ff] mb-1"></i> 上傳照片</div>}
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => { if(e.target.files[0]){ setImageFile(e.target.files[0]); setPreviewUrl(URL.createObjectURL(e.target.files[0])); } }} />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">備註事項</label>
-                            <input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none" placeholder="有無雨遮？" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-[#00f3ff] mb-1 block">提供者 (可修改)</label>
-                            <input type="text" value={formData.provider} onChange={e => setFormData({...formData, provider: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-[#FFD700] outline-none" />
-                        </div>
-                    </div>
-
-                    {msg && <div className="text-[#00ff9d] text-center text-xs animate-pulse font-bold">{msg}</div>}
-                    <button disabled={loading} type="submit" className="w-full py-3 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white font-bold rounded-xl mt-2 active:scale-95 transition-transform">
-                        {loading ? '上傳中...' : '提交資料'}
-                    </button>
-                </form>
-            );
-        }
-
-        // === 5. 管理員後台元件 (加入批量核准/刪除) ===
-        function AdminPanel({ db, auth, user, role }) {
-            const [spots, setSpots] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const [adminTab, setAdminTab] = useState('pending'); 
-            const [editingSpot, setEditingSpot] = useState(null);
-            
-            // 批量操作
-            const [selectedIds, setSelectedIds] = useState(new Set());
-            
-            // 登入
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-
-            const fetchAllSpots = async () => {
-                setLoading(true);
-                try {
-                    const snap = await getDocs(collection(db, "parking_locations"));
-                    const allSpots = []; 
-                    snap.forEach(d => allSpots.push({ id: d.id, ...d.data() })); 
-                    allSpots.sort((a,b) => (b.created_at?.seconds || 0) - (a.created_at?.seconds || 0));
-                    setSpots(allSpots);
-                } catch(e) { alert("讀取失敗"); }
-                setLoading(false);
-            };
-
-            useEffect(() => { 
-                if (user && !user.isAnonymous && (role === 'admin' || role === 'silver')) { fetchAllSpots(); }
-            }, [user, role]);
-
-            if (!user || user.isAnonymous || role === 'guest' || (role !== 'admin' && role !== 'silver')) {
-                const handleLogin = async (e) => {
-                    e.preventDefault();
-                    try { await signInWithEmailAndPassword(auth, email, password); } 
-                    catch (error) { alert('登入失敗：請確認信箱與密碼。'); }
-                };
-                return (
-                    <div className="glass-panel rounded-3xl p-6 md:p-8 mt-10 mb-10 relative max-w-sm mx-auto shadow-2xl animate-in fade-in">
-                        <h2 className="text-xl font-bold text-[#bc13fe] mb-6 text-center"><i className="fa-solid fa-user-shield mr-2"></i> 指揮官登入</h2>
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <input type="email" placeholder="管理員信箱" value={email} onChange={e=>setEmail(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-4 text-white outline-none focus:border-[#00f3ff]" />
-                            <input type="password" placeholder="密碼" value={password} onChange={e=>setPassword(e.target.value)} required className="w-full bg-black/40 border border-[#bc13fe]/30 rounded-xl px-4 py-4 text-white outline-none focus:border-[#00f3ff]" />
-                            <button type="submit" className="w-full py-4 mt-2 rounded-xl font-bold tracking-widest bg-gradient-to-r from-[#bc13fe] to-[#8a2be2] text-white hover:opacity-90 transition-all">登入後台</button>
-                        </form>
-                    </div>
-                );
+        // 🔥 點擊 LINE 登入按鈕
+        lineBtn.addEventListener('click', () => {
+            if (!isLiffReady) {
+                errorDiv.innerText = "LINE 服務尚未載入完畢，請稍等一下再點擊。";
+                return;
             }
 
-            const displaySpots = spots.filter(s => s.status === adminTab);
-
-            // 勾選邏輯
-            const toggleSelect = (id) => {
-                const newSet = new Set(selectedIds);
-                if (newSet.has(id)) newSet.delete(id);
-                else newSet.add(id);
-                setSelectedIds(newSet);
-            };
-
-            const toggleSelectAll = () => {
-                if (selectedIds.size === displaySpots.length) {
-                    setSelectedIds(new Set());
+            lineBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
+            lineBtn.disabled = true;
+            errorDiv.innerText = '';
+            
+            try {
+                if (!liff.isLoggedIn()) {
+                    liff.login();
                 } else {
-                    setSelectedIds(new Set(displaySpots.map(s => s.id)));
+                    window.location.href = "vip_area.html";
                 }
-            };
+            } catch (err) {
+                console.error(err);
+                lineBtn.innerHTML = '<i class="fa-brands fa-line" style="font-size: 1.3rem;"></i> LINE 快速登入';
+                lineBtn.disabled = false;
+                errorDiv.innerText = "啟動 LINE 登入失敗: " + err.message;
+            }
+        });
 
-            // 單筆操作
-            const handleAction = async (id, action) => {
-                const actionName = action === 'approved' ? '核准上架' : '強制刪除';
-                if(!confirm(`確定要【${actionName}】這筆資料嗎？`)) return;
-                try {
-                    if(action === 'approved') {
-                        await updateDoc(doc(db, "parking_locations", id), { status: "approved", reviewed_at: serverTimestamp() });
-                        setSpots(spots.map(s => s.id === id ? { ...s, status: 'approved' } : s));
-                    } else {
-                        await deleteDoc(doc(db, "parking_locations", id));
-                        setSpots(spots.filter(s => s.id !== id));
-                    }
-                } catch (e) { alert("操作失敗"); }
-            };
+        // 🔥 點擊信箱密碼登入按鈕
+        emailBtn.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
 
-            // 批量操作
-            const handleBatchAction = async (action) => {
-                if (selectedIds.size === 0) return;
-                const actionName = action === 'approved' ? '批量核准' : '批量刪除';
-                if(!confirm(`確定要【${actionName}】這 ${selectedIds.size} 筆資料嗎？`)) return;
-                
-                setLoading(true);
-                const batch = writeBatch(db);
-                selectedIds.forEach(id => {
-                    const ref = doc(db, "parking_locations", id);
-                    if (action === 'approved') batch.update(ref, { status: "approved", reviewed_at: serverTimestamp() });
-                    else batch.delete(ref);
-                });
+            if(!email || !password) {
+                errorDiv.innerText = "請輸入帳號與密碼";
+                return;
+            }
 
-                try {
-                    await batch.commit();
-                    if (action === 'approved') {
-                        setSpots(spots.map(s => selectedIds.has(s.id) ? { ...s, status: 'approved' } : s));
-                    } else {
-                        setSpots(spots.filter(s => !selectedIds.has(s.id)));
-                    }
-                    setSelectedIds(new Set());
-                    alert(`✅ ${actionName}成功！`);
-                } catch(e) { alert("操作失敗"); }
-                setLoading(false);
-            };
+            emailBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
+            emailBtn.disabled = true;
+            errorDiv.innerText = '';
 
-            const saveEdit = async () => {
-                try {
-                    await updateDoc(doc(db, "parking_locations", editingSpot.id), {
-                        name: editingSpot.name, address: editingSpot.address,
-                        price: editingSpot.price, note: editingSpot.note,
-                        provider: editingSpot.provider,
-                        parkingType: editingSpot.parkingType || '公有停車場',
-                        entryMethod: editingSpot.entryMethod || '後牌掃描',
-                        spotType: editingSpot.spotType || '重機用專用',
-                    });
-                    setSpots(spots.map(s => s.id === editingSpot.id ? editingSpot : s));
-                    setEditingSpot(null); alert("✅ 修改成功！");
-                } catch(e) { alert("❌ 修改失敗"); }
-            };
-
-            return (
-                <div className="glass-panel rounded-3xl p-5 md:p-8 mb-[100px] relative">
-                    <h2 className="text-xl font-bold text-[#bc13fe] mb-6 flex items-center justify-center gap-2">
-                        <i className="fa-solid fa-shield-halved"></i> 指揮官審核中心
-                    </h2>
+            // 強制設定「本機持久化記憶」
+            setPersistence(auth, browserLocalPersistence)
+                .then(() => {
+                    return signInWithEmailAndPassword(auth, email, password);
+                })
+                .then(() => {
+                    window.location.href = "vip_area.html";
+                })
+                .catch((error) => {
+                    emailBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入';
+                    emailBtn.disabled = false;
                     
-                    <div className="flex flex-col md:flex-row gap-3 mb-6">
-                        <div className="flex flex-1 gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
-                            <button onClick={()=>{setAdminTab('pending'); setSelectedIds(new Set());}} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='pending'?'bg-[#bc13fe] text-white shadow-md':'text-gray-400 hover:text-white'}`}>
-                                待審核 ({spots.filter(s=>s.status==='pending').length})
-                            </button>
-                            <button onClick={()=>{setAdminTab('approved'); setSelectedIds(new Set());}} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${adminTab==='approved'?'bg-[#00f3ff] text-black shadow-md':'text-gray-400 hover:text-white'}`}>
-                                已上架 ({spots.filter(s=>s.status==='approved').length})
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 批量操作控制列 */}
-                    {displaySpots.length > 0 && (
-                        <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl mb-4 border border-white/10">
-                            <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-[#FFD700]">
-                                <input type="checkbox" className="custom-checkbox" checked={selectedIds.size === displaySpots.length && displaySpots.length > 0} onChange={toggleSelectAll} />
-                                全選 ({selectedIds.size})
-                            </label>
-                            {selectedIds.size > 0 && (
-                                <div className="flex gap-2">
-                                    {adminTab === 'pending' && <button onClick={() => handleBatchAction('approved')} className="bg-[#00ff9d]/20 text-[#00ff9d] px-3 py-1 rounded-lg font-bold text-xs hover:bg-[#00ff9d] hover:text-black transition-colors"><i className="fa-solid fa-check"></i> 批量核准</button>}
-                                    <button onClick={() => handleBatchAction('rejected')} className="bg-[#ff4757]/20 text-[#ff4757] px-3 py-1 rounded-lg font-bold text-xs hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash"></i> 批量刪除</button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {loading ? <p className="text-center py-10 text-[#00f3ff]"><i className="fa-solid fa-spinner fa-spin mr-2"></i>資料處理中...</p> : displaySpots.length === 0 ? <p className="text-center text-gray-500 py-10">此區域目前無資料</p> : 
-                        <div className="space-y-4">
-                            {displaySpots.map(spot => (
-                                <div key={spot.id} className={`bg-black/50 border rounded-2xl p-5 relative group overflow-hidden transition-colors ${selectedIds.has(spot.id) ? 'border-[#FFD700] bg-[rgba(255,215,0,0.1)]' : 'border-white/10'}`}>
-                                    <div className={`absolute top-0 left-0 w-1 h-full ${spot.status === 'approved' ? 'bg-[#00f3ff]' : 'bg-[#bc13fe]'}`}></div>
-                                    
-                                    <div className="absolute top-4 right-4 z-10">
-                                        <input type="checkbox" className="custom-checkbox" checked={selectedIds.has(spot.id)} onChange={() => toggleSelect(spot.id)} />
-                                    </div>
-
-                                    {spot.image_url && <img src={spot.image_url} className="w-full h-40 object-cover rounded-xl mb-4 border border-white/5" />}
-                                    
-                                    <div className="flex justify-between items-start mb-2 pr-8">
-                                        <div className="font-bold text-[#FFD700] text-lg leading-tight">{spot.name}</div>
-                                    </div>
-
-                                    <div className="text-sm text-gray-300 mb-2 bg-white/5 p-2 rounded-lg"><i className="fa-solid fa-location-dot text-[#00f3ff] mr-2"></i>【{spot.city}】{spot.address}</div>
-                                    
-                                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                        <div className="bg-black/30 p-2 rounded"><span className="text-gray-500 block">停車場</span><span className="text-white">{spot.parkingType || '公有停車場'}</span></div>
-                                        <div className="bg-black/30 p-2 rounded"><span className="text-gray-500 block">入場方式</span><span className="text-white">{spot.entryMethod || '後牌掃描'}</span></div>
-                                        <div className="bg-black/30 p-2 rounded"><span className="text-gray-500 block">車格</span><span className="text-[#FFD700]">{spot.spotType || '重機用專用'}</span></div>
-                                        <div className="bg-black/30 p-2 rounded"><span className="text-gray-500 block">費率</span><span className="text-[#00ff9d] font-bold">{spot.price || '免費'}</span></div>
-                                    </div>
-                                    
-                                    <div className="text-xs text-gray-400 mb-4 bg-black/40 p-3 rounded-lg border border-white/5 space-y-1">
-                                        <p>📍 <span className="text-gray-500">座標：</span> {spot.lat}, {spot.lng}</p>
-                                        <p>📝 <span className="text-gray-500">備註：</span> {spot.note || '無'}</p>
-                                        <p>👤 <span className="text-gray-500">上傳者：</span> <span className="text-[#bc13fe] font-bold">{spot.provider || '未知車友'}</span></p>
-                                        <p>🕒 <span className="text-gray-500">時間：</span> {formatTime(spot.created_at)}</p>
-                                    </div>
-                                    
-                                    <div className="flex gap-2 mt-4">
-                                        {spot.status === 'pending' ? (
-                                            <>
-                                                <button onClick={() => handleAction(spot.id, 'approved')} className="flex-1 bg-[#00ff9d]/20 text-[#00ff9d] py-2.5 rounded-xl font-bold hover:bg-[#00ff9d] hover:text-black transition-colors"><i className="fa-solid fa-check mr-1"></i> 核准上架</button>
-                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash mr-1"></i> 拒絕刪除</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button onClick={() => setEditingSpot(spot)} className="flex-1 bg-blue-500/20 text-blue-400 py-2.5 rounded-xl font-bold hover:bg-blue-500 hover:text-white transition-colors"><i className="fa-solid fa-pen mr-1"></i> 編輯修改</button>
-                                                <button onClick={() => handleAction(spot.id, 'rejected')} className="flex-1 bg-[#ff4757]/20 text-[#ff4757] py-2.5 rounded-xl font-bold hover:bg-[#ff4757] hover:text-white transition-colors"><i className="fa-solid fa-trash-can mr-1"></i> 下架刪除</button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                        errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorDiv.innerText = "嘗試次數過多，請稍後再試";
+                    } else {
+                        errorDiv.innerText = "系統錯誤：" + error.message;
                     }
-
-                    {/* 編輯 Modal */}
-                    {editingSpot && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                            <div className="bg-[#0f172a] rounded-3xl border border-[#00f3ff]/30 p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-                                <h3 className="text-xl font-bold text-[#00f3ff] mb-4"><i className="fa-solid fa-pen-to-square"></i> 修改車位資訊</h3>
-                                <div className="space-y-3">
-                                    <div><label className="text-xs text-gray-400">名稱</label><input type="text" value={editingSpot.name} onChange={e=>setEditingSpot({...editingSpot, name: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none"/></div>
-                                    <div><label className="text-xs text-gray-400">詳細地址</label><input type="text" value={editingSpot.address} onChange={e=>setEditingSpot({...editingSpot, address: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none"/></div>
-                                    
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className="text-xs text-gray-400">停車場</label>
-                                            <select value={editingSpot.parkingType} onChange={e=>setEditingSpot({...editingSpot, parkingType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-2 py-2 text-white outline-none">
-                                                <option value="公有停車場">公有停車場</option><option value="私人停車場">私人停車場</option><option value="路邊停車格">路邊停車格</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-400">入場方式</label>
-                                            <select value={editingSpot.entryMethod} onChange={e=>setEditingSpot({...editingSpot, entryMethod: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-2 py-2 text-white outline-none">
-                                                <option value="後牌掃描">後牌掃描</option><option value="按鈕取票">按鈕取票</option><option value="悠遊卡">悠遊卡</option><option value="管理員開門">管理員開門</option><option value="倒退入場">倒退入場</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-400">車格</label>
-                                            <select value={editingSpot.spotType} onChange={e=>setEditingSpot({...editingSpot, spotType: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-2 py-2 text-white outline-none">
-                                                <option value="重機用專用">重機用專用</option><option value="汽車格">汽車格</option><option value="機車格">機車格</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div><label className="text-xs text-gray-400">收費標準</label><input type="text" value={editingSpot.price} onChange={e=>setEditingSpot({...editingSpot, price: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none"/></div>
-                                    <div><label className="text-xs text-gray-400">提供者</label><input type="text" value={editingSpot.provider} onChange={e=>setEditingSpot({...editingSpot, provider: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-[#FFD700] outline-none"/></div>
-                                    <div><label className="text-xs text-gray-400">備註</label><textarea value={editingSpot.note} onChange={e=>setEditingSpot({...editingSpot, note: e.target.value})} className="w-full bg-black/40 border border-[#00f3ff]/30 rounded-xl px-3 py-2 text-white outline-none h-16 resize-none"></textarea></div>
-                                </div>
-                                <div className="flex gap-3 mt-6">
-                                    <button onClick={()=>setEditingSpot(null)} className="flex-1 border border-gray-600 text-gray-300 py-3 rounded-xl font-bold hover:bg-gray-800">取消</button>
-                                    <button onClick={saveEdit} className="flex-1 bg-gradient-to-r from-[#00f3ff] to-[#bc13fe] text-white py-3 rounded-xl font-bold">儲存修改</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                    console.error(error);
+                });
+        });
     </script>
 </body>
 </html>
