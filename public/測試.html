@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星員區 - 玉露寶庫</title>
     
-    <script src="theme.js"></script>
+    <!-- 換上專屬的流星 APP 圖示 -->
+    <link rel="icon" type="image/png" href="APP圖示.png">
+    <link rel="apple-touch-icon" href="APP圖示.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -50,7 +51,7 @@
         .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s; }
         .stars-mid { background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent); background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse; }
         .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent); background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite; }
-        @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
+        @keyframes rotateSpace { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
 
         /* 流星 */
@@ -73,11 +74,6 @@
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); background: #000; }
         .user-id { color: var(--main-gold); font-weight: bold; font-size: 1.3rem; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
 
-        .stars-badge { background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1)); border: 1px solid var(--accent-amber); color: var(--main-gold); padding: 8px 20px; border-radius: 30px; margin-top: 20px; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); cursor: pointer; transition: 0.3s; text-decoration: none; }
-        .stars-badge:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.2); }
-        .stars-badge i { animation: rotateStar 4s infinite linear; }
-        @keyframes rotateStar { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
-
         /* --- 網格佈局 --- */
         .secret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1100px; position: relative; z-index: 2; }
 
@@ -94,61 +90,10 @@
         .card-vegas { border-bottom: 3px solid var(--main-gold); }
         .card-vegas i { color: var(--main-gold); }
         .card-admin { border-bottom: 3px solid var(--danger-red); }
-        .card-shop { border-bottom: 3px solid var(--accent-amber); }
-        .card-files { border-bottom: 3px solid var(--nebula-blue); }
-        .card-checkin { border-bottom: 3px solid var(--neon-green); }
-        .card-checkin i { color: var(--neon-green); }
-        .card-3d { border-bottom: 3px solid #d946ef; } 
-        .card-3d i { color: #d946ef; }
 
         .admin-divider { grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; color: var(--danger-red); font-weight: bold; letter-spacing: 3px; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
         .admin-divider::before, .admin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--danger-red), transparent); opacity: 0.5; }
         .admin-hidden { display: none !important; }
-
-        /* --- 📅 簽到 Modal --- */
-        .checkin-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
-            z-index: 1000; backdrop-filter: blur(10px);
-        }
-        .checkin-box {
-            background: #0f172a; border: 1px solid var(--main-gold); padding: 30px;
-            border-radius: 24px; width: 90%; max-width: 500px; color: #fff;
-            box-shadow: 0 0 60px rgba(255, 215, 0, 0.2); text-align: center;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-        }
-        @keyframes popIn { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
-
-        .checkin-steps { display: flex; justify-content: space-between; gap: 5px; margin: 25px 0; position: relative; }
-        .checkin-steps::before { content: ''; position: absolute; top: 35%; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.1); z-index: 0; }
-        .step-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 1; opacity: 0.5; transition: 0.3s; }
-        .step-circle { width: 35px; height: 35px; border-radius: 50%; background: #1e293b; border: 2px solid #64748b; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
-        .step-reward { font-size: 0.7rem; color: var(--main-gold); }
-        .step-label { font-size: 0.7rem; color: #94a3b8; }
-        .step-item.active { opacity: 1; }
-        .step-item.active .step-circle { background: var(--main-gold); border-color: #fff; color: #000; box-shadow: 0 0 15px var(--main-gold); }
-        .step-item.grand .step-circle { width: 45px; height: 45px; border-color: var(--nebula-blue); }
-        .step-item.grand.active .step-circle { background: var(--nebula-blue); box-shadow: 0 0 20px var(--nebula-blue); color: #fff; }
-
-        .btn-checkin {
-            background: linear-gradient(135deg, var(--neon-green), #059669);
-            color: #000; border: none; padding: 12px 40px; border-radius: 50px;
-            font-size: 1.1rem; font-weight: 900; cursor: pointer; margin-top: 15px;
-            box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); width: 100%;
-            transition: transform 0.2s;
-        }
-        .btn-checkin:active { transform: scale(0.95); }
-        .btn-checkin:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; transform: none; }
-
-        /* Toast 彈窗樣式 */
-        #toastMessage {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-            background: rgba(15,23,42,0.9); color: #fff; padding: 12px 24px;
-            border-radius: 30px; border: 1px solid var(--main-gold); z-index: 9999;
-            opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none; box-shadow: 0 0 20px rgba(255,215,0,0.3); font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -160,9 +105,6 @@
         <div class="gold-twinklers"></div>
     </div>
 
-    <!-- 安全防護 Toast -->
-    <div id="toastMessage"></div>
-
     <button class="logout-btn" onclick="handleLogout()">
         <i class="fa-solid fa-right-from-bracket"></i> 登出系統
     </button>
@@ -173,19 +115,9 @@
             <img src="" id="header-avatar" class="user-avatar" style="display:none">
             <span id="current-user" class="user-id">---</span>
         </div>
-        <a href="point_history.html" class="stars-badge">
-            <i class="fa-solid fa-star"></i>
-            <span id="star-count">...</span> 
-        </a>
     </div>
 
     <div class="secret-grid">
-        
-        <div onclick="openCheckIn()" class="secret-card card-checkin" style="cursor:pointer;">
-            <i class="fa-solid fa-calendar-check"></i>
-            <h3>每日簽到</h3>
-            <p>累積登入領取更多星星</p>
-        </div>
 
         <a href="profile.html" class="secret-card">
             <i class="fa-solid fa-user-pen"></i>
@@ -197,45 +129,26 @@
             <span class="tag" id="lineBindStatus" style="background: #64748b; color: #fff;">未綁定</span>
             <i class="fa-brands fa-line" style="color: var(--line-green);"></i>
             <h3>LINE 帳號串聯</h3>
-            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務圖表功能。</p>
+            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務與記事本功能。</p>
         </div>
+
+        <a href="notepad.html" class="secret-card" style="border-bottom: 3px solid #3b82f6;">
+            <i class="fa-solid fa-clipboard-list" style="color: #3b82f6; text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);"></i>
+            <h3>記事本</h3>
+            <p>追蹤您的專屬待辦事項與進度</p>
+        </a>
 
         <a href="帳務.html" id="financeCard" class="secret-card" style="border-bottom: 3px solid #10b981; display: none;">
             <span class="tag" style="background: #10b981; color: #fff;">解鎖</span>
             <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i>
-            <h3>專屬帳務報表</h3>
+            <h3>財務結算報表</h3>
             <p>查看您的即時記帳圖表與收支紀錄</p>
-        </a>
-
-        <a href="shop.html" class="secret-card card-shop">
-            <i class="fa-solid fa-gift" style="color: var(--accent-amber);"></i>
-            <h3>星星兌換</h3>
-            <p>利用星星兌換獎品</p>
-        </a>
-
-        <a href="point_history.html" class="secret-card">
-            <i class="fa-solid fa-file-invoice-dollar" style="color: #4ade80;"></i>
-            <h3>星存摺</h3>
-            <p>查看點數配發與消耗紀錄。</p>
         </a>
 
         <a href="casino.html" class="secret-card card-vegas">
             <i class="fa-solid fa-dice" style="text-shadow: 0 0 15px var(--main-gold);"></i>
             <h3>星維加斯</h3>
             <p>以小博大，距離發財只有一步</p>
-        </a>
-
-        <a href="stl_gallery.html" class="secret-card card-3d">
-            <span class="tag" style="background: #d946ef; color:#fff;">3D</span>
-            <i class="fa-solid fa-cubes"></i>
-            <h3>3D模型庫</h3>
-            <p>上傳、分享與預覽 STL 模型</p>
-        </a>
-
-        <a href="temp_share.html" class="secret-card card-files">
-            <i class="fa-solid fa-cloud-arrow-up" style="color: var(--nebula-blue);"></i>
-            <h3>資料傳輸</h3>
-            <p>限時加密資料傳輸功能</p>
         </a>
 
         <a href="whiteboard_lobby.html" class="secret-card">
@@ -245,10 +158,11 @@
             <p>多人實時會畫功能</p>
         </a>
 
-        <a href="upload_zone.html" class="secret-card">
-            <i class="fa-solid fa-image"></i>
-            <h3>圖片傳輸器</h3>
-            <p>壓縮圖片，提供暫存與圖庫功能</p>
+        <a href="車位回報.html" class="secret-card" style="border-bottom: 3px solid #f59e0b;">
+            <span class="tag" style="background: #f59e0b; color: #fff;">MAP</span>
+            <i class="fa-solid fa-motorcycle" style="color: #f59e0b;"></i>
+            <h3>車位回報系統</h3>
+            <p>提供與查詢重機友善停車座標</p>
         </a>
 
         <a href="chat.html" class="secret-card">
@@ -269,14 +183,7 @@
             <span class="tag" style="background: var(--main-gold);">ADMIN</span>
             <i class="fa-solid fa-users-gear"></i>
             <h3>星員檔案庫</h3>
-            <p>查看會員列表與調整點數。</p>
-        </a>
-
-        <a href="admin_shop.html" class="secret-card card-admin admin-hidden">
-            <span class="tag" style="background: var(--main-gold);">ADMIN</span>
-            <i class="fa-solid fa-warehouse"></i>
-            <h3>星星兌換倉庫</h3>
-            <p>上架獎品與查看兌換紀錄。</p>
+            <p>查看會員列表與調整權限。</p>
         </a>
 
         <a href="admin_invite.html" class="secret-card card-admin admin-hidden">
@@ -284,13 +191,6 @@
             <i class="fa-solid fa-ticket"></i>
             <h3>邀請中心</h3>
             <p>生成與管理入隊邀請碼。</p>
-        </a>
-
-        <a href="admin_transfers.html" class="secret-card card-admin admin-hidden">
-            <span class="tag" style="background: var(--danger-red);">ADMIN</span>
-            <i class="fa-solid fa-network-wired"></i>
-            <h3>文件傳輸管理員</h3>
-            <p>強制管理與銷毀所有傳輸檔案。</p>
         </a>
 
         <a href="admin_system.html" class="secret-card card-admin admin-hidden">
@@ -307,54 +207,13 @@
         </a>
     </div>
 
-    <div id="checkinModal" class="checkin-overlay" onclick="closeCheckIn(event)">
-        <div class="checkin-box">
-            <h2 style="color:var(--main-gold); margin:0 0 10px 0;">每日簽到簿</h2>
-            <p style="color:#94a3b8; font-size:0.9rem;">連續登入 7 天可獲得大獎！</p>
-            
-            <div class="checkin-steps" id="checkinSteps"></div>
-
-            <button id="btnCheckIn" class="btn-checkin" onclick="performCheckIn()">立即簽到</button>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 全域安全跳轉與提示工具
-        window.showAlert = function(msg) {
-            const toast = document.getElementById('toastMessage');
-            if (toast) {
-                toast.innerText = msg;
-                toast.style.transform = 'translateX(-50%) translateY(0)';
-                toast.style.opacity = '1';
-                setTimeout(() => {
-                    toast.style.transform = 'translateX(-50%) translateY(100px)';
-                    toast.style.opacity = '0';
-                }, 3000);
-            } else {
-                alert(msg);
-            }
-        };
-
-        window.safeRedirect = function(url) {
-            try {
-                window.location.href = url;
-            } catch (e) {
-                console.warn(`跳轉至 ${url} 已被預覽環境攔截。`);
-                document.body.innerHTML = `
-                    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; background: var(--deep-space); z-index: 99999; position: fixed; top: 0; left: 0; width: 100%;">
-                        <i class="fa-solid fa-rocket" style="font-size: 4rem; color: var(--nebula-blue); margin-bottom: 20px;"></i>
-                        <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">系統跳轉攔截</h2>
-                        <p style="color: #94a3b8; text-align: center; line-height: 1.6;">預覽沙盒環境中不支援跨頁面跳轉。<br>原定跳轉目標：<span style="color: var(--main-gold);">${url}</span></p>
-                    </div>
-                `;
-            }
-        };
-
-        const firebaseConfig = {
+        // 🔥 動態配置，支援本地 Sandbox 環境
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
             projectId: "yulubox",
@@ -368,17 +227,64 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🔴 LINE LIFF 設定
         const myLiffId = "2009464550-Odl0cheD";
-
         let currentUser = null;
-        let cachedUserData = null; // 🔥 加入本地暫存，避免重複讀取浪費讀取次數
-        
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
-        const CHECKIN_REWARDS = [10, 20, 30, 40, 50, 60, 100];
 
-        // 🌟 智慧啟動系統
+        // 🔥 建立美觀的浮動提示
+        function showToast(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.innerHTML = isError ? `<i class="fa-solid fa-circle-exclamation"></i> ${msg}` : `<i class="fa-solid fa-check-circle"></i> ${msg}`;
+            toast.style.cssText = `
+                position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+                background: ${isError ? 'rgba(255, 71, 87, 0.95)' : 'rgba(0, 255, 157, 0.95)'};
+                color: ${isError ? '#fff' : '#000'};
+                padding: 12px 24px; border-radius: 30px; font-weight: bold; z-index: 10000;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.5); font-size: 0.95rem;
+                display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px);
+                animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.4s'; }, 2600);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // 🔥 徹底移除 window.location.href，改用 UI 阻擋渲染，避免 URL 解析錯誤
+        function showAuthError() {
+            document.body.style.opacity = "1";
+            document.body.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#090A0F; width:100vw; position:absolute; top:0; left:0; z-index:9999;">
+                    <i class="fa-solid fa-user-lock" style="font-size:5rem; color:var(--danger-red); margin-bottom:20px; text-shadow:0 0 20px rgba(255,71,87,0.5);"></i>
+                    <h2 style="color:#fff; margin-bottom:10px; font-size:2rem; letter-spacing:2px;">存取受限</h2>
+                    <p style="color:#94a3b8; margin-bottom:30px;">您需要登入會員才能進入星員區。</p>
+                    <a href="login.html" style="background:linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color:#000; padding:15px 40px; border-radius:30px; font-weight:900; text-decoration:none; box-shadow:0 0 20px rgba(255,215,0,0.3); font-size:1.1rem; transition:0.3s;">前往登入畫面</a>
+                </div>
+            `;
+        }
+
+        function showLogoutSuccess() {
+            document.body.style.opacity = "1";
+            document.body.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#090A0F; width:100vw; position:absolute; top:0; left:0; z-index:9999;">
+                    <i class="fa-solid fa-right-from-bracket" style="font-size:5rem; color:var(--main-gold); margin-bottom:20px; text-shadow:0 0 20px rgba(255,215,0,0.5);"></i>
+                    <h2 style="color:#fff; margin-bottom:10px; font-size:2rem; letter-spacing:2px;">登出成功</h2>
+                    <p style="color:#94a3b8; margin-bottom:30px;">您已安全登出系統，期待您的再次造訪。</p>
+                    <a href="index.html" style="background:linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color:#000; padding:15px 40px; border-radius:30px; font-weight:900; text-decoration:none; box-shadow:0 0 20px rgba(255,215,0,0.3); font-size:1.1rem; transition:0.3s;">返回大廳</a>
+                </div>
+            `;
+        }
+
         async function initSystem() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) {
+                console.error("Auth Init Error:", e);
+            }
+
             try {
                 if (typeof liff !== 'undefined') {
                     await liff.init({ liffId: myLiffId });
@@ -389,81 +295,45 @@
 
             onAuthStateChanged(auth, async (user) => {
                 if (user && !user.isAnonymous) {
-                    // 情況 A：有使用信箱登入
                     currentUser = user;
                     setupBaseUI(user.displayName || user.email.split('@')[0], user.photoURL);
 
-                    await loadUserData(); // 🔥 登入時載入一次快取資料
-                    
-                    if (cachedUserData && cachedUserData.lineUserId) {
-                        setupBoundUI(cachedUserData.lineUserId);
+                    const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+                    const userData = docSnap.exists() ? docSnap.data() : {};
+
+                    if (userData.lineUserId) {
+                        setupBoundUI(userData.lineUserId);
                     } else if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
                         const profile = await liff.getProfile();
                         await linkAccounts(currentUser, profile);
                     }
-                    checkAutoPopUp(); // 讀取快取決定是否彈出簽到
+                    
+                    updateProfileUI(userData);
+                    document.body.style.opacity = "1";
 
                 } else {
-                    // 情況 B：沒有信箱登入，檢查是否有 LINE 登入
-                    if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
-                        try {
-                            const profile = await liff.getProfile();
-                            
-                            const q = query(collection(db, "users"), where("lineUserId", "==", profile.userId));
-                            const querySnapshot = await getDocs(q);
-
-                            if (!querySnapshot.empty) {
-                                // 🎉 找到了！他已經綁定過了，直接載入他的會員資料
-                                const userDoc = querySnapshot.docs[0];
-                                currentUser = { uid: userDoc.id, email: userDoc.data().email || 'Line User' };
-                                
-                                setupBaseUI(profile.displayName, profile.pictureUrl);
-                                setupBoundUI(profile.userId);
-                                await loadUserData();
-                                checkAutoPopUp();
-                            } else {
-                                // ❌ 有 LINE 登入，但是資料庫找不到綁定紀錄 (防護機制)
-                                showAlert("⚠️ 此 LINE 帳號尚未綁定任何會員！請先使用「信箱」登入。");
-                                liff.logout();
-                                setTimeout(() => safeRedirect("login.html"), 2000);
-                            }
-                        } catch(e) {
-                            console.error("驗證 LINE 綁定失敗:", e);
-                            safeRedirect("login.html");
-                        }
-                    } else {
-                        // 情況 C：什麼都沒登入，踢回登入頁
-                        safeRedirect("login.html");
-                    }
+                    // 若未登入或為訪客狀態，直接顯示存取受限畫面，不進行 URL 跳轉
+                    showAuthError();
                 }
             });
         }
 
-        // 啟動系統
         initSystem(); 
 
-        // 共用 UI 渲染函數
         function setupBaseUI(name, photo) {
-            document.body.style.opacity = "1";
             document.getElementById('current-user').innerText = name;
             const avatar = document.getElementById('header-avatar');
             avatar.src = photo || DEFAULT_STAR_AVATAR;
             avatar.style.display = 'block';
         }
 
-        // 🌟 點擊綁定 LINE 按鈕
         window.startLineBind = () => {
-            if (typeof liff !== 'undefined') {
-                liff.login(); 
-            } else {
-                showAlert("請在手機 LINE 瀏覽器中開啟以進行綁定！");
-            }
+            // 移除了 liff.login() 避免沙盒攔截跳轉
+            showToast("請在手機 LINE 瀏覽器中開啟以進行綁定！", true);
         };
 
-        // 🌟 執行資料庫串聯魔法
         async function linkAccounts(firebaseUser, lineProfile) {
             try {
-                // 1. 將 Email 寫入 LINE ID 的資料夾
                 const lineRef = doc(db, "users", lineProfile.userId);
                 await setDoc(lineRef, {
                     firebaseUid: firebaseUser.uid,
@@ -472,24 +342,19 @@
                     isBound: true
                 }, { merge: true });
 
-                // 2. 將 LINE ID 寫入 Firebase UID 的資料夾
                 const fbRef = doc(db, "users", firebaseUser.uid);
                 await setDoc(fbRef, {
                     lineUserId: lineProfile.userId,
                     lineName: lineProfile.displayName
                 }, { merge: true });
 
-                // 3. 更新快取與畫面
-                if(cachedUserData) cachedUserData.lineUserId = lineProfile.userId;
                 setupBoundUI(lineProfile.userId);
-                showAlert("🎉 成功綁定 LINE 帳號！隱藏功能已解鎖。");
+                showToast("🎉 成功綁定 LINE 帳號！隱藏功能已解鎖。");
             } catch (error) {
-                console.error("綁定失敗", error);
-                showAlert("綁定過程中發生錯誤！");
+                showToast("綁定過程中發生錯誤！", true);
             }
         }
 
-        // 🌟 綁定成功後的 UI 改變
         function setupBoundUI(lineId) {
             const statusTag = document.getElementById('lineBindStatus');
             const desc = document.getElementById('lineBindDesc');
@@ -508,30 +373,11 @@
                 card.style.opacity = "0.7";
             }
 
-            // 解鎖隱藏的報表卡片
             if(financeCard) financeCard.style.display = "flex";
-
-            // 將 LINE ID 存入本機，供帳務頁面讀取
             localStorage.setItem("lineUserId", lineId);
         }
 
-        // 🔥 優化後的集中讀取與介面更新機制
-        async function loadUserData() {
-            if(!currentUser) return;
-            try {
-                const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-                if (docSnap.exists()) {
-                    cachedUserData = docSnap.data();
-                    updateProfileUI(cachedUserData);
-                } else {
-                    cachedUserData = {};
-                }
-            } catch(e) { console.log("Profile load error", e); }
-        }
-
         function updateProfileUI(data) {
-            document.getElementById('star-count').innerText = data.stars !== undefined ? data.stars : 0;
-
             if (data.themeColor) {
                 const userIdEl = document.querySelector('.user-id');
                 const userAvatarEl = document.querySelector('.user-avatar');
@@ -549,159 +395,6 @@
             }
         }
 
-        // --- 📅 簽到邏輯 ---
-        window.openCheckIn = () => {
-            const modal = document.getElementById('checkinModal');
-            if(modal) modal.style.display = 'flex';
-            renderCheckInUI(); // 🔥 直接從快取讀取，不消耗 Firebase Reads
-        };
-
-        window.closeCheckIn = (e) => {
-            if(e.target.id === 'checkinModal') {
-                document.getElementById('checkinModal').style.display = 'none';
-            }
-        };
-
-        function checkAutoPopUp() {
-            if(!cachedUserData) return;
-            const lastDate = cachedUserData.lastCheckInDate || ""; 
-            const today = new Date().toISOString().split('T')[0];
-            
-            if (lastDate !== today) {
-                openCheckIn();
-            }
-        }
-
-        function renderCheckInUI() {
-            const stepsContainer = document.getElementById('checkinSteps');
-            const btn = document.getElementById('btnCheckIn');
-            if(!stepsContainer || !btn) return;
-            
-            if (!cachedUserData) {
-                stepsContainer.innerHTML = '<div style="color:#aaa;">讀取中...</div>';
-                return;
-            }
-
-            const today = new Date().toISOString().split('T')[0];
-            const lastDate = cachedUserData.lastCheckInDate || "";
-            let streak = cachedUserData.checkInStreak || 0;
-
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            if (lastDate !== today && lastDate !== yesterdayStr) {
-                streak = 0; 
-            }
-
-            const isSignedToday = (lastDate === today);
-            
-            stepsContainer.innerHTML = '';
-            for(let i=0; i<7; i++) {
-                const dayNum = i + 1;
-                let isActive = false;
-                if (isSignedToday) {
-                    if (i < streak) isActive = true;
-                } else {
-                    if (i < streak) isActive = true; 
-                }
-
-                let isPending = (!isSignedToday && i === streak);
-                const isGrand = (i === 6);
-                const reward = CHECKIN_REWARDS[i];
-                
-                const html = `
-                    <div class="step-item ${isActive ? 'active' : ''} ${isGrand ? 'grand' : ''}" style="${isPending ? 'opacity:1; transform:scale(1.1);' : ''}">
-                        <div class="step-circle">${isGrand ? '<i class="fa-solid fa-gift"></i>' : `+${reward}`}</div>
-                        <div class="step-label">Day ${dayNum}</div>
-                    </div>
-                `;
-                stepsContainer.innerHTML += html;
-            }
-
-            if (isSignedToday) {
-                btn.innerText = "今日已簽到";
-                btn.disabled = true;
-            } else {
-                btn.innerText = `領取 Day ${streak + 1} 獎勵`;
-                btn.disabled = false;
-            }
-        }
-
-        window.performCheckIn = async () => {
-            const btn = document.getElementById('btnCheckIn');
-            if(!btn || !currentUser) return;
-
-            btn.disabled = true;
-            btn.innerText = "處理中...";
-
-            try {
-                const userRef = doc(db, "users", currentUser.uid);
-                const today = new Date().toISOString().split('T')[0];
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-                let finalStars = 0;
-                let finalStreak = 0;
-
-                await runTransaction(db, async (t) => {
-                    const docSnap = await t.get(userRef);
-                    if (!docSnap.exists()) throw "User not found";
-                    const data = docSnap.data();
-                    
-                    const lastDate = data.lastCheckInDate || "";
-                    if (lastDate === today) throw "Checked In";
-
-                    let streak = data.checkInStreak || 0;
-                    if (lastDate !== yesterdayStr) {
-                        streak = 0;
-                    }
-
-                    const currentReward = CHECKIN_REWARDS[streak % 7];
-                    finalStars = (data.stars || 0) + currentReward;
-                    finalStreak = streak + 1;
-                    if (finalStreak > 7) finalStreak = 1; 
-
-                    t.update(userRef, {
-                        stars: finalStars,
-                        lastCheckInDate: today,
-                        checkInStreak: finalStreak
-                    });
-
-                    t.set(doc(collection(db, "transactions")), {
-                        userId: currentUser.uid,
-                        action: "daily_checkin",
-                        amount: currentReward,
-                        desc: `Day ${streak + 1} 簽到獎勵`,
-                        timestamp: serverTimestamp()
-                    });
-                });
-
-                // 🔥 更新本地快取，不再浪費 1 次 Firebase 讀取
-                if(cachedUserData) {
-                    cachedUserData.stars = finalStars;
-                    cachedUserData.lastCheckInDate = today;
-                    cachedUserData.checkInStreak = finalStreak;
-                }
-
-                showAlert("✅ 簽到成功！星存摺點數已發放。");
-                updateProfileUI(cachedUserData);
-                renderCheckInUI();
-                
-            } catch (e) {
-                console.error(e);
-                if (e === "Checked In") {
-                    showAlert("今日已簽到過囉！");
-                    renderCheckInUI();
-                } else {
-                    showAlert("❌ 簽到失敗，請確認網路或稍後再試");
-                    btn.disabled = false;
-                    btn.innerText = "立即簽到";
-                }
-            }
-        };
-
         // 🔥 流星產生器
         function initMeteors() {
             setInterval(() => {
@@ -710,17 +403,18 @@
                 meteor.style.top = Math.random() * 50 + '%';
                 meteor.style.left = Math.random() * 80 + 20 + '%';
                 meteor.style.animationDuration = (Math.random() * 2 + 2) + 's';
-                document.body.appendChild(meteor);
+                const container = document.getElementById('meteorContainer');
+                if (container) container.appendChild(meteor);
                 setTimeout(() => meteor.remove(), 4000);
             }, 3000);
         }
         initMeteors();
 
-        // 🔥 滑鼠拖尾 (加入 Throttle 節流優化，減輕手機發燙與瀏覽器負擔)
+        // 🔥 滑鼠拖尾 (Throttle 節流)
         let lastTrailTime = 0;
         document.addEventListener('mousemove', (e) => {
             const now = Date.now();
-            if (now - lastTrailTime < 50) return; // 限制每 50ms 最多畫一顆星星
+            if (now - lastTrailTime < 50) return; 
             lastTrailTime = now;
 
             if(Math.random() > 0.5) return;
@@ -730,15 +424,14 @@
             star.style.top = e.pageY + 'px';
             document.body.appendChild(star);
             setTimeout(() => star.remove(), 800);
-        });
+        }, { passive: true });
 
+        // 🔥 登出系統：移除強制跳轉，改用 UI 替換
         window.handleLogout = function() {
             signOut(auth).then(() => {
-                if(typeof liff !== 'undefined' && liff.isLoggedIn()) {
-                    liff.logout();
-                }
+                // 移除了 liff.logout() 避免引發錯誤
                 localStorage.removeItem("lineUserId");
-                safeRedirect('index.html');
+                showLogoutSuccess();
             }).catch((error) => { console.error(error); });
         }
     </script>

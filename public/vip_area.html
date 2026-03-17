@@ -5,18 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星員區 - 玉露寶庫</title>
     
-    <!-- 🔥 DNS 預先連線：大幅縮短外部資源載入時間 -->
+    <!-- 🔥 1. DNS 預先連線：大幅縮短外部資源載入時間 -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://static.line-scdn.net" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 
-    <script src="theme.js"></script>
+    <link rel="icon" type="image/png" href="APP圖示.png">
+    <link rel="apple-touch-icon" href="APP圖示.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+    <!-- 🔥 2. 加入 defer 讓腳本不阻擋畫面渲染 -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
 
     <style>
@@ -49,11 +50,11 @@
             cursor: default;
         }
 
-        /* 🔥 全局載入畫面 (提升體感速度) */
+        /* 🔥 3. 極速全螢幕載入畫面 (體感秒開的關鍵) */
         #global-loader {
             position: fixed; inset: 0; background: #090A0F; z-index: 99999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.4s ease;
         }
 
         /* --- 背景特效 (加入 GPU 加速優化效能) --- */
@@ -85,16 +86,12 @@
         .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--main-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); background: #000; }
         .user-id { color: var(--main-gold); font-weight: bold; font-size: 1.3rem; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
 
-        .stars-badge { background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(253, 185, 49, 0.1)); border: 1px solid var(--accent-amber); color: var(--main-gold); padding: 8px 20px; border-radius: 30px; margin-top: 20px; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 0 20px rgba(255, 215, 0, 0.15); transition: 0.3s; text-decoration: none; cursor: default; }
-        .stars-badge i { animation: rotateStar 4s infinite linear; }
-        @keyframes rotateStar { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
-
         /* --- 網格佈局 --- */
         .secret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; width: 90%; max-width: 1100px; position: relative; z-index: 2; }
 
         /* --- 卡片樣式 --- */
-        .secret-card { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 30px; border-radius: 20px; text-decoration: none; color: #fff; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .secret-card:hover { transform: translateY(-8px); background: var(--card-hover-bg); border-color: var(--main-gold); box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05); }
+        .secret-card { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 30px; border-radius: 20px; text-decoration: none; color: #fff; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; text-align: center; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); will-change: transform; transform: translateZ(0); }
+        .secret-card:hover { transform: translateY(-8px) translateZ(0); background: var(--card-hover-bg); border-color: var(--main-gold); box-shadow: 0 15px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 215, 0, 0.05); }
         .secret-card i { font-size: 3rem; margin-bottom: 20px; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.1)); color: #cbd5e1; }
         .secret-card:hover i { transform: scale(1.1) rotate(5deg); color: var(--main-gold) !important; filter: drop-shadow(0 0 15px var(--main-gold)); }
         .secret-card h3 { margin: 0 0 10px 0; font-size: 1.4rem; letter-spacing: 1px; color: #fff; transition: 0.3s; }
@@ -105,7 +102,6 @@
         .card-vegas { border-bottom: 3px solid var(--main-gold); }
         .card-vegas i { color: var(--main-gold); }
         .card-admin { border-bottom: 3px solid var(--danger-red); }
-        .card-files { border-bottom: 3px solid var(--nebula-blue); }
 
         .admin-divider { grid-column: 1 / -1; margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; color: var(--danger-red); font-weight: bold; letter-spacing: 3px; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255, 71, 87, 0.3); }
         .admin-divider::before, .admin-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--danger-red), transparent); opacity: 0.5; }
@@ -114,10 +110,10 @@
 </head>
 <body>
 
-    <!-- 🔥 體感極速載入畫面 -->
+    <!-- 🔥 極速載入畫面 (DOM 載入第一時間顯示) -->
     <div id="global-loader">
         <i class="fa-solid fa-satellite-dish fa-spin text-5xl mb-4" style="color: var(--nebula-blue); filter: drop-shadow(0 0 15px var(--nebula-blue));"></i>
-        <h2 style="color: #fff; letter-spacing: 4px; font-weight: bold;">連線至星員區...</h2>
+        <h2 style="color: #fff; letter-spacing: 4px; font-weight: bold; font-family: 'Microsoft JhengHei', sans-serif;">連線至星員區...</h2>
     </div>
 
     <div id="meteorContainer" class="space-container"></div>
@@ -135,11 +131,7 @@
         <h1>星員區</h1>
         <div class="user-greeting">
             <img src="" id="header-avatar" class="user-avatar" style="display:none">
-            <span id="current-user" class="user-id">---</span>
-        </div>
-        <div class="stars-badge">
-            <i class="fa-solid fa-star"></i>
-            <span id="star-count">...</span> 
+            <span id="current-user" class="user-id">載入中...</span>
         </div>
     </div>
 
@@ -155,13 +147,19 @@
             <span class="tag" id="lineBindStatus" style="background: #64748b; color: #fff;">未綁定</span>
             <i class="fa-brands fa-line" style="color: var(--line-green);"></i>
             <h3>LINE 帳號串聯</h3>
-            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務圖表功能。</p>
+            <p id="lineBindDesc">綁定 LINE 即可解鎖專屬帳務與記事本功能。</p>
         </div>
+
+        <a href="notepad.html" class="secret-card" style="border-bottom: 3px solid #3b82f6;">
+            <i class="fa-solid fa-clipboard-list" style="color: #3b82f6; text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);"></i>
+            <h3>記事本</h3>
+            <p>追蹤您的專屬待辦事項與進度</p>
+        </a>
 
         <a href="帳務.html" id="financeCard" class="secret-card" style="border-bottom: 3px solid #10b981; display: none;">
             <span class="tag" style="background: #10b981; color: #fff;">解鎖</span>
             <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i>
-            <h3>專屬帳務報表</h3>
+            <h3>財務結算報表</h3>
             <p>查看您的即時記帳圖表與收支紀錄</p>
         </a>
 
@@ -169,12 +167,6 @@
             <i class="fa-solid fa-dice" style="text-shadow: 0 0 15px var(--main-gold);"></i>
             <h3>星維加斯</h3>
             <p>以小博大，距離發財只有一步</p>
-        </a>
-
-        <a href="temp_share.html" class="secret-card card-files">
-            <i class="fa-solid fa-cloud-arrow-up" style="color: var(--nebula-blue);"></i>
-            <h3>資料傳輸</h3>
-            <p>限時加密資料傳輸功能</p>
         </a>
 
         <a href="whiteboard_lobby.html" class="secret-card">
@@ -209,7 +201,7 @@
             <span class="tag" style="background: var(--main-gold);">ADMIN</span>
             <i class="fa-solid fa-users-gear"></i>
             <h3>星員檔案庫</h3>
-            <p>查看會員列表與調整點數。</p>
+            <p>查看會員列表與調整權限。</p>
         </a>
 
         <a href="admin_invite.html" class="secret-card card-admin admin-hidden">
@@ -217,13 +209,6 @@
             <i class="fa-solid fa-ticket"></i>
             <h3>邀請中心</h3>
             <p>生成與管理入隊邀請碼。</p>
-        </a>
-
-        <a href="admin_transfers.html" class="secret-card card-admin admin-hidden">
-            <span class="tag" style="background: var(--danger-red);">ADMIN</span>
-            <i class="fa-solid fa-network-wired"></i>
-            <h3>文件傳輸管理員</h3>
-            <p>強制管理與銷毀所有傳輸檔案。</p>
         </a>
 
         <a href="admin_system.html" class="secret-card card-admin admin-hidden">
@@ -243,9 +228,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, runTransaction, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 動態配置，支援本地 Sandbox 環境
+        // 🔥 動態配置
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -262,18 +247,18 @@
 
         const myLiffId = "2009464550-Odl0cheD";
         let currentUser = null;
-        let cachedUserData = null; 
         const DEFAULT_STAR_AVATAR = "https://cdn-icons-png.flaticon.com/512/1828/1828884.png";
 
-        // 移除載入畫面的函數
+        // 移除載入畫面 (淡出特效)
         function removeLoader() {
             const loader = document.getElementById('global-loader');
             if (loader) {
                 loader.style.opacity = '0';
-                setTimeout(() => loader.remove(), 500);
+                setTimeout(() => loader.remove(), 400); // 縮短至 0.4 秒移除
             }
         }
 
+        // 浮動提示
         function showToast(msg, isError = false) {
             const toast = document.createElement('div');
             toast.innerHTML = isError ? `<i class="fa-solid fa-circle-exclamation"></i> ${msg}` : `<i class="fa-solid fa-check-circle"></i> ${msg}`;
@@ -291,6 +276,7 @@
             setTimeout(() => toast.remove(), 3000);
         }
 
+        // 存取受限畫面
         function showAuthError() {
             removeLoader();
             document.body.innerHTML = `
@@ -303,6 +289,7 @@
             `;
         }
 
+        // 登出畫面
         function showLogoutSuccess() {
             document.body.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; text-align:center; background:#090A0F; width:100vw; position:absolute; top:0; left:0; z-index:9999;">
@@ -348,50 +335,11 @@
                         await linkAccounts(currentUser, profile);
                     }
                     
-                    await loadUserData();
-                    removeLoader();
+                    updateProfileUI(userData);
+                    removeLoader(); // 🔥 驗證完成後立即移除全螢幕載入畫面
 
                 } else {
-                    if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
-                        try {
-                            const profile = await liff.getProfile();
-                            const q = query(collection(db, "users"), where("lineUserId", "==", profile.userId));
-                            const querySnapshot = await getDocs(q);
-
-                            if (!querySnapshot.empty) {
-                                const userDoc = querySnapshot.docs[0];
-                                currentUser = { uid: userDoc.id }; 
-
-                                setupBaseUI(profile.displayName, profile.pictureUrl);
-                                setupBoundUI(profile.userId);
-                                await loadUserData();
-                                removeLoader();
-                            } else {
-                                const newUserUid = user ? user.uid : "user_" + Date.now(); 
-                                await setDoc(doc(db, "users", newUserUid), {
-                                    lineUserId: profile.userId,
-                                    lineName: profile.displayName,
-                                    email: profile.userId + "@line.me", 
-                                    role: "member", 
-                                    stars: 0, 
-                                    isBound: true,
-                                    createdAt: serverTimestamp()
-                                });
-
-                                currentUser = { uid: newUserUid };
-                                setupBaseUI(profile.displayName, profile.pictureUrl);
-                                setupBoundUI(profile.userId);
-                                await loadUserData();
-                                removeLoader();
-                                showToast("🎉 註冊成功！歡迎加入玉露寶庫！");
-                            }
-                        } catch(e) {
-                            console.error("驗證 LINE 綁定或註冊失敗:", e);
-                            showAuthError();
-                        }
-                    } else {
-                        showAuthError();
-                    }
+                    showAuthError();
                 }
             });
         }
@@ -406,11 +354,7 @@
         }
 
         window.startLineBind = () => {
-            if (typeof liff !== 'undefined') {
-                liff.login(); 
-            } else {
-                showToast("請在手機 LINE 瀏覽器中開啟以進行綁定！", true);
-            }
+            showToast("請在手機 LINE 瀏覽器中開啟以進行綁定！", true);
         };
 
         async function linkAccounts(firebaseUser, lineProfile) {
@@ -458,22 +402,7 @@
             localStorage.setItem("lineUserId", lineId);
         }
 
-        async function loadUserData() {
-            if(!currentUser) return;
-            try {
-                const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-                if (docSnap.exists()) {
-                    cachedUserData = docSnap.data();
-                    updateProfileUI(cachedUserData);
-                } else {
-                    cachedUserData = {};
-                }
-            } catch(e) { console.log("Profile load error", e); }
-        }
-
         function updateProfileUI(data) {
-            document.getElementById('star-count').innerText = data.stars !== undefined ? data.stars : 0;
-
             if (data.themeColor) {
                 const userIdEl = document.querySelector('.user-id');
                 const userAvatarEl = document.querySelector('.user-avatar');
@@ -506,11 +435,11 @@
         }
         initMeteors();
 
-        // 🔥 滑鼠拖尾 (加入 Throttle 節流優化，減輕手機發燙與瀏覽器負擔)
+        // 🔥 滑鼠拖尾 (Throttle 節流，減輕手機發燙)
         let lastTrailTime = 0;
         document.addEventListener('mousemove', (e) => {
             const now = Date.now();
-            if (now - lastTrailTime < 50) return; // 限制每 50ms 最多畫一顆星星
+            if (now - lastTrailTime < 50) return; 
             lastTrailTime = now;
 
             if(Math.random() > 0.5) return;
@@ -522,11 +451,9 @@
             setTimeout(() => star.remove(), 800);
         }, { passive: true });
 
+        // 登出系統
         window.handleLogout = function() {
             signOut(auth).then(() => {
-                if(typeof liff !== 'undefined' && liff.isLoggedIn()) {
-                    liff.logout();
-                }
                 localStorage.removeItem("lineUserId");
                 showLogoutSuccess();
             }).catch((error) => { console.error(error); });
