@@ -2,17 +2,26 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🔥 支援 PWA 與 iOS 全螢幕 Web App 的關鍵設定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="會員登入">
+    <meta name="theme-color" content="#090A0F">
+    
     <title>登入 - 玉露寶庫</title>
     
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1828/1828884.png" type="image/png">
+    <!-- 🔥 解決 iOS 顯示問題：改用標準 PNG 圖片作為桌面圖示 -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/826/826963.png">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- 🔥 載入 LINE LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
     <style>
         :root {
-            /* 🎨 星際奢華配色 */
             --main-gold: #FFD700;       
             --accent-amber: #FDB931;    
             --deep-space: #0f172a;      
@@ -22,33 +31,32 @@
             --glass-bg: rgba(15, 23, 42, 0.75); 
             --glass-border: rgba(255, 255, 255, 0.1);
         }
-
         body {
+            opacity: 1 !important; 
             background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
             color: #e2e8f0; font-family: 'Microsoft JhengHei', sans-serif;
-            height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0;
+            height: 100dvh; 
+            display: flex; align-items: center; justify-content: center; margin: 0;
             overflow: hidden; position: relative;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-tap-highlight-color: transparent;
         }
-
-        /* 背景特效 */
-        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
-        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation-timing-function: linear; animation-iteration-count: infinite; }
-        
-        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent), radial-gradient(1px 1px at 70% 20%, #eee, transparent); background-size: 300px 300px; animation-name: rotateSpace; animation-duration: 240s; }
-        .stars-mid { background-image: radial-gradient(1.5px 1.5px at 25% 10%, #fff, transparent), radial-gradient(1.5px 1.5px at 60% 35%, #eef, transparent); background-size: 400px 400px; opacity: 0.6; animation-name: rotateSpace; animation-duration: 180s; animation-direction: reverse; }
-        .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent), radial-gradient(3px 3px at 65% 25%, #fff59d, transparent); background-size: 100% 100%; opacity: 0; animation: occasionalFlash 12s ease-in-out infinite; }
-
+        .space-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .star-field { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background-repeat: repeat; opacity: 0.5; animation: rotateSpace 240s linear infinite; }
+        .stars-distant { background-image: radial-gradient(1px 1px at 10% 15%, #fff, transparent), radial-gradient(1px 1px at 30% 60%, #ddd, transparent); background-size: 300px 300px; }
+        .gold-twinklers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: radial-gradient(2px 2px at 20% 30%, var(--main-gold), transparent); background-size: 100% 100%; opacity: 0.5; animation: twinkle 5s infinite; }
         @keyframes rotateSpace { from { transform: rotate(0deg) translateZ(0); } to { transform: rotate(360deg) translateZ(0); } }
-        @keyframes occasionalFlash { 0%, 40%, 100% { opacity: 0; } 55% { opacity: 1; filter: brightness(2) blur(1px); } 85% { opacity: 0; } }
+        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
 
-        /* 登入卡片 */
         .login-box {
             background: var(--glass-bg); 
             border: 1px solid var(--glass-border);
-            padding: 40px 30px; border-radius: 20px; width: 90%; max-width: 360px;
+            padding: 40px 30px; border-radius: 24px; width: 90%; max-width: 360px;
             backdrop-filter: blur(12px); text-align: center;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             animation: fadeIn 0.8s ease-out;
+            position: relative; z-index: 10;
             max-height: 90vh; overflow-y: auto;
         }
         @keyframes fadeIn { from{opacity:0; transform:translateY(20px);} to{opacity:1; transform:translateY(0);} }
@@ -58,7 +66,6 @@
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); font-weight: 900;
             display: flex; align-items: center; justify-content: center; gap: 15px;
         }
-
         .title-star { color: var(--nebula-blue); font-size: 1.2rem; filter: drop-shadow(0 0 8px var(--nebula-blue)); animation: pulseStar 2s infinite alternate; }
         @keyframes pulseStar { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
 
@@ -67,27 +74,30 @@
         
         input {
             width: 100%; padding: 14px 14px 14px 45px; background: rgba(0,0,0,0.3);
-            border: 1px solid #475569; border-radius: 10px; color: #fff; box-sizing: border-box;
+            border: 1px solid #475569; border-radius: 12px; color: #fff; box-sizing: border-box;
             font-size: 1rem; transition: 0.3s;
         }
-        input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+        input:focus { border-color: var(--main-gold); outline: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); background: rgba(0,0,0,0.6); }
 
-        /* 按鈕樣式 */
         button {
             width: 100%; padding: 14px; background: linear-gradient(135deg, var(--main-gold), var(--accent-amber));
-            color: #0f172a; border: none; border-radius: 10px; font-weight: 900; cursor: pointer;
-            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px; display: flex; justify-content: center; align-items: center; gap: 10px;
+            color: #0f172a; border: none; border-radius: 12px; font-weight: 900; cursor: pointer;
+            margin-top: 10px; font-size: 1.1rem; transition: 0.3s; letter-spacing: 1px;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
         }
         button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3); }
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; filter: grayscale(50%); transform: none !important; box-shadow: none !important; }
         
         .register-btn { background: transparent; border: 1px solid var(--nebula-blue); color: var(--nebula-blue); margin-top: 15px; }
         .register-btn:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 15px var(--nebula-blue); color: #fff; }
 
+        /* 🔥 LINE 登入按鈕與分隔線樣式 */
         .line-btn { background: var(--line-green); color: #ffffff; margin-top: 15px; border: none; }
         .line-btn:hover { background: #05A044; box-shadow: 0 10px 20px rgba(6, 199, 85, 0.3); color: #fff; }
-
+        
         .divider { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #64748b; font-size: 0.9rem; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #475569; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .divider:not(:empty)::before { margin-right: .5em; }
         .divider:not(:empty)::after { margin-left: .5em; }
 
@@ -97,19 +107,13 @@
     </style>
 </head>
 <body>
-
     <div class="space-container">
         <div class="star-field stars-distant"></div>
-        <div class="star-field stars-mid"></div>
         <div class="gold-twinklers"></div>
     </div>
 
     <div class="login-box">
-        <h2>
-            <i class="fa-solid fa-star title-star"></i>
-            會員登入
-            <i class="fa-solid fa-star title-star"></i>
-        </h2>
+        <h2><i class="fa-solid fa-star title-star"></i> 會員登入 <i class="fa-solid fa-star title-star"></i></h2>
         
         <div class="input-group">
             <i class="fa-solid fa-envelope input-icon"></i>
@@ -120,31 +124,23 @@
             <i class="fa-solid fa-lock input-icon"></i>
             <input type="password" id="password" placeholder="密碼">
         </div>
-
-        <button id="emailLoginBtn" onclick="handleLogin()">
-            <i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入
-        </button>
         
-        <button class="register-btn" onclick="location.href='register.html'">
-            <i class="fa-solid fa-user-plus"></i> 加入星員
-        </button>
-
+        <button id="emailLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入</button>
+        <button class="register-btn" onclick="location.href='register.html'"><i class="fa-solid fa-user-plus"></i> 加入星員</button>
+        
         <div class="divider">或</div>
-
-        <button class="line-btn" id="lineLoginBtn" onclick="handleLineLogin()">
+        
+        <button class="line-btn" id="lineLoginBtn">
             <i class="fa-brands fa-line" style="font-size: 1.3rem;"></i> LINE 快速登入
         </button>
 
         <div class="error" id="errorMsg"></div>
-        
-        <a href="index.html" class="back-link">
-            <i class="fa-solid fa-arrow-left"></i> 返回首頁
-        </a>
+        <a href="index.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> 返回大廳</a>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
@@ -152,77 +148,105 @@
             projectId: "yulubox",
             storageBucket: "yulubox.firebasestorage.app",
             messagingSenderId: "256466567852",
-            appId: "1:256466567852:web:233b74668908ffcb9b9509",
-            measurementId: "G-YPCY41EKWX"
+            appId: "1:256466567852:web:233b74668908ffcb9b9509"
         };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
         // ==========================================
-        // 🌟 LINE LIFF 初始化設定
+        // 🌟 LINE LIFF 初始化與嚴格綁定事件
         // ==========================================
-        const myLiffId = "2009464550-Odl0cheD"; // 您的 LIFF ID
+        const myLiffId = "2009464550-Odl0cheD";
+        const errorDiv = document.getElementById('errorMsg');
+        const lineBtn = document.getElementById('lineLoginBtn');
+        const emailBtn = document.getElementById('emailLoginBtn');
 
-        document.addEventListener("DOMContentLoaded", () => {
-            liff.init({ liffId: myLiffId })
-                .then(() => {
-                    if (liff.isLoggedIn()) {
-                        liff.getProfile().then(profile => {
-                            localStorage.setItem("lineUserId", profile.userId);
-                            // 登入成功後跳轉至會員中心
-                            window.location.href = "vip_area.html"; 
-                        }).catch(err => console.error("無法取得 Profile:", err));
+        let isLiffReady = false;
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                await liff.init({ liffId: myLiffId });
+                isLiffReady = true; // 標記為初始化完成
+
+                if (liff.isLoggedIn()) {
+                    try {
+                        const profile = await liff.getProfile();
+                        localStorage.setItem("lineUserId", profile.userId);
+                        // 登入成功後跳轉至會員中心
+                        window.location.href = "vip_area.html"; 
+                    } catch (profileErr) {
+                        console.error("無法取得 Profile:", profileErr);
+                        errorDiv.innerText = "無法取得您的 LINE 資料，請重新登入";
                     }
-                })
-                .catch((err) => {
-                    console.error("LIFF 初始化失敗:", err);
-                });
+                }
+            } catch (err) {
+                console.error("LIFF 初始化失敗:", err);
+                errorDiv.innerText = "LINE 服務初始化失敗。若您是站長，請確認 LINE Console 中的 Endpoint URL 是否與目前網址一致。";
+            }
         });
 
-        // 點擊 LINE 登入按鈕
-        window.handleLineLogin = () => {
-            const btn = document.getElementById('lineLoginBtn');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
-            
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            } else {
-                window.location.href = "vip_area.html";
+        // 🔥 點擊 LINE 登入按鈕
+        lineBtn.addEventListener('click', () => {
+            if (!isLiffReady) {
+                errorDiv.innerText = "LINE 服務尚未載入完畢，請稍等一下再點擊。";
+                return;
             }
-        };
 
-        // 點擊信箱密碼登入按鈕
-        window.handleLogin = () => {
+            lineBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中...';
+            lineBtn.disabled = true;
+            errorDiv.innerText = '';
+            
+            try {
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    window.location.href = "vip_area.html";
+                }
+            } catch (err) {
+                console.error(err);
+                lineBtn.innerHTML = '<i class="fa-brands fa-line" style="font-size: 1.3rem;"></i> LINE 快速登入';
+                lineBtn.disabled = false;
+                errorDiv.innerText = "啟動 LINE 登入失敗: " + err.message;
+            }
+        });
+
+        // 🔥 點擊信箱密碼登入按鈕
+        emailBtn.addEventListener('click', () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMsg');
-            const btn = document.getElementById('emailLoginBtn'); 
 
             if(!email || !password) {
                 errorDiv.innerText = "請輸入帳號與密碼";
                 return;
             }
 
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
-            btn.disabled = true;
+            emailBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 驗證中...';
+            emailBtn.disabled = true;
+            errorDiv.innerText = '';
 
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
+            // 強制設定「本機持久化記憶」
+            setPersistence(auth, browserLocalPersistence)
+                .then(() => {
+                    return signInWithEmailAndPassword(auth, email, password);
+                })
+                .then(() => {
                     window.location.href = "vip_area.html";
                 })
                 .catch((error) => {
-                    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入';
-                    btn.disabled = false;
+                    emailBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 信箱密碼登入';
+                    emailBtn.disabled = false;
                     
-                    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
                         errorDiv.innerText = "登入失敗：帳號或密碼錯誤";
                     } else if (error.code === 'auth/too-many-requests') {
                         errorDiv.innerText = "嘗試次數過多，請稍後再試";
                     } else {
                         errorDiv.innerText = "系統錯誤：" + error.message;
                     }
+                    console.error(error);
                 });
-        }
+        });
     </script>
 </body>
 </html>
