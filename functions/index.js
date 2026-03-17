@@ -275,7 +275,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
             if (text === "現在版本") {
                 await replyLineMessage(replyToken, [createCardMessage(
                     "系統狀態報告", 
-                    "🤖 目前 LINE 大腦核心版本：\n\n► 版本號：1", 
+                    "🤖 目前 LINE 大腦核心版本：\n\n► 版本號：操機掰", 
                     "#00ff9d"
                 )]);
                 continue;
