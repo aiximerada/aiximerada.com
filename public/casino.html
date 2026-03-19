@@ -272,7 +272,7 @@
         <div class="bet-panel" id="betPanel" style="display:none;">
             <div class="bet-input-group">
                 <input type="number" id="betAmount" class="bet-input" value="100">
-                <button class="btn-all-in" id="btnAllIn" onclick="setAllIn()">全押</button>
+                <button class="btn-all-in" id="btnAllIn" onclick="setAllIn()">梭哈</button>
             </div>
             
             <div id="diceSelector" class="dice-control-panel" style="display:none;">
@@ -681,10 +681,14 @@
                     let isPair = c1 === c2;
                     let isConsecutive = Math.abs(c1 - c2) === 1;
 
+                    // 🔥 優化：將滑桿改為「輸入框 + 梭哈按鈕」
                     controlsHtml += `
                         <div style="margin-bottom:15px; text-align:center;">
-                            <div style="font-size:1.5rem; color:var(--main-gold); font-weight:900; margin-bottom:5px;">下注: <span id="dgBetVal">${minBet}</span></div>
-                            <input type="range" class="dg-slider" id="dgBetSlider" min="${minBet}" max="${maxBet}" value="${minBet}" oninput="document.getElementById('dgBetVal').innerText=this.value" ${maxBet <= 0 ? 'disabled' : ''}>
+                            <div style="font-size:1.1rem; color:var(--main-gold); font-weight:900; margin-bottom:10px;">下注金額 (最多可下: ${maxBet})</div>
+                            <div style="display:flex; gap:10px; justify-content:center;">
+                                <input type="number" id="dgBetInput" min="${minBet}" max="${maxBet}" value="${minBet}" class="bet-input" style="width:140px; font-size:1.5rem; padding:10px;" ${maxBet <= 0 ? 'disabled' : ''}>
+                                <button class="btn-all-in" style="padding:0 20px; font-size:1.1rem;" onclick="document.getElementById('dgBetInput').value=${maxBet}" ${maxBet <= 0 ? 'disabled' : ''}>梭哈</button>
+                            </div>
                         </div>
                     `;
 
@@ -776,9 +780,19 @@
 
         window.dgShoot = async (needsGuess) => {
             if(isProcessing) return;
+
+            // 🔥 讀取新版輸入框的值，並加入防呆驗證
+            let betAmount = parseInt(document.getElementById('dgBetInput').value);
+            const me = dgState.players.find(p => p.uid === currentUser.uid);
+            let maxBet = Math.min(me.chips, dgState.pot);
+            let minBet = Math.min(10, maxBet);
+
+            if (isNaN(betAmount) || betAmount < minBet || betAmount > maxBet) {
+                return alert(`⚠️ 下注金額無效！(最低 ${minBet}，最高 ${maxBet})`);
+            }
+
             isProcessing = true; toggleAllButtons(true);
 
-            let betAmount = parseInt(document.getElementById('dgBetSlider').value);
             let guessType = null;
             if(needsGuess) {
                 let radios = document.getElementsByName('dgGuess');
