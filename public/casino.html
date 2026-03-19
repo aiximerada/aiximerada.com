@@ -128,6 +128,10 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
         .card-back::after { content: '✦'; color: var(--main-gold); font-size: 3.5rem; text-shadow: 0 0 15px var(--main-gold); }
+        
+        /* 🔥 發牌動畫 */
+        .deal-anim { animation: dealSlide 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+        @keyframes dealSlide { 0% { opacity: 0; transform: translateY(-50px) scale(0.8) rotate(-5deg); } 100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); } }
 
         /* --- 🎲 骰子區域 --- */
         .dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; position: relative; }
@@ -159,7 +163,14 @@
         .dg-btn-shoot { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 5px 15px rgba(239,68,68,0.4); }
         .dg-btn-pass { background: #475569; }
         .dg-btn-leave { background: transparent; border: 2px solid #ff4757; color: #ff4757; margin-top: 10px; width: 100%; max-width: 200px; margin-inline: auto; }
-        .dg-slider { width: 100%; margin: 15px 0; accent-color: var(--main-gold); }
+        
+        /* 🔥 新增：快速籌碼按鈕 */
+        .chip-btn {
+            background: rgba(255, 215, 0, 0.1); border: 1px solid var(--main-gold); color: var(--main-gold);
+            border-radius: 50px; padding: 6px 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: 0.2s; flex: 1;
+        }
+        .chip-btn:hover { background: var(--main-gold); color: #000; box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+        .chip-btn:active { transform: scale(0.9); }
 
         /* 按鈕與面板 */
         .game-tabs { display: flex; gap: 10px; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 50px; flex-wrap: wrap; justify-content: center; }
@@ -167,7 +178,7 @@
         .tab-btn.active { background: linear-gradient(135deg, var(--main-gold), var(--accent-amber)); color: #0f172a; box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
 
         .bet-panel { margin-bottom: 25px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-        .bet-input-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .bet-input-group { display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center; margin-top: 15px; }
         .bet-input { background: rgba(15, 23, 42, 0.8); border: 1px solid #475569; color: var(--main-gold); padding: 12px; border-radius: 12px; width: 140px; text-align: center; font-size: 1.5rem; font-weight: bold; }
         .btn-all-in { background: linear-gradient(135deg, #ef4444, #b91c1c); color: #fff; border: none; padding: 0 25px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
@@ -178,8 +189,8 @@
             font-weight: 900; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.25); width: 85%; max-width: 350px;
         }
         /* 按鈕禁用樣式 */
-        .btn-action:disabled, .btn-bj:disabled, .btn-choice:disabled, .btn-collect:disabled, .btn-double:disabled, #btnAllIn:disabled, .dg-btn:disabled { 
-            background: #334155 !important; color: #64748b !important; cursor: not-allowed; box-shadow: none !important; opacity: 0.7;
+        .btn-action:disabled, .btn-bj:disabled, .btn-choice:disabled, .btn-collect:disabled, .btn-double:disabled, #btnAllIn:disabled, .dg-btn:disabled, .chip-btn:disabled { 
+            background: #334155 !important; color: #64748b !important; border-color: #475569 !important; cursor: not-allowed; box-shadow: none !important; opacity: 0.7;
         }
 
         .result-msg { font-size: 1.6rem; margin-top: 25px; font-weight: bold; min-height: 40px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); opacity: 0; transition: 0.5s; }
@@ -269,10 +280,19 @@
 
     <div class="stage" id="gameStage">
         
+        <!-- 通用遊戲下注區 (比大小, 21點, 骰子) -->
         <div class="bet-panel" id="betPanel" style="display:none;">
             <div class="bet-input-group">
-                <input type="number" id="betAmount" class="bet-input" value="100">
-                <button class="btn-all-in" id="btnAllIn" onclick="setAllIn()">梭哈</button>
+                <div style="display:flex; gap:10px; justify-content:center; width:100%;">
+                    <input type="number" id="betAmount" class="bet-input" value="50">
+                    <button class="btn-all-in" id="btnAllIn" onclick="setAllIn()">梭哈</button>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:center; width:100%; margin-top:5px;">
+                    <button class="chip-btn" onclick="addGeneralBet(10)">+10</button>
+                    <button class="chip-btn" onclick="addGeneralBet(50)">+50</button>
+                    <button class="chip-btn" onclick="addGeneralBet(100)">+100</button>
+                    <button class="chip-btn" onclick="addGeneralBet(500)">+500</button>
+                </div>
             </div>
             
             <div id="diceSelector" class="dice-control-panel" style="display:none;">
@@ -287,15 +307,15 @@
                 </div>
             </div>
 
-            <button class="btn-action" id="btnStart" onclick="startGame()">開始</button>
+            <button class="btn-action" id="btnStart" onclick="startGame()">發牌 / 開始</button>
         </div>
 
-        <!-- 🔥 新增：射龍門 多人連線區塊 -->
+        <!-- 🐉 射龍門 多人連線區塊 -->
         <div id="gameDragonGate" style="display:block; width:100%;">
             <!-- 房間大廳 -->
             <div id="dgLobby" class="dg-lobby">
-                <i class="fa-solid fa-people-group" style="font-size:4rem; color:var(--nebula-blue); margin-bottom:10px;"></i>
-                <button class="btn-action" style="margin-top:0;" onclick="createDGRoom()">建立專屬房間</button>
+                <i class="fa-solid fa-people-group" style="font-size:4rem; color:var(--nebula-blue); margin-bottom:10px; filter: drop-shadow(0 0 15px rgba(0,243,255,0.4));"></i>
+                <button class="btn-action" style="margin-top:0;" onclick="createDGRoom()"><i class="fa-solid fa-plus"></i> 建立專屬房間</button>
                 <div style="color:#64748b; font-weight:bold; margin: 10px 0;">— 或是 —</div>
                 <input type="text" id="dgJoinCode" class="dg-join-input" placeholder="輸入4碼房間代碼">
                 <button class="btn-action" style="margin-top:0; background:var(--nebula-blue); color:#000;" onclick="joinDGRoom()">加入房間</button>
@@ -308,8 +328,8 @@
         </div>
 
         <div id="gameHighCard" style="display:none;">
-            <div class="card-area" id="hcHouseCard"><div class="poker-card card-back"></div></div>
-            <div class="card-area" id="hcPlayerCard"><div class="poker-card card-back" style="opacity:0.5;"></div></div>
+            <div class="card-area" id="hcHouseCard"><div class="poker-card card-back deal-anim"></div></div>
+            <div class="card-area" id="hcPlayerCard"><div class="poker-card card-back deal-anim" style="opacity:0.5;"></div></div>
             <div class="choice-panel" id="hcChoices">
                 <button class="btn-choice btn-big" onclick="guessHighCard('big')">大 BIG</button>
                 <button class="btn-choice btn-small" onclick="guessHighCard('small')">小 SMALL</button>
@@ -322,8 +342,8 @@
                     <i class="fa-solid fa-user-secret"></i> 莊家 <span id="bjHouseScore" class="score-box" style="color:#fff;">?</span>
                 </div>
                 <div class="card-area" id="bjHouseArea">
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
+                    <div class="poker-card card-back deal-anim" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
+                    <div class="poker-card card-back deal-anim" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
                 </div>
             </div>
             <div>
@@ -331,8 +351,8 @@
                     <i class="fa-solid fa-user"></i> 您 <span id="bjPlayerScore" class="score-box" style="color:var(--main-gold);">0</span>
                 </div>
                 <div class="card-area" id="bjPlayerArea">
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
-                    <div class="poker-card card-back" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
+                    <div class="poker-card card-back deal-anim" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
+                    <div class="poker-card card-back deal-anim" style="opacity:0.2; border:1px dashed #666; background:transparent;"></div>
                 </div>
             </div>
             <div class="bj-controls" id="bjControls">
@@ -439,6 +459,14 @@
             }
         }
 
+        // 🔥 輔助：通用快速加注
+        window.addGeneralBet = (val) => {
+            const input = document.getElementById('betAmount');
+            if(!input) return;
+            let current = parseInt(input.value) || 0;
+            input.value = current + val;
+        };
+
         window.switchGame = (game) => {
             currentGame = game;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -449,7 +477,6 @@
             document.getElementById('gameDice').style.display = game === 'dice' ? 'block' : 'none';
             document.getElementById('gameDragonGate').style.display = game === 'dragongate' ? 'block' : 'none';
             
-            // 射龍門擁有自己的獨立面板，不需要通用下注區
             document.getElementById('betPanel').style.display = (game === 'dragongate') ? 'none' : 'block';
             document.getElementById('diceSelector').style.display = game === 'dice' ? 'flex' : 'none';
             
@@ -477,10 +504,10 @@
             document.getElementById('diceStatus').innerText = '等待星運降臨...';
             document.getElementById('bjControls').style.display = 'none';
             
-            document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back" style="opacity:0.5;"></div>';
-            document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back"></div>';
-            document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
-            document.getElementById('bjHouseArea').innerHTML = '<div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
+            document.getElementById('hcPlayerCard').innerHTML = '<div class="poker-card card-back deal-anim" style="opacity:0.5;"></div>';
+            document.getElementById('hcHouseCard').innerHTML = '<div class="poker-card card-back deal-anim"></div>';
+            document.getElementById('bjPlayerArea').innerHTML = '<div class="poker-card card-back deal-anim" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back deal-anim" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
+            document.getElementById('bjHouseArea').innerHTML = '<div class="poker-card card-back deal-anim" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div><div class="poker-card card-back deal-anim" style="opacity:0.3; border:1px dashed #666; background:transparent;"></div>';
             document.getElementById('bjPlayerScore').innerText = '0';
             document.getElementById('bjHouseScore').innerText = '?';
 
@@ -490,7 +517,7 @@
         };
 
         function toggleAllButtons(disabled) {
-            const btns = document.querySelectorAll('.btn-choice, .btn-bj, .btn-collect, .btn-double, #btnStart, #btnAllIn, .dg-btn');
+            const btns = document.querySelectorAll('.btn-choice, .btn-bj, .btn-collect, .btn-double, #btnStart, #btnAllIn, .dg-btn, .chip-btn');
             btns.forEach(b => b.disabled = disabled);
         }
 
@@ -510,14 +537,14 @@
             return d.sort(() => Math.random() - 0.5);
         }
 
+        // 🔥 確保每張牌都有發牌動畫
         function createCardElement(c) {
             const red = (c.suit === '♥' || c.suit === '♦') ? 'card-red' : 'card-black';
-            const div = document.createElement('div'); div.className = `poker-card ${red}`;
+            const div = document.createElement('div'); div.className = `poker-card ${red} deal-anim`;
             div.innerHTML = `<div class="card-corner top-left"><div>${c.text}</div><div>${c.suit}</div></div><div class="card-center">${c.suit}</div><div class="card-corner bottom-right"><div>${c.text}</div><div>${c.suit}</div></div>`;
             return div;
         }
-
-        function createCardBack() { const d = document.createElement('div'); d.className = 'poker-card card-back'; return d; }
+        function createCardBack() { const d = document.createElement('div'); d.className = 'poker-card card-back deal-anim'; return d; }
 
         window.setAllIn = () => { document.getElementById('betAmount').value = currentBalance; }
 
@@ -528,7 +555,7 @@
             if(!isDoubleUp) {
                 bet = parseInt(document.getElementById('betAmount').value);
                 if(isNaN(bet) || bet <= 0 || bet > currentBalance) return alert("金額無效或不足");
-                if(currentGame === 'dice' && !selectedDice) return alert("請先預測");
+                if(currentGame === 'dice' && !selectedDice) return alert("請先預測幸運星數");
 
                 isProcessing = true;
                 toggleAllButtons(true);
@@ -574,6 +601,17 @@
         let dgRoomId = null;
         let dgUnsubscribe = null;
         let dgState = null;
+
+        // 🔥 輔助：射龍門專用快速加注
+        window.addDgBet = (val) => {
+            const input = document.getElementById('dgBetInput');
+            if(!input) return;
+            let current = parseInt(input.value) || 0;
+            let max = parseInt(input.max) || 0;
+            let newVal = current + val;
+            if(newVal > max) newVal = max;
+            input.value = newVal;
+        };
 
         window.createDGRoom = async () => {
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -657,7 +695,7 @@
             if (dgState.cards && dgState.cards.length === 2) {
                 const c1Node = createCardElement(dgState.cards[0]).outerHTML;
                 const c2Node = createCardElement(dgState.cards[1]).outerHTML;
-                let c3Node = `<div class="poker-card card-back" style="opacity:0.3; transform: scale(0.9);"></div>`;
+                let c3Node = `<div class="poker-card card-back deal-anim" style="opacity:0.3; transform: scale(0.9);"></div>`;
                 if (dgState.thirdCard) c3Node = createCardElement(dgState.thirdCard).outerHTML;
                 cardsHtml = c1Node + c3Node + c2Node;
             } else {
@@ -681,32 +719,41 @@
                     let isPair = c1 === c2;
                     let isConsecutive = Math.abs(c1 - c2) === 1;
 
-                    // 🔥 優化：將滑桿改為「輸入框 + 梭哈按鈕」
+                    // 🔥 UI 優化：加入快速籌碼與直覺按鈕
                     controlsHtml += `
                         <div style="margin-bottom:15px; text-align:center;">
                             <div style="font-size:1.1rem; color:var(--main-gold); font-weight:900; margin-bottom:10px;">下注金額 (最多可下: ${maxBet})</div>
-                            <div style="display:flex; gap:10px; justify-content:center;">
-                                <input type="number" id="dgBetInput" min="${minBet}" max="${maxBet}" value="${minBet}" class="bet-input" style="width:140px; font-size:1.5rem; padding:10px;" ${maxBet <= 0 ? 'disabled' : ''}>
-                                <button class="btn-all-in" style="padding:0 20px; font-size:1.1rem;" onclick="document.getElementById('dgBetInput').value=${maxBet}" ${maxBet <= 0 ? 'disabled' : ''}>梭哈</button>
+                            <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+                                <div style="display:flex; gap:10px; justify-content:center; width:100%;">
+                                    <input type="number" id="dgBetInput" min="${minBet}" max="${maxBet}" value="${minBet}" class="bet-input" style="width:140px; font-size:1.5rem; padding:10px;" ${maxBet <= 0 ? 'disabled' : ''}>
+                                    <button class="btn-all-in" style="padding:0 20px; font-size:1.1rem;" onclick="document.getElementById('dgBetInput').value=${maxBet}" ${maxBet <= 0 ? 'disabled' : ''}>梭哈</button>
+                                </div>
+                                <div style="display:flex; gap:8px; justify-content:center; width:100%;">
+                                    <button class="chip-btn" onclick="addDgBet(10)" ${maxBet <= 0 ? 'disabled' : ''}>+10</button>
+                                    <button class="chip-btn" onclick="addDgBet(50)" ${maxBet <= 0 ? 'disabled' : ''}>+50</button>
+                                    <button class="chip-btn" onclick="addDgBet(100)" ${maxBet <= 0 ? 'disabled' : ''}>+100</button>
+                                </div>
                             </div>
                         </div>
                     `;
 
+                    // 🔥 UX 優化：將單選框改為直覺的大動作按鈕
                     if (isPair || isConsecutive) {
                         controlsHtml += `
-                            <div style="display:flex; justify-content:center; gap:20px; margin-bottom:15px;">
-                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; color:#ff4757;"><input type="radio" name="dgGuess" value="high" checked style="transform:scale(1.5);"> 猜大 (>${Math.max(c1,c2)})</label>
-                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:bold; color:#00f3ff;"><input type="radio" name="dgGuess" value="low" style="transform:scale(1.5);"> 猜小 (<${Math.min(c1,c2)})</label>
+                            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                                <button class="dg-btn" style="flex:1; background:linear-gradient(135deg, #ef4444, #b91c1c);" onclick="dgShoot('high')" ${maxBet<=0 ? 'disabled':''}>⬆️ 猜大 (>${Math.max(c1,c2)})</button>
+                                <button class="dg-btn" style="flex:1; background:linear-gradient(135deg, #3b82f6, #2563eb);" onclick="dgShoot('low')" ${maxBet<=0 ? 'disabled':''}>⬇️ 猜小 (<${Math.min(c1,c2)})</button>
+                            </div>
+                        `;
+                    } else {
+                        controlsHtml += `
+                            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                                <button class="dg-btn dg-btn-shoot" style="width:100%;" onclick="dgShoot(null)" ${maxBet<=0 ? 'disabled':''}>⚽ 射門！</button>
                             </div>
                         `;
                     }
-
-                    controlsHtml += `
-                        <div style="display:flex; gap:10px;">
-                            <button class="dg-btn dg-btn-shoot" style="flex:2;" onclick="dgShoot(${isPair||isConsecutive})" ${maxBet<=0 ? 'disabled':''}>⚽ 射門！</button>
-                            <button class="dg-btn dg-btn-pass" style="flex:1;" onclick="dgPass()">不喊</button>
-                        </div>
-                    `;
+                    
+                    controlsHtml += `<button class="dg-btn dg-btn-pass" style="width:100%;" onclick="dgPass()"><i class="fa-solid fa-hand"></i> 放棄不喊 (Pass)</button>`;
                 } else {
                     controlsHtml = `<div style="text-align:center; color:#00f3ff; font-size:1.1rem; font-weight:bold; animation:pulse 1.5s infinite;"><i class="fa-solid fa-hourglass-half"></i> 玩家 ${activePlayer.name} 思考中...</div>`;
                 }
@@ -751,7 +798,6 @@
             let newPot = dgState.pot;
             let newPlayers = [...dgState.players];
             
-            // 底注機制
             if (newPot <= 0 || isFirst) {
                 if(newPot < 0) newPot = 0; 
                 newPlayers = newPlayers.map(p => {
@@ -778,10 +824,10 @@
             });
         };
 
-        window.dgShoot = async (needsGuess) => {
+        // 🔥 UX 優化：直接接收動作按鈕的參數，不再需要讀取單選框
+        window.dgShoot = async (guessType = null) => {
             if(isProcessing) return;
 
-            // 🔥 讀取新版輸入框的值，並加入防呆驗證
             let betAmount = parseInt(document.getElementById('dgBetInput').value);
             const me = dgState.players.find(p => p.uid === currentUser.uid);
             let maxBet = Math.min(me.chips, dgState.pot);
@@ -792,12 +838,6 @@
             }
 
             isProcessing = true; toggleAllButtons(true);
-
-            let guessType = null;
-            if(needsGuess) {
-                let radios = document.getElementsByName('dgGuess');
-                for(let r of radios) { if(r.checked) guessType = r.value; }
-            }
 
             let newDeck = [...dgState.deck];
             let thirdCard = newDeck.pop();
@@ -873,7 +913,6 @@
             document.getElementById('dgLobby').style.display = 'flex';
         };
 
-        // 🔥 新增：複製房間代碼功能
         window.copyRoomCode = (code) => {
             const textArea = document.createElement("textarea");
             textArea.value = code;
@@ -888,7 +927,6 @@
                     btn.style.background = 'rgba(0, 255, 157, 0.2)';
                     btn.style.borderColor = '#00ff9d';
                     btn.style.color = '#00ff9d';
-                    
                     setTimeout(() => {
                         if(document.getElementById('btnCopyCode')) {
                             const resetBtn = document.getElementById('btnCopyCode');
@@ -899,9 +937,7 @@
                         }
                     }, 2000);
                 }
-            } catch (err) {
-                alert("複製失敗，請手動選取複製");
-            }
+            } catch (err) { alert("複製失敗，請手動選取複製"); }
             document.body.removeChild(textArea);
         };
 
