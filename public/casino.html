@@ -719,8 +719,13 @@
             }
 
             document.getElementById('dgRoom').innerHTML = `
-                <div class="dg-header">
-                    <span><i class="fa-solid fa-hashtag text-gray-400"></i> ${dgRoomId}</span>
+                <div class="dg-header" style="align-items: center;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span><i class="fa-solid fa-hashtag text-gray-400"></i> <span style="letter-spacing:2px; font-size:1.2rem;">${dgRoomId}</span></span>
+                        <button id="btnCopyCode" onclick="copyRoomCode('${dgRoomId}')" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:5px 12px; border-radius:10px; font-size:0.8rem; font-weight:bold; cursor:pointer; transition:0.3s; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-regular fa-copy"></i> 複製
+                        </button>
+                    </div>
                     <span style="color:#00ff9d; font-size:1.2rem;"><i class="fa-solid fa-sack-dollar"></i> ${dgState.pot}</span>
                 </div>
                 <div class="dg-players">${playersHtml}</div>
@@ -852,6 +857,38 @@
             dgRoomId = null; dgState = null;
             document.getElementById('dgRoom').style.display = 'none';
             document.getElementById('dgLobby').style.display = 'flex';
+        };
+
+        // 🔥 新增：複製房間代碼功能
+        window.copyRoomCode = (code) => {
+            const textArea = document.createElement("textarea");
+            textArea.value = code;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const btn = document.getElementById('btnCopyCode');
+                if (btn) {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> 已複製';
+                    btn.style.background = 'rgba(0, 255, 157, 0.2)';
+                    btn.style.borderColor = '#00ff9d';
+                    btn.style.color = '#00ff9d';
+                    
+                    setTimeout(() => {
+                        if(document.getElementById('btnCopyCode')) {
+                            const resetBtn = document.getElementById('btnCopyCode');
+                            resetBtn.innerHTML = originalHtml;
+                            resetBtn.style.background = 'rgba(255,255,255,0.1)';
+                            resetBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+                            resetBtn.style.color = '#fff';
+                        }
+                    }, 2000);
+                }
+            } catch (err) {
+                alert("複製失敗，請手動選取複製");
+            }
+            document.body.removeChild(textArea);
         };
 
         // ==========================================
