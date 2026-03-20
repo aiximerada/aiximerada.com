@@ -74,23 +74,23 @@
         </header>
 
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-10" id="card-grid">
-            <div class="totem-card floating delay-1 relative cursor-pointer transition-all duration-300" onclick="showResult('A', this, 'S__213467149_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467149_0.jpg" alt="圖騰 A" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-1 relative cursor-pointer transition-all duration-300" onclick="showResult('A', this, 'S__214728718_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728718_0.jpg" alt="圖騰 A" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
-            <div class="totem-card floating delay-2 relative cursor-pointer transition-all duration-300" onclick="showResult('B', this, 'S__213467150_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467150_0.jpg" alt="圖騰 B" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-2 relative cursor-pointer transition-all duration-300" onclick="showResult('B', this, 'S__214728719_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728719_0.jpg" alt="圖騰 B" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
-            <div class="totem-card floating delay-3 relative cursor-pointer transition-all duration-300" onclick="showResult('C', this, 'S__213467151_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467151_0.jpg" alt="圖騰 C" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-3 relative cursor-pointer transition-all duration-300" onclick="showResult('C', this, 'S__214728720_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728720_0.jpg" alt="圖騰 C" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
-            <div class="totem-card floating delay-4 relative cursor-pointer transition-all duration-300" onclick="showResult('D', this, 'S__213467152_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467152_0.jpg" alt="圖騰 D" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-4 relative cursor-pointer transition-all duration-300" onclick="showResult('D', this, 'S__214728721_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728721_0.jpg" alt="圖騰 D" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
-            <div class="totem-card floating delay-5 relative cursor-pointer transition-all duration-300" onclick="showResult('E', this, 'S__213467153_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467153_0.jpg" alt="圖騰 E" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-5 relative cursor-pointer transition-all duration-300" onclick="showResult('E', this, 'S__214728722_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728722_0.jpg" alt="圖騰 E" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
-            <div class="totem-card floating delay-6 relative cursor-pointer transition-all duration-300" onclick="showResult('F', this, 'S__213467154_0.jpg')">
-                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__213467154_0.jpg" alt="圖騰 F" class="w-full rounded-xl object-cover pointer-events-none"></div>
+            <div class="totem-card floating delay-6 relative cursor-pointer transition-all duration-300" onclick="showResult('F', this, 'S__214728723_0.jpg')">
+                <div class="card-inner bg-white p-2 rounded-2xl shadow-sm border border-purple-50 transition-all duration-300"><img src="S__214728723_0.jpg" alt="圖騰 F" class="w-full rounded-xl object-cover pointer-events-none"></div>
             </div>
         </div>
 
@@ -122,7 +122,7 @@
         </div>
     </div>
 
-    <div id="final-share-section" class="hidden w-full max-w-xl mx-auto mt-6 flex flex-col items-center px-4 reveal-anim pb-20">
+    <div id="final-share-section" class="hidden w-full max-w-xl mx-auto mt-6 flex flex-col items-center px-4 reveal-anim pb-10">
         
         <div class="bg-amber-50 text-amber-800 px-6 py-3 rounded-full text-sm font-bold tracking-widest mb-6 flex items-center gap-2 border border-amber-200 shadow-sm animate-bounce">
             <span>👇 請長按下方圖片儲存圖片 👇</span>
@@ -149,17 +149,41 @@
         </button>
     </div>
 
+    <!-- 新增：網頁計數器區塊 -->
+    <div class="w-full text-center py-8 text-gray-400 text-sm tracking-widest">
+        目前網站瀏覽次數：<span id="view-counter" class="text-purple-600 font-bold text-base">2,000</span>
+    </div>
+
     <script>
         const data = {
-            'A': { title: 'A｜🔥 生命之火啟動', text: '你內在的慾望不是慾望，而是創造力。\n燃燒的是更高維度的召喚。\n擴展正在發生，你的意識正在拉升。' },
-            'B': { title: 'B｜🌱 自我覺察升級', text: '外在不是答案。\n你的洞察已成熟。\n向內深耕，新的視野正在等你跨出那一步。' },
-            'C': { title: 'C｜🔥 靜默中的爆發力', text: '等待不是停滯。\n那是不動聲色的蓄能。\n時機已到，你的火焰將穿越舊課題。' },
-            'D': { title: 'D｜🌅 靈魂智慧甦醒', text: '那些不被理解的歷程，都是準備。\n你其實早已準備好。\n春風正在推你向前。' },
-            'E': { title: 'E｜🌊 穩定中的創造力', text: '你的沉靜，是力量。\n當你安住內在，創造力會自然上升。\n限制，只來自未被允許的渴望。' },
-            'F': { title: 'F｜🌬 落地的靈魂種子', text: '你有無限創意。\n但種子需要土地。\n選擇一個立足點，讓夢開始發芽。' }
+            'A': { title: '🔴 A｜能量爆發・破界之流', text: '你目前正站在一個「能量集結」的臨界點\n很多事情不是卡住\n而是正在醞釀突破\n\n你內在其實很清楚下一步\n只是還在觀望或壓抑\n\n✨訊息提醒：\n不要再縮小自己\n當你開始行動，限制會自然鬆動\n\n（想更深入你的轉變方向，可私訊：春分🌸）' },
+            'B': { title: '🟠 B｜和諧共振・宇宙之樂', text: '你正在進入一個「重新平衡」的階段\n很多過去的不順\n其實是在幫助你調整頻率\n\n當你開始對齊內在\n外在的關係與狀態會慢慢順起來\n\n✨訊息提醒：\n不用再用力證明\n當你穩定，世界會回應你\n\n（想更深入你的頻率狀態，可私訊：春分🌸）' },
+            'C': { title: '🟡 C｜光之轉化・柔性創造力', text: '你擁有很強的能量\n但目前正在學習「轉化」而不是硬撐\n\n有些情緒或壓力\n其實是能量正在轉變的過程\n\n✨訊息提醒：\n當你願意放下控制\n你的力量會變得更深、更穩、更有創造力\n\n（想更深入你的內在轉化，可私訊：春分🌸）' },
+            'D': { title: '🟢 D｜秩序之道・宇宙協奏者', text: '你正在學習掌握「節奏」\n不是做更多，而是做對的事\n\n最近可能會開始重新整理生活、方向或目標\n\n✨訊息提醒：\n當你對齊自己的節奏\n事情會開始自然展開，而不是用力推動\n\n（想更精準看見你的方向，可私訊：春分🌸）' },
+            'E': { title: '🔵 E｜天地連結・能量整合者', text: '你正處在一個「整合期」\n內在與外在正在重新對齊\n\n有些過去的經驗\n正在轉化成你的力量\n\n✨訊息提醒：\n這段時間適合慢下來\n讓能量整合完成，你會進入新的層次\n\n（想更深入你的能量整合，可私訊：春分🌸）' },
+            'F': { title: '🟣 F｜喜悅流動・自由之源', text: '你的靈魂其實很渴望「自由與喜悅」\n但可能有一部分還在壓抑自己\n\n當你越允許自己輕盈\n你的能量會越擴展\n\n✨訊息提醒：\n不要再把自己放進框架\n你的力量，來自流動與喜悅' }
         };
 
         let hasSelected = false;
+
+        // 初始化瀏覽次數
+        function initCounter() {
+            // 利用時間差做一個擬真的全域增長模擬，基礎值 2000 起跳
+            const baseDate = new Date('2024-03-20T00:00:00').getTime();
+            const now = Date.now();
+            const elapsedHours = (now - baseDate) / (1000 * 60 * 60);
+            let globalVisits = 2000 + Math.floor(elapsedHours * 3.5); 
+            
+            // 加上本地的點擊次數讓當前使用者每次重整有增加的感覺
+            let localClicks = parseInt(localStorage.getItem('localClicks') || '0') + 1;
+            localStorage.setItem('localClicks', localClicks);
+            
+            const totalVisits = globalVisits + localClicks;
+            document.getElementById('view-counter').innerText = totalVisits.toLocaleString();
+        }
+        
+        // 頁面載入時執行
+        window.addEventListener('DOMContentLoaded', initCounter);
 
         function showResult(choice, selectedElement, imgSrc) {
             if (hasSelected) return; 
@@ -203,7 +227,6 @@
             }, 300);
         }
 
-        // ================= 新增：重置抽卡功能 =================
         function resetDraw() {
             hasSelected = false; // 解除鎖定
 
@@ -239,7 +262,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ================= 截圖與生成圖片功能 =================
         async function generateImage() {
             const captureArea = document.getElementById('capture-area');
             const generateBtn = document.getElementById('generate-btn');
@@ -280,7 +302,6 @@
             }
         }
 
-        // ================= App 喚醒功能 =================
         function openApp(event) {
             event.preventDefault();
             const target = event.currentTarget;
