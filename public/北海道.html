@@ -16,7 +16,7 @@
     <link rel="icon" type="image/png" href="APP圖示.png">
     <link rel="apple-touch-icon" href="APP圖示.png">
 
-    <!-- 動態產生 PWA Manifest (讓單一檔案也能被手機識別為 APP) -->
+    <!-- 動態產生 PWA Manifest -->
     <link rel="manifest" id="dynamic-manifest">
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -82,7 +82,7 @@
             padding: 10px 12px !important;
             border-radius: 8px !important;
             font-family: inherit !important;
-            font-size: 16px !important; /* 避免 iOS Zoom */
+            font-size: 16px !important; 
             outline: none !important;
             transition: border-color 0.2s !important;
             width: 100%;
@@ -105,7 +105,8 @@
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         // 🔥 Firebase Config (玉露寶庫)
         const firebaseConfig = {
@@ -120,6 +121,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         // ============ DEFAULT DATA ============
         const DEFAULT_DATA = {
@@ -127,17 +129,20 @@
             tripDates: '2026.07.11 - 07.19 · 9 天 8 夜',
             countdown: '2026-07-11',
             itinerary: [],
-            family: [
-                { id: 1, name: '老爸', role: '金主/司機', passport: '', note: '' },
-                { id: 2, name: '老媽', role: '總務/採購', passport: '', note: '' },
-            ],
+            family: [],
             luggage: [
-                { id: 1, category: '證件', item: '護照', checked: false },
-                { id: 2, category: '衣物', item: '薄外套（早晚溫差）', checked: false },
-                { id: 3, category: '電子', item: '行動電源', checked: false },
-                { id: 4, category: '電子', item: '萬國轉接頭', checked: false },
+                { id: 1, category: '證件', item: '護照 (確認效期)', checked: false },
+                { id: 2, category: '衣物', item: '薄外套 (早晚溫差)', checked: false },
+                { id: 3, category: '電子', item: '行動電源 & 轉接頭', checked: false },
             ],
-            flights: [], hotels: [], transport: [], foods: [], expenses: [], ideas: '',
+            flights: [], 
+            hotels: [], 
+            transport: [], 
+            foods: [], 
+            tickets: [], // 🎫 新增：景點門票 / 纜車
+            coupons: [],
+            expenses: [], 
+            ideas: '',
         };
 
         // ============ THEME ============
@@ -145,30 +150,6 @@
             bg: '#0A0E1A', bgCard: '#131827', bgCardHover: '#1A2033',
             border: '#252C42', text: '#E8ECF4', textMuted: '#8A93A8', textDim: '#5A6378',
             accent: '#E63946', accent2: '#F4A261', success: '#52B788', snow: '#E8F1F8',
-        };
-
-        // ============ HELPER: 圖片極致壓縮 ============
-        const compressImage = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 500; 
-                        let width = img.width; let height = img.height;
-                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-                        canvas.width = width; canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
-                    };
-                };
-                reader.onerror = error => reject(error);
-            });
         };
 
         // ============ MAIN APP ============
@@ -188,9 +169,7 @@
 
                 const unsubscribeAuth = onAuthStateChanged(auth, user => {
                     if (user) {
-                        // 使用玉露寶庫標準公開資料夾結構
                         const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
-                        
                         const unsubscribeDb = onSnapshot(docRef, (docSnap) => {
                             if (docSnap.exists()) {
                                 setData({ ...DEFAULT_DATA, ...docSnap.data() });
@@ -207,13 +186,47 @@
             }, []);
 
             const saveData = async (newData) => {
-                setData(newData); // 樂觀渲染 (Optimistic UI)
+                setData(newData);
                 setSyncing(true);
                 try {
                     const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
                     await setDoc(docRef, newData, { merge: true });
                 } catch (e) { console.error("Save Error", e); }
                 setTimeout(() => setSyncing(false), 500); 
+            };
+
+            // 🔥 極速圖片上傳引擎 (至 Firebase Storage)
+            const uploadImageFn = async (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.src = event.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_SIZE = 1200;
+                            let { width, height } = img;
+                            if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                            else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                            canvas.width = width; canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            
+                            canvas.toBlob(async (blob) => {
+                                if(!blob) return reject('壓縮失敗');
+                                try {
+                                    const safeName = `hokkaido_2026_${Date.now()}_${Math.random().toString(36).substr(2,5)}.webp`;
+                                    const storageRef = ref(storage, `artifacts/ghost-trip-hokkaido/public/data/${safeName}`);
+                                    const uploadTask = await uploadBytesResumable(storageRef, blob);
+                                    const url = await getDownloadURL(uploadTask.ref);
+                                    resolve(url);
+                                } catch(e) { reject('雲端上傳失敗'); }
+                            }, 'image/webp', 0.6);
+                        };
+                    };
+                    reader.onerror = error => reject(error);
+                });
             };
 
             const daysLeft = Math.ceil((new Date(data.countdown) - new Date()) / (1000 * 60 * 60 * 24));
@@ -226,7 +239,9 @@
                 { id: 'flights', icon: 'fa-solid fa-plane-departure', label: '航班' },
                 { id: 'hotels', icon: 'fa-solid fa-hotel', label: '住宿' },
                 { id: 'transport', icon: 'fa-solid fa-train-subway', label: '交通' },
+                { id: 'tickets', icon: 'fa-solid fa-ticket-simple', label: '門票' },
                 { id: 'foods', icon: 'fa-solid fa-utensils', label: '美食' },
+                { id: 'coupons', icon: 'fa-solid fa-ticket', label: '優惠券' },
                 { id: 'expenses', icon: 'fa-solid fa-wallet', label: '記帳' },
                 { id: 'extras', icon: 'fa-solid fa-language', label: '小幫手' },
             ];
@@ -302,12 +317,14 @@
                         <main className="flex-1 p-4 md:p-8 min-w-0 pb-24">
                             {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} />}
                             {activeTab === 'itinerary' && <ItineraryTab data={data} save={saveData} />}
-                            {activeTab === 'family' && <FamilyTab data={data} save={saveData} />}
+                            {activeTab === 'family' && <FamilyTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
                             {activeTab === 'luggage' && <LuggageTab data={data} save={saveData} />}
-                            {activeTab === 'flights' && <FlightsTab data={data} save={saveData} />}
-                            {activeTab === 'hotels' && <HotelsTab data={data} save={saveData} />}
+                            {activeTab === 'flights' && <FlightsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'hotels' && <HotelsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
                             {activeTab === 'transport' && <TransportTab data={data} save={saveData} />}
-                            {activeTab === 'foods' && <FoodsTab data={data} save={saveData} />}
+                            {activeTab === 'tickets' && <TicketsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'foods' && <FoodsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'coupons' && <CouponsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
                             {activeTab === 'expenses' && <ExpensesTab data={data} save={saveData} />}
                             {activeTab === 'extras' && <ExtrasTab data={data} save={saveData} />}
                         </main>
@@ -335,7 +352,7 @@
         }
 
         function Card({ children, style = {} }) {
-            return <div className="bg-[#131827] border border-[#252C42] rounded-xl p-4 md:p-5 mb-3 shadow-sm" style={style}>{children}</div>;
+            return <div className="bg-[#131827] border border-[#252C42] rounded-xl p-4 md:p-5 mb-3 shadow-sm relative overflow-hidden" style={style}>{children}</div>;
         }
 
         function IconBtn({ icon, onClick, color = theme.textMuted, title }) {
@@ -346,19 +363,19 @@
             );
         }
 
-        function MapLinks({ query }) {
-            if (!query) return null;
-            const g = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+        function MapLinks({ query, gmapUrl }) {
+            if (!query && !gmapUrl) return null;
+            const target = gmapUrl ? gmapUrl : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
             return (
-                <a href={g} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-[#8A93A8] border border-[#252C42] rounded px-2 py-0.5 ml-2 hover:text-[#00f3ff] transition-colors">
-                    <i className="fa-solid fa-map-location-dot"></i> 導航
+                <a href={target} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-[#8A93A8] border border-[#252C42] rounded px-2 py-0.5 ml-2 hover:text-[#00f3ff] transition-colors">
+                    <i className="fa-solid fa-map-location-dot"></i> {gmapUrl ? '開啟地圖' : '搜尋導航'}
                 </a>
             );
         }
 
         function Field({ label, value, onChange, type = 'text', placeholder }) {
             return (
-                <div className="mb-3">
+                <div className="mb-3 w-full">
                     <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">{label}</div>
                     {type === 'textarea' ? (
                         <textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} className="resize-y" />
@@ -369,8 +386,46 @@
             );
         }
 
-        const btnPrimary = { background: theme.accent, color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' };
-        const btnGhost = { background: 'transparent', color: theme.textMuted, border: `1px solid ${theme.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
+        function ImageUploadField({ label, url, onUpload, uploadImageFn }) {
+            const [uploading, setUploading] = useState(false);
+            const ref = useRef();
+            const handleChange = async (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                setUploading(true);
+                try {
+                    const newUrl = await uploadImageFn(file);
+                    onUpload(newUrl);
+                } catch(e) { alert('圖片上傳失敗，請稍後再試'); }
+                setUploading(false);
+            };
+            return (
+                <div className="mb-3 w-full">
+                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">{label}</div>
+                    <div
+                        onClick={() => { if(!uploading) ref.current?.click() }}
+                        className="w-full h-32 border-2 border-dashed border-[#252C42] rounded-lg flex items-center justify-center cursor-pointer hover:border-[#E63946]/50 transition-colors relative overflow-hidden bg-black/20"
+                    >
+                        {uploading ? (
+                            <div className="text-[#E63946] flex flex-col items-center gap-2"><i className="fa-solid fa-spinner fa-spin text-2xl"></i><span className="text-xs font-bold tracking-widest">極速壓縮上傳中...</span></div>
+                        ) : url ? (
+                            <div className="relative w-full h-full group">
+                                <img src={url} className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-white text-xs font-bold px-3 py-1 bg-black/60 rounded-full"><i className="fa-solid fa-pen"></i> 點擊更換照片</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-[#5A6378] flex flex-col items-center gap-2"><i className="fa-solid fa-cloud-arrow-up text-2xl"></i><span className="text-xs font-bold tracking-widest">點擊上傳</span></div>
+                        )}
+                    </div>
+                    <input type="file" accept="image/*" hidden ref={ref} onChange={handleChange} />
+                </div>
+            );
+        }
+
+        const btnPrimary = { background: theme.accent, color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: '0.2s' };
+        const btnGhost = { background: 'transparent', color: theme.textMuted, border: `1px solid ${theme.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' };
 
         function EmptyState({ text }) {
             return <div className="text-center py-16 text-[#5A6378] text-sm font-bold bg-[#131827]/50 rounded-xl border border-dashed border-[#252C42]">{text}</div>;
@@ -384,13 +439,16 @@
             const saveSettings = () => { save({ ...data, ...settingsDraft }); setEditSettings(false); };
 
             const stats = [
-                { label: '行程項目', value: data.itinerary.length, tab: 'itinerary', icon: 'fa-solid fa-calendar' },
-                { label: '家庭成員', value: data.family.length, tab: 'family', icon: 'fa-solid fa-users' },
-                { label: '住宿安排', value: data.hotels.length, tab: 'hotels', icon: 'fa-solid fa-hotel' },
-                { label: '美食收藏', value: data.foods.length, tab: 'foods', icon: 'fa-solid fa-utensils' },
+                { label: '行程項目', value: data.itinerary?.length || 0, tab: 'itinerary', icon: 'fa-solid fa-calendar' },
+                { label: '家庭成員', value: data.family?.length || 0, tab: 'family', icon: 'fa-solid fa-users' },
+                { label: '住宿安排', value: data.hotels?.length || 0, tab: 'hotels', icon: 'fa-solid fa-hotel' },
+                { label: '門票數', value: data.tickets?.length || 0, tab: 'tickets', icon: 'fa-solid fa-ticket-simple' },
             ];
-            const totalExpense = data.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-            const luggageChecked = data.luggage.filter(i => i.checked).length;
+            const totalExpense = (data.expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+            // 🆕 計算門票預估總花費（NT$）
+            const ticketBudget = (data.tickets || []).reduce((s, t) => s + Number(t.estimatedTotal || 0), 0);
+            const luggageChecked = (data.luggage || []).filter(i => i.checked).length;
+            const luggageTotal = (data.luggage || []).length;
 
             return (
                 <div className="animate-fade-in">
@@ -407,21 +465,22 @@
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
-                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">預算總覽</div>
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">已記錄支出</div>
                             <div className="text-2xl md:text-3xl font-black text-[#F4A261] mt-2 truncate">NT$ {totalExpense.toLocaleString()}</div>
-                            <div className="text-[11px] text-[#5A6378] mt-2">目前已記錄 {data.expenses.length} 筆</div>
+                            <div className="text-[11px] text-[#5A6378] mt-2">目前已記錄 {(data.expenses || []).length} 筆</div>
+                        </div>
+                        {/* 🆕 門票預估花費 */}
+                        <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">門票預估</div>
+                            <div className="text-2xl md:text-3xl font-black text-[#00f3ff] mt-2 truncate">NT$ {ticketBudget.toLocaleString()}</div>
+                            <div className="text-[11px] text-[#5A6378] mt-2">{(data.tickets || []).length} 個景點/纜車</div>
                         </div>
                         <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
                             <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">行李打包進度</div>
-                            <div className="text-2xl md:text-3xl font-black text-[#52B788] mt-2">{luggageChecked} / {data.luggage.length}</div>
+                            <div className="text-2xl md:text-3xl font-black text-[#52B788] mt-2">{luggageChecked} / {luggageTotal}</div>
                             <div className="bg-[#252C42] h-1.5 rounded-full mt-3 overflow-hidden">
-                                <div className="bg-[#52B788] h-full transition-all duration-500" style={{ width: `${data.luggage.length ? (luggageChecked / data.luggage.length) * 100 : 0}%` }} />
+                                <div className="bg-[#52B788] h-full transition-all duration-500" style={{ width: `${luggageTotal ? (luggageChecked / luggageTotal) * 100 : 0}%` }} />
                             </div>
-                        </div>
-                        <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
-                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">下一站</div>
-                            <div className="text-lg font-bold mt-2 truncate text-white">{data.itinerary[0]?.title || '還沒安排'}</div>
-                            <div className="text-xs text-[#5A6378] mt-1">{data.itinerary[0]?.date} {data.itinerary[0]?.time}</div>
                         </div>
                     </div>
 
@@ -463,18 +522,49 @@
             const [draft, setDraft] = useState(null);
 
             const add = () => {
-                const d = { id: Date.now(), day: 'Day 1', date: '', time: '', title: '', location: '', note: '', type: '景點' };
-                save({ ...data, itinerary: [...data.itinerary, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ id: Date.now(), day: 'Day 1', date: '', time: '', title: '', location: '', note: '', type: '景點' });
             };
-            const saveEdit = () => { save({ ...data, itinerary: data.itinerary.map(i => i.id === editId ? draft : i) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除這個行程？')) save({ ...data, itinerary: data.itinerary.filter(i => i.id !== id) }); };
+            const saveEdit = () => {
+                if(!draft.title) return alert("請輸入標題");
+                if (editId === 'new') save({ ...data, itinerary: [...(data.itinerary || []), draft] });
+                else save({ ...data, itinerary: (data.itinerary || []).map(i => i.id === editId ? draft : i) });
+                setEditId(null); setDraft(null);
+            };
+            const del = (id) => { if (confirm('確定刪除這個行程？')) save({ ...data, itinerary: (data.itinerary || []).filter(i => i.id !== id) }); };
 
-            const grouped = data.itinerary.reduce((acc, i) => { (acc[i.day] = acc[i.day] || []).push(i); return acc; }, {});
+            const grouped = (data.itinerary || []).reduce((acc, i) => { (acc[i.day] = acc[i.day] || []).push(i); return acc; }, {});
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <div className="grid grid-cols-3 gap-3">
+                        <Field label="Day" value={draft.day} onChange={v => setDraft({ ...draft, day: v })} placeholder="Day 1" />
+                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} placeholder="7/11" />
+                        <Field label="時間" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} placeholder="14:30" />
+                    </div>
+                    <Field label="標題" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
+                    <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
+                            <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
+                                <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
+                            </select>
+                        </div>
+                        <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增行程" />}>日程表</SectionTitle>
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增行程" />}>日程表</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
                     {Object.keys(grouped).sort().map(day => (
                         <div key={day} className="mb-8">
                             <div className="text-[#E63946] font-bold tracking-widest mb-3 flex items-center gap-2">
@@ -482,30 +572,7 @@
                             </div>
                             {grouped[day].map(item => (
                                 <Card key={item.id}>
-                                    {editId === item.id ? (
-                                        <div className="animate-fade-in">
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <Field label="Day" value={draft.day} onChange={v => setDraft({ ...draft, day: v })} placeholder="Day 1" />
-                                                <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} placeholder="12/20" />
-                                                <Field label="時間" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} placeholder="14:30" />
-                                            </div>
-                                            <Field label="標題" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
-                                            <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                <div>
-                                                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
-                                                    <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
-                                                        <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
-                                                    </select>
-                                                </div>
-                                                <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
-                                            </div>
-                                            <div className="flex gap-2 mt-4">
-                                                <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                                <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                            </div>
-                                        </div>
-                                    ) : (
+                                    {editId === item.id ? <FormView /> : (
                                         <div className="flex gap-3 md:gap-4 items-start">
                                             <div className="min-w-[50px] md:min-w-[60px] text-center pt-1">
                                                 <div className="text-lg md:text-xl font-bold text-[#F4A261]">{item.time || '--:--'}</div>
@@ -517,7 +584,7 @@
                                                 {item.note && <div className="text-xs text-[#5A6378] mt-2 bg-black/20 p-2 rounded-md italic">{item.note}</div>}
                                             </div>
                                             <div className="flex flex-col md:flex-row gap-1">
-                                                <IconBtn icon="fa-solid fa-pen" onClick={() => startEdit(item)} />
+                                                <IconBtn icon="fa-solid fa-pen" onClick={() => {setEditId(item.id); setDraft({...item});}} />
                                                 <IconBtn icon="fa-solid fa-trash" onClick={() => del(item.id)} color={theme.accent} />
                                             </div>
                                         </div>
@@ -526,69 +593,75 @@
                             ))}
                         </div>
                     ))}
-                    {data.itinerary.length === 0 && <EmptyState text="還沒安排行程。點右上角「新增行程」開始吧！" />}
+                    {(data.itinerary || []).length === 0 && editId !== 'new' && <EmptyState text="還沒安排行程。點擊右上角「新增行程」開始吧！" />}
                 </div>
             );
         }
 
         // ============ FAMILY TAB ============
-        function FamilyTab({ data, save }) {
+        function FamilyTab({ data, save, uploadImageFn }) {
             const [editId, setEditId] = useState(null);
             const [draft, setDraft] = useState(null);
-            const fileInputRef = useRef({});
 
             const add = () => {
-                const d = { id: Date.now(), name: '', role: '', passport: '', note: '', photo: '' };
-                save({ ...data, family: [...data.family, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ id: Date.now(), name: '', engName: '', twPhone: '', jpPhone: '', passport: '', note: '', photo: '' });
             };
-            const saveEdit = () => { save({ ...data, family: data.family.map(i => i.id === editId ? draft : i) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, family: data.family.filter(i => i.id !== id) }); };
+            const saveEdit = () => { 
+                if(!draft.name) return alert('請填寫中文名稱');
+                if (editId === 'new') save({ ...data, family: [...(data.family || []), draft] });
+                else save({ ...data, family: (data.family || []).map(i => i.id === editId ? draft : i) });
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, family: (data.family || []).filter(i => i.id !== id) }); };
 
-            const uploadPhoto = async (id, file) => {
-                try {
-                    const compressedBase64 = await compressImage(file);
-                    save({ ...data, family: data.family.map(m => m.id === id ? { ...m, photo: compressedBase64 } : m) });
-                } catch(e) { alert("圖片處理失敗"); }
-            };
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <Field label="中文名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                    <Field label="英文名稱 (同護照)" value={draft.engName} onChange={v => setDraft({ ...draft, engName: v })} />
+                    <ImageUploadField label="個人大頭貼" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label="台灣電話" value={draft.twPhone} onChange={v => setDraft({ ...draft, twPhone: v })} />
+                        <Field label="日本電話" value={draft.jpPhone} onChange={v => setDraft({ ...draft, jpPhone: v })} />
+                    </div>
+                    <Field label="護照號碼 (方便填表)" value={draft.passport} onChange={v => setDraft({ ...draft, passport: v })} />
+                    <Field label="備註 (過敏、偏好)" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增成員" />}>旅行成員</SectionTitle>
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增成員" />}>旅行成員</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {data.family.map(m => (
+                        {(data.family || []).map(m => (
                             <Card key={m.id}>
-                                {editId === m.id ? (
-                                    <div className="animate-fade-in">
-                                        <Field label="名字" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-                                        <Field label="角色 / 分工" value={draft.role} onChange={v => setDraft({ ...draft, role: v })} placeholder="例：司機、翻譯、財務長" />
-                                        <Field label="護照末 4 碼（方便填表）" value={draft.passport} onChange={v => setDraft({ ...draft, passport: v })} />
-                                        <Field label="備註（過敏、偏好）" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
-                                        <div className="flex gap-2 mt-4">
-                                            <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                            <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                        </div>
-                                    </div>
-                                ) : (
+                                {editId === m.id ? <FormView /> : (
                                     <div>
                                         <div className="flex items-center gap-4">
-                                            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current[m.id]?.click()}>
-                                                <div style={{ width: 64, height: 64, borderRadius: '50%', background: m.photo ? `url(${m.photo}) center/cover` : `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', border: `2px solid ${theme.border}` }}>
-                                                    {!m.photo && (m.name || '?').charAt(0)}
-                                                </div>
-                                                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><i className="fa-solid fa-camera text-white"></i></div>
+                                            <div style={{ width: 64, height: 64, borderRadius: '50%', background: m.photo ? `url(${m.photo}) center/cover` : `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', border: `2px solid ${theme.border}` }}>
+                                                {!m.photo && (m.name || '?').charAt(0)}
                                             </div>
-                                            <input ref={el => fileInputRef.current[m.id] = el} type="file" accept="image/*" hidden onChange={e => e.target.files[0] && uploadPhoto(m.id, e.target.files[0])} />
-                                            
                                             <div className="flex-1">
                                                 <div className="text-xl font-bold text-white">{m.name || '（未命名）'}</div>
-                                                <div className="text-sm text-[#F4A261] font-bold">{m.role}</div>
+                                                {m.engName && <div className="text-sm text-[#F4A261] font-bold">{m.engName}</div>}
                                             </div>
                                         </div>
-                                        {m.passport && <div className="text-xs text-[#8A93A8] mt-4 font-mono bg-black/20 p-2 rounded"><i className="fa-solid fa-passport mr-1"></i> 護照：··· {m.passport}</div>}
-                                        {m.note && <div className="text-xs text-[#5A6378] mt-2 italic">"{m.note}"</div>}
                                         
-                                        <div className="flex justify-end gap-1 mt-3 pt-3 border-t border-[#252C42]">
+                                        <div className="mt-4 space-y-1">
+                                            {m.twPhone && <div className="text-xs text-[#8A93A8]"><i className="fa-solid fa-mobile-screen mr-1"></i> TW: <span className="font-mono text-white">{m.twPhone}</span></div>}
+                                            {m.jpPhone && <div className="text-xs text-[#8A93A8]"><i className="fa-solid fa-mobile-screen mr-1"></i> JP: <span className="font-mono text-[#00ff9d]">{m.jpPhone}</span></div>}
+                                            {m.passport && <div className="text-xs text-[#8A93A8] bg-black/20 p-2 rounded mt-2"><i className="fa-solid fa-passport mr-1"></i> 護照：<span className="font-mono text-white">{m.passport}</span></div>}
+                                        </div>
+                                        
+                                        {m.note && <div className="text-xs text-[#5A6378] mt-2 italic bg-[#E63946]/5 border-l-2 border-[#E63946] p-2">"{m.note}"</div>}
+                                        
+                                        <div className="flex justify-end gap-1 mt-4 pt-3 border-t border-[#252C42]">
                                             <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(m.id); setDraft({ ...m }); }} />
                                             <IconBtn icon="fa-solid fa-trash" onClick={() => del(m.id)} color={theme.accent} />
                                         </div>
@@ -606,13 +679,13 @@
             const [newItem, setNewItem] = useState({ category: '衣物', item: '' });
             const add = () => {
                 if (!newItem.item.trim()) return;
-                save({ ...data, luggage: [...data.luggage, { id: Date.now(), ...newItem, checked: false }] });
+                save({ ...data, luggage: [...(data.luggage || []), { id: Date.now(), ...newItem, checked: false }] });
                 setNewItem({ category: newItem.category, item: '' });
             };
-            const toggle = (id) => save({ ...data, luggage: data.luggage.map(i => i.id === id ? { ...i, checked: !i.checked } : i) });
-            const del = (id) => save({ ...data, luggage: data.luggage.filter(i => i.id !== id) });
+            const toggle = (id) => save({ ...data, luggage: (data.luggage || []).map(i => i.id === id ? { ...i, checked: !i.checked } : i) });
+            const del = (id) => save({ ...data, luggage: (data.luggage || []).filter(i => i.id !== id) });
 
-            const grouped = data.luggage.reduce((acc, i) => { (acc[i.category] = acc[i.category] || []).push(i); return acc; }, {});
+            const grouped = (data.luggage || []).reduce((acc, i) => { (acc[i.category] = acc[i.category] || []).push(i); return acc; }, {});
 
             return (
                 <div className="animate-fade-in">
@@ -658,49 +731,59 @@
         }
 
         // ============ FLIGHTS TAB ============
-        function FlightsTab({ data, save }) {
+        function FlightsTab({ data, save, uploadImageFn }) {
             const [editId, setEditId] = useState(null);
             const [draft, setDraft] = useState(null);
 
             const add = () => {
-                const d = { id: Date.now(), type: '去程', airline: '', date: '', depart: '', arrive: '', seat: '', note: '' };
-                save({ ...data, flights: [...data.flights, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ id: Date.now(), type: '去程', airline: '', ticketNum: '', date: '', depart: '', arrive: '', seat: '', note: '', photo: '' });
             };
-            const saveEdit = () => { save({ ...data, flights: data.flights.map(f => f.id === editId ? draft : f) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, flights: data.flights.filter(f => f.id !== id) }); };
+            const saveEdit = () => { 
+                if (editId === 'new') save({ ...data, flights: [...(data.flights || []), draft] });
+                else save({ ...data, flights: (data.flights || []).map(f => f.id === editId ? draft : f) }); 
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, flights: (data.flights || []).filter(f => f.id !== id) }); };
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <div className="grid grid-cols-3 gap-3">
+                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
+                        <Field label="航空公司" value={draft.airline} onChange={v => setDraft({ ...draft, airline: v })} placeholder="星宇 / 長榮" />
+                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Field label="出發" value={draft.depart} onChange={v => setDraft({ ...draft, depart: v })} placeholder="09:10 桃園 TPE" />
+                        <Field label="抵達" value={draft.arrive} onChange={v => setDraft({ ...draft, arrive: v })} placeholder="13:45 新千歲 CTS" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Field label="座位" value={draft.seat} onChange={v => setDraft({ ...draft, seat: v })} />
+                        <Field label="票號 / 訂位代碼" value={draft.ticketNum} onChange={v => setDraft({ ...draft, ticketNum: v })} placeholder="例如: XYZ123" />
+                    </div>
+                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                    <ImageUploadField label="機票/憑證截圖" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                    
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增航班" />}>航班憑證</SectionTitle>
-                    {data.flights.map(f => (
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增航班" />}>航班憑證</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
+                    {(data.flights || []).map(f => (
                         <Card key={f.id}>
-                            {editId === f.id ? (
-                                <div className="animate-fade-in">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
-                                        <Field label="航班" value={draft.airline} onChange={v => setDraft({ ...draft, airline: v })} placeholder="BR116" />
-                                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <Field label="出發" value={draft.depart} onChange={v => setDraft({ ...draft, depart: v })} placeholder="09:10 桃園 TPE" />
-                                        <Field label="抵達" value={draft.arrive} onChange={v => setDraft({ ...draft, arrive: v })} placeholder="13:45 新千歲 CTS" />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <Field label="座位" value={draft.seat} onChange={v => setDraft({ ...draft, seat: v })} />
-                                        <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
-                                    </div>
-                                    <div className="flex gap-2 mt-4">
-                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-[#E63946]/10 rounded-xl flex flex-col items-center justify-center text-[#E63946] flex-shrink-0">
+                            {editId === f.id ? <FormView /> : (
+                                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                                    <div className="w-12 h-12 bg-[#E63946]/10 rounded-xl flex items-center justify-center text-[#E63946] flex-shrink-0">
                                         <i className={`fa-solid ${f.type === '回程' ? 'fa-plane-arrival' : 'fa-plane-departure'} text-lg`}></i>
                                     </div>
-                                    <div className="flex-1">
+                                    <div className="flex-1 w-full">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-sm font-bold bg-white/10 px-2 py-0.5 rounded text-white">{f.airline}</span>
                                             <span className="text-xs text-[#8A93A8]">{f.date}</span>
@@ -708,12 +791,18 @@
                                         <div className="text-sm md:text-base font-bold text-[#E8F1F8] mb-1">
                                             {f.depart} <i className="fa-solid fa-arrow-right text-[#F4A261] mx-2"></i> {f.arrive}
                                         </div>
-                                        <div className="text-xs text-[#5A6378]">
-                                            {f.seat && <span className="mr-3"><i className="fa-solid fa-chair"></i> {f.seat}</span>}
-                                            {f.note}
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5A6378] mt-2">
+                                            {f.seat && <span><i className="fa-solid fa-chair text-[#8A93A8]"></i> {f.seat}</span>}
+                                            {f.ticketNum && <span><i className="fa-solid fa-ticket text-[#8A93A8]"></i> {f.ticketNum}</span>}
+                                            {f.note && <span><i className="fa-solid fa-info-circle text-[#8A93A8]"></i> {f.note}</span>}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1">
+                                    {f.photo && (
+                                        <div className="w-full md:w-32 h-20 rounded-lg overflow-hidden border border-[#252C42]">
+                                            <a href={f.photo} target="_blank"><img src={f.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" /></a>
+                                        </div>
+                                    )}
+                                    <div className="flex flex-row md:flex-col gap-1 w-full md:w-auto justify-end mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-none border-[#252C42]">
                                         <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(f.id); setDraft({ ...f }); }} />
                                         <IconBtn icon="fa-solid fa-trash" onClick={() => del(f.id)} color={theme.accent} />
                                     </div>
@@ -721,65 +810,65 @@
                             )}
                         </Card>
                     ))}
-                    {data.flights.length === 0 && <EmptyState text="尚未新增航班資訊" />}
                 </div>
             );
         }
 
         // ============ HOTELS TAB ============
-        function HotelsTab({ data, save }) {
+        function HotelsTab({ data, save, uploadImageFn }) {
             const [editId, setEditId] = useState(null);
             const [draft, setDraft] = useState(null);
-            const fileRef = useRef({});
 
             const add = () => {
-                const d = { id: Date.now(), name: '', nights: '', checkin: '', checkout: '', address: '', note: '', photo: '' };
-                save({ ...data, hotels: [...data.hotels, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ id: Date.now(), name: '', nights: '', checkin: '', checkout: '', address: '', gmap: '', note: '', photo: '' });
             };
-            const saveEdit = () => { save({ ...data, hotels: data.hotels.map(h => h.id === editId ? draft : h) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, hotels: data.hotels.filter(h => h.id !== id) }); };
-            const upload = async (id, file) => {
-                try {
-                    const compressed = await compressImage(file);
-                    save({ ...data, hotels: data.hotels.map(h => h.id === id ? { ...h, photo: compressed } : h) });
-                } catch(e) { alert("圖片處理失敗"); }
+            const saveEdit = () => { 
+                if(!draft.name) return alert('請填寫飯店名稱');
+                if (editId === 'new') save({ ...data, hotels: [...(data.hotels || []), draft] });
+                else save({ ...data, hotels: (data.hotels || []).map(h => h.id === editId ? draft : h) }); 
+                setEditId(null); setDraft(null); 
             };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, hotels: (data.hotels || []).filter(h => h.id !== id) }); };
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <Field label="飯店名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                    <div className="grid grid-cols-3 gap-3">
+                        <Field label="入住" value={draft.checkin} onChange={v => setDraft({ ...draft, checkin: v })} />
+                        <Field label="退房" value={draft.checkout} onChange={v => setDraft({ ...draft, checkout: v })} />
+                        <Field label="晚數" value={draft.nights} onChange={v => setDraft({ ...draft, nights: v })} />
+                    </div>
+                    <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                    <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
+                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                    <ImageUploadField label="住宿照片/憑證" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增住宿" />}>住宿清單</SectionTitle>
-                    {data.hotels.map(h => (
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增住宿" />}>住宿清單</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
+                    {(data.hotels || []).map(h => (
                         <Card key={h.id}>
-                            {editId === h.id ? (
-                                <div className="animate-fade-in">
-                                    <Field label="飯店名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <Field label="入住" value={draft.checkin} onChange={v => setDraft({ ...draft, checkin: v })} />
-                                        <Field label="退房" value={draft.checkout} onChange={v => setDraft({ ...draft, checkout: v })} />
-                                        <Field label="晚數" value={draft.nights} onChange={v => setDraft({ ...draft, nights: v })} />
-                                    </div>
-                                    <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
-                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
-                                    <div className="flex gap-2 mt-4">
-                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                    </div>
-                                </div>
-                            ) : (
+                            {editId === h.id ? <FormView /> : (
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <div className="w-full sm:w-32 h-32 rounded-xl bg-[#252C42] flex items-center justify-center cursor-pointer overflow-hidden relative group flex-shrink-0" onClick={() => fileRef.current[h.id]?.click()}>
-                                        {h.photo ? <img src={h.photo} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <i className="fa-regular fa-image text-3xl text-[#5A6378]"></i>}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><i className="fa-solid fa-camera text-white"></i></div>
+                                    <div className="w-full sm:w-32 h-32 rounded-xl bg-[#252C42] overflow-hidden flex-shrink-0">
+                                        {h.photo ? <a href={h.photo} target="_blank"><img src={h.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" /></a> : <div className="w-full h-full flex items-center justify-center"><i className="fa-solid fa-hotel text-3xl text-[#5A6378]"></i></div>}
                                     </div>
-                                    <input ref={el => fileRef.current[h.id] = el} type="file" accept="image/*" hidden onChange={e => e.target.files[0] && upload(h.id, e.target.files[0])} />
                                     
                                     <div className="flex-1 flex flex-col">
                                         <div className="text-xl font-bold text-white mb-2">{h.name}</div>
                                         <div className="text-sm font-bold text-[#F4A261] mb-2 bg-[#F4A261]/10 self-start px-2 py-1 rounded">
                                             <i className="fa-solid fa-calendar-check mr-1"></i> {h.checkin} <i className="fa-solid fa-arrow-right text-[10px] mx-1"></i> {h.checkout} ({h.nights})
                                         </div>
-                                        {h.address && <div className="text-xs text-[#8A93A8] mb-2"><i className="fa-solid fa-map-pin mr-1"></i> {h.address} <MapLinks query={h.address} /></div>}
+                                        {(h.address || h.gmap) && <div className="text-xs text-[#8A93A8] mb-2 flex items-center flex-wrap gap-1"><i className="fa-solid fa-map-pin mr-1"></i> {h.address} <MapLinks query={h.address} gmapUrl={h.gmap} /></div>}
                                         {h.note && <div className="text-xs text-[#5A6378] bg-black/20 p-2 rounded italic mt-auto">"{h.note}"</div>}
                                     </div>
                                     <div className="flex flex-row sm:flex-col gap-2 justify-end sm:justify-start mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-[#252C42]">
@@ -790,7 +879,6 @@
                             )}
                         </Card>
                     ))}
-                    {data.hotels.length === 0 && <EmptyState text="尚未新增住宿資訊" />}
                 </div>
             );
         }
@@ -799,34 +887,43 @@
         function TransportTab({ data, save }) {
             const [editId, setEditId] = useState(null);
             const [draft, setDraft] = useState(null);
+            
             const add = () => {
-                const d = { id: Date.now(), type: 'JR', name: '', date: '', detail: '', note: '' };
-                save({ ...data, transport: [...data.transport, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ id: Date.now(), type: 'JR', name: '', date: '', detail: '', note: '' });
             };
-            const saveEdit = () => { save({ ...data, transport: data.transport.map(t => t.id === editId ? draft : t) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, transport: data.transport.filter(t => t.id !== id) }); };
+            const saveEdit = () => { 
+                if(!draft.name) return alert('請輸入名稱');
+                if (editId === 'new') save({ ...data, transport: [...(data.transport || []), draft] });
+                else save({ ...data, transport: (data.transport || []).map(t => t.id === editId ? draft : t) }); 
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, transport: (data.transport || []).filter(t => t.id !== id) }); };
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <div className="grid grid-cols-3 gap-3">
+                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>JR</option><option>地鐵</option><option>巴士</option><option>計程車</option><option>租車</option><option>其他</option></select></div>
+                        <Field label="名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                    </div>
+                    <Field label="詳情 / 價格" value={draft.detail} onChange={v => setDraft({ ...draft, detail: v })} />
+                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增交通" />}>交通資訊</SectionTitle>
-                    {data.transport.map(t => (
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增交通" />}>交通資訊</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
+                    {(data.transport || []).map(t => (
                         <Card key={t.id}>
-                            {editId === t.id ? (
-                                <div className="animate-fade-in">
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>JR</option><option>地鐵</option><option>巴士</option><option>計程車</option><option>租車</option><option>其他</option></select></div>
-                                        <Field label="名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-                                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
-                                    </div>
-                                    <Field label="詳情 / 價格" value={draft.detail} onChange={v => setDraft({ ...draft, detail: v })} />
-                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
-                                    <div className="flex gap-2 mt-4">
-                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                    </div>
-                                </div>
-                            ) : (
+                            {editId === t.id ? <FormView /> : (
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-[#F4A261]/10 rounded-xl border border-[#F4A261]/30 flex items-center justify-center font-bold text-[#F4A261] text-xs flex-shrink-0">
                                         {t.type}
@@ -844,31 +941,326 @@
                             )}
                         </Card>
                     ))}
-                    {data.transport.length === 0 && <EmptyState text="尚未新增交通票券或租車資訊" />}
                 </div>
             );
         }
 
-        // ============ FOODS TAB ============
-        function FoodsTab({ data, save }) {
+        // ============ 🎫 TICKETS TAB (景點 / 纜車 / 門票) ============
+        function TicketsTab({ data, save, uploadImageFn }) {
             const [editId, setEditId] = useState(null);
             const [draft, setDraft] = useState(null);
             const [filter, setFilter] = useState('全部');
 
             const add = () => {
-                const d = { id: Date.now(), name: '', city: '札幌', category: '午餐', address: '', rating: 5, note: '' };
-                save({ ...data, foods: [...data.foods, d] });
-                setEditId(d.id); setDraft(d);
+                setEditId('new');
+                setDraft({ 
+                    id: Date.now(), 
+                    name: '', 
+                    type: '景點', 
+                    city: '', 
+                    address: '', 
+                    gmap: '',
+                    priceAdult: '', 
+                    priceChild: '', 
+                    priceSenior: '', 
+                    countAdult: '', 
+                    countChild: '', 
+                    countSenior: '', 
+                    currency: 'JPY',
+                    estimatedTotal: '',
+                    hours: '', 
+                    visitDate: '', 
+                    bookingUrl: '', 
+                    photo: '',
+                    note: '' 
+                });
             };
-            const saveEdit = () => { save({ ...data, foods: data.foods.map(f => f.id === editId ? draft : f) }); setEditId(null); setDraft(null); };
-            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, foods: data.foods.filter(f => f.id !== id) }); };
+            
+            // 自動計算預估總花費 (以日幣為單位，轉台幣需要另外算)
+            const calcTotal = (d) => {
+                const adults = (Number(d.priceAdult) || 0) * (Number(d.countAdult) || 0);
+                const children = (Number(d.priceChild) || 0) * (Number(d.countChild) || 0);
+                const seniors = (Number(d.priceSenior) || 0) * (Number(d.countSenior) || 0);
+                return adults + children + seniors;
+            };
 
-            const cities = ['全部', ...new Set(data.foods.map(f => f.city))];
-            const shown = filter === '全部' ? data.foods : data.foods.filter(f => f.city === filter);
+            const saveEdit = () => { 
+                if(!draft.name) return alert('請輸入景點名稱');
+                // 若使用者沒手動填 estimatedTotal，自動填入計算結果
+                const autoTotal = calcTotal(draft);
+                const finalDraft = { 
+                    ...draft, 
+                    estimatedTotal: draft.estimatedTotal || autoTotal 
+                };
+                if (editId === 'new') save({ ...data, tickets: [...(data.tickets || []), finalDraft] });
+                else save({ ...data, tickets: (data.tickets || []).map(t => t.id === editId ? finalDraft : t) }); 
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除這個景點門票？')) save({ ...data, tickets: (data.tickets || []).filter(t => t.id !== id) }); };
+
+            const types = ['全部', ...new Set((data.tickets || []).map(t => t.type))];
+            const shown = filter === '全部' ? (data.tickets || []) : (data.tickets || []).filter(t => t.type === filter);
+            const grandTotal = (data.tickets || []).reduce((s, t) => s + Number(t.estimatedTotal || 0), 0);
+
+            const FormView = () => {
+                const liveTotal = calcTotal(draft);
+                return (
+                    <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                        <Field label="景點名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} placeholder="例：大倉山展望台、登別纜車" />
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
+                                <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
+                                    <option>景點</option><option>纜車</option><option>溫泉</option><option>樂園</option><option>博物館</option><option>動物園</option><option>觀景台</option><option>體驗活動</option><option>其他</option>
+                                </select>
+                            </div>
+                            <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} placeholder="札幌 / 函館 / 小樽" />
+                        </div>
+
+                        <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                        <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
+                        
+                        {/* 💰 票價區塊 */}
+                        <div className="bg-[#F4A261]/5 border border-[#F4A261]/20 rounded-lg p-3 mb-3">
+                            <div className="flex items-center gap-2 mb-3">
+                                <i className="fa-solid fa-yen-sign text-[#F4A261]"></i>
+                                <span className="text-xs font-bold text-[#F4A261] tracking-widest">票價與人數</span>
+                                <select value={draft.currency} onChange={e => setDraft({ ...draft, currency: e.target.value })} className="ml-auto" style={{ padding: '4px 8px !important', fontSize: '12px !important', width: 'auto !important' }}>
+                                    <option>JPY</option><option>TWD</option><option>USD</option>
+                                </select>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <Field label="大人單價" type="number" value={draft.priceAdult} onChange={v => setDraft({ ...draft, priceAdult: v })} placeholder="1500" />
+                                <Field label="大人人數" type="number" value={draft.countAdult} onChange={v => setDraft({ ...draft, countAdult: v })} placeholder="2" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Field label="兒童單價" type="number" value={draft.priceChild} onChange={v => setDraft({ ...draft, priceChild: v })} placeholder="0 (免費)" />
+                                <Field label="兒童人數" type="number" value={draft.countChild} onChange={v => setDraft({ ...draft, countChild: v })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Field label="敬老/優待單價" type="number" value={draft.priceSenior} onChange={v => setDraft({ ...draft, priceSenior: v })} />
+                                <Field label="敬老/優待人數" type="number" value={draft.countSenior} onChange={v => setDraft({ ...draft, countSenior: v })} />
+                            </div>
+                            
+                            {liveTotal > 0 && (
+                                <div className="mt-2 text-center bg-[#F4A261]/10 rounded p-2">
+                                    <span className="text-xs text-[#8A93A8]">自動計算總額：</span>
+                                    <span className="text-lg font-black text-[#F4A261] ml-2">{draft.currency} {liveTotal.toLocaleString()}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <Field label="預估總花費 (NT$，留空會自動換算)" type="number" value={draft.estimatedTotal} onChange={v => setDraft({ ...draft, estimatedTotal: v })} placeholder={`留空會自動帶入 ${liveTotal}（單位：${draft.currency}）`} />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <Field label="營業時間" value={draft.hours} onChange={v => setDraft({ ...draft, hours: v })} placeholder="09:00 - 17:00" />
+                            <Field label="預計前往日期" value={draft.visitDate} onChange={v => setDraft({ ...draft, visitDate: v })} placeholder="7/13" />
+                        </div>
+
+                        <Field label="預約/官方連結" value={draft.bookingUrl} onChange={v => setDraft({ ...draft, bookingUrl: v })} placeholder="KKday / Klook / 官網" />
+                        <Field label="必玩項目 / 注意事項" type="textarea" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} placeholder="必搭纜車、記得帶相機、冬季可能關閉..." />
+                        <ImageUploadField label="景點照片 / 門票截圖 / QR Code" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                        
+                        <div className="flex gap-2 mt-4">
+                            <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                            <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 類型對應的 icon
+            const typeIcon = {
+                '景點': 'fa-mountain-sun',
+                '纜車': 'fa-gondola',
+                '溫泉': 'fa-hot-tub-person',
+                '樂園': 'fa-ferris-wheel',
+                '博物館': 'fa-landmark',
+                '動物園': 'fa-paw',
+                '觀景台': 'fa-binoculars',
+                '體驗活動': 'fa-person-hiking',
+                '其他': 'fa-ticket-simple',
+            };
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle action={<AddButton onClick={add} label="新增美食" />}>美食雷達</SectionTitle>
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增景點門票" />}>景點門票 & 纜車</SectionTitle>
+                    
+                    {/* 總預估花費橫幅 */}
+                    {grandTotal > 0 && (
+                        <div className="bg-gradient-to-r from-[#E63946]/10 to-[#F4A261]/10 border border-[#F4A261]/30 rounded-xl p-4 mb-4 flex items-center justify-between">
+                            <div>
+                                <div className="text-[10px] text-[#8A93A8] tracking-widest font-bold">所有門票預估總額</div>
+                                <div className="text-2xl md:text-3xl font-black text-[#F4A261] mt-1">NT$ {grandTotal.toLocaleString()}</div>
+                            </div>
+                            <i className="fa-solid fa-ticket-simple text-5xl text-[#F4A261]/30"></i>
+                        </div>
+                    )}
+                    
+                    {/* 類型篩選 */}
+                    {types.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+                            {types.map(t => (
+                                <button key={t} onClick={() => setFilter(t)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-colors border ${filter === t ? 'bg-[#E63946] border-[#E63946] text-white' : 'bg-transparent border-[#252C42] text-[#8A93A8] hover:border-white/50'}`}>
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {editId === 'new' && <Card><FormView /></Card>}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {shown.map(t => (
+                            <Card key={t.id}>
+                                {editId === t.id ? <FormView /> : (
+                                    <div className="flex flex-col h-full">
+                                        {/* 照片 */}
+                                        {t.photo && (
+                                            <div className="w-full h-40 rounded-lg overflow-hidden border border-[#252C42] mb-3 -mx-1">
+                                                <a href={t.photo} target="_blank"><img src={t.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" /></a>
+                                            </div>
+                                        )}
+                                        
+                                        {/* 標題區 */}
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <i className={`fa-solid ${typeIcon[t.type] || 'fa-ticket-simple'} text-[#E63946]`}></i>
+                                                    <span className="text-[10px] px-2 py-0.5 bg-[#E63946]/20 text-[#E63946] rounded font-bold">{t.type}</span>
+                                                    {t.city && <span className="text-[10px] px-2 py-0.5 bg-[#252C42] text-[#8A93A8] rounded font-bold">{t.city}</span>}
+                                                </div>
+                                                <div className="text-lg font-bold text-white leading-tight">{t.name}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* 票價明細 */}
+                                        {(t.priceAdult || t.priceChild || t.priceSenior) && (
+                                            <div className="bg-black/30 rounded-lg p-2 my-2 text-xs space-y-1">
+                                                {t.priceAdult && (
+                                                    <div className="flex justify-between text-[#E8ECF4]">
+                                                        <span><i className="fa-solid fa-user text-[#8A93A8] mr-1"></i> 大人 × {t.countAdult || '?'}</span>
+                                                        <span className="font-mono">{t.currency} {Number(t.priceAdult).toLocaleString()} / 人</span>
+                                                    </div>
+                                                )}
+                                                {t.priceChild && (
+                                                    <div className="flex justify-between text-[#E8ECF4]">
+                                                        <span><i className="fa-solid fa-child text-[#8A93A8] mr-1"></i> 兒童 × {t.countChild || '?'}</span>
+                                                        <span className="font-mono">{t.currency} {Number(t.priceChild).toLocaleString()} / 人</span>
+                                                    </div>
+                                                )}
+                                                {t.priceSenior && (
+                                                    <div className="flex justify-between text-[#E8ECF4]">
+                                                        <span><i className="fa-solid fa-person-cane text-[#8A93A8] mr-1"></i> 優待 × {t.countSenior || '?'}</span>
+                                                        <span className="font-mono">{t.currency} {Number(t.priceSenior).toLocaleString()} / 人</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between pt-1 border-t border-[#252C42] mt-1 font-bold">
+                                                    <span className="text-[#F4A261]">小計</span>
+                                                    <span className="font-mono text-[#F4A261]">
+                                                        {t.currency} {calcTotal(t).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                {t.estimatedTotal && Number(t.estimatedTotal) > 0 && (
+                                                    <div className="flex justify-between text-[10px] text-[#00f3ff]">
+                                                        <span>預估 NT$</span>
+                                                        <span className="font-mono">NT$ {Number(t.estimatedTotal).toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* 細節資訊 */}
+                                        <div className="space-y-1 text-xs mt-1">
+                                            {t.visitDate && <div className="text-[#F4A261]"><i className="fa-regular fa-calendar mr-1"></i> 預計 {t.visitDate}</div>}
+                                            {t.hours && <div className="text-[#8A93A8]"><i className="fa-regular fa-clock mr-1"></i> {t.hours}</div>}
+                                            {(t.address || t.gmap) && (
+                                                <div className="text-[#8A93A8] flex items-center flex-wrap gap-1">
+                                                    <i className="fa-solid fa-map-pin mr-1"></i> {t.address}
+                                                    <MapLinks query={t.address} gmapUrl={t.gmap} />
+                                                </div>
+                                            )}
+                                            {t.bookingUrl && (
+                                                <a href={t.bookingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#00f3ff] hover:underline">
+                                                    <i className="fa-solid fa-up-right-from-square"></i> 前往預約/官網
+                                                </a>
+                                            )}
+                                        </div>
+
+                                        {/* 備註 */}
+                                        {t.note && (
+                                            <div className="text-xs text-[#E8ECF4] mt-3 bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2 italic">
+                                                "{t.note}"
+                                            </div>
+                                        )}
+
+                                        {/* 操作區 */}
+                                        <div className="flex justify-end gap-2 mt-auto pt-3 border-t border-[#252C42]">
+                                            <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(t.id); setDraft({ ...t }); }} />
+                                            <IconBtn icon="fa-solid fa-trash" onClick={() => del(t.id)} color={theme.accent} />
+                                        </div>
+                                    </div>
+                                )}
+                            </Card>
+                        ))}
+                    </div>
+                    
+                    {(data.tickets || []).length === 0 && editId !== 'new' && <EmptyState text="尚未規劃景點門票。新增登別尼克斯、函館山纜車、旭山動物園等景點吧！" />}
+                </div>
+            );
+        }
+
+        // ============ FOODS TAB ============
+        function FoodsTab({ data, save, uploadImageFn }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [filter, setFilter] = useState('全部');
+
+            const add = () => {
+                setEditId('new');
+                setDraft({ id: Date.now(), name: '', city: '札幌', category: '午餐', address: '', rating: 5, note: '', photo: '' });
+            };
+            const saveEdit = () => { 
+                if(!draft.name) return alert('請輸入店名');
+                if (editId === 'new') save({ ...data, foods: [...(data.foods || []), draft] });
+                else save({ ...data, foods: (data.foods || []).map(f => f.id === editId ? draft : f) }); 
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, foods: (data.foods || []).filter(f => f.id !== id) }); };
+
+            const cities = ['全部', ...new Set((data.foods || []).map(f => f.city))];
+            const shown = filter === '全部' ? (data.foods || []) : (data.foods || []).filter(f => f.city === filter);
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <Field label="店名 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
+                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
+                    </div>
+                    <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                    <div className="mb-3">
+                        <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
+                        <div className="flex gap-2">
+                            {[1,2,3,4,5].map(n => (
+                                <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
+                            ))}
+                        </div>
+                    </div>
+                    <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                    <ImageUploadField label="美食照片" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增美食" />}>美食雷達</SectionTitle>
                     <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
                         {cities.map(c => (
                             <button key={c} onClick={() => setFilter(c)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-colors border ${filter === c ? 'bg-[#E63946] border-[#E63946] text-white' : 'bg-transparent border-[#252C42] text-[#8A93A8] hover:border-white/50'}`}>
@@ -876,34 +1268,15 @@
                             </button>
                         ))}
                     </div>
+                    
+                    {editId === 'new' && <Card><FormView /></Card>}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {shown.map(f => (
                             <Card key={f.id}>
-                                {editId === f.id ? (
-                                    <div className="animate-fade-in">
-                                        <Field label="店名" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
-                                            <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
-                                        </div>
-                                        <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
-                                        <div className="mb-3">
-                                            <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
-                                            <div className="flex gap-2">
-                                                {[1,2,3,4,5].map(n => (
-                                                    <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
-                                        <div className="flex gap-2 mt-4">
-                                            <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                                            <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                                        </div>
-                                    </div>
-                                ) : (
+                                {editId === f.id ? <FormView /> : (
                                     <div className="flex flex-col h-full">
-                                        <div className="flex justify-between items-start mb-2">
+                                        <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <div className="text-lg font-bold text-white mb-1 leading-tight">{f.name}</div>
                                                 <div className="flex gap-2">
@@ -913,9 +1286,14 @@
                                             </div>
                                             <div className="text-[#F4A261] text-sm tracking-widest whitespace-nowrap">{'★'.repeat(f.rating)}</div>
                                         </div>
-                                        {f.address && <div className="text-xs text-[#8A93A8] my-2 bg-black/20 p-2 rounded"><i className="fa-solid fa-map-pin mr-1"></i> {f.address} <MapLinks query={f.address} /></div>}
-                                        {f.note && <div className="text-xs text-[#E8ECF4] mt-auto font-bold bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2">"{f.note}"</div>}
-                                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[#252C42]">
+                                        {f.photo && (
+                                            <div className="w-full h-32 rounded-lg overflow-hidden border border-[#252C42] mb-3">
+                                                <a href={f.photo} target="_blank"><img src={f.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" /></a>
+                                            </div>
+                                        )}
+                                        {f.address && <div className="text-xs text-[#8A93A8] my-1 bg-black/20 p-2 rounded"><i className="fa-solid fa-map-pin mr-1"></i> {f.address} <MapLinks query={f.address} /></div>}
+                                        {f.note && <div className="text-xs text-[#E8ECF4] mt-2 font-bold bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2">"{f.note}"</div>}
+                                        <div className="flex justify-end gap-2 mt-auto pt-3 border-t border-[#252C42]">
                                             <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(f.id); setDraft({ ...f }); }} />
                                             <IconBtn icon="fa-solid fa-trash" onClick={() => del(f.id)} color={theme.accent} />
                                         </div>
@@ -928,22 +1306,86 @@
             );
         }
 
+        // ============ COUPONS TAB ============
+        function CouponsTab({ data, save, uploadImageFn }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+
+            const add = () => {
+                setEditId('new');
+                setDraft({ id: Date.now(), title: '', note: '', photo: '' });
+            };
+            const saveEdit = () => {
+                if(!draft.title) return alert('請輸入標題');
+                if (editId === 'new') save({ ...data, coupons: [draft, ...(data.coupons || [])] });
+                else save({ ...data, coupons: (data.coupons || []).map(c => c.id === editId ? draft : c) });
+                setEditId(null); setDraft(null);
+            };
+            const del = (id) => { if(confirm('確定刪除？')) save({ ...data, coupons: (data.coupons || []).filter(c => c.id !== id) }); };
+
+            const FormView = () => (
+                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <Field label="優惠券名稱" value={draft.title} onChange={v => setDraft({...draft, title: v})} />
+                    <ImageUploadField label="優惠券 / 條碼截圖" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                    <Field label="使用說明 / 期限" type="textarea" value={draft.note} onChange={v => setDraft({...draft, note: v})} />
+                    <div className="flex gap-2 mt-4">
+                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增優惠券" />}>專屬優惠券庫</SectionTitle>
+                    {editId === 'new' && <Card><FormView /></Card>}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(data.coupons || []).map(c => (
+                            <Card key={c.id}>
+                                {editId === c.id ? <FormView /> : (
+                                    <div className="flex flex-col h-full">
+                                        <div className="w-full h-48 bg-[#252C42] rounded-lg mb-3 overflow-hidden border border-white/10 group relative">
+                                            {c.photo ? (
+                                                <a href={c.photo} target="_blank" className="block w-full h-full">
+                                                    <img src={c.photo} className="w-full h-full object-contain" />
+                                                </a>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-[#5A6378]"><i className="fa-solid fa-ticket text-4xl"></i></div>
+                                            )}
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white mb-2">{c.title}</h3>
+                                        <p className="text-xs text-[#8A93A8] flex-1 bg-black/20 p-2 rounded whitespace-pre-wrap">{c.note}</p>
+                                        <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[#252C42]">
+                                            <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(c.id); setDraft({...c}); }} />
+                                            <IconBtn icon="fa-solid fa-trash" onClick={() => del(c.id)} color={theme.accent} />
+                                        </div>
+                                    </div>
+                                )}
+                            </Card>
+                        ))}
+                    </div>
+                    {(data.coupons || []).length === 0 && editId !== 'new' && <EmptyState text="尚未收藏任何優惠券" />}
+                </div>
+            );
+        }
+
         // ============ EXPENSES TAB ============
         function ExpensesTab({ data, save }) {
             const [draft, setDraft] = useState({ date: '', item: '', amount: '', payer: '', category: '餐飲' });
 
             const add = () => {
                 if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
-                save({ ...data, expenses: [...data.expenses, { id: Date.now(), ...draft, amount: Number(draft.amount) }] });
+                save({ ...data, expenses: [...(data.expenses || []), { id: Date.now(), ...draft, amount: Number(draft.amount) }] });
                 setDraft({ ...draft, item: '', amount: '' });
             };
-            const del = (id) => save({ ...data, expenses: data.expenses.filter(e => e.id !== id) });
+            const del = (id) => save({ ...data, expenses: (data.expenses || []).filter(e => e.id !== id) });
 
-            const total = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
-            const byPayer = data.expenses.reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + Number(e.amount); return acc; }, {});
-            const byCategory = data.expenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + Number(e.amount); return acc; }, {});
+            const total = (data.expenses || []).reduce((s, e) => s + Number(e.amount), 0);
+            const byPayer = (data.expenses || []).reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + Number(e.amount); return acc; }, {});
+            const byCategory = (data.expenses || []).reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + Number(e.amount); return acc; }, {});
 
-            const people = data.family.map(f => f.name).filter(Boolean);
+            const people = (data.family || []).map(f => f.name).filter(Boolean);
             const perPerson = people.length ? total / people.length : 0;
 
             return (
@@ -985,7 +1427,7 @@
                     </Card>
 
                     <div className="mt-6 space-y-2">
-                        {data.expenses.map(e => (
+                        {(data.expenses || []).map(e => (
                             <div key={e.id} className="flex items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
                                 <span className="text-[#5A6378] w-12 text-xs">{e.date}</span>
                                 <span className="font-bold flex-1 text-white">{e.item}</span>
@@ -1052,14 +1494,14 @@
 
                         <div className="space-y-4">
                             <Card>
-                                <div className="text-sm font-bold text-[#3bc6e4] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-calculator mr-1"></i> 快速匯率換算</div>
+                                <div className="text-sm font-bold text-[#3bc6e4] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-calculator mr-1"></i> 快速匯率換算 (日幣轉台幣)</div>
                                 <RateCalc />
                             </Card>
 
                             <Card>
                                 <div className="text-sm font-bold text-[#FFD700] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-cloud-sun mr-1"></i> 北海道天氣查詢</div>
                                 <div className="flex flex-wrap gap-2">
-                                    {['札幌', '函館', '小樽', '旭川', '富良野', '釧路'].map(city => (
+                                    {['新千歲', '洞爺湖', '函館', '小樽', 'Tomamu', '旭川', '札幌'].map(city => (
                                         <a key={city} href={`https://www.google.com/search?q=${encodeURIComponent(city + ' 天氣')}`} target="_blank" rel="noreferrer" 
                                             className="bg-[#252C42] hover:bg-[#FFD700] hover:text-black text-xs text-[#E8ECF4] px-3 py-1.5 rounded-full transition-colors">
                                             {city} <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
@@ -1103,18 +1545,18 @@
         }
 
         function RateCalc() {
-            const [twd, setTwd] = useState(1000);
-            const [rate, setRate] = useState(4.8); 
+            const [jpy, setJpy] = useState(10000);
+            const [rate, setRate] = useState(0.21); 
             return (
                 <div>
                     <div className="flex items-center gap-3 mb-2">
-                        <input type="number" value={twd} onChange={e => setTwd(Number(e.target.value))} className="w-24 text-center font-bold" />
-                        <span className="text-xs text-[#8A93A8]">TWD</span>
+                        <input type="number" value={jpy} onChange={e => setJpy(Number(e.target.value))} className="w-24 text-center font-bold bg-[#131827] border border-[#252C42] text-white rounded p-1 outline-none focus:border-[#3bc6e4]" />
+                        <span className="text-xs text-[#8A93A8]">JPY</span>
                         <span className="text-[#F4A261]"><i className="fa-solid fa-arrow-right"></i></span>
-                        <span className="text-xl font-black text-[#F4A261]">¥ {Math.round(twd * rate).toLocaleString()}</span>
+                        <span className="text-xl font-black text-[#F4A261]">NT$ {Math.round(jpy * rate).toLocaleString()}</span>
                     </div>
-                    <div className="text-[10px] text-[#5A6378] flex items-center gap-2">
-                        匯率參考: 1 TWD ≈ <input type="number" step="0.01" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-16 px-1 py-0.5 text-center text-white" /> JPY
+                    <div className="text-[10px] text-[#5A6378] flex items-center gap-2 mt-2">
+                        匯率參考: 1 JPY ≈ <input type="number" step="0.001" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-16 px-1 py-0.5 text-center text-white bg-[#131827] border border-[#252C42] rounded outline-none" /> TWD
                     </div>
                 </div>
             );
