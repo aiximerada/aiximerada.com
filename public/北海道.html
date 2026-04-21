@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>2026北海道之旅</title>
+    
+    <!-- 🔥 PWA 與 加入主畫面 (Add to Home Screen) 專屬設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="2026北海道之旅">
+    <meta name="application-name" content="2026北海道之旅">
+    <meta name="theme-color" content="#0A0E1A">
+    
+    <!-- APP 圖示 -->
+    <link rel="icon" type="image/png" href="APP圖示.png">
+    <link rel="apple-touch-icon" href="APP圖示.png">
+
+    <!-- 動態產生 PWA Manifest (讓單一檔案也能被手機識別為 APP) -->
+    <link rel="manifest" id="dynamic-manifest">
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const manifest = {
+                name: "2026北海道之旅",
+                short_name: "北海道之旅",
+                start_url: window.location.pathname,
+                display: "standalone",
+                background_color: "#0A0E1A",
+                theme_color: "#0A0E1A",
+                icons: [
+                    { src: "APP圖示.png", sizes: "192x192", type: "image/png" },
+                    { src: "APP圖示.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                ]
+            };
+            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            document.getElementById('dynamic-manifest').href = URL.createObjectURL(blob);
+        });
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React 核心 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Microsoft JhengHei', 'Noto Serif TC', serif; 
+            background-color: #0A0E1A;
+            margin: 0; padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 隱藏橫向滾動條 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 特效動畫 */
+        @keyframes snowfall {
+            0% { transform: translateY(-10px); opacity: 0; }
+            20% { opacity: 0.8; }
+            100% { transform: translateY(200px); opacity: 0; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
+
+        /* 輸入框美化 (防止 iOS 自動放大) */
+        input, textarea, select {
+            background: #131827 !important;
+            border: 1px solid #252C42 !important;
+            color: #E8ECF4 !important;
+            padding: 10px 12px !important;
+            border-radius: 8px !important;
+            font-family: inherit !important;
+            font-size: 16px !important; /* 避免 iOS Zoom */
+            outline: none !important;
+            transition: border-color 0.2s !important;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #E63946 !important;
+        }
+        
+        button:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useEffect, useRef } = React;
+        const { createRoot } = ReactDOM;
+
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 Firebase Config (玉露寶庫)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
+            authDomain: "yulubox.firebaseapp.com",
+            projectId: "yulubox",
+            storageBucket: "yulubox.firebasestorage.app",
+            messagingSenderId: "256466567852",
+            appId: "1:256466567852:web:233b74668908ffcb9b9509"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ============ DEFAULT DATA ============
+        const DEFAULT_DATA = {
+            tripTitle: '北海道 2026',
+            tripDates: '2026.07.11 - 07.19 · 9 天 8 夜',
+            countdown: '2026-07-11',
+            itinerary: [],
+            family: [
+                { id: 1, name: '老爸', role: '金主/司機', passport: '', note: '' },
+                { id: 2, name: '老媽', role: '總務/採購', passport: '', note: '' },
+            ],
+            luggage: [
+                { id: 1, category: '證件', item: '護照', checked: false },
+                { id: 2, category: '衣物', item: '薄外套（早晚溫差）', checked: false },
+                { id: 3, category: '電子', item: '行動電源', checked: false },
+                { id: 4, category: '電子', item: '萬國轉接頭', checked: false },
+            ],
+            flights: [], hotels: [], transport: [], foods: [], expenses: [], ideas: '',
+        };
+
+        // ============ THEME ============
+        const theme = {
+            bg: '#0A0E1A', bgCard: '#131827', bgCardHover: '#1A2033',
+            border: '#252C42', text: '#E8ECF4', textMuted: '#8A93A8', textDim: '#5A6378',
+            accent: '#E63946', accent2: '#F4A261', success: '#52B788', snow: '#E8F1F8',
+        };
+
+        // ============ HELPER: 圖片極致壓縮 ============
+        const compressImage = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 500; 
+                        let width = img.width; let height = img.height;
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                    };
+                };
+                reader.onerror = error => reject(error);
+            });
+        };
+
+        // ============ MAIN APP ============
+        function App() {
+            const [data, setData] = useState(DEFAULT_DATA);
+            const [activeTab, setActiveTab] = useState('home');
+            const [loading, setLoading] = useState(true);
+            const [syncing, setSyncing] = useState(false);
+
+            // 🔥 Firestore 連線與同步
+            useEffect(() => {
+                const initAuth = async () => {
+                    try { await signInAnonymously(auth); } 
+                    catch (e) { console.error("Auth Error", e); setLoading(false); }
+                };
+                initAuth();
+
+                const unsubscribeAuth = onAuthStateChanged(auth, user => {
+                    if (user) {
+                        // 使用玉露寶庫標準公開資料夾結構
+                        const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
+                        
+                        const unsubscribeDb = onSnapshot(docRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                setData({ ...DEFAULT_DATA, ...docSnap.data() });
+                            } else {
+                                setDoc(docRef, DEFAULT_DATA);
+                                setData(DEFAULT_DATA);
+                            }
+                            setLoading(false);
+                        });
+                        return () => unsubscribeDb();
+                    }
+                });
+                return () => unsubscribeAuth();
+            }, []);
+
+            const saveData = async (newData) => {
+                setData(newData); // 樂觀渲染 (Optimistic UI)
+                setSyncing(true);
+                try {
+                    const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
+                    await setDoc(docRef, newData, { merge: true });
+                } catch (e) { console.error("Save Error", e); }
+                setTimeout(() => setSyncing(false), 500); 
+            };
+
+            const daysLeft = Math.ceil((new Date(data.countdown) - new Date()) / (1000 * 60 * 60 * 24));
+
+            const tabs = [
+                { id: 'home', icon: 'fa-solid fa-wand-magic-sparkles', label: '總覽' },
+                { id: 'itinerary', icon: 'fa-regular fa-calendar-days', label: '日程表' },
+                { id: 'family', icon: 'fa-solid fa-users', label: '成員' },
+                { id: 'luggage', icon: 'fa-solid fa-suitcase', label: '行李' },
+                { id: 'flights', icon: 'fa-solid fa-plane-departure', label: '航班' },
+                { id: 'hotels', icon: 'fa-solid fa-hotel', label: '住宿' },
+                { id: 'transport', icon: 'fa-solid fa-train-subway', label: '交通' },
+                { id: 'foods', icon: 'fa-solid fa-utensils', label: '美食' },
+                { id: 'expenses', icon: 'fa-solid fa-wallet', label: '記帳' },
+                { id: 'extras', icon: 'fa-solid fa-language', label: '小幫手' },
+            ];
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-[#0A0E1A] text-[#8A93A8]">
+                        <div className="text-center">
+                            <div className="text-6xl mb-4 animate-bounce">🇯🇵</div>
+                            <div className="tracking-widest text-sm animate-pulse">連線到北海道...</div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${theme.bg} 0%, #0F1422 100%)`, color: theme.text }}>
+                    
+                    {/* Hero Header */}
+                    <div style={{ position: 'relative', height: 180, background: `linear-gradient(135deg, #1a1f3a 0%, #2d1b3d 50%, #1a1f3a 100%)`, overflow: 'hidden', borderBottom: `1px solid ${theme.border}` }}>
+                        <div style={{ position: 'absolute', inset: 0, opacity: 0.6 }}>
+                            {[...Array(30)].map((_, i) => (
+                                <div key={i} style={{
+                                    position: 'absolute', left: `${(i * 37) % 100}%`, top: `${(i * 23) % 100}%`,
+                                    width: 2 + (i % 3), height: 2 + (i % 3), borderRadius: '50%', background: theme.snow,
+                                    opacity: 0.3 + (i % 5) * 0.1, animation: `snowfall ${8 + (i % 5)}s linear infinite`, animationDelay: `${i * 0.3}s`
+                                }} />
+                            ))}
+                        </div>
+                        <div className="relative px-6 py-6 flex justify-between items-start max-w-6xl mx-auto h-full pt-10">
+                            <div>
+                                <div className="text-3xl mb-1">🇯🇵</div>
+                                <h1 style={{ fontSize: '2rem', fontWeight: 900, margin: 0, letterSpacing: 2, background: `linear-gradient(90deg, ${theme.snow} 0%, ${theme.accent} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                    {data.tripTitle}
+                                </h1>
+                                <div style={{ fontSize: 12, color: theme.textMuted, letterSpacing: 1, marginTop: 4 }}>{data.tripDates}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[10px] text-[#5A6378] tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/10 flex items-center gap-1 mb-2 inline-flex">
+                                    <i className={`fa-solid fa-rotate ${syncing ? 'fa-spin text-[#00f3ff]' : ''}`}></i>
+                                    {syncing ? '雲端同步中' : '即時同步'}
+                                </div>
+                                {daysLeft > 0 && (
+                                    <div>
+                                        <div style={{ fontSize: 10, color: theme.textDim, letterSpacing: 2 }}>倒數</div>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: theme.accent }}>{daysLeft}</div>
+                                        <div style={{ fontSize: 10, color: theme.textDim }}>天</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Layout */}
+                    <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto">
+                        
+                        {/* Mobile & Desktop Navigation */}
+                        <nav className="flex md:flex-col overflow-x-auto md:overflow-visible bg-[#131827] md:bg-transparent sticky top-0 z-50 md:z-auto border-b md:border-b-0 md:border-r border-[#252C42] no-scrollbar p-2 md:p-6 md:w-56 flex-shrink-0 gap-2 md:gap-1">
+                            {tabs.map(tab => {
+                                const active = activeTab === tab.id;
+                                return (
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
+                                        className={`flex items-center gap-2 px-4 py-2.5 md:py-3 rounded-lg font-bold text-sm whitespace-nowrap transition-all border-b-2 md:border-b-0 md:border-l-4 ${active ? 'bg-[#E63946]/10 text-white border-[#E63946]' : 'text-[#8A93A8] border-transparent hover:bg-white/5'}`}>
+                                        <i className={tab.icon}></i>
+                                        <span>{tab.label}</span>
+                                        {active && <i className="fa-solid fa-chevron-right hidden md:block ml-auto text-[10px]"></i>}
+                                    </button>
+                                );
+                            })}
+                        </nav>
+
+                        {/* Content Area */}
+                        <main className="flex-1 p-4 md:p-8 min-w-0 pb-24">
+                            {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} />}
+                            {activeTab === 'itinerary' && <ItineraryTab data={data} save={saveData} />}
+                            {activeTab === 'family' && <FamilyTab data={data} save={saveData} />}
+                            {activeTab === 'luggage' && <LuggageTab data={data} save={saveData} />}
+                            {activeTab === 'flights' && <FlightsTab data={data} save={saveData} />}
+                            {activeTab === 'hotels' && <HotelsTab data={data} save={saveData} />}
+                            {activeTab === 'transport' && <TransportTab data={data} save={saveData} />}
+                            {activeTab === 'foods' && <FoodsTab data={data} save={saveData} />}
+                            {activeTab === 'expenses' && <ExpensesTab data={data} save={saveData} />}
+                            {activeTab === 'extras' && <ExtrasTab data={data} save={saveData} />}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ REUSABLE COMPONENTS ============
+        function SectionTitle({ children, action }) {
+            return (
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl md:text-2xl font-bold text-[#E8F1F8] border-l-4 border-[#E63946] pl-3 tracking-wider">{children}</h2>
+                    {action}
+                </div>
+            );
+        }
+
+        function AddButton({ onClick, label = '新增' }) {
+            return (
+                <button onClick={onClick} className="bg-[#E63946] text-white border-none px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-600 transition-colors shadow-lg">
+                    <i className="fa-solid fa-plus"></i> {label}
+                </button>
+            );
+        }
+
+        function Card({ children, style = {} }) {
+            return <div className="bg-[#131827] border border-[#252C42] rounded-xl p-4 md:p-5 mb-3 shadow-sm" style={style}>{children}</div>;
+        }
+
+        function IconBtn({ icon, onClick, color = theme.textMuted, title }) {
+            return (
+                <button onClick={onClick} title={title} className="bg-transparent border-none p-2 rounded-lg inline-flex items-center hover:bg-white/10 transition-colors" style={{ color }}>
+                    <i className={icon}></i>
+                </button>
+            );
+        }
+
+        function MapLinks({ query }) {
+            if (!query) return null;
+            const g = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+            return (
+                <a href={g} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-[#8A93A8] border border-[#252C42] rounded px-2 py-0.5 ml-2 hover:text-[#00f3ff] transition-colors">
+                    <i className="fa-solid fa-map-location-dot"></i> 導航
+                </a>
+            );
+        }
+
+        function Field({ label, value, onChange, type = 'text', placeholder }) {
+            return (
+                <div className="mb-3">
+                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">{label}</div>
+                    {type === 'textarea' ? (
+                        <textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} className="resize-y" />
+                    ) : (
+                        <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+                    )}
+                </div>
+            );
+        }
+
+        const btnPrimary = { background: theme.accent, color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' };
+        const btnGhost = { background: 'transparent', color: theme.textMuted, border: `1px solid ${theme.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
+
+        function EmptyState({ text }) {
+            return <div className="text-center py-16 text-[#5A6378] text-sm font-bold bg-[#131827]/50 rounded-xl border border-dashed border-[#252C42]">{text}</div>;
+        }
+
+        // ============ HOME TAB ============
+        function HomeTab({ data, save, daysLeft, setActiveTab }) {
+            const [editSettings, setEditSettings] = useState(false);
+            const [settingsDraft, setSettingsDraft] = useState({ tripTitle: data.tripTitle, tripDates: data.tripDates, countdown: data.countdown });
+
+            const saveSettings = () => { save({ ...data, ...settingsDraft }); setEditSettings(false); };
+
+            const stats = [
+                { label: '行程項目', value: data.itinerary.length, tab: 'itinerary', icon: 'fa-solid fa-calendar' },
+                { label: '家庭成員', value: data.family.length, tab: 'family', icon: 'fa-solid fa-users' },
+                { label: '住宿安排', value: data.hotels.length, tab: 'hotels', icon: 'fa-solid fa-hotel' },
+                { label: '美食收藏', value: data.foods.length, tab: 'foods', icon: 'fa-solid fa-utensils' },
+            ];
+            const totalExpense = data.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+            const luggageChecked = data.luggage.filter(i => i.checked).length;
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle>總覽</SectionTitle>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                        {stats.map(s => (
+                            <button key={s.label} onClick={() => setActiveTab(s.tab)} className="bg-[#131827] border border-[#252C42] rounded-xl p-4 text-left hover:border-[#E63946]/50 transition-colors">
+                                <i className={`${s.icon} text-[#E63946] text-lg`}></i>
+                                <div className="text-2xl font-black mt-2 text-[#E8F1F8]">{s.value}</div>
+                                <div className="text-xs text-[#8A93A8] mt-1">{s.label}</div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">預算總覽</div>
+                            <div className="text-2xl md:text-3xl font-black text-[#F4A261] mt-2 truncate">NT$ {totalExpense.toLocaleString()}</div>
+                            <div className="text-[11px] text-[#5A6378] mt-2">目前已記錄 {data.expenses.length} 筆</div>
+                        </div>
+                        <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">行李打包進度</div>
+                            <div className="text-2xl md:text-3xl font-black text-[#52B788] mt-2">{luggageChecked} / {data.luggage.length}</div>
+                            <div className="bg-[#252C42] h-1.5 rounded-full mt-3 overflow-hidden">
+                                <div className="bg-[#52B788] h-full transition-all duration-500" style={{ width: `${data.luggage.length ? (luggageChecked / data.luggage.length) * 100 : 0}%` }} />
+                            </div>
+                        </div>
+                        <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">下一站</div>
+                            <div className="text-lg font-bold mt-2 truncate text-white">{data.itinerary[0]?.title || '還沒安排'}</div>
+                            <div className="text-xs text-[#5A6378] mt-1">{data.itinerary[0]?.date} {data.itinerary[0]?.time}</div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 bg-[#131827] border border-[#252C42] rounded-xl p-5 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-[#E63946]"></div>
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="text-xs text-[#8A93A8] tracking-widest font-bold">旅行設定</div>
+                            {!editSettings && (
+                                <button onClick={() => { setEditSettings(true); setSettingsDraft({ tripTitle: data.tripTitle, tripDates: data.tripDates, countdown: data.countdown }); }} className="text-xs text-[#8A93A8] hover:text-white border border-[#252C42] px-3 py-1.5 rounded-md transition-colors">
+                                    <i className="fa-solid fa-pen mr-1"></i> 編輯
+                                </button>
+                            )}
+                        </div>
+                        {editSettings ? (
+                            <div className="animate-fade-in">
+                                <Field label="旅行標題" value={settingsDraft.tripTitle} onChange={v => setSettingsDraft({ ...settingsDraft, tripTitle: v })} />
+                                <Field label="顯示的日期文字" value={settingsDraft.tripDates} onChange={v => setSettingsDraft({ ...settingsDraft, tripDates: v })} />
+                                <Field label="出發日（格式：YYYY-MM-DD）" value={settingsDraft.countdown} onChange={v => setSettingsDraft({ ...settingsDraft, countdown: v })} placeholder="2026-07-11" />
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={saveSettings} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                    <button onClick={() => setEditSettings(false)} style={btnGhost}>取消</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div><div className="text-[10px] text-[#5A6378] font-bold mb-1">標題</div><div className="font-bold">{data.tripTitle}</div></div>
+                                <div><div className="text-[10px] text-[#5A6378] font-bold mb-1">日期</div><div className="font-bold">{data.tripDates}</div></div>
+                                <div><div className="text-[10px] text-[#5A6378] font-bold mb-1">倒數基準日</div><div className="font-bold font-mono">{data.countdown}</div></div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ ITINERARY TAB ============
+        function ItineraryTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+
+            const add = () => {
+                const d = { id: Date.now(), day: 'Day 1', date: '', time: '', title: '', location: '', note: '', type: '景點' };
+                save({ ...data, itinerary: [...data.itinerary, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, itinerary: data.itinerary.map(i => i.id === editId ? draft : i) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除這個行程？')) save({ ...data, itinerary: data.itinerary.filter(i => i.id !== id) }); };
+
+            const grouped = data.itinerary.reduce((acc, i) => { (acc[i.day] = acc[i.day] || []).push(i); return acc; }, {});
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增行程" />}>日程表</SectionTitle>
+                    {Object.keys(grouped).sort().map(day => (
+                        <div key={day} className="mb-8">
+                            <div className="text-[#E63946] font-bold tracking-widest mb-3 flex items-center gap-2">
+                                <i className="fa-solid fa-flag"></i> {day} <span className="text-sm text-[#5A6378]">{grouped[day][0]?.date}</span>
+                            </div>
+                            {grouped[day].map(item => (
+                                <Card key={item.id}>
+                                    {editId === item.id ? (
+                                        <div className="animate-fade-in">
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <Field label="Day" value={draft.day} onChange={v => setDraft({ ...draft, day: v })} placeholder="Day 1" />
+                                                <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} placeholder="12/20" />
+                                                <Field label="時間" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} placeholder="14:30" />
+                                            </div>
+                                            <Field label="標題" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
+                                            <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
+                                                    <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
+                                                        <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
+                                                    </select>
+                                                </div>
+                                                <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                                            </div>
+                                            <div className="flex gap-2 mt-4">
+                                                <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                                <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-3 md:gap-4 items-start">
+                                            <div className="min-w-[50px] md:min-w-[60px] text-center pt-1">
+                                                <div className="text-lg md:text-xl font-bold text-[#F4A261]">{item.time || '--:--'}</div>
+                                                <div className="text-[10px] text-[#8A93A8] bg-[#252C42] px-2 py-0.5 rounded mt-1 inline-block">{item.type}</div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-base md:text-lg font-bold text-white leading-tight">{item.title}</div>
+                                                {item.location && <div className="text-xs text-[#8A93A8] mt-1.5 flex items-start md:items-center flex-wrap gap-1"><i className="fa-solid fa-location-dot mt-0.5 md:mt-0"></i> {item.location} <MapLinks query={item.location} /></div>}
+                                                {item.note && <div className="text-xs text-[#5A6378] mt-2 bg-black/20 p-2 rounded-md italic">{item.note}</div>}
+                                            </div>
+                                            <div className="flex flex-col md:flex-row gap-1">
+                                                <IconBtn icon="fa-solid fa-pen" onClick={() => startEdit(item)} />
+                                                <IconBtn icon="fa-solid fa-trash" onClick={() => del(item.id)} color={theme.accent} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </Card>
+                            ))}
+                        </div>
+                    ))}
+                    {data.itinerary.length === 0 && <EmptyState text="還沒安排行程。點右上角「新增行程」開始吧！" />}
+                </div>
+            );
+        }
+
+        // ============ FAMILY TAB ============
+        function FamilyTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const fileInputRef = useRef({});
+
+            const add = () => {
+                const d = { id: Date.now(), name: '', role: '', passport: '', note: '', photo: '' };
+                save({ ...data, family: [...data.family, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, family: data.family.map(i => i.id === editId ? draft : i) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, family: data.family.filter(i => i.id !== id) }); };
+
+            const uploadPhoto = async (id, file) => {
+                try {
+                    const compressedBase64 = await compressImage(file);
+                    save({ ...data, family: data.family.map(m => m.id === id ? { ...m, photo: compressedBase64 } : m) });
+                } catch(e) { alert("圖片處理失敗"); }
+            };
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增成員" />}>旅行成員</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.family.map(m => (
+                            <Card key={m.id}>
+                                {editId === m.id ? (
+                                    <div className="animate-fade-in">
+                                        <Field label="名字" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                                        <Field label="角色 / 分工" value={draft.role} onChange={v => setDraft({ ...draft, role: v })} placeholder="例：司機、翻譯、財務長" />
+                                        <Field label="護照末 4 碼（方便填表）" value={draft.passport} onChange={v => setDraft({ ...draft, passport: v })} />
+                                        <Field label="備註（過敏、偏好）" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                                        <div className="flex gap-2 mt-4">
+                                            <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                            <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current[m.id]?.click()}>
+                                                <div style={{ width: 64, height: 64, borderRadius: '50%', background: m.photo ? `url(${m.photo}) center/cover` : `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#fff', border: `2px solid ${theme.border}` }}>
+                                                    {!m.photo && (m.name || '?').charAt(0)}
+                                                </div>
+                                                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><i className="fa-solid fa-camera text-white"></i></div>
+                                            </div>
+                                            <input ref={el => fileInputRef.current[m.id] = el} type="file" accept="image/*" hidden onChange={e => e.target.files[0] && uploadPhoto(m.id, e.target.files[0])} />
+                                            
+                                            <div className="flex-1">
+                                                <div className="text-xl font-bold text-white">{m.name || '（未命名）'}</div>
+                                                <div className="text-sm text-[#F4A261] font-bold">{m.role}</div>
+                                            </div>
+                                        </div>
+                                        {m.passport && <div className="text-xs text-[#8A93A8] mt-4 font-mono bg-black/20 p-2 rounded"><i className="fa-solid fa-passport mr-1"></i> 護照：··· {m.passport}</div>}
+                                        {m.note && <div className="text-xs text-[#5A6378] mt-2 italic">"{m.note}"</div>}
+                                        
+                                        <div className="flex justify-end gap-1 mt-3 pt-3 border-t border-[#252C42]">
+                                            <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(m.id); setDraft({ ...m }); }} />
+                                            <IconBtn icon="fa-solid fa-trash" onClick={() => del(m.id)} color={theme.accent} />
+                                        </div>
+                                    </div>
+                                )}
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ LUGGAGE TAB ============
+        function LuggageTab({ data, save }) {
+            const [newItem, setNewItem] = useState({ category: '衣物', item: '' });
+            const add = () => {
+                if (!newItem.item.trim()) return;
+                save({ ...data, luggage: [...data.luggage, { id: Date.now(), ...newItem, checked: false }] });
+                setNewItem({ category: newItem.category, item: '' });
+            };
+            const toggle = (id) => save({ ...data, luggage: data.luggage.map(i => i.id === id ? { ...i, checked: !i.checked } : i) });
+            const del = (id) => save({ ...data, luggage: data.luggage.filter(i => i.id !== id) });
+
+            const grouped = data.luggage.reduce((acc, i) => { (acc[i.category] = acc[i.category] || []).push(i); return acc; }, {});
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle>行李清單</SectionTitle>
+                    <Card style={{ padding: '16px', background: 'rgba(230,57,70,0.05)', borderColor: 'rgba(230,57,70,0.2)' }}>
+                        <div className="flex flex-col sm:flex-row gap-3 items-end">
+                            <div className="w-full sm:w-32">
+                                <div className="text-[10px] text-[#5A6378] font-bold mb-1">分類</div>
+                                <select value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })}>
+                                    <option>證件</option><option>衣物</option><option>電子</option><option>藥品</option><option>盥洗</option><option>其他</option>
+                                </select>
+                            </div>
+                            <div className="flex-1 w-full">
+                                <div className="text-[10px] text-[#5A6378] font-bold mb-1">物品名稱</div>
+                                <input value={newItem.item} onChange={e => setNewItem({ ...newItem, item: e.target.value })} onKeyDown={e => e.key === 'Enter' && add()} placeholder="輸入後按 Enter" />
+                            </div>
+                            <button onClick={add} className="w-full sm:w-auto bg-[#E63946] text-white px-6 py-2.5 rounded-lg font-bold hover:bg-red-600 transition-colors">加入</button>
+                        </div>
+                    </Card>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        {Object.keys(grouped).map(cat => (
+                            <div key={cat}>
+                                <div className="text-sm text-[#F4A261] tracking-widest font-black mb-3 border-b border-[#252C42] pb-1">{cat} ({grouped[cat].filter(i=>i.checked).length}/{grouped[cat].length})</div>
+                                <div className="space-y-2">
+                                    {grouped[cat].map(item => (
+                                        <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${item.checked ? 'bg-[#52B788]/10 border-[#52B788]/30 opacity-60' : 'bg-[#131827] border-[#252C42] hover:border-gray-500'}`} onClick={() => toggle(item.id)}>
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${item.checked ? 'bg-[#52B788] border-[#52B788]' : 'border-[#5A6378]'}`}>
+                                                    {item.checked && <i className="fa-solid fa-check text-white text-xs"></i>}
+                                                </div>
+                                                <span className={`text-sm md:text-base font-bold ${item.checked ? 'line-through text-[#8A93A8]' : 'text-white'}`}>{item.item}</span>
+                                            </div>
+                                            <button onClick={(e) => { e.stopPropagation(); del(item.id); }} className="text-[#8A93A8] hover:text-[#E63946] p-1"><i className="fa-solid fa-xmark"></i></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ FLIGHTS TAB ============
+        function FlightsTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+
+            const add = () => {
+                const d = { id: Date.now(), type: '去程', airline: '', date: '', depart: '', arrive: '', seat: '', note: '' };
+                save({ ...data, flights: [...data.flights, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, flights: data.flights.map(f => f.id === editId ? draft : f) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, flights: data.flights.filter(f => f.id !== id) }); };
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增航班" />}>航班憑證</SectionTitle>
+                    {data.flights.map(f => (
+                        <Card key={f.id}>
+                            {editId === f.id ? (
+                                <div className="animate-fade-in">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
+                                        <Field label="航班" value={draft.airline} onChange={v => setDraft({ ...draft, airline: v })} placeholder="BR116" />
+                                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <Field label="出發" value={draft.depart} onChange={v => setDraft({ ...draft, depart: v })} placeholder="09:10 桃園 TPE" />
+                                        <Field label="抵達" value={draft.arrive} onChange={v => setDraft({ ...draft, arrive: v })} placeholder="13:45 新千歲 CTS" />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <Field label="座位" value={draft.seat} onChange={v => setDraft({ ...draft, seat: v })} />
+                                        <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                                    </div>
+                                    <div className="flex gap-2 mt-4">
+                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-[#E63946]/10 rounded-xl flex flex-col items-center justify-center text-[#E63946] flex-shrink-0">
+                                        <i className={`fa-solid ${f.type === '回程' ? 'fa-plane-arrival' : 'fa-plane-departure'} text-lg`}></i>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-sm font-bold bg-white/10 px-2 py-0.5 rounded text-white">{f.airline}</span>
+                                            <span className="text-xs text-[#8A93A8]">{f.date}</span>
+                                        </div>
+                                        <div className="text-sm md:text-base font-bold text-[#E8F1F8] mb-1">
+                                            {f.depart} <i className="fa-solid fa-arrow-right text-[#F4A261] mx-2"></i> {f.arrive}
+                                        </div>
+                                        <div className="text-xs text-[#5A6378]">
+                                            {f.seat && <span className="mr-3"><i className="fa-solid fa-chair"></i> {f.seat}</span>}
+                                            {f.note}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(f.id); setDraft({ ...f }); }} />
+                                        <IconBtn icon="fa-solid fa-trash" onClick={() => del(f.id)} color={theme.accent} />
+                                    </div>
+                                </div>
+                            )}
+                        </Card>
+                    ))}
+                    {data.flights.length === 0 && <EmptyState text="尚未新增航班資訊" />}
+                </div>
+            );
+        }
+
+        // ============ HOTELS TAB ============
+        function HotelsTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const fileRef = useRef({});
+
+            const add = () => {
+                const d = { id: Date.now(), name: '', nights: '', checkin: '', checkout: '', address: '', note: '', photo: '' };
+                save({ ...data, hotels: [...data.hotels, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, hotels: data.hotels.map(h => h.id === editId ? draft : h) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, hotels: data.hotels.filter(h => h.id !== id) }); };
+            const upload = async (id, file) => {
+                try {
+                    const compressed = await compressImage(file);
+                    save({ ...data, hotels: data.hotels.map(h => h.id === id ? { ...h, photo: compressed } : h) });
+                } catch(e) { alert("圖片處理失敗"); }
+            };
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增住宿" />}>住宿清單</SectionTitle>
+                    {data.hotels.map(h => (
+                        <Card key={h.id}>
+                            {editId === h.id ? (
+                                <div className="animate-fade-in">
+                                    <Field label="飯店名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <Field label="入住" value={draft.checkin} onChange={v => setDraft({ ...draft, checkin: v })} />
+                                        <Field label="退房" value={draft.checkout} onChange={v => setDraft({ ...draft, checkout: v })} />
+                                        <Field label="晚數" value={draft.nights} onChange={v => setDraft({ ...draft, nights: v })} />
+                                    </div>
+                                    <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                                    <div className="flex gap-2 mt-4">
+                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <div className="w-full sm:w-32 h-32 rounded-xl bg-[#252C42] flex items-center justify-center cursor-pointer overflow-hidden relative group flex-shrink-0" onClick={() => fileRef.current[h.id]?.click()}>
+                                        {h.photo ? <img src={h.photo} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <i className="fa-regular fa-image text-3xl text-[#5A6378]"></i>}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><i className="fa-solid fa-camera text-white"></i></div>
+                                    </div>
+                                    <input ref={el => fileRef.current[h.id] = el} type="file" accept="image/*" hidden onChange={e => e.target.files[0] && upload(h.id, e.target.files[0])} />
+                                    
+                                    <div className="flex-1 flex flex-col">
+                                        <div className="text-xl font-bold text-white mb-2">{h.name}</div>
+                                        <div className="text-sm font-bold text-[#F4A261] mb-2 bg-[#F4A261]/10 self-start px-2 py-1 rounded">
+                                            <i className="fa-solid fa-calendar-check mr-1"></i> {h.checkin} <i className="fa-solid fa-arrow-right text-[10px] mx-1"></i> {h.checkout} ({h.nights})
+                                        </div>
+                                        {h.address && <div className="text-xs text-[#8A93A8] mb-2"><i className="fa-solid fa-map-pin mr-1"></i> {h.address} <MapLinks query={h.address} /></div>}
+                                        {h.note && <div className="text-xs text-[#5A6378] bg-black/20 p-2 rounded italic mt-auto">"{h.note}"</div>}
+                                    </div>
+                                    <div className="flex flex-row sm:flex-col gap-2 justify-end sm:justify-start mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-[#252C42]">
+                                        <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(h.id); setDraft({ ...h }); }} />
+                                        <IconBtn icon="fa-solid fa-trash" onClick={() => del(h.id)} color={theme.accent} />
+                                    </div>
+                                </div>
+                            )}
+                        </Card>
+                    ))}
+                    {data.hotels.length === 0 && <EmptyState text="尚未新增住宿資訊" />}
+                </div>
+            );
+        }
+
+        // ============ TRANSPORT TAB ============
+        function TransportTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const add = () => {
+                const d = { id: Date.now(), type: 'JR', name: '', date: '', detail: '', note: '' };
+                save({ ...data, transport: [...data.transport, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, transport: data.transport.map(t => t.id === editId ? draft : t) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, transport: data.transport.filter(t => t.id !== id) }); };
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增交通" />}>交通資訊</SectionTitle>
+                    {data.transport.map(t => (
+                        <Card key={t.id}>
+                            {editId === t.id ? (
+                                <div className="animate-fade-in">
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>JR</option><option>地鐵</option><option>巴士</option><option>計程車</option><option>租車</option><option>其他</option></select></div>
+                                        <Field label="名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                                        <Field label="日期" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                                    </div>
+                                    <Field label="詳情 / 價格" value={draft.detail} onChange={v => setDraft({ ...draft, detail: v })} />
+                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                                    <div className="flex gap-2 mt-4">
+                                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-[#F4A261]/10 rounded-xl border border-[#F4A261]/30 flex items-center justify-center font-bold text-[#F4A261] text-xs flex-shrink-0">
+                                        {t.type}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-lg font-bold text-white mb-1">{t.name}</div>
+                                        <div className="text-xs text-[#8A93A8]"><i className="fa-regular fa-clock"></i> {t.date} <span className="mx-2">|</span> <i className="fa-solid fa-circle-info"></i> {t.detail}</div>
+                                        {t.note && <div className="text-xs text-[#5A6378] mt-2 italic">{t.note}</div>}
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(t.id); setDraft({ ...t }); }} />
+                                        <IconBtn icon="fa-solid fa-trash" onClick={() => del(t.id)} color={theme.accent} />
+                                    </div>
+                                </div>
+                            )}
+                        </Card>
+                    ))}
+                    {data.transport.length === 0 && <EmptyState text="尚未新增交通票券或租車資訊" />}
+                </div>
+            );
+        }
+
+        // ============ FOODS TAB ============
+        function FoodsTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [filter, setFilter] = useState('全部');
+
+            const add = () => {
+                const d = { id: Date.now(), name: '', city: '札幌', category: '午餐', address: '', rating: 5, note: '' };
+                save({ ...data, foods: [...data.foods, d] });
+                setEditId(d.id); setDraft(d);
+            };
+            const saveEdit = () => { save({ ...data, foods: data.foods.map(f => f.id === editId ? draft : f) }); setEditId(null); setDraft(null); };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, foods: data.foods.filter(f => f.id !== id) }); };
+
+            const cities = ['全部', ...new Set(data.foods.map(f => f.city))];
+            const shown = filter === '全部' ? data.foods : data.foods.filter(f => f.city === filter);
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={<AddButton onClick={add} label="新增美食" />}>美食雷達</SectionTitle>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+                        {cities.map(c => (
+                            <button key={c} onClick={() => setFilter(c)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-colors border ${filter === c ? 'bg-[#E63946] border-[#E63946] text-white' : 'bg-transparent border-[#252C42] text-[#8A93A8] hover:border-white/50'}`}>
+                                {c}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {shown.map(f => (
+                            <Card key={f.id}>
+                                {editId === f.id ? (
+                                    <div className="animate-fade-in">
+                                        <Field label="店名" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
+                                            <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
+                                        </div>
+                                        <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                                        <div className="mb-3">
+                                            <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
+                                            <div className="flex gap-2">
+                                                {[1,2,3,4,5].map(n => (
+                                                    <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                                        <div className="flex gap-2 mt-4">
+                                            <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                            <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <div className="text-lg font-bold text-white mb-1 leading-tight">{f.name}</div>
+                                                <div className="flex gap-2">
+                                                    <span className="text-[10px] px-2 py-0.5 bg-[#E63946]/20 text-[#E63946] rounded font-bold">{f.city}</span>
+                                                    <span className="text-[10px] px-2 py-0.5 bg-[#252C42] text-[#8A93A8] rounded font-bold">{f.category}</span>
+                                                </div>
+                                            </div>
+                                            <div className="text-[#F4A261] text-sm tracking-widest whitespace-nowrap">{'★'.repeat(f.rating)}</div>
+                                        </div>
+                                        {f.address && <div className="text-xs text-[#8A93A8] my-2 bg-black/20 p-2 rounded"><i className="fa-solid fa-map-pin mr-1"></i> {f.address} <MapLinks query={f.address} /></div>}
+                                        {f.note && <div className="text-xs text-[#E8ECF4] mt-auto font-bold bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2">"{f.note}"</div>}
+                                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-[#252C42]">
+                                            <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(f.id); setDraft({ ...f }); }} />
+                                            <IconBtn icon="fa-solid fa-trash" onClick={() => del(f.id)} color={theme.accent} />
+                                        </div>
+                                    </div>
+                                )}
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ EXPENSES TAB ============
+        function ExpensesTab({ data, save }) {
+            const [draft, setDraft] = useState({ date: '', item: '', amount: '', payer: '', category: '餐飲' });
+
+            const add = () => {
+                if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
+                save({ ...data, expenses: [...data.expenses, { id: Date.now(), ...draft, amount: Number(draft.amount) }] });
+                setDraft({ ...draft, item: '', amount: '' });
+            };
+            const del = (id) => save({ ...data, expenses: data.expenses.filter(e => e.id !== id) });
+
+            const total = data.expenses.reduce((s, e) => s + Number(e.amount), 0);
+            const byPayer = data.expenses.reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + Number(e.amount); return acc; }, {});
+            const byCategory = data.expenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + Number(e.amount); return acc; }, {});
+
+            const people = data.family.map(f => f.name).filter(Boolean);
+            const perPerson = people.length ? total / people.length : 0;
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle>財務分攤記帳</SectionTitle>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                        <Card style={{ marginBottom: 0 }}>
+                            <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">總支出</div>
+                            <div className="text-xl md:text-2xl font-black text-[#F4A261] mt-2">NT$ {total.toLocaleString()}</div>
+                        </Card>
+                        <Card style={{ marginBottom: 0 }}>
+                            <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">人均分攤 ({people.length}人)</div>
+                            <div className="text-xl md:text-2xl font-black text-[#52B788] mt-2">NT$ {Math.round(perPerson).toLocaleString()}</div>
+                        </Card>
+                        <Card style={{ gridColumn: '1 / -1' }} className="md:col-span-1">
+                            <div className="text-[10px] text-[#5A6378] tracking-widest font-bold mb-2">分類佔比</div>
+                            <div className="space-y-1">
+                                {Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).map(([k, v]) => (
+                                    <div key={k} className="text-xs text-[#E8ECF4] flex justify-between">
+                                        <span>{k}</span><span className="font-mono text-[#8A93A8]">{Math.round(v / total * 100)}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
+
+                    <Card style={{ background: 'rgba(59,198,228,0.05)', borderColor: 'rgba(59,198,228,0.2)' }}>
+                        <div className="text-xs text-[#3bc6e4] font-bold tracking-widest mb-3">快速記一筆</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                            <input placeholder="日期 (例:7/12)" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} />
+                            <input placeholder="項目" value={draft.item} onChange={e => setDraft({ ...draft, item: e.target.value })} className="col-span-2 sm:col-span-1" />
+                            <input placeholder="金額" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e.target.value })} />
+                            <input placeholder="誰先墊的" value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })} />
+                            <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                                <option>餐飲</option><option>交通</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
+                            </select>
+                            <button onClick={add} className="col-span-2 sm:col-span-1 bg-[#3bc6e4] text-[#0A0E1A] font-bold rounded-lg hover:bg-white transition-colors">加入</button>
+                        </div>
+                    </Card>
+
+                    <div className="mt-6 space-y-2">
+                        {data.expenses.map(e => (
+                            <div key={e.id} className="flex items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
+                                <span className="text-[#5A6378] w-12 text-xs">{e.date}</span>
+                                <span className="font-bold flex-1 text-white">{e.item}</span>
+                                <span className="text-[10px] px-2 py-0.5 bg-[#252C42] rounded text-[#8A93A8] hidden sm:block">{e.category}</span>
+                                <span className="text-xs text-[#F4A261] border border-[#F4A261]/30 px-2 py-0.5 rounded">{e.payer || '公費'} 墊</span>
+                                <span className="font-mono font-bold text-[#E8ECF4] w-20 text-right">${Number(e.amount).toLocaleString()}</span>
+                                <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-1.5 rounded ml-2"><i className="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {Object.keys(byPayer).length > 0 && (
+                        <Card style={{ marginTop: 24, borderTop: `4px solid ${theme.success}` }}>
+                            <div className="text-sm font-bold text-[#52B788] mb-4"><i className="fa-solid fa-scale-balanced"></i> 最終分攤結算</div>
+                            <div className="space-y-3">
+                                {Object.entries(byPayer).map(([name, paid]) => {
+                                    const diff = paid - perPerson;
+                                    return (
+                                        <div key={name} className="flex justify-between items-center text-sm border-b border-[#252C42] pb-2">
+                                            <span className="font-bold text-white w-20">{name}</span>
+                                            <span className="text-[#8A93A8] text-xs">已代墊 ${paid.toLocaleString()}</span>
+                                            <span className={`font-bold ${diff > 0 ? 'text-[#52B788]' : 'text-[#E63946]'} w-24 text-right`}>
+                                                {diff > 0 ? `應收 $${Math.round(diff).toLocaleString()}` : `需補 $${Math.round(-diff).toLocaleString()}`}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="text-[10px] text-[#5A6378] mt-3">公式：(每人應負擔 ${Math.round(perPerson)}) - (已代墊金額)</div>
+                        </Card>
+                    )}
+                </div>
+            );
+        }
+
+        // ============ EXTRAS TAB ============
+        function ExtrasTab({ data, save }) {
+            const phrases = [
+                { jp: 'すみません', zh: '不好意思 / 請問 / 抱歉', romaji: 'Sumimasen' },
+                { jp: 'ありがとうございます', zh: '謝謝', romaji: 'Arigatou gozaimasu' },
+                { jp: 'いくらですか？', zh: '多少錢？', romaji: 'Ikura desu ka?' },
+                { jp: 'メニューをください', zh: '請給我菜單', romaji: 'Menyuu wo kudasai' },
+                { jp: 'お会計お願いします', zh: '請結帳', romaji: 'Okaikei onegaishimasu' },
+                { jp: 'トイレはどこですか？', zh: '洗手間在哪裡？', romaji: 'Toire wa doko desu ka?' },
+            ];
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle>旅行小幫手</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <Card>
+                            <div className="text-sm font-bold text-[#E63946] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-language mr-1"></i> 常用日語小抄</div>
+                            <div className="space-y-3">
+                                {phrases.map((p, i) => (
+                                    <div key={i} className="bg-black/20 p-2 rounded-lg">
+                                        <div className="font-bold text-[#E8F1F8]">{p.jp}</div>
+                                        <div className="text-[10px] text-[#F4A261] font-mono mb-1">{p.romaji}</div>
+                                        <div className="text-xs text-[#8A93A8]">{p.zh}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+
+                        <div className="space-y-4">
+                            <Card>
+                                <div className="text-sm font-bold text-[#3bc6e4] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-calculator mr-1"></i> 快速匯率換算</div>
+                                <RateCalc />
+                            </Card>
+
+                            <Card>
+                                <div className="text-sm font-bold text-[#FFD700] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-cloud-sun mr-1"></i> 北海道天氣查詢</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {['札幌', '函館', '小樽', '旭川', '富良野', '釧路'].map(city => (
+                                        <a key={city} href={`https://www.google.com/search?q=${encodeURIComponent(city + ' 天氣')}`} target="_blank" rel="noreferrer" 
+                                            className="bg-[#252C42] hover:bg-[#FFD700] hover:text-black text-xs text-[#E8ECF4] px-3 py-1.5 rounded-full transition-colors">
+                                            {city} <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+                                        </a>
+                                    ))}
+                                </div>
+                                <div className="text-[11px] text-[#8A93A8] mt-3 leading-relaxed">
+                                    💡 7月均溫 18-26°C，早晚溫差大，記得帶薄外套。富良野賞花最佳季節，偶有陣雨需備雨具。
+                                </div>
+                            </Card>
+
+                            <Card>
+                                <div className="text-sm font-bold text-[#52B788] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-phone mr-1"></i> 緊急聯絡電話</div>
+                                <div className="space-y-2">
+                                    <a href="tel:110" className="block bg-[#52B788]/10 hover:bg-[#52B788]/20 border border-[#52B788]/30 p-2 rounded-lg text-white no-underline flex justify-between items-center transition-colors">
+                                        <span className="text-xs text-[#8A93A8]">報警 (日本)</span><span className="font-bold text-[#52B788]">110</span>
+                                    </a>
+                                    <a href="tel:119" className="block bg-[#E63946]/10 hover:bg-[#E63946]/20 border border-[#E63946]/30 p-2 rounded-lg text-white no-underline flex justify-between items-center transition-colors">
+                                        <span className="text-xs text-[#8A93A8]">救護/消防 (日本)</span><span className="font-bold text-[#E63946]">119</span>
+                                    </a>
+                                    <div className="bg-[#252C42] p-2 rounded-lg text-xs flex justify-between items-center">
+                                        <span className="text-[#8A93A8]">台北駐日代表處(札幌)</span><span className="font-bold text-white">+81-11-222-2930</span>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
+
+                        <Card style={{ gridColumn: '1 / -1' }}>
+                            <div className="text-sm font-bold text-[#bc13fe] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-lightbulb mr-1"></i> 團隊隨手記</div>
+                            <textarea
+                                value={data.ideas || ''}
+                                onChange={e => save({ ...data, ideas: e.target.value })}
+                                placeholder="想去的店、要買的藥妝、注意事項都丟進來..."
+                                rows={6}
+                                className="w-full bg-black/30 border border-[#252C42] rounded-lg p-3 text-sm text-white resize-y outline-none focus:border-[#bc13fe]"
+                            />
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
+        function RateCalc() {
+            const [twd, setTwd] = useState(1000);
+            const [rate, setRate] = useState(4.8); 
+            return (
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <input type="number" value={twd} onChange={e => setTwd(Number(e.target.value))} className="w-24 text-center font-bold" />
+                        <span className="text-xs text-[#8A93A8]">TWD</span>
+                        <span className="text-[#F4A261]"><i className="fa-solid fa-arrow-right"></i></span>
+                        <span className="text-xl font-black text-[#F4A261]">¥ {Math.round(twd * rate).toLocaleString()}</span>
+                    </div>
+                    <div className="text-[10px] text-[#5A6378] flex items-center gap-2">
+                        匯率參考: 1 TWD ≈ <input type="number" step="0.01" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-16 px-1 py-0.5 text-center text-white" /> JPY
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
