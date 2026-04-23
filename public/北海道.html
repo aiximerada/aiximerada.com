@@ -60,11 +60,9 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 隱藏橫向滾動條 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 特效動畫 */
         @keyframes snowfall {
             0% { transform: translateY(-10px); opacity: 0; }
             20% { opacity: 0.8; }
@@ -74,9 +72,24 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+        .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
 
-        /* 輸入框美化 */
+        /* 🔥 新增 Modal 動畫，徹底防破圖 */
+        @keyframes slideUpModal {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes popInModal {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .mobile-modal-anim {
+            animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @media (min-width: 768px) {
+            .mobile-modal-anim { animation: popInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        }
+
         input, textarea, select {
             background: #131827 !important;
             border: 1px solid #252C42 !important;
@@ -108,13 +121,11 @@
         const { useState, useEffect, useRef } = React;
         const { createRoot } = ReactDOM;
 
-        // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Firebase Config (玉露寶庫)
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -129,7 +140,6 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // ============ DEFAULT DATA ============
         const DEFAULT_DATA = {
             tripTitle: '北海道 2026',
             tripDates: '2026.07.11 - 07.19 · 9 天 8 夜',
@@ -144,7 +154,6 @@
             accent: '#E63946', accent2: '#F4A261', success: '#52B788', snow: '#E8F1F8',
         };
 
-        // ============ HELPERS ============
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -360,7 +369,7 @@
                         </nav>
 
                         <main className="flex-1 p-4 md:p-8 min-w-0 pb-24">
-                            {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} exchangeRate={exchangeRate} />}
+                            {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} />}
                             {activeTab === 'itinerary' && <ItineraryTab data={data} save={saveData} />}
                             {activeTab === 'family' && <FamilyTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
                             {activeTab === 'luggage' && <LuggageTab data={data} save={saveData} />}
@@ -470,38 +479,27 @@
             );
         }
 
-        // 🔥 全新加入：防跑版浮動編輯視窗 (Modal)
-        function FormModal({ title, children, onSave, onCancel }) {
-            return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="w-full max-w-lg bg-[#0A0E1A] border border-[#E63946]/50 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95">
-                        <div className="p-5 md:p-6 border-b border-[#252C42] flex justify-between items-center bg-[#131827] rounded-t-2xl shrink-0">
-                            <h3 className="text-xl font-bold text-white">{title}</h3>
-                            <button onClick={onCancel} className="text-gray-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
-                        </div>
-                        <div className="p-5 md:p-6 overflow-y-auto space-y-4">
-                            {children}
-                        </div>
-                        <div className="p-5 md:p-6 border-t border-[#252C42] bg-[#131827] rounded-b-2xl flex gap-3 shrink-0">
-                            <button onClick={onCancel} className="flex-1 py-3 rounded-xl border border-[#5A6378] text-[#8A93A8] font-bold hover:bg-white/5 transition-colors">取消</button>
-                            <button onClick={onSave} className="flex-[2] py-3 rounded-xl bg-[#E63946] text-white font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"><i className="fa-solid fa-check"></i> 儲存</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
         function ListControls({ searchTerm, onSearch, sortBy, onSort, sortOptions }) {
             return (
                 <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white/5 p-3 rounded-xl border border-[#252C42]">
                     <div className="flex-1 relative">
                         <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
-                        <input type="text" value={searchTerm} onChange={(e) => onSearch(e.target.value)} placeholder="輸入關鍵字搜尋..." className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => onSearch(e.target.value)}
+                            placeholder="輸入關鍵字搜尋..."
+                            className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none"
+                        />
                     </div>
                     {sortOptions && sortOptions.length > 0 && (
                         <div className="sm:w-48 relative">
                             <i className="fa-solid fa-arrow-up-short-wide absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
-                            <select value={sortBy} onChange={(e) => onSort(e.target.value)} className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none appearance-none cursor-pointer">
+                            <select
+                                value={sortBy}
+                                onChange={(e) => onSort(e.target.value)}
+                                className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none appearance-none cursor-pointer"
+                            >
                                 {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
                         </div>
@@ -517,8 +515,31 @@
             return <div className="text-center py-16 text-[#5A6378] text-sm font-bold bg-[#131827]/50 rounded-xl border border-dashed border-[#252C42]">{text}</div>;
         }
 
+        // 🔥 全新加入：防破圖滿版浮動編輯視窗 (Modal)
+        function FormModal({ title, children, onSave, onCancel }) {
+            return (
+                <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4 animate-fade-in">
+                    <div className="w-full max-w-2xl bg-[#0A0E1A] rounded-t-3xl md:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh] mobile-modal-anim overflow-hidden border-t border-[#E63946]/50 md:border">
+                        <div className="shrink-0 p-5 border-b border-[#252C42] flex justify-between items-center bg-[#131827]">
+                            <h3 className="text-xl font-bold text-white">{title}</h3>
+                            <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
+                            {children}
+                        </div>
+                        <div className="shrink-0 p-5 border-t border-[#252C42] bg-[#131827] flex gap-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+                            <button onClick={onCancel} className="flex-1 py-3.5 rounded-xl border border-[#5A6378] text-[#8A93A8] font-bold hover:bg-white/10 transition-colors">取消</button>
+                            <button onClick={onSave} className="flex-[2] py-3.5 rounded-xl bg-[#E63946] text-white font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"><i className="fa-solid fa-check"></i> 儲存</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // ============ HOME TAB ============
-        function HomeTab({ data, save, daysLeft, setActiveTab, exchangeRate }) {
+        function HomeTab({ data, save, daysLeft, setActiveTab }) {
             const stats = [
                 { label: '行程項目', value: data.itinerary?.length || 0, tab: 'itinerary', icon: 'fa-solid fa-calendar' },
                 { label: '家庭成員', value: data.family?.length || 0, tab: 'family', icon: 'fa-solid fa-users' },
@@ -892,7 +913,7 @@
 
                     {editId && (
                         <FormModal title={editId === 'new' ? '新增航班' : '編輯航班'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                                 <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
                                 <div>
                                     <div className="text-[11px] text-[#5A6378] font-bold mb-1">航空公司</div>
@@ -900,12 +921,10 @@
                                         <option>長榮航空</option><option>星宇航空</option><option>中華航空</option><option>台灣虎航</option><option>酷航</option><option>樂桃航空</option><option>日本航空</option><option>全日空</option><option>國泰航空</option><option>其他</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
                                 <Field label="航班號碼" value={draft.flightNumber} onChange={v => setDraft({ ...draft, flightNumber: v })} placeholder="例: BR116" />
                                 <Field label="搭乘日期" type="date" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
                             </div>
-                            <div className="grid grid-cols-2 gap-3 bg-[#1A2033] p-3 rounded-lg border border-[#252C42] mb-3">
+                            <div className="grid grid-cols-2 gap-3 bg-[#1A2033] p-3 rounded-lg border border-[#252C42] mb-3 mt-3">
                                 <div>
                                     <div className="text-[11px] text-[#5A6378] font-bold mb-1">出發機場</div>
                                     <select value={draft.departLocation} onChange={e => setDraft({ ...draft, departLocation: e.target.value })}>
@@ -923,7 +942,7 @@
                                 </div>
                                 <Field label="降落時間" type="time" value={draft.arriveTime} onChange={v => setDraft({ ...draft, arriveTime: v })} />
                             </div>
-                            <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <Field label="座位" value={draft.seat} onChange={v => setDraft({ ...draft, seat: v })} />
                                 <Field label="票號 / 訂位代碼" value={draft.ticketNum} onChange={v => setDraft({ ...draft, ticketNum: v })} placeholder="例如: XYZ123" />
                             </div>
@@ -975,7 +994,7 @@
                             </Card>
                         ))}
                     </div>
-                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的航班資訊" />}
+                    {sorted.length === 0 && !editId && <EmptyState text="找不到符合的航班資訊" />}
                 </div>
             );
         }
@@ -1052,7 +1071,7 @@
                             </Card>
                         ))}
                     </div>
-                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的住宿資訊" />}
+                    {sorted.length === 0 && !editId && <EmptyState text="找不到符合的住宿資訊" />}
                 </div>
             );
         }
@@ -1121,7 +1140,7 @@
                             </Card>
                         ))}
                     </div>
-                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的交通資訊" />}
+                    {sorted.length === 0 && !editId && <EmptyState text="找不到符合的交通資訊" />}
                 </div>
             );
         }
@@ -1339,6 +1358,28 @@
             const filtered = (data.foods || []).filter(i => matchSearch(i, searchTerm) && (filterType === '全部' || i.city === filterType));
             const sorted = sortData(filtered, sortBy, null, 'name');
 
+            const renderForm = () => (
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
+                    <Field label="店名 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                        <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
+                        <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
+                    </div>
+                    <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                    <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
+                    <div className="mb-3">
+                        <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
+                        <div className="flex gap-2">
+                            {[1,2,3,4,5].map(n => (
+                                <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
+                            ))}
+                        </div>
+                    </div>
+                    <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                    <ImageUploadField label="美食照片" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                </div>
+            );
+
             return (
                 <div className="animate-fade-in">
                     <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增美食" />}>美食雷達</SectionTitle>
@@ -1359,23 +1400,7 @@
                     
                     {editId && (
                         <FormModal title={editId === 'new' ? '新增美食' : '編輯美食'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
-                            <Field label="店名 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
-                                <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
-                            </div>
-                            <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
-                            <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
-                            <div className="mb-3">
-                                <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
-                                <div className="flex gap-2">
-                                    {[1,2,3,4,5].map(n => (
-                                        <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
-                            <ImageUploadField label="美食照片" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+                            {renderForm()}
                         </FormModal>
                     )}
 
@@ -1496,7 +1521,7 @@
                             </Card>
                         ))}
                     </div>
-                    {sorted.length === 0 && !editId && <EmptyState text="尚未新增任何購物項目！" />}
+                    {sorted.length === 0 && !editId && <EmptyState text="尚未新增任何購物項目！去藥妝店想買什麼？" />}
                 </div>
             );
         }
@@ -1565,15 +1590,23 @@
 
         // ============ EXPENSES TAB ============
         function ExpensesTab({ data, save, exchangeRate }) {
-            const [draft, setDraft] = useState({ date: '', item: '', amount: '', currency: 'JPY', payer: '', category: '餐飲' });
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
             const [searchTerm, setSearchTerm] = useState('');
             const [sortBy, setSortBy] = useState('date_desc');
 
             const add = () => {
+                setEditId('new');
+                setDraft({ id: Date.now(), date: '', item: '', amount: '', currency: 'JPY', payer: '', category: '餐飲' });
+            };
+            const saveEdit = () => {
                 if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
                 const amountTWD = draft.currency === 'JPY' ? Math.round(Number(draft.amount) * exchangeRate) : Number(draft.amount);
-                save({ ...data, expenses: [...(data.expenses || []), { id: Date.now(), ...draft, amount: Number(draft.amount), amountTWD }] });
-                setDraft({ ...draft, item: '', amount: '' });
+                const finalDraft = { ...draft, amount: Number(draft.amount), amountTWD };
+                
+                if (editId === 'new') save({ ...data, expenses: [...(data.expenses || []), finalDraft] });
+                else save({ ...data, expenses: (data.expenses || []).map(e => e.id === editId ? finalDraft : e) });
+                setEditId(null); setDraft(null);
             };
             const del = (id) => save({ ...data, expenses: (data.expenses || []).filter(e => e.id !== id) });
 
@@ -1589,7 +1622,8 @@
 
             return (
                 <div className="animate-fade-in">
-                    <SectionTitle>財務分攤記帳</SectionTitle>
+                    <SectionTitle action={<AddButton onClick={add} label="新增記帳" />}>財務分攤記帳</SectionTitle>
+                    
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                         <Card style={{ marginBottom: 0 }}>
                             <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">總支出 (約 TWD)</div>
@@ -1611,33 +1645,42 @@
                         </Card>
                     </div>
 
-                    <Card style={{ background: 'rgba(59,198,228,0.05)', borderColor: 'rgba(59,198,228,0.2)' }}>
-                        <div className="flex justify-between items-end mb-3">
-                            <div className="text-xs text-[#3bc6e4] font-bold tracking-widest">快速記一筆</div>
-                            <div className="text-[10px] text-gray-500">今日日幣匯率: {exchangeRate}</div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                            <input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} className="col-span-2 md:col-span-1" />
-                            <input placeholder="項目名稱" value={draft.item} onChange={e => setDraft({ ...draft, item: e.target.value })} className="col-span-2 md:col-span-1" />
-                            
-                            <div className="flex gap-1 col-span-2 md:col-span-2">
-                                <select value={draft.currency} onChange={e => setDraft({...draft, currency: e.target.value})} className="w-20 px-1 text-center font-bold text-[#F4A261]">
-                                    <option value="JPY">JPY</option><option value="TWD">TWD</option>
-                                </select>
-                                <input placeholder="輸入金額" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e.target.value })} className="flex-1" />
+                    {editId && (
+                        <FormModal title={editId === 'new' ? '新增記帳' : '編輯記帳'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
+                            <div className="bg-[#3bc6e4]/5 border border-[#3bc6e4]/20 rounded-xl p-4 mb-4">
+                                <div className="text-[10px] text-gray-500 mb-4 text-right">今日日幣匯率: {exchangeRate}</div>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <Field label="日期" type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e })} />
+                                    <div>
+                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">代墊人</div>
+                                        <select value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })}>
+                                            <option value="">公費</option>
+                                            {people.map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <Field label="項目名稱 *" value={draft.item} onChange={e => setDraft({ ...draft, item: e })} placeholder="例如：一蘭拉麵" />
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">分類</div>
+                                        <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                                            <option>餐飲</option><option>交通</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">幣別</div>
+                                        <select value={draft.currency} onChange={e => setDraft({...draft, currency: e.target.value})} className="font-bold text-[#F4A261]">
+                                            <option value="JPY">日圓 (JPY)</option><option value="TWD">台幣 (TWD)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <Field label="輸入金額 *" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e })} placeholder="例如：1500" />
+                                {draft.currency === 'JPY' && draft.amount && (
+                                    <div className="text-right text-xs text-[#00f3ff]">約合 NT$ {Math.round(Number(draft.amount) * exchangeRate).toLocaleString()}</div>
+                                )}
                             </div>
-
-                            <select value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })} className="col-span-1 text-[11px] sm:text-base">
-                                <option value="">代墊人 (公費)</option>
-                                {people.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                            
-                            <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} className="col-span-1">
-                                <option>餐飲</option><option>交通</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
-                            </select>
-                            <button onClick={add} className="col-span-2 md:col-span-6 mt-2 bg-[#3bc6e4] text-[#0A0E1A] py-2.5 font-bold rounded-lg hover:bg-white transition-colors shadow-[0_0_10px_rgba(59,198,228,0.4)]">加入記帳</button>
-                        </div>
-                    </Card>
+                        </FormModal>
+                    )}
 
                     <div className="mt-6">
                         <ListControls 
@@ -1647,7 +1690,7 @@
                         />
                         <div className="space-y-2">
                             {sorted.map(e => (
-                                <div key={e.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
+                                <div key={e.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm group transition-colors hover:border-[#3bc6e4]/50">
                                     <span className="text-[#5A6378] w-full md:w-24 text-xs font-mono">{e.date || '未填日期'}</span>
                                     <span className="font-bold flex-1 text-white">{e.item}</span>
                                     <span className="text-[10px] px-2 py-0.5 bg-[#252C42] rounded text-[#8A93A8] hidden sm:block">{e.category}</span>
@@ -1658,10 +1701,13 @@
                                         {e.currency === 'JPY' && <div className="text-[10px] text-[#5A6378] leading-none mt-1">(約 NT$ {e.amountTWD})</div>}
                                     </div>
 
-                                    <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-2 rounded ml-auto md:ml-2"><i className="fa-solid fa-trash text-xs"></i></button>
+                                    <div className="ml-auto md:ml-2 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => {setEditId(e.id); setDraft({...e});}} className="text-[#3bc6e4] hover:bg-[#3bc6e4]/20 p-2 rounded"><i className="fa-solid fa-pen text-xs"></i></button>
+                                        <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-2 rounded"><i className="fa-solid fa-trash text-xs"></i></button>
+                                    </div>
                                 </div>
                             ))}
-                            {sorted.length === 0 && <EmptyState text="找不到符合的記帳紀錄" />}
+                            {sorted.length === 0 && !editId && <EmptyState text="找不到符合的記帳紀錄" />}
                         </div>
                     </div>
 
