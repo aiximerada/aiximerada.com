@@ -51,7 +51,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* 🔥 加入 color-scheme: dark 讓原生日曆與下拉選單自動變成暗黑模式 */
         :root { color-scheme: dark; }
 
         body { 
@@ -61,11 +60,9 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 隱藏橫向滾動條 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 特效動畫 */
         @keyframes snowfall {
             0% { transform: translateY(-10px); opacity: 0; }
             20% { opacity: 0.8; }
@@ -77,7 +74,6 @@
         }
         .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
 
-        /* 輸入框美化 (防止 iOS 自動放大) */
         input, textarea, select {
             background: #131827 !important;
             border: 1px solid #252C42 !important;
@@ -94,7 +90,6 @@
         input:focus, textarea:focus, select:focus {
             border-color: #E63946 !important;
         }
-        /* 美化原生日期的 Icon */
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(1); opacity: 0.6; cursor: pointer;
@@ -110,13 +105,11 @@
         const { useState, useEffect, useRef } = React;
         const { createRoot } = ReactDOM;
 
-        // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-        // 🔥 Firebase Config (玉露寶庫)
         const firebaseConfig = {
             apiKey: "AIzaSyAAo6on0f2QUbPaRfxpIEb2uvhKxDvPUvs",
             authDomain: "yulubox.firebaseapp.com",
@@ -131,29 +124,22 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // ============ DEFAULT DATA ============
         const DEFAULT_DATA = {
             tripTitle: '北海道 2026',
             tripDates: '2026.07.11 - 07.19 · 9 天 8 夜',
             countdown: '2026-07-11',
             itinerary: [],
             family: [],
-            luggage: [
-                { id: 1, category: '證件', item: '護照 (確認效期)', checked: false },
-                { id: 2, category: '衣物', item: '薄外套 (早晚溫差)', checked: false },
-                { id: 3, category: '電子', item: '行動電源 & 轉接頭', checked: false },
-            ],
+            luggage: [],
             flights: [], hotels: [], transport: [], foods: [], tickets: [], coupons: [], expenses: [], ideas: '',
         };
 
-        // ============ THEME ============
         const theme = {
             bg: '#0A0E1A', bgCard: '#131827', bgCardHover: '#1A2033', border: '#252C42', 
             text: '#E8ECF4', textMuted: '#8A93A8', textDim: '#5A6378',
             accent: '#E63946', accent2: '#F4A261', success: '#52B788', snow: '#E8F1F8',
         };
 
-        // ============ HELPERS ============
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -186,27 +172,23 @@
             });
         };
 
-        // 🔥 全域搜尋比對引擎
         const matchSearch = (item, term) => {
             if (!term) return true;
             const lowerTerm = term.toLowerCase();
-            return Object.values(item).some(val => 
-                String(val).toLowerCase().includes(lowerTerm)
-            );
+            return Object.values(item).some(val => String(val).toLowerCase().includes(lowerTerm));
         };
 
-        // 🔥 全域排序引擎 (支援日期、名稱、金額)
         const sortData = (dataArray, sortBy, dateField = 'date', nameField = 'name', priceField = 'amount') => {
             return [...dataArray].sort((a, b) => {
                 if (sortBy === 'date_asc') {
-                    const d1 = a[dateField] ? new Date(a[dateField]).getTime() : Infinity;
-                    const d2 = b[dateField] ? new Date(b[dateField]).getTime() : Infinity;
-                    return d1 - d2;
+                    const strA = (a[dateField] || '') + ' ' + (a.time || '');
+                    const strB = (b[dateField] || '') + ' ' + (b.time || '');
+                    return strA.localeCompare(strB);
                 }
                 if (sortBy === 'date_desc') {
-                    const d1 = a[dateField] ? new Date(a[dateField]).getTime() : 0;
-                    const d2 = b[dateField] ? new Date(b[dateField]).getTime() : 0;
-                    return d2 - d1;
+                    const strA = (a[dateField] || '') + ' ' + (a.time || '');
+                    const strB = (b[dateField] || '') + ' ' + (b.time || '');
+                    return strB.localeCompare(strA);
                 }
                 if (sortBy === 'name_asc') return String(a[nameField] || '').localeCompare(String(b[nameField] || ''));
                 if (sortBy === 'price_desc') return (Number(b[priceField]) || 0) - (Number(a[priceField]) || 0);
@@ -215,17 +197,22 @@
             });
         };
 
-        // ============ MAIN APP ============
         function App() {
             const [data, setData] = useState(DEFAULT_DATA);
             const [activeTab, setActiveTab] = useState('home');
             const [loading, setLoading] = useState(true);
-            const [syncing, setSyncing] = useState(false);
+            const [syncStatus, setSyncStatus] = useState('syncing'); // 'syncing', 'synced', 'error'
 
             useEffect(() => {
+                // 優先載入本地快取
+                const localData = localStorage.getItem('hokkaido_trip_data');
+                if (localData) {
+                    try { setData(JSON.parse(localData)); setLoading(false); } catch(e){}
+                }
+
                 const initAuth = async () => {
                     try { await signInAnonymously(auth); } 
-                    catch (e) { console.error("Auth Error", e); setLoading(false); }
+                    catch (e) { console.error("Auth Error", e); setLoading(false); setSyncStatus('error'); }
                 };
                 initAuth();
 
@@ -234,12 +221,18 @@
                         const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
                         const unsubscribeDb = onSnapshot(docRef, (docSnap) => {
                             if (docSnap.exists()) {
-                                setData({ ...DEFAULT_DATA, ...docSnap.data() });
+                                const dbData = { ...DEFAULT_DATA, ...docSnap.data() };
+                                setData(dbData);
+                                localStorage.setItem('hokkaido_trip_data', JSON.stringify(dbData));
                             } else {
                                 setDoc(docRef, DEFAULT_DATA);
                                 setData(DEFAULT_DATA);
                             }
                             setLoading(false);
+                            setSyncStatus('synced');
+                        }, (error) => {
+                            console.error("Snapshot Error", error);
+                            setSyncStatus('error');
                         });
                         return () => unsubscribeDb();
                     }
@@ -249,12 +242,17 @@
 
             const saveData = async (newData) => {
                 setData(newData);
-                setSyncing(true);
+                localStorage.setItem('hokkaido_trip_data', JSON.stringify(newData));
+                setSyncStatus('syncing');
                 try {
                     const docRef = doc(db, 'artifacts', 'ghost-trip-hokkaido', 'public', 'data', 'trip_data', 'main');
                     await setDoc(docRef, newData, { merge: true });
-                } catch (e) { console.error("Save Error", e); }
-                setTimeout(() => setSyncing(false), 500); 
+                    setSyncStatus('synced');
+                } catch (e) { 
+                    console.error("Save Error", e); 
+                    setSyncStatus('error'); 
+                    alert("儲存失敗！請確認網路連線或資料庫權限。資料已暫存在您的手機中。");
+                }
             };
 
             const uploadImageFn = compressImage;
@@ -307,9 +305,10 @@
                                 <div style={{ fontSize: 12, color: theme.textMuted, letterSpacing: 1, marginTop: 4 }}>{data.tripDates}</div>
                             </div>
                             <div className="text-right">
-                                <div className="text-[10px] text-[#5A6378] tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/10 flex items-center gap-1 mb-2 inline-flex">
-                                    <i className={`fa-solid fa-rotate ${syncing ? 'fa-spin text-[#00f3ff]' : ''}`}></i>
-                                    {syncing ? '雲端同步中' : '即時同步'}
+                                <div className={`text-[10px] tracking-widest px-2 py-1 rounded-md border flex items-center gap-1 mb-2 inline-flex ${syncStatus === 'error' ? 'bg-red-500/20 border-red-500 text-red-500' : 'bg-white/5 border-white/10 text-[#5A6378]'}`}>
+                                    {syncStatus === 'syncing' && <><i className="fa-solid fa-rotate fa-spin text-[#00f3ff]"></i> 同步中</>}
+                                    {syncStatus === 'synced' && <><i className="fa-solid fa-cloud-check text-[#00ff9d]"></i> 已儲存</>}
+                                    {syncStatus === 'error' && <><i className="fa-solid fa-triangle-exclamation"></i> 離線/錯誤</>}
                                 </div>
                                 {daysLeft > 0 && (
                                     <div>
@@ -386,12 +385,13 @@
             );
         }
 
+        // 🔥 GOOGLE MAP 導航按鈕大升級
         function MapLinks({ query, gmapUrl }) {
             if (!query && !gmapUrl) return null;
             const target = gmapUrl ? gmapUrl : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
             return (
-                <a href={target} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-[#8A93A8] border border-[#252C42] rounded px-2 py-0.5 ml-2 hover:text-[#00f3ff] transition-colors">
-                    <i className="fa-solid fa-map-location-dot"></i> {gmapUrl ? '開啟地圖' : '搜尋導航'}
+                <a href={target} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 text-xs font-bold text-[#0A0E1A] bg-[#00f3ff] hover:bg-white rounded-lg px-4 py-2 mt-2 w-full sm:w-auto transition-colors shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                    <i className="fa-solid fa-map-location-dot"></i> {gmapUrl ? '開啟地圖導航' : '搜尋 Google Maps'}
                 </a>
             );
         }
@@ -447,7 +447,6 @@
             );
         }
 
-        // 🔥 全域搜尋與排序控制列 Component
         function ListControls({ searchTerm, onSearch, sortBy, onSort, sortOptions }) {
             return (
                 <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white/5 p-3 rounded-xl border border-[#252C42]">
@@ -497,10 +496,23 @@
                 { label: '住宿安排', value: data.hotels?.length || 0, tab: 'hotels', icon: 'fa-solid fa-hotel' },
                 { label: '門票數', value: data.tickets?.length || 0, tab: 'tickets', icon: 'fa-solid fa-ticket-simple' },
             ];
-            const totalExpense = (data.expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+            const totalExpense = (data.expenses || []).reduce((s, e) => s + (e.amountTWD || Number(e.amount)), 0);
             const ticketBudget = (data.tickets || []).reduce((s, t) => s + Number(t.estimatedTotal || 0), 0);
-            const luggageChecked = (data.luggage || []).filter(i => i.checked).length;
-            const luggageTotal = (data.luggage || []).length;
+            
+            // 行李計算：如果 assignee 是全部，算每個人的；否則算一個
+            let luggageTotal = 0;
+            let luggageChecked = 0;
+            const familyMembers = (data.family || []).map(f => f.name).filter(Boolean);
+            
+            (data.luggage || []).forEach(item => {
+                if (item.assignee === '全部') {
+                    luggageTotal += familyMembers.length;
+                    luggageChecked += (item.preparedBy || []).length;
+                } else {
+                    luggageTotal += 1;
+                    if ((item.preparedBy || []).length > 0) luggageChecked += 1;
+                }
+            });
 
             return (
                 <div className="animate-fade-in">
@@ -517,7 +529,7 @@
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
-                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">已記錄支出</div>
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">已記錄支出 (約 TWD)</div>
                             <div className="text-2xl md:text-3xl font-black text-[#F4A261] mt-2 truncate">NT$ {totalExpense.toLocaleString()}</div>
                             <div className="text-[11px] text-[#5A6378] mt-2">目前已記錄 {(data.expenses || []).length} 筆</div>
                         </div>
@@ -527,7 +539,7 @@
                             <div className="text-[11px] text-[#5A6378] mt-2">{(data.tickets || []).length} 個景點/纜車</div>
                         </div>
                         <div className="bg-[#131827] border border-[#252C42] rounded-xl p-5">
-                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">行李打包進度</div>
+                            <div className="text-[11px] text-[#8A93A8] tracking-widest font-bold">行李打包進度 (總件數)</div>
                             <div className="text-2xl md:text-3xl font-black text-[#52B788] mt-2">{luggageChecked} / {luggageTotal}</div>
                             <div className="bg-[#252C42] h-1.5 rounded-full mt-3 overflow-hidden">
                                 <div className="bg-[#52B788] h-full transition-all duration-500" style={{ width: `${luggageTotal ? (luggageChecked / luggageTotal) * 100 : 0}%` }} />
@@ -546,7 +558,7 @@
                             )}
                         </div>
                         {editSettings ? (
-                            <div className="animate-fade-in">
+                            <div className="animate-fade-in p-4 bg-white/5 rounded-xl border border-[#E63946]/30">
                                 <Field label="旅行標題" value={settingsDraft.tripTitle} onChange={v => setSettingsDraft({ ...settingsDraft, tripTitle: v })} />
                                 <Field label="顯示的日期文字" value={settingsDraft.tripDates} onChange={v => setSettingsDraft({ ...settingsDraft, tripDates: v })} />
                                 <Field label="出發日（選日曆）" type="date" value={settingsDraft.countdown} onChange={v => setSettingsDraft({ ...settingsDraft, countdown: v })} />
@@ -576,7 +588,7 @@
 
             const add = () => {
                 setEditId('new');
-                setDraft({ id: Date.now(), date: '', time: '', title: '', location: '', note: '', type: '景點' });
+                setDraft({ id: Date.now(), day: '第 1 天', date: '', time: '', title: '', location: '', note: '', type: '景點' });
             };
             const saveEdit = () => {
                 if(!draft.title) return alert("請輸入標題");
@@ -589,29 +601,13 @@
             const filtered = (data.itinerary || []).filter(i => matchSearch(i, searchTerm));
             const sorted = sortData(filtered, sortBy, 'date', 'title');
 
-            const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
-                    <div className="grid grid-cols-2 gap-3">
-                        <Field label="日期" type="date" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
-                        <Field label="時間" type="time" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} />
-                    </div>
-                    <Field label="標題 *" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
-                    <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
-                            <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
-                                <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
-                            </select>
-                        </div>
-                        <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
-                        <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
-                    </div>
-                </div>
-            );
+            // 🔥 修復天數排序，從文字中抓取數字排列
+            const grouped = sorted.reduce((acc, i) => { (acc[i.day] = acc[i.day] || []).push(i); return acc; }, {});
+            const sortedDays = Object.keys(grouped).sort((a, b) => {
+                const numA = parseInt(a.replace(/\D/g, '')) || 999;
+                const numB = parseInt(b.replace(/\D/g, '')) || 999;
+                return numA - numB;
+            });
 
             return (
                 <div className="animate-fade-in">
@@ -621,36 +617,105 @@
                         searchTerm={searchTerm} onSearch={setSearchTerm} 
                         sortBy={sortBy} onSort={setSortBy} 
                         sortOptions={[
-                            {label: '日期 (最近的優先)', value: 'date_asc'},
-                            {label: '日期 (最遠的優先)', value: 'date_desc'},
+                            {label: '日期時間 (最近的優先)', value: 'date_asc'},
+                            {label: '日期時間 (最遠的優先)', value: 'date_desc'},
                             {label: '標題 (A-Z)', value: 'name_asc'}
                         ]} 
                     />
 
-                    {editId === 'new' && <Card>{renderForm()}</Card>}
-                    
-                    <div className="space-y-3">
-                        {sorted.map(item => (
-                            <Card key={item.id}>
-                                {editId === item.id ? renderForm() : (
-                                    <div className="flex gap-3 md:gap-4 items-start">
-                                        <div className="min-w-[70px] text-center pt-1 border-r border-[#252C42] pr-3">
-                                            <div className="text-xs text-[#8A93A8] mb-1 font-mono">{item.date || '未定日期'}</div>
-                                            <div className="text-lg md:text-xl font-bold text-[#F4A261]">{item.time || '--:--'}</div>
-                                            <div className="text-[10px] text-[#E63946] bg-[#E63946]/10 px-2 py-0.5 rounded mt-1 inline-block font-bold">{item.type}</div>
-                                        </div>
-                                        <div className="flex-1 pl-1">
-                                            <div className="text-base md:text-lg font-bold text-white leading-tight">{item.title}</div>
-                                            {item.location && <div className="text-xs text-[#8A93A8] mt-1.5 flex items-start md:items-center flex-wrap gap-1"><i className="fa-solid fa-location-dot mt-0.5 md:mt-0"></i> {item.location} <MapLinks query={item.location} /></div>}
-                                            {item.note && <div className="text-xs text-[#5A6378] mt-2 bg-black/20 p-2 rounded-md italic">{item.note}</div>}
-                                        </div>
-                                        <div className="flex flex-col md:flex-row gap-1">
-                                            <IconBtn icon="fa-solid fa-pen" onClick={() => {setEditId(item.id); setDraft({...item});}} />
-                                            <IconBtn icon="fa-solid fa-trash" onClick={() => del(item.id)} color={theme.accent} />
-                                        </div>
+                    {editId === 'new' && (
+                        <Card>
+                            <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">天數</div>
+                                        <select value={draft.day} onChange={e => setDraft({ ...draft, day: e.target.value })}>
+                                            {Array.from({length: 15}, (_, i) => <option key={i+1} value={`第 ${i+1} 天`}>第 {i+1} 天</option>)}
+                                            <option value="行前準備">行前準備</option>
+                                            <option value="其他">其他</option>
+                                        </select>
                                     </div>
-                                )}
-                            </Card>
+                                    <Field label="日期" type="date" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                                    <Field label="時間" type="time" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} />
+                                </div>
+                                <Field label="標題 *" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
+                                <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
+                                        <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
+                                            <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
+                                        </select>
+                                    </div>
+                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                    <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+                    
+                    <div className="space-y-6">
+                        {sortedDays.map(day => (
+                            <div key={day} className="mb-8">
+                                <div className="text-[#E63946] font-bold tracking-widest mb-3 flex items-center gap-2 text-lg">
+                                    <i className="fa-solid fa-flag"></i> {day} <span className="text-sm text-[#5A6378]">{grouped[day][0]?.date}</span>
+                                </div>
+                                {grouped[day].map(item => (
+                                    <Card key={item.id}>
+                                        {editId === item.id ? (
+                                            <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div>
+                                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">天數</div>
+                                                        <select value={draft.day} onChange={e => setDraft({ ...draft, day: e.target.value })}>
+                                                            {Array.from({length: 15}, (_, i) => <option key={i+1} value={`第 ${i+1} 天`}>第 {i+1} 天</option>)}
+                                                            <option value="行前準備">行前準備</option>
+                                                            <option value="其他">其他</option>
+                                                        </select>
+                                                    </div>
+                                                    <Field label="日期" type="date" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                                                    <Field label="時間" type="time" value={draft.time} onChange={v => setDraft({ ...draft, time: v })} />
+                                                </div>
+                                                <Field label="標題 *" value={draft.title} onChange={v => setDraft({ ...draft, title: v })} />
+                                                <Field label="地點（填地址或名稱）" value={draft.location} onChange={v => setDraft({ ...draft, location: v })} />
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">類型</div>
+                                                        <select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}>
+                                                            <option>景點</option><option>美食</option><option>交通</option><option>住宿</option><option>購物</option><option>其他</option>
+                                                        </select>
+                                                    </div>
+                                                    <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
+                                                </div>
+                                                <div className="flex gap-2 mt-4">
+                                                    <button onClick={saveEdit} style={btnPrimary}><i className="fa-solid fa-check"></i> 儲存</button>
+                                                    <button onClick={() => { setEditId(null); setDraft(null); }} style={btnGhost}>取消</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-3 md:gap-4 items-start">
+                                                <div className="min-w-[70px] text-center pt-1 border-r border-[#252C42] pr-3">
+                                                    <div className="text-xs text-[#8A93A8] mb-1 font-mono">{item.date || '未定日期'}</div>
+                                                    <div className="text-lg md:text-xl font-bold text-[#F4A261]">{item.time || '--:--'}</div>
+                                                    <div className="text-[10px] text-[#E63946] bg-[#E63946]/10 px-2 py-0.5 rounded mt-1 inline-block font-bold">{item.type}</div>
+                                                </div>
+                                                <div className="flex-1 pl-1">
+                                                    <div className="text-base md:text-lg font-bold text-white leading-tight">{item.title}</div>
+                                                    <MapLinks query={item.location} />
+                                                    {item.note && <div className="text-xs text-[#5A6378] mt-2 bg-black/20 p-2 rounded-md italic">{item.note}</div>}
+                                                </div>
+                                                <div className="flex flex-col md:flex-row gap-1">
+                                                    <IconBtn icon="fa-solid fa-pen" onClick={() => {setEditId(item.id); setDraft({...item});}} />
+                                                    <IconBtn icon="fa-solid fa-trash" onClick={() => del(item.id)} color={theme.accent} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
                         ))}
                     </div>
                     {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的行程！" />}
@@ -681,7 +746,7 @@
             const sorted = sortData(filtered, sortBy, null, 'name');
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                     <Field label="中文名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
                     <Field label="英文名稱 (同護照)" value={draft.engName} onChange={v => setDraft({ ...draft, engName: v })} />
                     <ImageUploadField label="個人大頭貼" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
@@ -746,15 +811,29 @@
 
         // ============ LUGGAGE TAB ============
         function LuggageTab({ data, save }) {
-            const [newItem, setNewItem] = useState({ category: '衣物', item: '' });
+            const [newItem, setNewItem] = useState({ category: '衣物', item: '', assignee: '全部' });
             const [searchTerm, setSearchTerm] = useState('');
 
             const add = () => {
                 if (!newItem.item.trim()) return;
-                save({ ...data, luggage: [...(data.luggage || []), { id: Date.now(), ...newItem, checked: false }] });
-                setNewItem({ category: newItem.category, item: '' });
+                save({ ...data, luggage: [...(data.luggage || []), { id: Date.now(), ...newItem, preparedBy: [] }] });
+                setNewItem({ ...newItem, item: '' });
             };
-            const toggle = (id) => save({ ...data, luggage: (data.luggage || []).map(i => i.id === id ? { ...i, checked: !i.checked } : i) });
+            
+            const togglePrepare = (id, personName) => {
+                save({ 
+                    ...data, 
+                    luggage: (data.luggage || []).map(i => {
+                        if(i.id === id) {
+                            const prepared = i.preparedBy || [];
+                            const isPrepared = prepared.includes(personName);
+                            return { ...i, preparedBy: isPrepared ? prepared.filter(p => p !== personName) : [...prepared, personName] };
+                        }
+                        return i;
+                    })
+                });
+            };
+
             const del = (id) => save({ ...data, luggage: (data.luggage || []).filter(i => i.id !== id) });
 
             const filtered = (data.luggage || []).filter(i => matchSearch(i, searchTerm));
@@ -768,7 +847,7 @@
                     <Card style={{ padding: '16px', background: 'rgba(230,57,70,0.05)', borderColor: 'rgba(230,57,70,0.2)' }}>
                         <div className="flex flex-col sm:flex-row gap-3 items-end">
                             <div className="w-full sm:w-32">
-                                <div className="text-[10px] text-[#5A6378] font-bold mb-1">分類</div>
+                                <div className="text-[11px] text-[#5A6378] font-bold mb-1">分類</div>
                                 <select value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })}>
                                     <option>證件</option><option>衣物</option><option>電子</option><option>藥品</option><option>盥洗</option><option>其他</option>
                                 </select>
@@ -777,26 +856,53 @@
                                 <div className="text-[10px] text-[#5A6378] font-bold mb-1">物品名稱</div>
                                 <input value={newItem.item} onChange={e => setNewItem({ ...newItem, item: e.target.value })} onKeyDown={e => e.key === 'Enter' && add()} placeholder="輸入後按 Enter" />
                             </div>
+                            <div className="w-full sm:w-40">
+                                <div className="text-[11px] text-[#5A6378] font-bold mb-1">誰負責帶</div>
+                                <select value={newItem.assignee} onChange={e => setNewItem({ ...newItem, assignee: e.target.value })}>
+                                    <option value="全部">全部 (每人帶自己的)</option>
+                                    <option value="公用">公用 (有人帶就好)</option>
+                                    {(data.family || []).map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
+                                </select>
+                            </div>
                             <button onClick={add} className="w-full sm:w-auto bg-[#E63946] text-white px-6 py-2.5 rounded-lg font-bold hover:bg-red-600 transition-colors">加入</button>
                         </div>
                     </Card>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                         {Object.keys(grouped).map(cat => (
                             <div key={cat}>
-                                <div className="text-sm text-[#F4A261] tracking-widest font-black mb-3 border-b border-[#252C42] pb-1">{cat} ({grouped[cat].filter(i=>i.checked).length}/{grouped[cat].length})</div>
-                                <div className="space-y-2">
-                                    {grouped[cat].map(item => (
-                                        <div key={item.id} className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${item.checked ? 'bg-[#52B788]/10 border-[#52B788]/30 opacity-60' : 'bg-[#131827] border-[#252C42] hover:border-gray-500'}`} onClick={() => toggle(item.id)}>
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${item.checked ? 'bg-[#52B788] border-[#52B788]' : 'border-[#5A6378]'}`}>
-                                                    {item.checked && <i className="fa-solid fa-check text-white text-xs"></i>}
+                                <div className="text-sm text-[#F4A261] tracking-widest font-black mb-3 border-b border-[#252C42] pb-1">{cat}</div>
+                                <div className="space-y-3">
+                                    {grouped[cat].map(item => {
+                                        const isAll = item.assignee === '全部';
+                                        const isPublic = item.assignee === '公用';
+                                        const familyMembers = (data.family || []).map(f => f.name).filter(Boolean);
+                                        const targetPeople = isAll ? familyMembers : (isPublic ? ['公用'] : [item.assignee]);
+                                        
+                                        const isFullyPrepared = targetPeople.length > 0 && targetPeople.every(p => (item.preparedBy || []).includes(p));
+
+                                        return (
+                                            <div key={item.id} className={`flex flex-col gap-3 p-4 rounded-xl border transition-all ${isFullyPrepared ? 'bg-[#52B788]/10 border-[#52B788]/30' : 'bg-[#131827] border-[#252C42]'}`}>
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className={`text-base font-bold ${isFullyPrepared ? 'line-through text-[#8A93A8]' : 'text-white'}`}>{item.item}</div>
+                                                    <button onClick={() => del(item.id)} className="text-[#8A93A8] hover:text-[#E63946]"><i className="fa-solid fa-trash"></i></button>
                                                 </div>
-                                                <span className={`text-sm md:text-base font-bold ${item.checked ? 'line-through text-[#8A93A8]' : 'text-white'}`}>{item.item}</span>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <span className="text-[10px] text-[#5A6378] tracking-widest"><i className="fa-solid fa-user-tag"></i> {item.assignee}</span>
+                                                    <div className="w-[1px] h-3 bg-[#252C42] mx-1"></div>
+                                                    {targetPeople.map(person => {
+                                                        const isPrepared = (item.preparedBy || []).includes(person);
+                                                        return (
+                                                            <button key={person} onClick={() => togglePrepare(item.id, person)} 
+                                                                className={`text-xs px-3 py-1.5 rounded-full font-bold border transition-all ${isPrepared ? 'bg-[#52B788] text-[#0A0E1A] border-[#52B788]' : 'bg-transparent text-[#8A93A8] border-[#5A6378] hover:border-white hover:text-white'}`}>
+                                                                {isPrepared ? <><i className="fa-solid fa-check"></i> {person} 已備妥</> : <><i className="fa-regular fa-square"></i> {person} 尚未</>}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
-                                            <button onClick={(e) => { e.stopPropagation(); del(item.id); }} className="text-[#8A93A8] hover:text-[#E63946] p-1"><i className="fa-solid fa-xmark"></i></button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ))}
@@ -828,7 +934,7 @@
             const sorted = sortData(filtered, sortBy, 'date', 'airline');
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                     <div className="grid grid-cols-3 gap-3">
                         <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
                         <Field label="航空公司" value={draft.airline} onChange={v => setDraft({ ...draft, airline: v })} placeholder="星宇 / 長榮" />
@@ -939,7 +1045,7 @@
             const sorted = sortData(filtered, sortBy, 'checkin', 'name');
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                     <Field label="飯店名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
                     <div className="grid grid-cols-3 gap-3">
                         <Field label="入住日期" type="date" value={draft.checkin} onChange={v => setDraft({ ...draft, checkin: v })} />
@@ -982,7 +1088,8 @@
                                         <div className="text-sm font-bold text-[#F4A261] mb-2 bg-[#F4A261]/10 self-start px-2 py-1 rounded">
                                             <i className="fa-solid fa-calendar-check mr-1"></i> {h.checkin || '未定'} <i className="fa-solid fa-arrow-right text-[10px] mx-1"></i> {h.checkout || '未定'} ({h.nights || 0}晚)
                                         </div>
-                                        {(h.address || h.gmap) && <div className="text-xs text-[#8A93A8] mb-2 flex items-center flex-wrap gap-1"><i className="fa-solid fa-map-pin mr-1"></i> {h.address} <MapLinks query={h.address} gmapUrl={h.gmap} /></div>}
+                                        <MapLinks query={h.address} gmapUrl={h.gmap} />
+                                        {h.address && <div className="text-xs text-[#8A93A8] mt-2"><i className="fa-solid fa-map-pin mr-1"></i> {h.address}</div>}
                                         {h.note && <div className="text-xs text-[#5A6378] bg-black/20 p-2 rounded italic mt-auto">"{h.note}"</div>}
                                     </div>
                                     <div className="flex flex-row sm:flex-col gap-2 justify-end sm:justify-start mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-[#252C42]">
@@ -1021,7 +1128,7 @@
             const sorted = sortData(filtered, sortBy, 'date', 'name');
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                     <div className="grid grid-cols-3 gap-3">
                         <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>JR</option><option>地鐵</option><option>巴士</option><option>計程車</option><option>租車</option><option>其他</option></select></div>
                         <Field label="名稱" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
@@ -1116,7 +1223,7 @@
             const renderForm = () => {
                 const liveTotal = calcTotal(draft);
                 return (
-                    <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                    <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                         <Field label="景點名稱 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} placeholder="例：大倉山展望台" />
                         
                         <div className="grid grid-cols-2 gap-3">
@@ -1132,7 +1239,6 @@
                         <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
                         <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
                         
-                        {/* 💰 票價區塊 */}
                         <div className="bg-[#F4A261]/5 border border-[#F4A261]/20 rounded-lg p-3 mb-3">
                             <div className="flex items-center gap-2 mb-3">
                                 <i className="fa-solid fa-yen-sign text-[#F4A261]"></i>
@@ -1255,8 +1361,8 @@
                                         <div className="space-y-1 text-xs mt-1">
                                             {t.visitDate && <div className="text-[#F4A261]"><i className="fa-regular fa-calendar mr-1"></i> 預計 {t.visitDate}</div>}
                                             {t.hours && <div className="text-[#8A93A8]"><i className="fa-regular fa-clock mr-1"></i> {t.hours}</div>}
-                                            {(t.address || t.gmap) && <div className="text-[#8A93A8] flex items-center flex-wrap gap-1"><i className="fa-solid fa-map-pin mr-1"></i> {t.address} <MapLinks query={t.address} gmapUrl={t.gmap} /></div>}
-                                            {t.bookingUrl && <a href={t.bookingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#00f3ff] hover:underline"><i className="fa-solid fa-up-right-from-square"></i> 前往預約/官網</a>}
+                                            <MapLinks query={t.address} gmapUrl={t.gmap} />
+                                            {t.bookingUrl && <a href={t.bookingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 text-xs font-bold text-[#0A0E1A] bg-white rounded-lg px-4 py-2 mt-2 w-full sm:w-auto transition-colors"><i className="fa-solid fa-up-right-from-square"></i> 前往預約/官網</a>}
                                         </div>
 
                                         {t.note && <div className="text-xs text-[#E8ECF4] mt-3 bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2 italic">"{t.note}"</div>}
@@ -1286,7 +1392,7 @@
 
             const add = () => {
                 setEditId('new');
-                setDraft({ id: Date.now(), name: '', city: '札幌', category: '午餐', address: '', rating: 5, note: '', photo: '' });
+                setDraft({ id: Date.now(), name: '', city: '札幌', category: '午餐', address: '', gmap: '', rating: 5, note: '', photo: '' });
             };
             const saveEdit = () => { 
                 if(!draft.name) return alert('請輸入店名');
@@ -1301,13 +1407,14 @@
             const sorted = sortData(filtered, sortBy, null, 'name');
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
                     <Field label="店名 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
                     <div className="grid grid-cols-2 gap-3">
                         <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
                         <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
                     </div>
                     <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                    <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
                     <div className="mb-3">
                         <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
                         <div className="flex gap-2">
@@ -1365,7 +1472,8 @@
                                                 <a href={f.photo} target="_blank"><img src={f.photo} className="w-full h-full object-cover hover:scale-110 transition-transform" /></a>
                                             </div>
                                         )}
-                                        {f.address && <div className="text-xs text-[#8A93A8] my-1 bg-black/20 p-2 rounded"><i className="fa-solid fa-map-pin mr-1"></i> {f.address} <MapLinks query={f.address} /></div>}
+                                        <MapLinks query={f.address} gmapUrl={f.gmap} />
+                                        {f.address && <div className="text-xs text-[#8A93A8] my-1 bg-black/20 p-2 rounded mt-2"><i className="fa-solid fa-map-pin mr-1"></i> {f.address}</div>}
                                         {f.note && <div className="text-xs text-[#E8ECF4] mt-2 font-bold bg-[#F4A261]/10 border-l-2 border-[#F4A261] p-2">"{f.note}"</div>}
                                         <div className="flex justify-end gap-2 mt-auto pt-3 border-t border-[#252C42]">
                                             <IconBtn icon="fa-solid fa-pen" onClick={() => { setEditId(f.id); setDraft({ ...f }); }} />
@@ -1402,8 +1510,8 @@
             const filtered = (data.coupons || []).filter(i => matchSearch(i, searchTerm));
 
             const renderForm = () => (
-                <div className="animate-fade-in bg-white/5 p-4 -m-4 rounded-xl mb-4 border border-[#E63946]/30">
-                    <Field label="優惠券名稱" value={draft.title} onChange={v => setDraft({...draft, title: v})} />
+                <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
+                    <Field label="優惠券名稱 *" value={draft.title} onChange={v => setDraft({...draft, title: v})} />
                     <ImageUploadField label="優惠券 / 條碼截圖" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
                     <Field label="使用說明 / 期限" type="textarea" value={draft.note} onChange={v => setDraft({...draft, note: v})} />
                     <div className="flex gap-2 mt-4">
@@ -1453,33 +1561,36 @@
 
         // ============ EXPENSES TAB ============
         function ExpensesTab({ data, save }) {
-            const [draft, setDraft] = useState({ date: '', item: '', amount: '', payer: '', category: '餐飲' });
+            const [draft, setDraft] = useState({ date: '', item: '', amount: '', currency: 'JPY', payer: '', category: '餐飲' });
             const [searchTerm, setSearchTerm] = useState('');
             const [sortBy, setSortBy] = useState('date_desc');
+            const [exchangeRate, setExchangeRate] = useState(0.21); // 固定預設匯率
 
             const add = () => {
                 if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
-                save({ ...data, expenses: [...(data.expenses || []), { id: Date.now(), ...draft, amount: Number(draft.amount) }] });
+                const amountTWD = draft.currency === 'JPY' ? Math.round(Number(draft.amount) * exchangeRate) : Number(draft.amount);
+                save({ ...data, expenses: [...(data.expenses || []), { id: Date.now(), ...draft, amount: Number(draft.amount), amountTWD }] });
                 setDraft({ ...draft, item: '', amount: '' });
             };
             const del = (id) => save({ ...data, expenses: (data.expenses || []).filter(e => e.id !== id) });
 
-            const total = (data.expenses || []).reduce((s, e) => s + Number(e.amount), 0);
-            const byPayer = (data.expenses || []).reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + Number(e.amount); return acc; }, {});
-            const byCategory = (data.expenses || []).reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + Number(e.amount); return acc; }, {});
+            const total = (data.expenses || []).reduce((s, e) => s + (e.amountTWD || Number(e.amount)), 0);
+            const byPayer = (data.expenses || []).reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + (e.amountTWD || Number(e.amount)); return acc; }, {});
+            const byCategory = (data.expenses || []).reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + (e.amountTWD || Number(e.amount)); return acc; }, {});
 
             const people = (data.family || []).map(f => f.name).filter(Boolean);
             const perPerson = people.length ? total / people.length : 0;
 
             const filtered = (data.expenses || []).filter(i => matchSearch(i, searchTerm));
-            const sorted = sortData(filtered, sortBy, 'date', 'item', 'amount');
+            // 排序時使用 amountTWD 比較準確
+            const sorted = sortData(filtered, sortBy, 'date', 'item', 'amountTWD');
 
             return (
                 <div className="animate-fade-in">
                     <SectionTitle>財務分攤記帳</SectionTitle>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                         <Card style={{ marginBottom: 0 }}>
-                            <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">總支出</div>
+                            <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">總支出 (約 TWD)</div>
                             <div className="text-xl md:text-2xl font-black text-[#F4A261] mt-2">NT$ {total.toLocaleString()}</div>
                         </Card>
                         <Card style={{ marginBottom: 0 }}>
@@ -1491,7 +1602,7 @@
                             <div className="space-y-1">
                                 {Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).map(([k, v]) => (
                                     <div key={k} className="text-xs text-[#E8ECF4] flex justify-between">
-                                        <span>{k}</span><span className="font-mono text-[#8A93A8]">{Math.round(v / total * 100)}%</span>
+                                        <span>{k}</span><span className="font-mono text-[#8A93A8]">{total ? Math.round(v / total * 100) : 0}%</span>
                                     </div>
                                 ))}
                             </div>
@@ -1499,16 +1610,31 @@
                     </div>
 
                     <Card style={{ background: 'rgba(59,198,228,0.05)', borderColor: 'rgba(59,198,228,0.2)' }}>
-                        <div className="text-xs text-[#3bc6e4] font-bold tracking-widest mb-3">快速記一筆</div>
-                        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
-                            <input type="date" placeholder="日期" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} />
-                            <input placeholder="項目" value={draft.item} onChange={e => setDraft({ ...draft, item: e.target.value })} className="col-span-2 sm:col-span-1" />
-                            <input placeholder="金額" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e.target.value })} />
-                            <input placeholder="誰先墊的" value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })} />
-                            <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                        <div className="flex justify-between items-end mb-3">
+                            <div className="text-xs text-[#3bc6e4] font-bold tracking-widest">快速記一筆</div>
+                            <div className="text-[10px] text-gray-500">日幣自動匯率: {exchangeRate}</div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                            <input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} className="col-span-2 md:col-span-1" />
+                            <input placeholder="項目" value={draft.item} onChange={e => setDraft({ ...draft, item: e.target.value })} className="col-span-2 md:col-span-1" />
+                            
+                            <div className="flex gap-1 col-span-2 md:col-span-2">
+                                <select value={draft.currency} onChange={e => setDraft({...draft, currency: e.target.value})} className="w-20 px-1 text-center font-bold text-[#F4A261]">
+                                    <option value="JPY">JPY</option>
+                                    <option value="TWD">TWD</option>
+                                </select>
+                                <input placeholder="輸入金額" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e.target.value })} className="flex-1" />
+                            </div>
+
+                            <select value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })} className="col-span-1">
+                                <option value="">誰付錢 (公費)</option>
+                                {people.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            
+                            <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} className="col-span-1">
                                 <option>餐飲</option><option>交通</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
                             </select>
-                            <button onClick={add} className="col-span-2 sm:col-span-1 bg-[#3bc6e4] text-[#0A0E1A] font-bold rounded-lg hover:bg-white transition-colors">加入</button>
+                            <button onClick={add} className="col-span-2 md:col-span-6 mt-2 bg-[#3bc6e4] text-[#0A0E1A] py-2.5 font-bold rounded-lg hover:bg-white transition-colors shadow-[0_0_10px_rgba(59,198,228,0.4)]">加入記帳</button>
                         </div>
                     </Card>
 
@@ -1516,17 +1642,22 @@
                         <ListControls 
                             searchTerm={searchTerm} onSearch={setSearchTerm} 
                             sortBy={sortBy} onSort={setSortBy} 
-                            sortOptions={[ {label: '最新紀錄優先', value: 'date_desc'}, {label: '最舊紀錄優先', value: 'date_asc'}, {label: '金額最高', value: 'price_desc'} ]} 
+                            sortOptions={[ {label: '最新紀錄優先', value: 'date_desc'}, {label: '最舊紀錄優先', value: 'date_asc'}, {label: '換算金額最高', value: 'price_desc'} ]} 
                         />
                         <div className="space-y-2">
                             {sorted.map(e => (
-                                <div key={e.id} className="flex items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
-                                    <span className="text-[#5A6378] w-16 text-xs font-mono">{e.date}</span>
+                                <div key={e.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
+                                    <span className="text-[#5A6378] w-full md:w-24 text-xs font-mono">{e.date || '未填日期'}</span>
                                     <span className="font-bold flex-1 text-white">{e.item}</span>
-                                    <span className="text-[10px] px-2 py-0.5 bg-[#252C42] rounded text-[#8A93A8] hidden sm:block">{e.category}</span>
+                                    <span className="text-[10px] px-2 py-0.5 bg-[#252C42] rounded text-[#8A93A8]">{e.category}</span>
                                     <span className="text-xs text-[#F4A261] border border-[#F4A261]/30 px-2 py-0.5 rounded">{e.payer || '公費'} 墊</span>
-                                    <span className="font-mono font-bold text-[#E8ECF4] w-20 text-right">${Number(e.amount).toLocaleString()}</span>
-                                    <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-1.5 rounded ml-2"><i className="fa-solid fa-trash text-xs"></i></button>
+                                    
+                                    <div className="font-mono font-bold text-[#E8ECF4] w-full md:w-32 text-right mt-2 md:mt-0">
+                                        {e.currency === 'JPY' ? '¥' : 'NT$'} {Number(e.amount).toLocaleString()}
+                                        {e.currency === 'JPY' && <div className="text-[10px] text-[#5A6378] leading-none mt-1">(約 NT$ {e.amountTWD})</div>}
+                                    </div>
+
+                                    <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-2 rounded ml-auto md:ml-2"><i className="fa-solid fa-trash text-xs"></i></button>
                                 </div>
                             ))}
                             {sorted.length === 0 && <EmptyState text="找不到符合的記帳紀錄" />}
@@ -1535,7 +1666,7 @@
 
                     {Object.keys(byPayer).length > 0 && (
                         <Card style={{ marginTop: 24, borderTop: `4px solid ${theme.success}` }}>
-                            <div className="text-sm font-bold text-[#52B788] mb-4"><i className="fa-solid fa-scale-balanced"></i> 最終分攤結算</div>
+                            <div className="text-sm font-bold text-[#52B788] mb-4"><i className="fa-solid fa-scale-balanced"></i> 最終分攤結算 (TWD)</div>
                             <div className="space-y-3">
                                 {Object.entries(byPayer).map(([name, paid]) => {
                                     const diff = paid - perPerson;
@@ -1543,14 +1674,14 @@
                                         <div key={name} className="flex justify-between items-center text-sm border-b border-[#252C42] pb-2">
                                             <span className="font-bold text-white w-20">{name}</span>
                                             <span className="text-[#8A93A8] text-xs">已代墊 ${paid.toLocaleString()}</span>
-                                            <span className={`font-bold ${diff > 0 ? 'text-[#52B788]' : 'text-[#E63946]'} w-24 text-right`}>
+                                            <span className={`font-bold ${diff > 0 ? 'text-[#52B788]' : 'text-[#E63946]'} w-28 text-right`}>
                                                 {diff > 0 ? `應收 $${Math.round(diff).toLocaleString()}` : `需補 $${Math.round(-diff).toLocaleString()}`}
                                             </span>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <div className="text-[10px] text-[#5A6378] mt-3">公式：(每人應負擔 ${Math.round(perPerson)}) - (已代墊金額)</div>
+                            <div className="text-[10px] text-[#5A6378] mt-3">公式：(每人應負擔 ${Math.round(perPerson)}) - (已代墊總額)</div>
                         </Card>
                     )}
                 </div>
