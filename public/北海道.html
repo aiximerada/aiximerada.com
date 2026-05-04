@@ -98,6 +98,11 @@
             filter: invert(1); opacity: 0.6; cursor: pointer;
         }
         
+        /* 修正搜尋與排序輸入框跟圖示重疊的問題 */
+        .pl-icon {
+            padding-left: 38px !important;
+        }
+
         button:active { transform: scale(0.96); }
     </style>
 </head>
@@ -473,33 +478,34 @@
         function ListControls({ searchTerm, onSearch, sortBy, onSort, sortOptions }) {
             return (
                 <div className="flex flex-col sm:flex-row gap-3 mb-4 bg-white/5 p-3 rounded-xl border border-[#252C42]">
-                    <div className="flex-1 relative">
-                        <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
+                    <div className="flex-1 relative flex items-center">
+                        <i className="fa-solid fa-search absolute left-3 text-[#5A6378] pointer-events-none"></i>
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => onSearch(e.target.value)}
                             placeholder="輸入關鍵字搜尋..."
-                            className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none"
+                            className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-icon pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none"
                         />
                     </div>
                     {sortOptions && sortOptions.length > 0 && (
-                        <div className="sm:w-48 relative">
-                            <i className="fa-solid fa-arrow-up-short-wide absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
+                        <div className="sm:w-48 relative flex items-center">
+                            <i className="fa-solid fa-arrow-up-short-wide absolute left-3 text-[#5A6378] pointer-events-none"></i>
                             <select
                                 value={sortBy}
                                 onChange={(e) => onSort(e.target.value)}
-                                className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none appearance-none cursor-pointer"
+                                className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-icon pr-8 py-2 text-sm text-white focus:border-[#E63946] outline-none appearance-none cursor-pointer"
                             >
                                 {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                             </select>
+                            <i className="fa-solid fa-chevron-down absolute right-3 text-[#5A6378] text-[10px] pointer-events-none"></i>
                         </div>
                     )}
                 </div>
             );
         }
 
-        // 🔥 新增：共用地區篩選器元件
+        // 🔥 共用地區篩選器元件
         function AreaFilter({ items, filterField, currentFilter, setFilter, icon = "fa-location-dot" }) {
             const areas = ['全部', ...new Set(items.map(i => i[filterField]).filter(Boolean))];
             if (areas.length <= 1) return null;
