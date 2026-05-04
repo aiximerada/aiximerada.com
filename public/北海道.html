@@ -17,23 +17,7 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-
-        /* 🔥 新增 Modal 動畫，徹底防破圖 */
-        @keyframes slideUpModal {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        @keyframes popInModal {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .mobile-modal-anim {
-            animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @media (min-width: 768px) {
-            .mobile-modal-anim { animation: popInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        }
+        .animate-fade-in { animation: fadeIn 0.3s ease forwards; }
 
         /* 輸入框美化 */
         input, textarea, select {
@@ -73,11 +57,15 @@
                         </nav>
 
                         <main className="flex-1 p-4 md:p-8 min-w-0 pb-24">
+<<<<<<< HEAD
                             {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} />}
+=======
+>>>>>>> parent of 4a747ea (更新)
                             {activeTab === 'home' && <HomeTab data={data} save={saveData} daysLeft={daysLeft} setActiveTab={setActiveTab} exchangeRate={exchangeRate} />}
                             {activeTab === 'itinerary' && <ItineraryTab data={data} save={saveData} />}
                             {activeTab === 'family' && <FamilyTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
                             {activeTab === 'luggage' && <LuggageTab data={data} save={saveData} />}
+<<<<<<< HEAD
 @ -515,24 +506,26 @@
             return <div className="text-center py-16 text-[#5A6378] text-sm font-bold bg-[#131827]/50 rounded-xl border border-dashed border-[#252C42]">{text}</div>;
         }
@@ -131,6 +119,163 @@
 
             const saveSettings = () => { save({ ...data, ...settingsDraft }); setEditSettings(false); };
 
+=======
+                            {activeTab === 'flights' && <FlightsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'hotels' && <HotelsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'transport' && <TransportTab data={data} save={saveData} />}
+                            {activeTab === 'tickets' && <TicketsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'foods' && <FoodsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'shopping' && <ShoppingTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'coupons' && <CouponsTab data={data} save={saveData} uploadImageFn={uploadImageFn} />}
+                            {activeTab === 'expenses' && <ExpensesTab data={data} save={saveData} exchangeRate={exchangeRate} />}
+                            {activeTab === 'extras' && <ExtrasTab data={data} save={saveData} exchangeRate={exchangeRate} />}
+                        </main>
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ REUSABLE COMPONENTS ============
+        function SectionTitle({ children, action }) {
+            return (
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl md:text-2xl font-bold text-[#E8F1F8] border-l-4 border-[#E63946] pl-3 tracking-wider">{children}</h2>
+                    {action}
+                </div>
+            );
+        }
+
+        function AddButton({ onClick, label = '新增' }) {
+            return (
+                <button onClick={onClick} className="bg-[#E63946] text-white border-none px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-red-600 transition-colors shadow-lg">
+                    <i className="fa-solid fa-plus"></i> {label}
+                </button>
+            );
+        }
+
+        function Card({ children, style = {}, className = "" }) {
+            return <div className={`bg-[#131827] border border-[#252C42] rounded-xl p-4 md:p-5 mb-3 shadow-sm relative overflow-hidden ${className}`} style={style}>{children}</div>;
+        }
+
+        function IconBtn({ icon, onClick, color = theme.textMuted, title }) {
+            return (
+                <button onClick={onClick} title={title} className="bg-transparent border-none p-2 rounded-lg inline-flex items-center hover:bg-white/10 transition-colors" style={{ color }}>
+                    <i className={icon}></i>
+                </button>
+            );
+        }
+
+        function MapLinks({ query, gmapUrl }) {
+            if (!query && !gmapUrl) return null;
+            const target = gmapUrl ? gmapUrl : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+            return (
+                <a href={target} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 text-xs font-bold text-[#0A0E1A] bg-[#00f3ff] hover:bg-white rounded-lg px-4 py-2 mt-2 w-full sm:w-auto transition-colors shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                    <i className="fa-solid fa-map-location-dot"></i> {gmapUrl ? '開啟地圖導航' : '搜尋 Google Maps'}
+                </a>
+            );
+        }
+
+        function Field({ label, value, onChange, type = 'text', placeholder, required = false }) {
+            return (
+                <div className="mb-3 w-full">
+                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">{label} {required && <span className="text-red-500">*</span>}</div>
+                    {type === 'textarea' ? (
+                        <textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} className="resize-y" />
+                    ) : (
+                        <input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+                    )}
+                </div>
+            );
+        }
+
+        function ImageUploadField({ label, url, onUpload, uploadImageFn }) {
+            const [uploading, setUploading] = useState(false);
+            const ref = useRef();
+            const handleChange = async (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                setUploading(true);
+                try {
+                    const newUrl = await uploadImageFn(file);
+                    onUpload(newUrl);
+                } catch(e) { alert('圖片上傳失敗，請稍後再試'); }
+                setUploading(false);
+            };
+            return (
+                <div className="mb-3 w-full">
+                    <div className="text-[11px] text-[#5A6378] tracking-widest mb-1.5 uppercase font-bold">{label}</div>
+                    <div
+                        onClick={() => { if(!uploading) ref.current?.click() }}
+                        className="w-full h-32 border-2 border-dashed border-[#252C42] rounded-lg flex items-center justify-center cursor-pointer hover:border-[#E63946]/50 transition-colors relative overflow-hidden bg-black/20"
+                    >
+                        {uploading ? (
+                            <div className="text-[#E63946] flex flex-col items-center gap-2"><i className="fa-solid fa-spinner fa-spin text-2xl"></i><span className="text-xs font-bold tracking-widest">極速壓縮上傳中...</span></div>
+                        ) : url ? (
+                            <div className="relative w-full h-full group">
+                                <img src={url} className="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-white text-xs font-bold px-3 py-1 bg-black/60 rounded-full"><i className="fa-solid fa-pen"></i> 點擊更換照片</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-[#5A6378] flex flex-col items-center gap-2"><i className="fa-solid fa-cloud-arrow-up text-2xl"></i><span className="text-xs font-bold tracking-widest">點擊上傳</span></div>
+                        )}
+                    </div>
+                    <input type="file" accept="image/*" hidden ref={ref} onChange={handleChange} />
+                </div>
+            );
+        }
+
+        // 🔥 全新加入：防跑版浮動編輯視窗 (Modal)
+        function FormModal({ title, children, onSave, onCancel }) {
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+                    <div className="w-full max-w-lg bg-[#0A0E1A] border border-[#E63946]/50 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col relative animate-in zoom-in-95">
+                        <div className="p-5 md:p-6 border-b border-[#252C42] flex justify-between items-center bg-[#131827] rounded-t-2xl shrink-0">
+                            <h3 className="text-xl font-bold text-white">{title}</h3>
+                            <button onClick={onCancel} className="text-gray-400 hover:text-white"><i className="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        <div className="p-5 md:p-6 overflow-y-auto space-y-4">
+                            {children}
+                        </div>
+                        <div className="p-5 md:p-6 border-t border-[#252C42] bg-[#131827] rounded-b-2xl flex gap-3 shrink-0">
+                            <button onClick={onCancel} className="flex-1 py-3 rounded-xl border border-[#5A6378] text-[#8A93A8] font-bold hover:bg-white/5 transition-colors">取消</button>
+                            <button onClick={onSave} className="flex-[2] py-3 rounded-xl bg-[#E63946] text-white font-bold hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"><i className="fa-solid fa-check"></i> 儲存</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ListControls({ searchTerm, onSearch, sortBy, onSort, sortOptions }) {
+            return (
+                <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-white/5 p-3 rounded-xl border border-[#252C42]">
+                    <div className="flex-1 relative">
+                        <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
+                        <input type="text" value={searchTerm} onChange={(e) => onSearch(e.target.value)} placeholder="輸入關鍵字搜尋..." className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none" />
+                    </div>
+                    {sortOptions && sortOptions.length > 0 && (
+                        <div className="sm:w-48 relative">
+                            <i className="fa-solid fa-arrow-up-short-wide absolute left-3 top-1/2 -translate-y-1/2 text-[#5A6378]"></i>
+                            <select value={sortBy} onChange={(e) => onSort(e.target.value)} className="w-full bg-black/40 border border-[#252C42] rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:border-[#E63946] outline-none appearance-none cursor-pointer">
+                                {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const btnPrimary = { background: theme.accent, color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: '0.2s' };
+        const btnGhost = { background: 'transparent', color: theme.textMuted, border: `1px solid ${theme.border}`, padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' };
+
+        function EmptyState({ text }) {
+            return <div className="text-center py-16 text-[#5A6378] text-sm font-bold bg-[#131827]/50 rounded-xl border border-dashed border-[#252C42]">{text}</div>;
+        }
+
+        // ============ HOME TAB ============
+        function HomeTab({ data, save, daysLeft, setActiveTab, exchangeRate }) {
+>>>>>>> parent of 4a747ea (更新)
             const stats = [
                 { label: '行程項目', value: data.itinerary?.length || 0, tab: 'itinerary', icon: 'fa-solid fa-calendar' },
                 { label: '家庭成員', value: data.family?.length || 0, tab: 'family', icon: 'fa-solid fa-users' },
@@ -351,6 +496,7 @@
 
                     {editId && (
                         <FormModal title={editId === 'new' ? '新增航班' : '編輯航班'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
+<<<<<<< HEAD
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                         <InlineForm title={editId === 'new' ? '新增航班' : '編輯航班'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -363,6 +509,22 @@
                             </div>
                             <div className="grid grid-cols-2 gap-3 bg-[#1A2033] p-3 rounded-lg border border-[#252C42] mb-3 mt-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#1A2033] p-3 rounded-lg border border-[#252C42] mb-3 mt-3">
+=======
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.type} onChange={e => setDraft({ ...draft, type: e.target.value })}><option>去程</option><option>回程</option><option>轉機</option></select></div>
+                                <div>
+                                    <div className="text-[11px] text-[#5A6378] font-bold mb-1">航空公司</div>
+                                    <select value={draft.airline} onChange={e => setDraft({ ...draft, airline: e.target.value })}>
+                                        <option>長榮航空</option><option>星宇航空</option><option>中華航空</option><option>台灣虎航</option><option>酷航</option><option>樂桃航空</option><option>日本航空</option><option>全日空</option><option>國泰航空</option><option>其他</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <Field label="航班號碼" value={draft.flightNumber} onChange={v => setDraft({ ...draft, flightNumber: v })} placeholder="例: BR116" />
+                                <Field label="搭乘日期" type="date" value={draft.date} onChange={v => setDraft({ ...draft, date: v })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 bg-[#1A2033] p-3 rounded-lg border border-[#252C42] mb-3">
+>>>>>>> parent of 4a747ea (更新)
                                 <div>
                                     <div className="text-[11px] text-[#5A6378] font-bold mb-1">出發機場</div>
                                     <select value={draft.departLocation} onChange={e => setDraft({ ...draft, departLocation: e.target.value })}>
@@ -375,7 +537,18 @@
                                 <div>
                                     <div className="text-[11px] text-[#5A6378] font-bold mb-1">抵達機場</div>
                                     <select value={draft.arriveLocation} onChange={e => setDraft({ ...draft, arriveLocation: e.target.value })}>
+<<<<<<< HEAD
 @ -948,11 +981,11 @@
+=======
+                                        <option>新千歲 (CTS)</option><option>函館 (HKD)</option><option>旭川 (AKJ)</option><option>桃園 (TPE)</option><option>松山 (TSA)</option><option>小港 (KHH)</option><option>成田 (NRT)</option><option>羽田 (HND)</option><option>關西 (KIX)</option><option>其他</option>
+                                    </select>
+                                </div>
+                                <Field label="降落時間" type="time" value={draft.arriveTime} onChange={v => setDraft({ ...draft, arriveTime: v })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <Field label="座位" value={draft.seat} onChange={v => setDraft({ ...draft, seat: v })} />
+                                <Field label="票號 / 訂位代碼" value={draft.ticketNum} onChange={v => setDraft({ ...draft, ticketNum: v })} placeholder="例如: XYZ123" />
+>>>>>>> parent of 4a747ea (更新)
                             </div>
                             <Field label="備註" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} />
                             <ImageUploadField label="機票/憑證截圖" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
@@ -398,7 +571,25 @@
                                         <IconBtn icon="fa-solid fa-trash" onClick={() => del(f.id)} color={theme.accent} />
                                     </div>
                                 </div>
+<<<<<<< HEAD
 @ -1009,6 +1042,7 @@
+=======
+                            </Card>
+                        ))}
+                    </div>
+                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的航班資訊" />}
+                </div>
+            );
+        }
+
+        // ============ HOTELS TAB ============
+        function HotelsTab({ data, save, uploadImageFn }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortBy, setSortBy] = useState('date_asc');
+
+>>>>>>> parent of 4a747ea (更新)
             const add = () => {
                 setEditId('new');
                 setDraft({ id: Date.now(), name: '', nights: '', checkin: '', checkout: '', address: '', gmap: '', note: '', photo: '' });
@@ -450,7 +641,25 @@
                                         <IconBtn icon="fa-solid fa-trash" onClick={() => del(h.id)} color={theme.accent} />
                                     </div>
                                 </div>
+<<<<<<< HEAD
 @ -1086,6 +1120,7 @@
+=======
+                            </Card>
+                        ))}
+                    </div>
+                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的住宿資訊" />}
+                </div>
+            );
+        }
+
+        // ============ TRANSPORT TAB ============
+        function TransportTab({ data, save }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortBy, setSortBy] = useState('date_asc');
+            
+>>>>>>> parent of 4a747ea (更新)
             const add = () => {
                 setEditId('new');
                 setDraft({ id: Date.now(), type: 'JR', name: '', date: '', detail: '', note: '' });
@@ -500,7 +709,30 @@
                                         <IconBtn icon="fa-solid fa-trash" onClick={() => del(t.id)} color={theme.accent} />
                                     </div>
                                 </div>
+<<<<<<< HEAD
 @ -1160,6 +1195,7 @@
+=======
+                            </Card>
+                        ))}
+                    </div>
+                    {sorted.length === 0 && editId !== 'new' && <EmptyState text="找不到符合的交通資訊" />}
+                </div>
+            );
+        }
+
+        // ============ 🎫 TICKETS TAB ============
+        function TicketsTab({ data, save, uploadImageFn }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortBy, setSortBy] = useState('date_asc');
+            const [filterType, setFilterType] = useState('全部');
+
+            const add = () => {
+                setEditId('new');
+                setDraft({ 
+                    id: Date.now(), name: '', type: '景點', city: '', address: '', gmap: '',
+>>>>>>> parent of 4a747ea (更新)
                     priceAdult: '', priceChild: '', priceSenior: '', countAdult: '', countChild: '', countSenior: '', 
                     currency: 'JPY', estimatedTotal: '', hours: '', visitDate: '', bookingUrl: '', photo: '', note: '' 
                 });
@@ -568,6 +800,7 @@
             };
             const saveEdit = () => { 
                 if(!draft.name) return alert('請輸入店名');
+<<<<<<< HEAD
 @ -1361,7 +1399,7 @@
             const renderForm = () => (
                 <div className="animate-fade-in p-5 bg-white/5 rounded-xl border border-[#E63946]/30 mb-4">
@@ -589,12 +822,60 @@
             );
 
 @ -1399,13 +1441,13 @@
+=======
+                if (editId === 'new') save({ ...data, foods: [...(data.foods || []), draft] });
+                else save({ ...data, foods: (data.foods || []).map(f => f.id === editId ? draft : f) }); 
+                setEditId(null); setDraft(null); 
+            };
+            const del = (id) => { if (confirm('確定刪除？')) save({ ...data, foods: (data.foods || []).filter(f => f.id !== id) }); };
+
+            const cities = ['全部', ...new Set((data.foods || []).map(f => f.city))];
+            const filtered = (data.foods || []).filter(i => matchSearch(i, searchTerm) && (filterType === '全部' || i.city === filterType));
+            const sorted = sortData(filtered, sortBy, null, 'name');
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增美食" />}>美食雷達</SectionTitle>
+                    
+                    <ListControls 
+                        searchTerm={searchTerm} onSearch={setSearchTerm} 
+                        sortBy={sortBy} onSort={setSortBy} 
+                        sortOptions={[ {label: '星級 (高到低)', value: 'rating_desc'}, {label: '店名 (A-Z)', value: 'name_asc'} ]} 
+                    />
+
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+                        {cities.map(c => (
+                            <button key={c} onClick={() => setFilterType(c)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-colors border ${filterType === c ? 'bg-[#E63946] border-[#E63946] text-white' : 'bg-transparent border-[#252C42] text-[#8A93A8] hover:border-white/50'}`}>
+                                {c}
+                            </button>
+                        ))}
+>>>>>>> parent of 4a747ea (更新)
                     </div>
                     
                     {editId && (
                         <FormModal title={editId === 'new' ? '新增美食' : '編輯美食'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
+<<<<<<< HEAD
                         <InlineForm title={editId === 'new' ? '新增美食' : '編輯美食'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
                             {renderForm()}
+=======
+                            <Field label="店名 *" value={draft.name} onChange={v => setDraft({ ...draft, name: v })} />
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <Field label="城市" value={draft.city} onChange={v => setDraft({ ...draft, city: v })} />
+                                <div><div className="text-[11px] text-[#5A6378] font-bold mb-1">類型</div><select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}><option>早餐</option><option>午餐</option><option>晚餐</option><option>甜點</option><option>居酒屋</option><option>咖啡</option></select></div>
+                            </div>
+                            <Field label="地址" value={draft.address} onChange={v => setDraft({ ...draft, address: v })} />
+                            <Field label="Google Map 連結 (選填)" value={draft.gmap} onChange={v => setDraft({ ...draft, gmap: v })} placeholder="貼上 Google Maps 分享網址" />
+                            <div className="mb-3">
+                                <div className="text-[11px] text-[#5A6378] font-bold mb-1">期待值</div>
+                                <div className="flex gap-2">
+                                    {[1,2,3,4,5].map(n => (
+                                        <button key={n} onClick={() => setDraft({ ...draft, rating: n })} className="text-2xl hover:scale-110 transition-transform" style={{ color: n <= draft.rating ? theme.accent2 : theme.border, background:'none', border:'none', padding:0 }}>★</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <Field label="必吃筆記" value={draft.note} onChange={v => setDraft({ ...draft, note: v })} type="textarea" />
+                            <ImageUploadField label="美食照片" url={draft.photo} onUpload={url => setDraft({...draft, photo: url})} uploadImageFn={uploadImageFn} />
+>>>>>>> parent of 4a747ea (更新)
                         </FormModal>
                         </InlineForm>
                     )}
@@ -654,7 +935,26 @@
                                                 <IconBtn icon="fa-solid fa-trash" onClick={() => del(s.id)} color={theme.accent} />
                                             </div>
                                         </div>
+<<<<<<< HEAD
 @ -1535,6 +1578,7 @@
+=======
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                    {sorted.length === 0 && !editId && <EmptyState text="尚未新增任何購物項目！" />}
+                </div>
+            );
+        }
+
+        // ============ COUPONS TAB ============
+        function CouponsTab({ data, save, uploadImageFn }) {
+            const [editId, setEditId] = useState(null);
+            const [draft, setDraft] = useState(null);
+            const [searchTerm, setSearchTerm] = useState('');
+
+>>>>>>> parent of 4a747ea (更新)
             const add = () => {
                 setEditId('new');
                 setDraft({ id: Date.now(), title: '', note: '', photo: '' });
@@ -690,6 +990,7 @@
                                         <IconBtn icon="fa-solid fa-trash" onClick={() => del(c.id)} color={theme.accent} />
                                     </div>
                                 </div>
+<<<<<<< HEAD
 @ -1598,6 +1642,7 @@
             const add = () => {
                 setEditId('new');
@@ -699,6 +1000,35 @@
             const saveEdit = () => {
                 if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
 @ -1618,12 +1663,12 @@
+=======
+                            </Card>
+                        ))}
+                    </div>
+                    {filtered.length === 0 && !editId && <EmptyState text="找不到符合的優惠券" />}
+                </div>
+            );
+        }
+
+        // ============ EXPENSES TAB ============
+        function ExpensesTab({ data, save, exchangeRate }) {
+            const [draft, setDraft] = useState({ date: '', item: '', amount: '', currency: 'JPY', payer: '', category: '餐飲' });
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortBy, setSortBy] = useState('date_desc');
+
+            const add = () => {
+                if (!draft.item || !draft.amount) return alert("請填寫項目與金額");
+                const amountTWD = draft.currency === 'JPY' ? Math.round(Number(draft.amount) * exchangeRate) : Number(draft.amount);
+                save({ ...data, expenses: [...(data.expenses || []), { id: Date.now(), ...draft, amount: Number(draft.amount), amountTWD }] });
+                setDraft({ ...draft, item: '', amount: '' });
+            };
+            const del = (id) => save({ ...data, expenses: (data.expenses || []).filter(e => e.id !== id) });
+
+            const total = (data.expenses || []).reduce((s, e) => s + (e.amountTWD || Number(e.amount)), 0);
+            const byPayer = (data.expenses || []).reduce((acc, e) => { acc[e.payer || '公費'] = (acc[e.payer || '公費'] || 0) + (e.amountTWD || Number(e.amount)); return acc; }, {});
+            const byCategory = (data.expenses || []).reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + (e.amountTWD || Number(e.amount)); return acc; }, {});
+
+            const people = (data.family || []).map(f => f.name).filter(Boolean);
+>>>>>>> parent of 4a747ea (更新)
             const perPerson = people.length ? total / people.length : 0;
 
             const filtered = (data.expenses || []).filter(i => matchSearch(i, searchTerm));
@@ -707,15 +1037,20 @@
 
             return (
                 <div className="animate-fade-in">
+<<<<<<< HEAD
                     <SectionTitle action={<AddButton onClick={add} label="新增記帳" />}>財務分攤記帳</SectionTitle>
                     
                     <SectionTitle action={editId !== 'new' && <AddButton onClick={add} label="新增記帳" />}>財務分攤記帳</SectionTitle>
+=======
+                    <SectionTitle>財務分攤記帳</SectionTitle>
+>>>>>>> parent of 4a747ea (更新)
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                         <Card style={{ marginBottom: 0 }}>
                             <div className="text-[10px] text-[#5A6378] tracking-widest font-bold">總支出 (約 TWD)</div>
 @ -1646,7 +1691,7 @@
                     </div>
 
+<<<<<<< HEAD
                     {editId && (
                         <FormModal title={editId === 'new' ? '新增記帳' : '編輯記帳'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
                         <InlineForm title={editId === 'new' ? '新增記帳' : '編輯記帳'} onSave={saveEdit} onCancel={() => { setEditId(null); setDraft(null); }}>
@@ -729,6 +1064,35 @@
                         </FormModal>
                         </InlineForm>
                     )}
+=======
+                    <Card style={{ background: 'rgba(59,198,228,0.05)', borderColor: 'rgba(59,198,228,0.2)' }}>
+                        <div className="flex justify-between items-end mb-3">
+                            <div className="text-xs text-[#3bc6e4] font-bold tracking-widest">快速記一筆</div>
+                            <div className="text-[10px] text-gray-500">今日日幣匯率: {exchangeRate}</div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+                            <input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} className="col-span-2 md:col-span-1" />
+                            <input placeholder="項目名稱" value={draft.item} onChange={e => setDraft({ ...draft, item: e.target.value })} className="col-span-2 md:col-span-1" />
+                            
+                            <div className="flex gap-1 col-span-2 md:col-span-2">
+                                <select value={draft.currency} onChange={e => setDraft({...draft, currency: e.target.value})} className="w-20 px-1 text-center font-bold text-[#F4A261]">
+                                    <option value="JPY">JPY</option><option value="TWD">TWD</option>
+                                </select>
+                                <input placeholder="輸入金額" type="number" value={draft.amount} onChange={e => setDraft({ ...draft, amount: e.target.value })} className="flex-1" />
+                            </div>
+
+                            <select value={draft.payer} onChange={e => setDraft({ ...draft, payer: e.target.value })} className="col-span-1 text-[11px] sm:text-base">
+                                <option value="">代墊人 (公費)</option>
+                                {people.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            
+                            <select value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} className="col-span-1">
+                                <option>餐飲</option><option>交通</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
+                            </select>
+                            <button onClick={add} className="col-span-2 md:col-span-6 mt-2 bg-[#3bc6e4] text-[#0A0E1A] py-2.5 font-bold rounded-lg hover:bg-white transition-colors shadow-[0_0_10px_rgba(59,198,228,0.4)]">加入記帳</button>
+                        </div>
+                    </Card>
+>>>>>>> parent of 4a747ea (更新)
 
                     <div className="mt-6">
 @ -1689,7 +1734,7 @@
@@ -736,16 +1100,150 @@
                         />
                         <div className="space-y-2">
                             {sorted.map(e => (
+<<<<<<< HEAD
                             {sorted.filter(e => e.id !== editId).map(e => (
                                 <div key={e.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm group transition-colors hover:border-[#3bc6e4]/50">
+=======
+                                <div key={e.id} className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-[#131827] border border-[#252C42] p-3 rounded-lg text-sm">
+>>>>>>> parent of 4a747ea (更新)
                                     <span className="text-[#5A6378] w-full md:w-24 text-xs font-mono">{e.date || '未填日期'}</span>
                                     <span className="font-bold flex-1 text-white">{e.item}</span>
 @ -1702,7 +1747,7 @@
                                     </div>
 
+<<<<<<< HEAD
                                     <div className="ml-auto md:ml-2 flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => {setEditId(e.id); setDraft({...e});}} className="text-[#3bc6e4] hover:bg-[#3bc6e4]/20 p-2 rounded"><i className="fa-solid fa-pen text-xs"></i></button>
                                         <button onClick={() => {setEditId(e.id); setDraft({...e}); window.scrollTo({top:0, behavior:'smooth'});}} className="text-[#3bc6e4] hover:bg-[#3bc6e4]/20 p-2 rounded"><i className="fa-solid fa-pen text-xs"></i></button>
                                         <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-2 rounded"><i className="fa-solid fa-trash text-xs"></i></button>
                                     </div>
                                 </div>
+=======
+                                    <button onClick={() => del(e.id)} className="text-[#E63946] hover:bg-[#E63946]/20 p-2 rounded ml-auto md:ml-2"><i className="fa-solid fa-trash text-xs"></i></button>
+                                </div>
+                            ))}
+                            {sorted.length === 0 && <EmptyState text="找不到符合的記帳紀錄" />}
+                        </div>
+                    </div>
+
+                    {Object.keys(byPayer).length > 0 && (
+                        <Card style={{ marginTop: 24, borderTop: `4px solid ${theme.success}` }}>
+                            <div className="text-sm font-bold text-[#52B788] mb-4"><i className="fa-solid fa-scale-balanced"></i> 最終分攤結算 (TWD)</div>
+                            <div className="space-y-3">
+                                {Object.entries(byPayer).map(([name, paid]) => {
+                                    const diff = paid - perPerson;
+                                    return (
+                                        <div key={name} className="flex justify-between items-center text-sm border-b border-[#252C42] pb-2">
+                                            <span className="font-bold text-white w-20">{name}</span>
+                                            <span className="text-[#8A93A8] text-xs">已代墊 ${paid.toLocaleString()}</span>
+                                            <span className={`font-bold ${diff > 0 ? 'text-[#52B788]' : 'text-[#E63946]'} w-28 text-right`}>
+                                                {diff > 0 ? `應收 $${Math.round(diff).toLocaleString()}` : `需補 $${Math.round(-diff).toLocaleString()}`}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="text-[10px] text-[#5A6378] mt-3">公式：(每人應負擔 ${Math.round(perPerson)}) - (已代墊總額)</div>
+                        </Card>
+                    )}
+                </div>
+            );
+        }
+
+        // ============ EXTRAS TAB ============
+        function ExtrasTab({ data, save, exchangeRate }) {
+            const phrases = [
+                { jp: 'すみません', zh: '不好意思 / 請問 / 抱歉', romaji: 'Sumimasen' },
+                { jp: 'ありがとうございます', zh: '謝謝', romaji: 'Arigatou gozaimasu' },
+                { jp: 'いくらですか？', zh: '多少錢？', romaji: 'Ikura desu ka?' },
+                { jp: 'メニューをください', zh: '請給我菜單', romaji: 'Menyuu wo kudasai' },
+                { jp: 'お会計お願いします', zh: '請結帳', romaji: 'Okaikei onegaishimasu' },
+                { jp: 'トイレはどこですか？', zh: '洗手間在哪裡？', romaji: 'Toire wa doko desu ka?' },
+            ];
+
+            return (
+                <div className="animate-fade-in">
+                    <SectionTitle>旅行小幫手</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <Card>
+                            <div className="text-sm font-bold text-[#E63946] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-language mr-1"></i> 常用日語小抄</div>
+                            <div className="space-y-3">
+                                {phrases.map((p, i) => (
+                                    <div key={i} className="bg-black/20 p-2 rounded-lg">
+                                        <div className="font-bold text-[#E8F1F8]">{p.jp}</div>
+                                        <div className="text-[10px] text-[#F4A261] font-mono mb-1">{p.romaji}</div>
+                                        <div className="text-xs text-[#8A93A8]">{p.zh}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+
+                        <div className="space-y-4">
+                            <Card>
+                                <div className="text-sm font-bold text-[#3bc6e4] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-calculator mr-1"></i> 快速匯率換算 (日圓轉台幣)</div>
+                                <RateCalc exchangeRate={exchangeRate} />
+                            </Card>
+
+                            <Card>
+                                <div className="text-sm font-bold text-[#FFD700] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-cloud-sun mr-1"></i> 北海道天氣查詢</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {['新千歲', '洞爺湖', '函館', '小樽', 'Tomamu', '旭川', '札幌'].map(city => (
+                                        <a key={city} href={`https://www.google.com/search?q=${encodeURIComponent(city + ' 天氣')}`} target="_blank" rel="noreferrer" 
+                                            className="bg-[#252C42] hover:bg-[#FFD700] hover:text-black text-xs text-[#E8ECF4] px-3 py-1.5 rounded-full transition-colors">
+                                            {city} <i className="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+                                        </a>
+                                    ))}
+                                </div>
+                                <div className="text-[11px] text-[#8A93A8] mt-3 leading-relaxed">
+                                    💡 7月均溫 18-26°C，早晚溫差大，記得帶薄外套。富良野賞花最佳季節，偶有陣雨需備雨具。
+                                </div>
+                            </Card>
+
+                            <Card>
+                                <div className="text-sm font-bold text-[#52B788] mb-3 border-b border-[#252C42] pb-2"><i className="fa-solid fa-phone mr-1"></i> 緊急聯絡電話</div>
+                                <div className="space-y-2">
+                                    <a href="tel:110" className="block bg-[#52B788]/10 hover:bg-[#52B788]/20 border border-[#52B788]/30 p-2 rounded-lg text-white no-underline flex justify-between items-center transition-colors">
+                                        <span className="text-xs text-[#8A93A8]">報警 (日本)</span><span className="font-bold text-[#52B788]">110</span>
+                                    </a>
+                                    <a href="tel:119" className="block bg-[#E63946]/10 hover:bg-[#E63946]/20 border border-[#E63946]/30 p-2 rounded-lg text-white no-underline flex justify-between items-center transition-colors">
+                                        <span className="text-xs text-[#8A93A8]">救護/消防 (日本)</span><span className="font-bold text-[#E63946]">119</span>
+                                    </a>
+                                    <div className="bg-[#252C42] p-2 rounded-lg text-xs flex justify-between items-center">
+                                        <span className="text-[#8A93A8]">台北駐日代表處(札幌)</span><span className="font-bold text-white">+81-11-222-2930</span>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function RateCalc({ exchangeRate }) {
+            const [jpy, setJpy] = useState(10000);
+            const [rate, setRate] = useState(exchangeRate); 
+            
+            useEffect(() => { setRate(exchangeRate); }, [exchangeRate]);
+
+            return (
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <input type="number" value={jpy} onChange={e => setJpy(Number(e.target.value))} className="w-24 text-center font-bold bg-[#131827] border border-[#252C42] text-white rounded p-1 outline-none focus:border-[#3bc6e4]" />
+                        <span className="text-xs text-[#8A93A8]">JPY</span>
+                        <span className="text-[#F4A261]"><i className="fa-solid fa-arrow-right"></i></span>
+                        <span className="text-xl font-black text-[#F4A261]">NT$ {Math.round(jpy * rate).toLocaleString()}</span>
+                    </div>
+                    <div className="text-[10px] text-[#5A6378] flex items-center gap-2 mt-2">
+                        今日匯率參考: 1 JPY ≈ <input type="number" step="0.001" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-16 px-1 py-0.5 text-center text-white bg-[#131827] border border-[#252C42] rounded outline-none" /> TWD
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+>>>>>>> parent of 4a747ea (更新)
