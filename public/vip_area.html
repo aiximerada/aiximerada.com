@@ -340,11 +340,13 @@
         }
 
         async function initSystem() {
+            // ⚠️ 修正:移除原本的 signInAnonymously()。
+            // 正式網站沒有 __initial_auth_token,原本會「匿名登入」把使用者剛登入的
+            // 真實帳號蓋掉,導致 onAuthStateChanged 判定未授權 → 存取受限(所有人都進不去)。
+            // 改成:只有沙盒環境(有 __initial_auth_token)才用自訂權杖登入,正式站保留現有登入狀態。
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
                 }
             } catch(e) {
                 console.error("Auth Init Error:", e);

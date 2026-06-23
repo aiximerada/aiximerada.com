@@ -5,9 +5,12 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
-// 🔴 您的 LINE Channel Access Token 與 氣象署 API Key
-const LINE_TOKEN = "p6ugh27GDssmbdkmySR4Z/6QykwBCwpxyQzRvpjJqJAR8zGbTUH0MbhlsMYKAZFrcEWozoAXRflXW+z5P0+EWNPPgVXfjkeYAcFrRleCM3Spwdjsy43Af2S3yNwEoY+G8Us2LtzKXcMpjVQ8DnOovAdB04t89/1O/w1cDnyilFU=";
-const CWA_API_KEY = "CWA-ED31E7C6-7D1D-4E8D-A814-F8DF3E7BC3EF"; 
+// 🔐 密鑰改由 Firebase Secret Manager 提供,不再寫死在程式裡。
+// 部署前先設定一次:
+//   firebase functions:secrets:set LINE_TOKEN
+//   firebase functions:secrets:set CWA_API_KEY
+// 執行階段透過 process.env.LINE_TOKEN / process.env.CWA_API_KEY 取得
+// (已在下方 exports 用 runWith({ secrets: [...] }) 綁定)。
 
 const DEFAULT_EXPENSE_CATEGORIES = ["🥞 早餐", "🍱 午餐", "🍜 晚餐", "🚌 交通", "🧻 日用品"];
 const DEFAULT_INCOME_CATEGORIES = ["💰 薪資", "📈 投資", "😎 不法所得"];
@@ -17,7 +20,7 @@ async function replyLineMessage(replyToken, messages) {
         await axios.post('https://api.line.me/v2/bot/message/reply', {
             replyToken: replyToken,
             messages: messages
-        }, { headers: { 'Authorization': `Bearer ${LINE_TOKEN}` } });
+        }, { headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` } });
     } catch (error) {
         console.error("LINE 回覆失敗:", error.response ? error.response.data : error.message);
     }
@@ -26,7 +29,7 @@ async function replyLineMessage(replyToken, messages) {
 async function getUserProfile(userId) {
     try {
         const res = await axios.get(`https://api.line.me/v2/bot/profile/${userId}`, {
-            headers: { 'Authorization': `Bearer ${LINE_TOKEN}` }
+            headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` }
         });
         return res.data.displayName || "神秘旅行者";
     } catch (e) { return "會員"; }
@@ -167,7 +170,7 @@ function generateNotFoundFlexMessage(title, description) {
 async function getWeather(city) {
     try {
         const searchCity = city.replace(/台/g, '臺');
-        const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${CWA_API_KEY}`;
+        const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${process.env.CWA_API_KEY}`;
         const res = await axios.get(url);
         const targetLocation = res.data.records.location.find(loc => loc.locationName.includes(searchCity));
 
@@ -220,7 +223,7 @@ async function fetchAndDeleteList(userId, scope, replyToken, userRef, groupId) {
 // =====================================================================
 // 🤖 核心：LINE 機器人 Webhook 接收與處理
 // =====================================================================
-exports.lineWebhook = functions.https.onRequest(async (req, res) => {
+exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"] }).https.onRequest(async (req, res) => {
     const events = req.body.events;
     if (!events || events.length === 0) return res.status(200).send("OK");
 
@@ -694,7 +697,7 @@ exports.lineWebhook = functions.https.onRequest(async (req, res) => {
 // =====================================================================
 // 🤖 每日定時任務 (每天早上 8 點執行)：處理待辦提醒與過期銷毀
 // =====================================================================
-exports.dailyTodoRoutine = functions.region("asia-east1").pubsub.schedule("0 8 * * *").timeZone("Asia/Taipei").onRun(async (context) => {
+exports.dailyTodoRoutine = functions.runWith({ secrets: ["LINE_TOKEN"] }).region("asia-east1").pubsub.schedule("0 8 * * *").timeZone("Asia/Taipei").onRun(async (context) => {
     try {
         const today = new Date();
         const tomorrow = new Date(today);
@@ -723,7 +726,7 @@ exports.dailyTodoRoutine = functions.region("asia-east1").pubsub.schedule("0 8 *
                 await axios.post('https://api.line.me/v2/bot/message/push', {
                     to: userId,
                     messages: [createCardMessage("明日待辦提醒", msgText.trim(), "#FFD700")]
-                }, { headers: { 'Authorization': `Bearer ${LINE_TOKEN}` } });
+                }, { headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` } });
             } catch (e) { console.error(`傳送提醒失敗 (${userId}):`, e.message); }
         }
 

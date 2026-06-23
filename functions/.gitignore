@@ -1,2 +1,6 @@
 node_modules/
 *.local
+# 環境變數 / 密鑰(勿提交)
+.env
+.env.*
+.secret.local
