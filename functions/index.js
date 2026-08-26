@@ -294,7 +294,7 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
                     if (isDaigouAdmin) {
                         snap = await db.collection("orders").get();
                     } else {
-                        snap = await db.collection("orders").where("buyerLineId", "==", userId).get();
+                        snap = await db.collection("orders").where("ownerUid", "==", userId).get();
                     }
                     let orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     orders.sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
@@ -302,7 +302,7 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
                     if (orders.length === 0) {
                         await replyLineMessage(replyToken, [createCardMessage(
                             "代購訂單",
-                            isDaigouAdmin ? "目前沒有任何訂單。" : "你目前沒有代購訂單喔～快去商品牆逛逛！",
+                            isDaigouAdmin ? "目前沒有任何訂單。" : "你目前沒有代購訂單喔～快去把想買的加入購物車！",
                             "#06C755", null,
                             { label: "🛒 前往代購", uri: "https://aiximerada.com/daigou.html" }
                         )]);
@@ -315,14 +315,14 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
                         let txt = `📊 總訂單：${orders.length} 筆\n`;
                         txt += Object.entries(statusCount).map(([k, v]) => `・${k}：${v}`).join("\n");
                         txt += "\n\n最新 5 筆：\n";
-                        txt += orders.slice(0, 5).map(o => `▸ ${o.productName || "商品"} ×${o.qty || 1}｜${o.buyerRealName || o.buyerDisplayName || "買家"}｜${o.status || "下單"}`).join("\n");
+                        txt += orders.slice(0, 5).map(o => `▸ ${o.ownerRealName || o.ownerDisplayName || "買家"}｜${o.itemCount || 0} 件｜${o.status || "下單"}`).join("\n");
                         await replyLineMessage(replyToken, [createCardMessage(
                             "代購訂單（後台）", txt, "#3b6cff", null,
                             { label: "🛠️ 開啟後台", uri: "https://aiximerada.com/daigou-admin.html" }
                         )]);
                     } else {
                         let txt = `你有 ${orders.length} 筆訂單：\n\n`;
-                        txt += orders.slice(0, 8).map(o => `▸ ${o.productName || "商品"} ×${o.qty || 1}\n　狀態：${o.status || "下單"}`).join("\n");
+                        txt += orders.slice(0, 8).map(o => `▸ ${o.itemCount || 0} 件商品｜狀態：${o.status || "下單"}`).join("\n");
                         await replyLineMessage(replyToken, [createCardMessage(
                             "我的代購訂單", txt, "#06C755", null,
                             { label: "🧾 查看/付款", uri: "https://aiximerada.com/daigou-orders.html" }
@@ -838,22 +838,31 @@ async function getDaigouAdminIds() {
     return [...ids];
 }
 
-// 新訂單成立
+// 取得某訂單的商品名稱摘要
+async function getOrderItemsSummary(orderId) {
+    try {
+        const snap = await db.collection("daigouItems").where("orderId", "==", orderId).get();
+        const names = snap.docs.map(d => d.data()).filter(x => !x.cancelled).map(x => `・${x.name || "商品"} ×${x.qty || 1}`);
+        return names.length ? names.join("\n") : "";
+    } catch (e) { return ""; }
+}
+
+// 新訂單成立(整車送出)
 exports.daigouOrderCreated = functions.runWith({ secrets: ["LINE_TOKEN"] })
     .firestore.document("orders/{orderId}").onCreate(async (snap, context) => {
         const o = snap.data() || {};
-        const priceStr = `${o.productCurrency || "NT$"} ${o.productPrice != null ? o.productPrice : "-"}`;
+        const summary = await getOrderItemsSummary(context.params.orderId);
         // 通知買家
-        await pushLine(o.buyerLineId || o.buyerUid, [createCardMessage(
+        await pushLine(o.ownerLineId || o.ownerUid, [createCardMessage(
             "訂單已成立",
-            `✅ 已收到你的代購訂單！\n\n🛍️ ${o.productName || "商品"}\n數量：${o.qty || 1}\n預估單價：${priceStr}\n付款方式：${o.payType || "-"}\n\n可隨時到「我的訂單」查看進度。`,
+            `✅ 已收到你的代購訂單！\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}\n\n可隨時到「我的訂單」查看進度。`,
             "#06C755"
         )]);
         // 通知所有管理員
         const admins = await getDaigouAdminIds();
         const adminMsg = createCardMessage(
             "有新的代購訂單",
-            `🛒 ${o.buyerRealName || o.buyerDisplayName || "買家"} 下單了\n\n🛍️ ${o.productName || "商品"}\n數量：${o.qty || 1}\n付款方式：${o.payType || "-"}\n備註：${o.note || "(無)"}`,
+            `🛒 ${o.ownerRealName || o.ownerDisplayName || "買家"} 送出訂單\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}`,
             "#3b6cff"
         );
         for (const id of admins) await pushLine(id, [adminMsg]);
@@ -873,11 +882,12 @@ exports.daigouOrderStatusChanged = functions.runWith({ secrets: ["LINE_TOKEN"] }
             "運送中": "🚚 商品運送中",
             "到貨": "📦 商品已到貨！",
             "已取貨": "🎉 已完成取貨，感謝訂購！",
+            "已取消": "🚫 訂單已取消",
         };
         const head = map[after.status] || `訂單狀態更新：${after.status}`;
-        await pushLine(after.buyerLineId || after.buyerUid, [createCardMessage(
+        await pushLine(after.ownerLineId || after.ownerUid, [createCardMessage(
             "訂單進度更新",
-            `${head}\n\n🛍️ ${after.productName || "商品"}\n目前狀態：${after.status}`,
+            `${head}\n\n共 ${after.itemCount || 0} 件商品\n目前狀態：${after.status}`,
             "#06C755"
         )]);
         return null;

@@ -1,288 +1,433 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的訂單 · 代購</title>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans TC","Segoe UI",sans-serif}
-  :root{--line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff}
-  body{background:var(--bg);color:var(--txt);min-height:100vh}
-  header{position:sticky;top:0;z-index:10;background:rgba(15,20,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;gap:12px}
-  header a{color:var(--muted);text-decoration:none;font-size:20px}
-  header h1{font-size:18px}
-  .wrap{max-width:640px;margin:0 auto;padding:18px 16px 60px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的訂單 - 培根代購</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root{
+      --line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;
+      --txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff;--red:#ff5a6a;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:var(--bg);color:var(--txt);
+      font-family:"Noto Sans TC","Segoe UI",sans-serif;
+      min-height:100vh;-webkit-font-smoothing:antialiased;
+    }
+    .wrap{max-width:680px;margin:0 auto;padding:0 14px 60px}
+    header{
+      position:sticky;top:0;z-index:20;
+      display:flex;align-items:center;gap:12px;
+      max-width:680px;margin:0 auto;padding:14px;
+      background:rgba(15,20,32,.92);backdrop-filter:blur(8px);
+      border-bottom:1px solid var(--line2);
+    }
+    header a.back{color:var(--txt);font-size:20px;text-decoration:none;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+    header a.back:hover{background:var(--line2)}
+    header h1{font-size:18px;font-weight:700}
 
-  .card{background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:16px;margin-bottom:16px}
-  .top{display:flex;gap:12px}
-  .thumb{width:72px;height:72px;border-radius:12px;object-fit:cover;background:#0d1220 center/cover no-repeat;flex-shrink:0;border:1px solid var(--line2)}
-  .thumb.ph{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px}
-  .info{flex:1;min-width:0}
-  .pname{font-size:16px;font-weight:700;margin-bottom:4px;word-break:break-word}
-  .meta{font-size:13px;color:var(--muted);line-height:1.7}
-  .meta b{color:var(--txt);font-weight:600}
-  .price{color:var(--gold);font-weight:700}
-  .note{font-size:13px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2);white-space:pre-wrap;word-break:break-word}
+    .hint{
+      background:var(--card);border:1px solid var(--line2);border-radius:14px;
+      padding:16px;margin:16px 0;color:var(--muted);text-align:center;line-height:1.7;
+    }
+    .hint i{color:var(--gold);margin-right:6px}
 
-  .steps{display:flex;justify-content:space-between;margin:16px 0 4px;gap:2px}
-  .step{flex:1;text-align:center;position:relative}
-  .step .dot{width:16px;height:16px;border-radius:50%;background:var(--line2);margin:0 auto 6px;border:2px solid var(--line2);transition:.2s}
-  .step .lbl{font-size:11px;color:var(--muted);line-height:1.2}
-  .step.on .dot{background:var(--line);border-color:var(--line);box-shadow:0 0 0 3px rgba(6,199,85,.18)}
-  .step.on .lbl{color:var(--txt)}
-  .step::before{content:"";position:absolute;top:8px;left:-50%;width:100%;height:2px;background:var(--line2);z-index:0}
-  .step:first-child::before{display:none}
-  .step.on::before{background:var(--line)}
-  .step .dot{position:relative;z-index:1}
+    .loading{text-align:center;color:var(--muted);padding:40px 0}
+    .loading i{font-size:26px}
 
-  .pay{margin-top:14px;padding-top:14px;border-top:1px solid var(--line2)}
-  .payinfo{font-size:14px;color:var(--muted)}
-  .payinfo b{color:var(--txt)}
-  .payinfo a{color:var(--blue);text-decoration:none;margin-left:10px}
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--line);color:#053d1c;border:none;border-radius:10px;padding:11px 16px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none}
-  .btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--txt)}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
+    /* 訂單卡片 */
+    .order{
+      background:var(--card);border:1px solid var(--line2);border-radius:16px;
+      padding:16px;margin:16px 0;overflow:hidden;
+    }
+    .order-head{
+      display:flex;justify-content:space-between;align-items:flex-start;
+      gap:10px;margin-bottom:14px;
+    }
+    .order-time{font-size:13px;color:var(--muted)}
+    .order-id{font-size:11px;color:var(--line2);margin-top:2px;word-break:break-all}
+    .status-badge{
+      font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;white-space:nowrap;
+      background:rgba(6,199,85,.15);color:var(--line);border:1px solid rgba(6,199,85,.4);
+    }
+    .status-badge.cancel{background:rgba(255,90,106,.15);color:var(--red);border-color:rgba(255,90,106,.4)}
 
-  .payform{margin-top:12px;display:none}
-  .payform.open{display:block}
-  .payform label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
-  .payform input[type=text],.payform input[type=file]{width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:12px;color:var(--txt);font-size:16px}
-  .payform .fmsg{font-size:13px;margin-top:8px;min-height:18px}
-  .payform .actions{display:flex;gap:10px;margin-top:14px}
+    /* 進度條 */
+    .steps{display:flex;justify-content:space-between;margin:6px 0 18px;position:relative}
+    .steps::before{
+      content:"";position:absolute;top:9px;left:6%;right:6%;height:2px;background:var(--line2);z-index:0;
+    }
+    .step{position:relative;z-index:1;flex:1;text-align:center}
+    .dot{
+      width:18px;height:18px;border-radius:50%;margin:0 auto 6px;
+      background:var(--line2);border:2px solid var(--card);
+    }
+    .step.on .dot{background:var(--line);box-shadow:0 0 0 3px rgba(6,199,85,.18)}
+    .step .lbl{font-size:11px;color:var(--muted);line-height:1.2}
+    .step.on .lbl{color:var(--txt);font-weight:600}
+    .steps.cancelled .dot{background:var(--line2)!important;box-shadow:none!important}
+    .steps.cancelled .lbl{color:var(--muted)!important;font-weight:400!important}
 
-  .empty{text-align:center;padding:70px 20px;color:var(--muted)}
-  .empty i{font-size:48px;margin-bottom:16px;display:block;color:var(--line2)}
-  .empty p{margin-bottom:20px;font-size:15px}
-  .status-pill{display:inline-block;font-size:12px;font-weight:700;color:var(--line);background:rgba(6,199,85,.12);border:1px solid rgba(6,199,85,.35);padding:3px 10px;border-radius:999px;margin-top:6px}
-  #globalMsg{text-align:center;color:var(--muted);padding:40px 20px;font-size:14px}
-  .warn{background:rgba(242,201,76,.1);border:1px solid rgba(242,201,76,.35);color:var(--gold);border-radius:12px;padding:14px;font-size:14px;margin-bottom:16px}
-</style>
+    /* 商品列 */
+    .items{border-top:1px solid var(--line2);padding-top:12px}
+    .item{
+      display:flex;gap:12px;align-items:center;padding:10px 0;
+      border-bottom:1px dashed var(--line2);
+    }
+    .item:last-child{border-bottom:none}
+    .item.cancelled{opacity:.45}
+    .item.cancelled .it-name,.item.cancelled .it-meta{text-decoration:line-through}
+    .thumb{
+      width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;
+      background:var(--line2);display:flex;align-items:center;justify-content:center;color:var(--muted);
+    }
+    .it-body{flex:1;min-width:0}
+    .it-name{font-size:14px;font-weight:600;line-height:1.4;word-break:break-word}
+    .it-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px}
+    .it-meta .price{color:var(--gold);font-weight:600}
+    .tag-cancel{
+      display:inline-block;font-size:11px;color:var(--red);
+      border:1px solid rgba(255,90,106,.4);border-radius:6px;padding:1px 6px;margin-top:4px;
+    }
+    .it-right{flex-shrink:0}
+    .btn-x{
+      background:none;border:1px solid rgba(255,90,106,.4);color:var(--red);
+      font-size:12px;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;
+    }
+    .btn-x:hover{background:rgba(255,90,106,.12)}
+
+    /* 付款區 */
+    .pay{margin-top:14px;border-top:1px solid var(--line2);padding-top:14px}
+    .pay-row{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .pay-row b{color:var(--txt)}
+    .pay-row a{color:var(--blue);text-decoration:none}
+    .pay-row a:hover{text-decoration:underline}
+    .btn{
+      display:inline-flex;align-items:center;gap:6px;justify-content:center;
+      border:none;border-radius:10px;padding:9px 16px;font-size:14px;font-weight:600;
+      cursor:pointer;font-family:inherit;
+    }
+    .btn-pay{background:var(--blue);color:#fff;width:100%;margin-top:4px}
+    .btn-ghost-red{
+      background:none;border:1px solid rgba(255,90,106,.5);color:var(--red);
+      width:100%;margin-top:14px;
+    }
+    .btn-ghost-red:hover{background:rgba(255,90,106,.12)}
+    .btn-primary{background:var(--line);color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .pay-form{
+      margin-top:12px;background:rgba(59,108,255,.06);border:1px solid rgba(59,108,255,.25);
+      border-radius:12px;padding:14px;display:none;
+    }
+    .pay-form.open{display:block}
+    .pay-form label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+    .pay-form input[type=text]{
+      width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--txt);
+      border-radius:8px;padding:10px;font-size:15px;letter-spacing:2px;margin-bottom:12px;font-family:inherit;
+    }
+    .pay-form input[type=file]{width:100%;font-size:12px;color:var(--muted);margin-bottom:12px}
+    .pay-form input:focus{outline:none;border-color:var(--blue)}
+
+    /* 空狀態 */
+    .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+    .empty i{font-size:44px;color:var(--line2);margin-bottom:16px;display:block}
+    .empty p{margin-bottom:20px;font-size:15px}
+    .empty a{
+      display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+      background:var(--line);color:#fff;padding:12px 24px;border-radius:12px;font-weight:600;
+    }
+    .spin{animation:sp 1s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
-<header>
-  <a href="daigou.html" aria-label="返回"><i class="fa-solid fa-arrow-left"></i></a>
-  <h1>我的訂單</h1>
-</header>
-<div class="wrap">
-  <div id="globalMsg"><i class="fa-solid fa-spinner fa-spin"></i> 載入中…</div>
-  <div id="list"></div>
-</div>
+  <header>
+    <a class="back" href="daigou.html" aria-label="返回"><i class="fa-solid fa-arrow-left"></i></a>
+    <h1>我的訂單</h1>
+  </header>
+  <div class="wrap">
+    <div id="app">
+      <div class="loading"><i class="fa-solid fa-spinner spin"></i><p style="margin-top:10px">載入中…</p></div>
+    </div>
+  </div>
 
-<script type="module">
-import { db } from "./js/firebase-config.js";
-import { LIFF_ID, ORDER_STATUS } from "./js/daigou-config.js";
-import { doc,getDoc,updateDoc,collection,query,where,orderBy,getDocs,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage,ref,uploadBytes,getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  <script type="module">
+    import { db } from "./js/firebase-config.js";
+    import { LIFF_ID, ORDER_STATUS } from "./js/daigou-config.js";
+    import { doc,getDoc,updateDoc,collection,query,where,getDocs,writeBatch,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getStorage,ref,uploadBytes,getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-let me=null; const storage=getStorage();
-const $ = s => document.querySelector(s);
+    let me=null; const storage=getStorage();
+    const app=document.getElementById("app");
 
-// ---- 工具 ----
-function esc(v){
-  return String(v==null?"":v)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-function fmtDate(ts){
-  try{
-    let d=null;
-    if(!ts) return "";
-    if(typeof ts.toDate==="function") d=ts.toDate();
-    else if(ts instanceof Date) d=ts;
-    else if(typeof ts==="number") d=new Date(ts);
-    else if(ts.seconds!=null) d=new Date(ts.seconds*1000);
-    if(!d||isNaN(d.getTime())) return "";
-    const p=n=>String(n).padStart(2,"0");
-    return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-  }catch(e){ return ""; }
-}
-function toMs(ts){
-  if(!ts) return 0;
-  if(typeof ts.toDate==="function") return ts.toDate().getTime();
-  if(ts instanceof Date) return ts.getTime();
-  if(typeof ts==="number") return ts;
-  if(ts.seconds!=null) return ts.seconds*1000;
-  return 0;
-}
+    // ---- 工具 ----
+    function esc(s){
+      return String(s==null?"":s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    function toDate(v){
+      try{
+        if(!v) return null;
+        if(typeof v.toDate==="function") return v.toDate();
+        if(typeof v.seconds==="number") return new Date(v.seconds*1000);
+        if(v instanceof Date) return v;
+        const d=new Date(v); return isNaN(d)?null:d;
+      }catch(e){ return null; }
+    }
+    function secOf(v){
+      if(!v) return 0;
+      if(typeof v.seconds==="number") return v.seconds;
+      const d=toDate(v); return d?d.getTime()/1000:0;
+    }
+    function fmtDate(v){
+      const d=toDate(v);
+      if(!d) return "—";
+      const p=n=>String(n).padStart(2,"0");
+      return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
 
-// ---- LINE 登入 ----
-async function initLine(){
-  await liff.init({liffId:LIFF_ID});
-  if(!liff.isLoggedIn()){ liff.login(); return false; }
-  const p=await liff.getProfile();
-  const snap=await getDoc(doc(db,"users",p.userId));
-  me={ lineUserId:p.userId, displayName:p.displayName, avatar:p.pictureUrl, realName:(snap.exists()&&snap.data().realName)||p.displayName };
-  return true;
-}
+    async function initLine(){
+      await liff.init({liffId:LIFF_ID});
+      if(!liff.isLoggedIn()){ liff.login(); return false; }
+      const p=await liff.getProfile();
+      const snap=await getDoc(doc(db,"users",p.userId));
+      me={ lineUserId:p.userId, displayName:p.displayName, realName:(snap.exists()&&snap.data().realName)||p.displayName };
+      return true;
+    }
 
-// ---- 讀取訂單（先試 orderBy，失敗 fallback）----
-async function fetchOrders(){
-  const col=collection(db,"orders");
-  let docs=[];
-  try{
-    const q=query(col, where("buyerUid","==",me.lineUserId), orderBy("createdAt","desc"));
-    const snap=await getDocs(q);
-    snap.forEach(d=>docs.push({id:d.id,...d.data()}));
-  }catch(e){
-    // 通常是缺 composite index：改用只 where，前端自行排序
-    const q2=query(col, where("buyerUid","==",me.lineUserId));
-    const snap=await getDocs(q2);
-    snap.forEach(d=>docs.push({id:d.id,...d.data()}));
-    docs.sort((a,b)=>toMs(b.createdAt)-toMs(a.createdAt));
-  }
-  return docs;
-}
+    // ---- 讀取資料 ----
+    async function loadData(){
+      // 訂單表頭
+      let orders=[];
+      const oSnap=await getDocs(query(collection(db,"orders"), where("ownerUid","==",me.lineUserId)));
+      oSnap.forEach(d=>orders.push({id:d.id, ...d.data()}));
+      orders.sort((a,b)=>secOf(b.createdAt)-secOf(a.createdAt));
 
-// ---- 進度條 ----
-function stepsHtml(status){
-  const cur=ORDER_STATUS.indexOf(status);
-  return `<div class="steps">${ORDER_STATUS.map((s,i)=>
-    `<div class="step ${i<=cur?"on":""}"><div class="dot"></div><div class="lbl">${esc(s)}</div></div>`
-  ).join("")}</div>`;
-}
+      // 商品(需 submitted==true),缺 index 時 fallback
+      let itemDocs=[];
+      try{
+        const iSnap=await getDocs(query(collection(db,"daigouItems"),
+          where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
+        iSnap.forEach(d=>itemDocs.push({id:d.id, ...d.data()}));
+      }catch(err){
+        console.warn("composite index 缺失,fallback:", err);
+        const iSnap=await getDocs(query(collection(db,"daigouItems"),
+          where("ownerUid","==",me.lineUserId)));
+        iSnap.forEach(d=>{ const x={id:d.id, ...d.data()}; if(x.submitted===true) itemDocs.push(x); });
+      }
+      // 依 orderId 分組
+      const map={};
+      itemDocs.forEach(it=>{
+        const k=it.orderId||"__none__";
+        (map[k]=map[k]||[]).push(it);
+      });
+      return {orders, itemsByOrder:map};
+    }
 
-// ---- 單張卡片 ----
-function cardHtml(o){
-  const thumb = o.productPhoto
-    ? `<div class="thumb" style="background-image:url('${esc(o.productPhoto)}')"></div>`
-    : `<div class="thumb ph"><i class="fa-solid fa-box"></i></div>`;
-  const priceLine = (o.productPrice!=null && o.productPrice!=="")
-    ? `<span class="price">${esc(o.productCurrency||"")}${esc(o.productPrice)}</span>` : "";
-  const created = fmtDate(o.createdAt);
-  const metaRows=[];
-  metaRows.push(`數量 <b>${esc(o.qty!=null?o.qty:1)}</b>${priceLine?` ・ 預估單價 ${priceLine}`:""}`);
-  if(o.payType) metaRows.push(`付款方式 <b>${esc(o.payType)}</b>`);
-  if(created) metaRows.push(`下單時間 <b>${esc(created)}</b>`);
+    // ---- 渲染 ----
+    function renderSteps(status){
+      const cancelled = status==="已取消";
+      const idx = ORDER_STATUS.indexOf(status);
+      let html=`<div class="steps${cancelled?" cancelled":""}">`;
+      ORDER_STATUS.forEach((st,i)=>{
+        const on = !cancelled && idx>=0 && i<=idx;
+        html+=`<div class="step${on?" on":""}"><div class="dot"></div><div class="lbl">${esc(st)}</div></div>`;
+      });
+      html+=`</div>`;
+      return html;
+    }
 
-  const noteHtml = o.note ? `<div class="note">${esc(o.note)}</div>` : "";
-
-  // 付款資訊區
-  let payHtml="";
-  if(!o.payLast5){
-    payHtml=`
-      <div class="pay">
-        <button class="btn" data-act="toggle" data-id="${esc(o.id)}"><i class="fa-solid fa-money-check-dollar"></i> 我要填付款資訊</button>
-        <div class="payform" id="pf-${esc(o.id)}">
-          <label>匯款帳號後五碼</label>
-          <input type="text" inputmode="numeric" maxlength="5" pattern="[0-9]*" id="last5-${esc(o.id)}" placeholder="例：12345">
-          <label>上傳匯款截圖（選填）</label>
-          <input type="file" accept="image/*" id="slip-${esc(o.id)}">
-          <div class="fmsg" id="fmsg-${esc(o.id)}"></div>
-          <div class="actions">
-            <button class="btn" data-act="submit" data-id="${esc(o.id)}"><i class="fa-solid fa-paper-plane"></i> 送出</button>
-            <button class="btn ghost" data-act="cancel" data-id="${esc(o.id)}">取消</button>
-          </div>
+    function renderItem(it){
+      const cancelled = it.cancelled===true;
+      const photo = (Array.isArray(it.photos)&&it.photos[0])?it.photos[0]:"";
+      const thumb = photo
+        ? `<img class="thumb" src="${esc(photo)}" alt="" onerror="this.outerHTML='<div class=&quot;thumb&quot;><i class=&quot;fa-regular fa-image&quot;></i></div>'">`
+        : `<div class="thumb"><i class="fa-regular fa-image"></i></div>`;
+      const meta=[];
+      meta.push(`<span>x${esc(it.qty||1)}</span>`);
+      if(it.price!=null&&it.price!=="") meta.push(`<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>`);
+      if(it.store) meta.push(`<span><i class="fa-solid fa-shop" style="opacity:.6"></i> ${esc(it.store)}</span>`);
+      return `<div class="item${cancelled?" cancelled":""}">
+        ${thumb}
+        <div class="it-body">
+          <div class="it-name">${esc(it.name||"(未命名商品)")}</div>
+          <div class="it-meta">${meta.join("")}</div>
+          ${cancelled?`<span class="tag-cancel">已取消</span>`:""}
+        </div>
+        <div class="it-right">
+          ${(!cancelled && it.__canCancel)?`<button class="btn-x" data-cancel-item="${esc(it.id)}">取消此商品</button>`:""}
         </div>
       </div>`;
-  }else{
-    const slip = o.paySlipUrl
-      ? `<a href="${esc(o.paySlipUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-image"></i> 查看截圖</a>` : "";
-    payHtml=`
-      <div class="pay">
-        <div class="payinfo"><i class="fa-solid fa-circle-check" style="color:var(--line)"></i> 末五碼：<b>${esc(o.payLast5)}</b>${slip}</div>
-      </div>`;
-  }
-
-  return `
-  <div class="card" data-id="${esc(o.id)}">
-    <div class="top">
-      ${thumb}
-      <div class="info">
-        <div class="pname">${esc(o.productName||"（未命名商品）")}</div>
-        <div class="meta">${metaRows.map(r=>`<div>${r}</div>`).join("")}</div>
-        <span class="status-pill">${esc(o.status||ORDER_STATUS[0])}</span>
-      </div>
-    </div>
-    ${stepsHtml(o.status||ORDER_STATUS[0])}
-    ${noteHtml}
-    ${payHtml}
-  </div>`;
-}
-
-// ---- 渲染 ----
-async function render(){
-  const list=$("#list"); const g=$("#globalMsg");
-  g.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> 載入訂單中…';
-  list.innerHTML="";
-  let orders=[];
-  try{
-    orders=await fetchOrders();
-  }catch(e){
-    g.innerHTML=`<div class="warn">讀取訂單失敗：${esc(e.message||e)}</div>`;
-    return;
-  }
-  g.style.display="none";
-  if(!orders.length){
-    list.innerHTML=`
-      <div class="empty">
-        <i class="fa-solid fa-receipt"></i>
-        <p>你還沒有任何訂單，去商品牆逛逛吧</p>
-        <a class="btn" href="daigou.html"><i class="fa-solid fa-store"></i> 前往商品牆</a>
-      </div>`;
-    return;
-  }
-  list.innerHTML=orders.map(cardHtml).join("");
-}
-
-// ---- 送出付款資訊 ----
-async function submitPay(orderId){
-  const last5El=$(`#last5-${CSS.escape(orderId)}`);
-  const slipEl=$(`#slip-${CSS.escape(orderId)}`);
-  const msgEl=$(`#fmsg-${CSS.escape(orderId)}`);
-  const last5=(last5El.value||"").trim();
-  if(!/^\d{5}$/.test(last5)){
-    msgEl.style.color="var(--gold)";
-    msgEl.textContent="請輸入 5 位數字的帳號後五碼";
-    return;
-  }
-  const btn=document.querySelector(`[data-act="submit"][data-id="${CSS.escape(orderId)}"]`);
-  if(btn) btn.disabled=true;
-  msgEl.style.color="var(--muted)";
-  msgEl.textContent="送出中…";
-  try{
-    const payload={ payLast5:last5, status:"已付款", updatedAt:serverTimestamp() };
-    const f=slipEl && slipEl.files && slipEl.files[0];
-    if(f){
-      msgEl.textContent="上傳截圖中…";
-      const path=`daigou_slip/${me.lineUserId}/${orderId}_${Date.now()}.jpg`;
-      const r=ref(storage,path);
-      await uploadBytes(r,f);
-      payload.paySlipUrl=await getDownloadURL(r);
     }
-    await updateDoc(doc(db,"orders",orderId), payload);
-    msgEl.style.color="var(--line)";
-    msgEl.textContent="✅ 已送出，感謝！";
-    await render();
-  }catch(err){
-    if(btn) btn.disabled=false;
-    msgEl.style.color="var(--gold)";
-    msgEl.textContent="❌ 送出失敗："+(err.message||err);
-  }
-}
 
-// ---- 事件委派 ----
-$("#list").addEventListener("click", e=>{
-  const t=e.target.closest("[data-act]");
-  if(!t) return;
-  const id=t.dataset.id;
-  const act=t.dataset.act;
-  if(act==="toggle"){ const pf=$(`#pf-${CSS.escape(id)}`); if(pf) pf.classList.toggle("open"); }
-  else if(act==="cancel"){ const pf=$(`#pf-${CSS.escape(id)}`); if(pf) pf.classList.remove("open"); }
-  else if(act==="submit"){ submitPay(id); }
-});
+    function renderPay(order){
+      const oid=order.id;
+      const cancelled = order.status==="已取消";
+      if(order.payLast5){
+        const slip = order.paySlipUrl
+          ? ` &nbsp;·&nbsp; <a href="${esc(order.paySlipUrl)}" target="_blank"><i class="fa-solid fa-image"></i> 查看截圖</a>` : "";
+        return `<div class="pay"><div class="pay-row"><i class="fa-solid fa-circle-check" style="color:var(--line)"></i> 末五碼:<b>${esc(order.payLast5)}</b>${slip}</div></div>`;
+      }
+      if(cancelled) return "";
+      // 未填付款資訊
+      return `<div class="pay">
+        <button class="btn btn-pay" data-toggle-pay="${esc(oid)}"><i class="fa-solid fa-money-bill-wave"></i> 填付款資訊</button>
+        <div class="pay-form" id="payform-${esc(oid)}">
+          <label>匯款帳號末五碼</label>
+          <input type="text" inputmode="numeric" maxlength="5" pattern="[0-9]*" placeholder="12345" id="last5-${esc(oid)}">
+          <label>上傳匯款截圖(選填)</label>
+          <input type="file" accept="image/*" id="slip-${esc(oid)}">
+          <button class="btn btn-primary" style="width:100%" data-submit-pay="${esc(oid)}"><i class="fa-solid fa-paper-plane"></i> 送出</button>
+        </div>
+      </div>`;
+    }
 
-// ---- 啟動 ----
-(async function(){
-  try{
-    const ok=await initLine();
-    if(!ok) return; // 已觸發 liff.login()
-    await render();
-  }catch(e){
-    $("#globalMsg").innerHTML=`<div class="warn"><i class="fa-solid fa-triangle-exclamation"></i> 無法登入 LINE（本機預覽或設定問題）：${esc(e.message||e)}<br>請部署到網域後於手機 LINE 內開啟。</div>`;
-  }
-})();
-</script>
+    function renderOrder(order, items){
+      const cancelled = order.status==="已取消";
+      const done = order.status==="已取貨";
+      const canCancel = !cancelled && !done;   // 已取貨/已取消 不可再取消
+      const badge = cancelled
+        ? `<span class="status-badge cancel">已取消</span>`
+        : `<span class="status-badge">${esc(order.status||"下單")}</span>`;
+
+      // 標記商品是否可取消
+      items.forEach(it=>{ it.__canCancel=canCancel; });
+      const itemsHtml = items.length
+        ? items.map(renderItem).join("")
+        : `<div style="color:var(--muted);font-size:13px;padding:8px 0">此訂單沒有商品資料</div>`;
+
+      return `<div class="order">
+        <div class="order-head">
+          <div>
+            <div class="order-time"><i class="fa-regular fa-clock"></i> ${fmtDate(order.createdAt)}</div>
+            <div class="order-id">單號 ${esc(order.id)}</div>
+          </div>
+          ${badge}
+        </div>
+        ${renderSteps(order.status)}
+        <div class="items">${itemsHtml}</div>
+        ${renderPay(order)}
+        ${canCancel?`<button class="btn btn-ghost-red" data-cancel-order="${esc(order.id)}"><i class="fa-solid fa-ban"></i> 取消整筆訂單</button>`:""}
+      </div>`;
+    }
+
+    async function render(){
+      app.innerHTML=`<div class="loading"><i class="fa-solid fa-spinner spin"></i><p style="margin-top:10px">載入中…</p></div>`;
+      let data;
+      try{
+        data=await loadData();
+      }catch(err){
+        console.error(err);
+        app.innerHTML=`<div class="hint"><i class="fa-solid fa-triangle-exclamation"></i>載入訂單失敗:${esc(err.message||err)}</div>`;
+        return;
+      }
+      const {orders, itemsByOrder}=data;
+      if(!orders.length){
+        app.innerHTML=`<div class="empty">
+          <i class="fa-solid fa-box-open"></i>
+          <p>你還沒有送出任何訂單</p>
+          <a href="daigou.html"><i class="fa-solid fa-cart-shopping"></i> 去購物車</a>
+        </div>`;
+        return;
+      }
+      // 保存以供事件用
+      window.__ORDERS=orders;
+      window.__ITEMS=itemsByOrder;
+      app.innerHTML = orders.map(o=>renderOrder(o, (itemsByOrder[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)))).join("");
+      bindEvents();
+    }
+
+    // ---- 事件 ----
+    function bindEvents(){
+      app.querySelectorAll("[data-toggle-pay]").forEach(b=>{
+        b.onclick=()=>{
+          const f=document.getElementById("payform-"+b.dataset.togglePay);
+          if(f) f.classList.toggle("open");
+        };
+      });
+      app.querySelectorAll("[data-submit-pay]").forEach(b=>{
+        b.onclick=()=>submitPay(b.dataset.submitPay, b);
+      });
+      app.querySelectorAll("[data-cancel-item]").forEach(b=>{
+        b.onclick=()=>cancelItem(b.dataset.cancelItem, b);
+      });
+      app.querySelectorAll("[data-cancel-order]").forEach(b=>{
+        b.onclick=()=>cancelOrder(b.dataset.cancelOrder, b);
+      });
+    }
+
+    async function submitPay(orderId, btn){
+      const last5=(document.getElementById("last5-"+orderId)||{}).value||"";
+      const clean=last5.replace(/\D/g,"").slice(0,5);
+      if(clean.length<5){ alert("請輸入匯款帳號末五碼(5 位數字)"); return; }
+      const fileEl=document.getElementById("slip-"+orderId);
+      const file=fileEl&&fileEl.files&&fileEl.files[0]?fileEl.files[0]:null;
+      btn.disabled=true; const old=btn.innerHTML; btn.innerHTML=`<i class="fa-solid fa-spinner spin"></i> 送出中…`;
+      try{
+        let url=null;
+        if(file){
+          const path=`daigou_slip/${me.lineUserId}/${orderId}_${Date.now()}.jpg`;
+          const r=ref(storage,path);
+          await uploadBytes(r,file);
+          url=await getDownloadURL(r);
+        }
+        const upd={ payLast5:clean, status:"已付款", updatedAt:serverTimestamp() };
+        if(url) upd.paySlipUrl=url;
+        await updateDoc(doc(db,"orders",orderId), upd);
+        await render();
+      }catch(err){
+        console.error(err);
+        alert("送出失敗:"+(err.message||err));
+        btn.disabled=false; btn.innerHTML=old;
+      }
+    }
+
+    async function cancelItem(itemId, btn){
+      if(!confirm("確定取消此商品?")) return;
+      btn.disabled=true;
+      try{
+        await updateDoc(doc(db,"daigouItems",itemId), {cancelled:true});
+        await render();
+      }catch(err){
+        console.error(err);
+        alert("取消失敗:"+(err.message||err));
+        btn.disabled=false;
+      }
+    }
+
+    async function cancelOrder(orderId, btn){
+      if(!confirm("確定取消整筆訂單?")) return;
+      btn.disabled=true; const old=btn.innerHTML; btn.innerHTML=`<i class="fa-solid fa-spinner spin"></i> 處理中…`;
+      try{
+        const items=(window.__ITEMS&&window.__ITEMS[orderId])||[];
+        const batch=writeBatch(db);
+        items.forEach(it=>{ batch.update(doc(db,"daigouItems",it.id), {cancelled:true}); });
+        batch.update(doc(db,"orders",orderId), {status:"已取消", updatedAt:serverTimestamp()});
+        await batch.commit();
+        await render();
+      }catch(err){
+        console.error(err);
+        alert("取消訂單失敗:"+(err.message||err));
+        btn.disabled=false; btn.innerHTML=old;
+      }
+    }
+
+    // ---- 啟動 ----
+    (async ()=>{
+      try{
+        const ok=await initLine();
+        if(!ok) return; // 導向 LINE 登入
+        await render();
+      }catch(err){
+        console.error(err);
+        app.innerHTML=`<div class="hint"><i class="fa-solid fa-triangle-exclamation"></i>初始化失敗,請重新整理或稍後再試。<br><span style="font-size:12px;opacity:.7">${esc(err.message||err)}</span></div>`;
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -3,32 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>上架商品 · 代購</title>
+<title>新增商品 · 培根代購</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans TC","Segoe UI",sans-serif}
-  :root{--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c}
+  :root{--line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff}
   body{background:var(--bg);color:var(--txt);min-height:100vh}
-  header{position:sticky;top:0;background:rgba(15,20,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;gap:12px}
+  header{position:sticky;top:0;z-index:20;background:rgba(15,20,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;gap:12px}
   header a{color:var(--muted);text-decoration:none;font-size:20px}
   header h1{font-size:18px}
   .wrap{max-width:560px;margin:0 auto;padding:20px 16px 60px}
   label{display:block;font-size:14px;color:var(--muted);margin:16px 0 6px}
   input,textarea,select{width:100%;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:12px;color:var(--txt);font-size:16px}
   textarea{min-height:80px;resize:vertical}
+  select{appearance:none;cursor:pointer}
   .row{display:flex;gap:12px}.row>div{flex:1}
   .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
   .ph{aspect-ratio:1;border:2px dashed var(--line2);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;background:center/cover no-repeat;position:relative;overflow:hidden}
   .ph i{font-size:24px}
-  .ph .del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer}
-  .submit{width:100%;margin-top:24px;background:#3b6cff;color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:700;cursor:pointer}
-  .submit:disabled{opacity:.5}
-  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .ph .del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;line-height:1;cursor:pointer;font-size:16px}
+  .submit{width:100%;margin-top:24px;background:var(--line);color:#fff;border:none;border-radius:12px;padding:15px;font-size:17px;font-weight:700;cursor:pointer}
+  .submit:disabled{opacity:.5;cursor:default}
+  .note{font-size:13px;margin-top:12px;text-align:center}
+  .note.err{color:#ff6b6b}
 </style>
 </head>
 <body>
-<header><a href="daigou.html"><i class="fa-solid fa-arrow-left"></i></a><h1>上架商品</h1></header>
+<header><a href="daigou.html"><i class="fa-solid fa-arrow-left"></i></a><h1>新增商品</h1></header>
 <div class="wrap">
   <label>商品名稱 *</label>
   <input id="name" placeholder="例：日本限定 Pokemon 抱枕">
@@ -59,43 +61,43 @@
   <label>說明 / 備註</label>
   <textarea id="note" placeholder="規格、顏色、尺寸、預計到貨時間…"></textarea>
 
-  <button class="submit" id="submit">🚀 上架商品</button>
+  <button class="submit" id="submit">🛒 加入購物車</button>
   <div class="note" id="msg"></div>
 </div>
 
 <script type="module">
 import { db } from "./js/firebase-config.js";
-import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL }
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { LIFF_ID } from "./js/daigou-config.js";
+import { doc,getDoc,addDoc,collection,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage,ref,uploadBytes,getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-const LIFF_ID = "2009464550-UWeV9K8C";
-const storage = getStorage();
+let me=null; const storage=getStorage();
 const $ = s => document.querySelector(s);
-let me = null;
-const photoFiles = [null,null,null];
-let curIdx = 0;
+const photoFiles=[null,null,null];
+let curIdx=0;
 
 (async function(){
   try{
-    await liff.init({ liffId: LIFF_ID });
+    await liff.init({liffId:LIFF_ID});
     if(!liff.isLoggedIn()){ liff.login(); return; }
-    const p = await liff.getProfile();
-    const snap = await getDoc(doc(db,"users",p.userId));
-    me = { lineUserId:p.userId, realName:(snap.exists()&&snap.data().realName)||p.displayName };
-  }catch(e){
-    $("#msg").textContent = "⚠️ 本機預覽無法登入 LINE（部署到網域後正常）。表單可先預覽。";
-  }
+    const p=await liff.getProfile();
+    const snap=await getDoc(doc(db,"users",p.userId));
+    me={ lineUserId:p.userId, displayName:p.displayName, realName:(snap.exists()&&snap.data().realName)||p.displayName };
+  }catch(e){ document.querySelector("#msg").textContent="⚠️ 本機預覽無法登入 LINE（部署後正常）"; }
 })();
 
-// 照片選擇
+// 照片選擇 / 刪除
 $("#photos").addEventListener("click", e => {
   const ph = e.target.closest(".ph"); if(!ph) return;
   if(e.target.classList.contains("del")){
-    const i = +ph.dataset.i; photoFiles[i]=null; ph.style.backgroundImage=""; ph.innerHTML='<i class="fa-solid fa-plus"></i>'; return;
+    const i = +ph.dataset.i;
+    photoFiles[i]=null;
+    ph.style.backgroundImage="";
+    ph.innerHTML = i===0 ? '<i class="fa-solid fa-camera"></i>' : '<i class="fa-solid fa-plus"></i>';
+    return;
   }
-  curIdx = +ph.dataset.i; $("#fileInput").click();
+  curIdx = +ph.dataset.i;
+  $("#fileInput").click();
 });
 $("#fileInput").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
@@ -110,11 +112,15 @@ $("#fileInput").addEventListener("change", e => {
 $("#submit").onclick = async () => {
   const name = $("#name").value.trim();
   const price = $("#price").value.trim();
-  if(!name){ alert("請填商品名稱"); return; }
-  if(!me){ alert("尚未用 LINE 登入（本機預覽無法上架，請部署後在手機開）"); return; }
-  $("#submit").disabled = true; $("#msg").textContent = "上傳中…";
+  $("#msg").className = "note";
+  if(!name){ $("#msg").textContent = "請填寫商品名稱"; return; }
+  if(!price){ $("#msg").textContent = "請填寫預估單價"; return; }
+  if(!me){ $("#msg").textContent = "尚未用 LINE 登入（請部署後在手機開啟）"; return; }
+
+  const btn = $("#submit");
+  btn.disabled = true;
+  btn.textContent = "上傳中…";
   try{
-    // 上傳照片到 Storage
     const urls = [];
     for(let i=0;i<photoFiles.length;i++){
       if(!photoFiles[i]) continue;
@@ -123,20 +129,21 @@ $("#submit").onclick = async () => {
       await uploadBytes(r, photoFiles[i]);
       urls.push(await getDownloadURL(r));
     }
-    await addDoc(collection(db,"products"), {
-      name, price: Number(price)||0, currency: $("#currency").value,
-      qty: Number($("#qty").value)||1,
-      store: $("#store").value.trim(),
-      refLink: $("#refLink").value.trim(),
-      note: $("#note").value.trim(), photos: urls,
-      sellerUid: me.lineUserId, sellerName: me.realName,
-      status: "開團中", orderedQty: 0, createdAt: serverTimestamp()
+    await addDoc(collection(db,"daigouItems"), {
+      ownerUid: me.lineUserId, ownerLineId: me.lineUserId, ownerRealName: me.realName, ownerDisplayName: me.displayName||"",
+      name, price: Number(price)||0, currency: $("#currency").value, qty: Number($("#qty").value)||1,
+      store: $("#store").value.trim(), refLink: $("#refLink").value.trim(), note: $("#note").value.trim(), photos: urls,
+      submitted: false, orderId: null, cancelled: false, costPaid: 0,
+      createdAt: serverTimestamp(), submittedAt: null
     });
-    $("#msg").textContent = "✅ 上架成功！";
+    $("#msg").className = "note";
+    $("#msg").textContent = "✅ 已加入購物車";
     setTimeout(()=>location.href="daigou.html", 800);
   }catch(err){
-    $("#submit").disabled = false;
-    $("#msg").textContent = "❌ 失敗：" + err.message;
+    btn.disabled = false;
+    btn.textContent = "🛒 加入購物車";
+    $("#msg").className = "note err";
+    $("#msg").textContent = err.message;
   }
 };
 </script>
