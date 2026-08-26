@@ -752,3 +752,79 @@ exports.dailyTodoRoutine = functions.runWith({ secrets: ["LINE_TOKEN"] }).region
     }
     return null;
 });
+
+// =====================================================================
+// 🛒 代購訂單 LINE 推播通知
+//   - 新訂單成立：通知買家(收到訂單) + 通知所有管理員(有新訂單)
+//   - 訂單狀態變更：通知買家最新進度
+//   ⚠️ 前提：LIFF 登入的 LINE Login channel 與本 Messaging API channel
+//      需屬於「同一個 Provider」,userId 才通用、push 才會成功；
+//      且買家/管理員需已加入「小助手」為好友。
+// =====================================================================
+async function pushLine(to, messages) {
+    if (!to) return;
+    try {
+        await axios.post('https://api.line.me/v2/bot/message/push', {
+            to: to,
+            messages: messages
+        }, { headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` } });
+    } catch (e) {
+        console.error(`代購推播失敗 (${to}):`, e.response ? JSON.stringify(e.response.data) : e.message);
+    }
+}
+
+async function getDaigouAdminIds() {
+    try {
+        const snap = await db.collection("users").where("isAdmin", "==", true).get();
+        return snap.docs.map(d => d.id);
+    } catch (e) {
+        console.error("讀取管理員清單失敗:", e.message);
+        return [];
+    }
+}
+
+// 新訂單成立
+exports.daigouOrderCreated = functions.runWith({ secrets: ["LINE_TOKEN"] })
+    .firestore.document("orders/{orderId}").onCreate(async (snap, context) => {
+        const o = snap.data() || {};
+        const priceStr = `${o.productCurrency || "NT$"} ${o.productPrice != null ? o.productPrice : "-"}`;
+        // 通知買家
+        await pushLine(o.buyerLineId || o.buyerUid, [createCardMessage(
+            "訂單已成立",
+            `✅ 已收到你的代購訂單！\n\n🛍️ ${o.productName || "商品"}\n數量：${o.qty || 1}\n預估單價：${priceStr}\n付款方式：${o.payType || "-"}\n\n可隨時到「我的訂單」查看進度。`,
+            "#06C755"
+        )]);
+        // 通知所有管理員
+        const admins = await getDaigouAdminIds();
+        const adminMsg = createCardMessage(
+            "有新的代購訂單",
+            `🛒 ${o.buyerRealName || o.buyerDisplayName || "買家"} 下單了\n\n🛍️ ${o.productName || "商品"}\n數量：${o.qty || 1}\n付款方式：${o.payType || "-"}\n備註：${o.note || "(無)"}`,
+            "#3b6cff"
+        );
+        for (const id of admins) await pushLine(id, [adminMsg]);
+        return null;
+    });
+
+// 訂單狀態變更 → 通知買家
+exports.daigouOrderStatusChanged = functions.runWith({ secrets: ["LINE_TOKEN"] })
+    .firestore.document("orders/{orderId}").onUpdate(async (change, context) => {
+        const before = change.before.data() || {};
+        const after = change.after.data() || {};
+        if (before.status === after.status) return null; // 狀態沒變不通知
+        const map = {
+            "下單": "📝 訂單已成立",
+            "已付款": "💰 已收到你的付款資訊",
+            "已代購": "🛍️ 已幫你代購到商品",
+            "運送中": "🚚 商品運送中",
+            "到貨": "📦 商品已到貨！",
+            "已取貨": "🎉 已完成取貨，感謝訂購！",
+        };
+        const head = map[after.status] || `訂單狀態更新：${after.status}`;
+        await pushLine(after.buyerLineId || after.buyerUid, [createCardMessage(
+            "訂單進度更新",
+            `${head}\n\n🛍️ ${after.productName || "商品"}\n目前狀態：${after.status}`,
+            "#06C755"
+        )]);
+        return null;
+    });
+
