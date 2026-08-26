@@ -277,10 +277,61 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
             // ==========================================
             if (text === "現在版本") {
                 await replyLineMessage(replyToken, [createCardMessage(
-                    "系統狀態報告", 
-                    "🤖 目前 LINE 大腦核心版本：\n\n► 版本號：操機掰", 
+                    "系統狀態報告",
+                    "🤖 目前 LINE 大腦核心版本：\n\n► 版本號：操機掰",
                     "#00ff9d"
                 )]);
+                continue;
+            }
+
+            // ==========================================
+            // 🛒 代購訂單查詢(全域指令)
+            // ==========================================
+            if (["訂單", "我的訂單", "查訂單", "查詢訂單", "代購訂單", "代購"].includes(text)) {
+                const isDaigouAdmin = DAIGOU_ADMIN_IDS.includes(userId) || userData.isAdmin === true;
+                try {
+                    let snap;
+                    if (isDaigouAdmin) {
+                        snap = await db.collection("orders").get();
+                    } else {
+                        snap = await db.collection("orders").where("buyerLineId", "==", userId).get();
+                    }
+                    let orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    orders.sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
+
+                    if (orders.length === 0) {
+                        await replyLineMessage(replyToken, [createCardMessage(
+                            "代購訂單",
+                            isDaigouAdmin ? "目前沒有任何訂單。" : "你目前沒有代購訂單喔～快去商品牆逛逛！",
+                            "#06C755", null,
+                            { label: "🛒 前往代購", uri: "https://aiximerada.com/daigou.html" }
+                        )]);
+                        continue;
+                    }
+
+                    if (isDaigouAdmin) {
+                        const statusCount = {};
+                        orders.forEach(o => { const s = o.status || "下單"; statusCount[s] = (statusCount[s] || 0) + 1; });
+                        let txt = `📊 總訂單：${orders.length} 筆\n`;
+                        txt += Object.entries(statusCount).map(([k, v]) => `・${k}：${v}`).join("\n");
+                        txt += "\n\n最新 5 筆：\n";
+                        txt += orders.slice(0, 5).map(o => `▸ ${o.productName || "商品"} ×${o.qty || 1}｜${o.buyerRealName || o.buyerDisplayName || "買家"}｜${o.status || "下單"}`).join("\n");
+                        await replyLineMessage(replyToken, [createCardMessage(
+                            "代購訂單（後台）", txt, "#3b6cff", null,
+                            { label: "🛠️ 開啟後台", uri: "https://aiximerada.com/daigou-admin.html" }
+                        )]);
+                    } else {
+                        let txt = `你有 ${orders.length} 筆訂單：\n\n`;
+                        txt += orders.slice(0, 8).map(o => `▸ ${o.productName || "商品"} ×${o.qty || 1}\n　狀態：${o.status || "下單"}`).join("\n");
+                        await replyLineMessage(replyToken, [createCardMessage(
+                            "我的代購訂單", txt, "#06C755", null,
+                            { label: "🧾 查看/付款", uri: "https://aiximerada.com/daigou-orders.html" }
+                        )]);
+                    }
+                } catch (e) {
+                    console.error("查訂單失敗:", e.message);
+                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "查詢訂單時發生錯誤，請稍後再試。", "#ff4757")]);
+                }
                 continue;
             }
 
