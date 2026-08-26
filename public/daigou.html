@@ -67,7 +67,11 @@
 <div id="app" class="hide">
   <header>
     <h1>🥓 培根代購</h1>
-    <span class="who" id="who"></span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <a id="ordersLink" href="daigou-orders.html" title="我的訂單" style="color:var(--muted);font-size:19px"><i class="fa-solid fa-receipt"></i></a>
+      <a id="adminLink" href="daigou-admin.html" title="後台" style="color:var(--muted);font-size:18px"><i class="fa-solid fa-gear"></i></a>
+      <span class="who" id="who" title="我的訂單" style="cursor:pointer"></span>
+    </div>
   </header>
   <div class="wrap">
     <div class="toolbar"><input id="search" placeholder="🔍 搜尋商品名稱…"></div>
@@ -150,6 +154,7 @@ function enterApp(){
   $("#gate").classList.add("hide");
   $("#app").classList.remove("hide");
   $("#who").innerHTML = `${me.avatar?`<img src="${me.avatar}">`:""} ${esc(me.realName)}`;
+  $("#who").onclick = () => location.href = "daigou-orders.html";
   loadProducts();
 }
 
@@ -174,6 +179,7 @@ function render(items){
       <div class="body">
         <div class="name">${esc(x.name||"未命名商品")}</div>
         <div class="price">${esc(x.currency||"NT$")} ${x.price??"—"}</div>
+        ${x.store?`<div class="meta" style="margin-top:0"><span><i class="fa-solid fa-store"></i> ${esc(x.store)}</span></div>`:""}
         <div class="meta"><span>賣家：${esc(x.sellerName||"—")}</span><span>已訂 ${x.orderedQty||0}</span></div>
       </div>
     </div>`).join("");

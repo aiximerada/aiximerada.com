@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品詳情｜代購</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root{
+      --line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;
+      --txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;background:var(--bg);color:var(--txt);min-height:100vh;
+      font-family:"Noto Sans TC","Segoe UI",sans-serif;line-height:1.6;
+    }
+    .wrap{max-width:560px;margin:0 auto;padding:0 16px 48px}
+    header{
+      max-width:560px;margin:0 auto;padding:14px 16px;
+      display:flex;align-items:center;gap:12px;position:sticky;top:0;
+      background:var(--bg);z-index:10;border-bottom:1px solid var(--line2);
+    }
+    header .back{
+      color:var(--txt);text-decoration:none;font-size:20px;
+      width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+      border-radius:10px;background:var(--card);border:1px solid var(--line2);
+    }
+    header h1{font-size:17px;margin:0;font-weight:700}
+    .card{
+      background:var(--card);border:1px solid var(--line2);
+      border-radius:16px;padding:16px;margin-top:16px;
+    }
+    .gallery{position:relative;border-radius:12px;overflow:hidden;background:#0b0f17}
+    .gallery img{width:100%;display:block;aspect-ratio:1/1;object-fit:cover}
+    .ph{
+      width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;
+      color:var(--muted);font-size:40px;background:#0b0f17;
+    }
+    .navbtn{
+      position:absolute;top:50%;transform:translateY(-50%);
+      width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+      background:rgba(0,0,0,.55);color:#fff;font-size:16px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .navbtn.prev{left:8px}.navbtn.next{right:8px}
+    .dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+    .dots span{width:7px;height:7px;border-radius:50%;background:var(--line2)}
+    .dots span.on{background:var(--line)}
+    .name{font-size:20px;font-weight:800;margin:14px 0 8px}
+    .badge{
+      display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;
+      background:rgba(59,108,255,.16);color:var(--blue);border:1px solid rgba(59,108,255,.35);
+      font-weight:700;
+    }
+    .price{color:var(--gold);font-size:24px;font-weight:800;margin:10px 0}
+    .meta{margin-top:10px}
+    .row{display:flex;gap:8px;padding:7px 0;border-top:1px solid var(--line2);font-size:14px}
+    .row:first-child{border-top:none}
+    .row .k{color:var(--muted);min-width:82px;flex-shrink:0}
+    .row .v{color:var(--txt);word-break:break-word}
+    .note{white-space:pre-wrap;color:var(--txt)}
+    a.reflink{color:var(--line);text-decoration:none;font-weight:700}
+    a.reflink:hover{text-decoration:underline}
+    label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+    input,textarea,select{
+      width:100%;background:var(--card);border:1px solid var(--line2);
+      color:var(--txt);border-radius:12px;padding:12px 14px;font-size:15px;
+      font-family:inherit;outline:none;
+    }
+    input:focus,textarea:focus,select:focus{border-color:var(--line)}
+    textarea{resize:vertical;min-height:64px}
+    .contact-hint{
+      font-size:13px;color:var(--muted);background:#0b0f17;
+      border:1px dashed var(--line2);border-radius:12px;padding:10px 14px;margin-top:6px;
+    }
+    button.submit{
+      width:100%;margin-top:20px;padding:14px;border:none;border-radius:14px;
+      background:var(--line);color:#04220f;font-size:16px;font-weight:800;cursor:pointer;
+    }
+    button.submit:disabled{opacity:.55;cursor:not-allowed}
+    .msg{margin-top:14px;font-size:14px;font-weight:700;text-align:center}
+    .msg.ok{color:var(--line)}
+    .msg.err{color:#ff6b6b}
+    .center-info{text-align:center;padding:40px 16px;color:var(--muted)}
+    .center-info a{color:var(--line);text-decoration:none;font-weight:700}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back" href="daigou.html" aria-label="返回"><i class="fa-solid fa-arrow-left"></i></a>
+    <h1>商品詳情</h1>
+  </header>
+
+  <div class="wrap">
+    <div id="loading" class="center-info"><i class="fa-solid fa-spinner fa-spin"></i>　載入中…</div>
+    <div id="content" class="hidden"></div>
+  </div>
+
+  <script type="module">
+    import { db } from "./js/firebase-config.js";
+    import { LIFF_ID } from "./js/daigou-config.js";
+    import { doc,getDoc,addDoc,updateDoc,collection,serverTimestamp,increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const id=new URLSearchParams(location.search).get("id");
+    const $loading=document.getElementById("loading");
+    const $content=document.getElementById("content");
+
+    function esc(s){
+      return String(s==null?"":s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    function showInfo(html){
+      $loading.classList.add("hidden");
+      $content.classList.remove("hidden");
+      $content.innerHTML=`<div class="center-info">${html}</div>`;
+    }
+
+    let me=null;
+
+    async function initLine(){
+      await liff.init({liffId:LIFF_ID});
+      if(!liff.isLoggedIn()){ liff.login(); return false; }
+      const p=await liff.getProfile();
+      const snap=await getDoc(doc(db,"users",p.userId));
+      me={ lineUserId:p.userId, displayName:p.displayName, avatar:p.pictureUrl, realName:(snap.exists()&&snap.data().realName)||p.displayName };
+      return true;
+    }
+
+    let photos=[];let idx=0;
+
+    function renderGallery(){
+      if(!photos.length){
+        return `<div class="gallery"><div class="ph"><i class="fa-regular fa-image"></i></div></div>`;
+      }
+      const imgs=`<img id="mainImg" src="${esc(photos[0])}" alt="商品圖">`;
+      let nav="";let dots="";
+      if(photos.length>1){
+        nav=`<button class="navbtn prev" id="prevBtn"><i class="fa-solid fa-chevron-left"></i></button>
+             <button class="navbtn next" id="nextBtn"><i class="fa-solid fa-chevron-right"></i></button>`;
+        dots=`<div class="dots" id="dots">${photos.map((_,i)=>`<span class="${i===0?'on':''}"></span>`).join("")}</div>`;
+      }
+      return `<div class="gallery">${imgs}${nav}</div>${dots}`;
+    }
+    function updateGallery(){
+      const img=document.getElementById("mainImg");
+      if(img) img.src=photos[idx];
+      const dots=document.getElementById("dots");
+      if(dots) [...dots.children].forEach((d,i)=>d.classList.toggle("on",i===idx));
+    }
+
+    async function loadProduct(){
+      if(!id){ showInfo(`找不到商品<br><br><a href="daigou.html">← 返回代購頁</a>`); return; }
+      let snap;
+      try{ snap=await getDoc(doc(db,"products",id)); }
+      catch(e){ showInfo(`讀取失敗：${esc(e.message)}<br><br><a href="daigou.html">← 返回代購頁</a>`); return; }
+      if(!snap.exists()){ showInfo(`找不到商品<br><br><a href="daigou.html">← 返回代購頁</a>`); return; }
+
+      const d=snap.data();
+      photos=Array.isArray(d.photos)?d.photos.filter(Boolean):[];
+      idx=0;
+
+      const name=d.name||"未命名商品";
+      const status=d.status||"";
+      const currency=d.currency||"NT$";
+      const price=(d.price!=null)?d.price:"";
+      const qty=d.qty;
+      const store=d.store||"";
+      const refLink=d.refLink||"";
+      const sellerName=d.sellerName||"";
+      const note=d.note||"";
+      const orderedQty=d.orderedQty||0;
+
+      const rows=[];
+      if(qty!=null&&qty!=="") rows.push(`<div class="row"><span class="k">數量</span><span class="v">${esc(qty)}</span></div>`);
+      if(store) rows.push(`<div class="row"><span class="k">可購買店家</span><span class="v">${esc(store)}</span></div>`);
+      if(refLink) rows.push(`<div class="row"><span class="k">參考連結</span><span class="v"><a class="reflink" href="${esc(refLink)}" target="_blank" rel="noopener">查看參考連結 <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px"></i></a></span></div>`);
+      if(sellerName) rows.push(`<div class="row"><span class="k">賣家</span><span class="v">${esc(sellerName)}</span></div>`);
+      if(note) rows.push(`<div class="row"><span class="k">說明</span><span class="v note">${esc(note)}</span></div>`);
+      rows.push(`<div class="row"><span class="k">已訂數量</span><span class="v">${esc(orderedQty)}</span></div>`);
+
+      $loading.classList.add("hidden");
+      $content.classList.remove("hidden");
+      $content.innerHTML=`
+        <div class="card">
+          ${renderGallery()}
+          <div class="name">${esc(name)}</div>
+          ${status?`<span class="badge">${esc(status)}</span>`:""}
+          <div class="price">${esc(currency)} ${esc(price)}</div>
+          <div class="meta">${rows.join("")}</div>
+        </div>
+
+        <div class="card">
+          <form id="orderForm">
+            <label for="fQty">訂購數量</label>
+            <input type="number" id="fQty" min="1" value="1" required>
+
+            <label for="fNote">備註（顏色 / 尺寸等）</label>
+            <textarea id="fNote" placeholder="選填"></textarea>
+
+            <label for="fPay">付款方式</label>
+            <select id="fPay">
+              <option value="訂金">訂金</option>
+              <option value="全額">全額</option>
+            </select>
+
+            <label>聯絡方式</label>
+            <div class="contact-hint">將自動以你的 LINE 聯繫（${esc(me?me.realName:"")}）</div>
+
+            <button type="submit" class="submit" id="submitBtn">✅ 送出訂單</button>
+            <div id="formMsg" class="msg"></div>
+          </form>
+        </div>`;
+
+      if(photos.length>1){
+        document.getElementById("prevBtn").addEventListener("click",()=>{idx=(idx-1+photos.length)%photos.length;updateGallery();});
+        document.getElementById("nextBtn").addEventListener("click",()=>{idx=(idx+1)%photos.length;updateGallery();});
+      }
+
+      const form=document.getElementById("orderForm");
+      form.addEventListener("submit",e=>submitOrder(e,d));
+    }
+
+    async function submitOrder(e,product){
+      e.preventDefault();
+      const $msg=document.getElementById("formMsg");
+      const $btn=document.getElementById("submitBtn");
+      $msg.className="msg";$msg.textContent="";
+
+      const qtyVal=parseInt(document.getElementById("fQty").value,10);
+      if(!qtyVal||qtyVal<1){ $msg.classList.add("err");$msg.textContent="訂購數量至少為 1"; return; }
+
+      const note=document.getElementById("fNote").value.trim();
+      const payType=document.getElementById("fPay").value;
+
+      $btn.disabled=true;
+      try{
+        await addDoc(collection(db,"orders"),{
+          productId:id,
+          productName:product.name||"",
+          productPhoto:(product.photos&&product.photos[0])||"",
+          productPrice:product.price||0,
+          productCurrency:product.currency||"NT$",
+          buyerUid:me.lineUserId,
+          buyerLineId:me.lineUserId,
+          buyerRealName:me.realName,
+          buyerDisplayName:me.displayName||"",
+          qty:qtyVal,
+          note:note,
+          payType:payType,
+          payLast5:"",
+          paySlipUrl:"",
+          costPaid:0,
+          status:"下單",
+          createdAt:serverTimestamp(),
+          updatedAt:serverTimestamp()
+        });
+        try{ await updateDoc(doc(db,"products",id),{ orderedQty:increment(qtyVal) }); }catch(_){}
+        $msg.classList.add("ok");$msg.textContent="✅ 下單成功！";
+        setTimeout(()=>{ location.href="daigou-orders.html"; },800);
+      }catch(err){
+        $btn.disabled=false;
+        $msg.classList.add("err");$msg.textContent=err.message;
+      }
+    }
+
+    (async()=>{
+      try{
+        const ok=await initLine();
+        if(!ok) return;
+        await loadProduct();
+      }catch(e){
+        showInfo(`登入初始化失敗（可能是本機預覽）：${esc(e.message)}<br><br><a href="daigou.html">← 返回代購頁</a>`);
+      }
+    })();
+  </script>
+</body>
+</html>
