@@ -202,6 +202,7 @@ function orderCard(o){
       <div class="item ${cancelled?"cancelled":""}">
         <div class="iname">${esc(it.name||"（未命名）")}${cancelled?`<span class="tag-cancel">已取消</span>`:""}</div>
         <div class="imeta">${meta.map(m=>`<div>${m}</div>`).join("")}</div>
+        ${(it.photos&&it.photos.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">${it.photos.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid var(--line2);display:block"></a>`).join("")}</div>`:""}
         <div class="costrow">
           <label>實付金額</label>
           <input type="number" step="any" inputmode="decimal" value="${esc(num(it.costPaid))}" data-cost="${esc(it.id)}">

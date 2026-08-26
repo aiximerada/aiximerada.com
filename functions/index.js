@@ -984,33 +984,50 @@ async function getDaigouAdminIds() {
 }
 
 // 取得某訂單的商品名稱摘要
-async function getOrderItemsSummary(orderId) {
+async function getOrderItems(orderId) {
     try {
         const snap = await db.collection("daigouItems").where("orderId", "==", orderId).get();
-        const names = snap.docs.map(d => d.data()).filter(x => !x.cancelled).map(x => `・${x.name || "商品"} ×${x.qty || 1}`);
-        return names.length ? names.join("\n") : "";
-    } catch (e) { return ""; }
+        return snap.docs.map(d => d.data()).filter(x => !x.cancelled);
+    } catch (e) { return []; }
+}
+function itemsSummary(items) {
+    return items.map(x => `・${x.name || "商品"} ×${x.qty || 1}`).join("\n");
+}
+function collectPhotos(items, max) {
+    const urls = [];
+    for (const it of items) {
+        if (Array.isArray(it.photos)) {
+            for (const u of it.photos) { if (u && typeof u === "string") urls.push(u); }
+        }
+    }
+    return urls.slice(0, max || 4);
 }
 
 // 新訂單成立(整車送出)
 exports.daigouOrderCreated = functions.runWith({ secrets: ["LINE_TOKEN"] })
     .firestore.document("orders/{orderId}").onCreate(async (snap, context) => {
         const o = snap.data() || {};
-        const summary = await getOrderItemsSummary(context.params.orderId);
+        const items = await getOrderItems(context.params.orderId);
+        const summary = itemsSummary(items);
         // 通知買家
         await pushLine(o.ownerLineId || o.ownerUid, [createCardMessage(
             "訂單已成立",
             `✅ 已收到你的代購訂單！\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}\n\n可隨時到「我的訂單」查看進度。`,
             "#06C755"
         )]);
-        // 通知所有管理員
+        // 通知所有管理員(卡片 + 商品照片)
         const admins = await getDaigouAdminIds();
         const adminMsg = createCardMessage(
             "有新的代購訂單",
             `🛒 ${o.ownerRealName || o.ownerDisplayName || "買家"} 送出訂單\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}`,
             "#3b6cff"
         );
-        for (const id of admins) await pushLine(id, [adminMsg]);
+        const photos = collectPhotos(items, 4);
+        const imgMsgs = photos.map(u => ({ type: "image", originalContentUrl: u, previewImageUrl: u }));
+        for (const id of admins) {
+            await pushLine(id, [adminMsg]);
+            if (imgMsgs.length) await pushLine(id, imgMsgs);
+        }
         return null;
     });
 

@@ -69,6 +69,7 @@
   <header>
     <h1>🥓 培根代購</h1>
     <div style="display:flex;align-items:center;gap:14px">
+      <a id="adminLink" href="daigou-admin.html" title="後台管理" style="color:var(--gold);font-size:18px;display:none"><i class="fa-solid fa-user-shield"></i></a>
       <a id="ordersLink" href="daigou-orders.html" title="我的訂單" style="color:var(--muted);font-size:19px"><i class="fa-solid fa-receipt"></i></a>
       <span class="who" id="who" title="我的訂單" style="cursor:pointer"></span>
     </div>
@@ -116,6 +117,7 @@ import { db } from "./js/firebase-config.js";
 import { doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDocs, writeBatch, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { readCachedMe, cacheMe } from "./js/daigou-auth.js";
+import { isAdminUser } from "./js/daigou-config.js";
 
 const LIFF_ID = "2009464550-UWeV9K8C";
 const LIFF_URL = "https://liff.line.me/" + LIFF_ID;
@@ -208,6 +210,7 @@ function enterApp(){
   $("#app").classList.remove("hide");
   $("#who").innerHTML = `${me.avatar?`<img src="${me.avatar}">`:""} ${esc(me.realName)}`;
   $("#who").onclick = () => location.href = "daigou-orders.html";
+  if(isAdminUser(me.lineUserId, null)){ $("#adminLink").style.display = "inline-block"; }
   loadCart();
 }
 
