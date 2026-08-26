@@ -103,7 +103,12 @@ async function boot(){
     return;
   }
   if(liff.isLoggedIn()){
-    await handleLoggedIn();
+    $("#gateTip").textContent = "✔ 已登入 LINE，載入中…";
+    try{
+      await handleLoggedIn();
+    }catch(e){
+      $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.code?("["+e.code+"] "):"") + (e.message||e);
+    }
   }
   // 未登入就停在漂亮的登入頁,等使用者點按鈕
 }
