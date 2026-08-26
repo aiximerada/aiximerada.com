@@ -1022,10 +1022,8 @@ exports.daigouOrderStatusChanged = functions.runWith({ secrets: ["LINE_TOKEN"] }
         if (before.status === after.status) return null; // 狀態沒變不通知
         const map = {
             "下單": "📝 訂單已成立",
-            "已付款": "💰 已收到你的付款資訊",
-            "已代購": "🛍️ 已幫你代購到商品",
-            "運送中": "🚚 商品運送中",
-            "到貨": "📦 商品已到貨！",
+            "準備代購": "🛍️ 準備幫你代購中",
+            "已代購": "✅ 已幫你代購到商品",
             "已取貨": "🎉 已完成取貨，感謝訂購！",
             "已取消": "🚫 訂單已取消",
         };

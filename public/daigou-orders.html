@@ -377,7 +377,7 @@
           await uploadBytes(r,file);
           url=await getDownloadURL(r);
         }
-        const upd={ payLast5:clean, status:"已付款", updatedAt:serverTimestamp() };
+        const upd={ payLast5:clean, updatedAt:serverTimestamp() };
         if(url) upd.paySlipUrl=url;
         await updateDoc(doc(db,"orders",orderId), upd);
         await render();

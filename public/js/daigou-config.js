@@ -7,7 +7,7 @@ export const ADMIN_IDS = [
 ];
 
 // 訂單狀態流程（依序）
-export const ORDER_STATUS = ["下單", "已付款", "已代購", "運送中", "到貨", "已取貨"];
+export const ORDER_STATUS = ["下單", "準備代購", "已代購", "已取貨"];
 
 export function isAdminUser(lineUserId, userDoc) {
   return ADMIN_IDS.includes(lineUserId) || !!(userDoc && userDoc.isAdmin);
