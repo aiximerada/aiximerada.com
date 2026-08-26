@@ -100,6 +100,22 @@ let me=null;
 let orders=[];        // [{id,...data, _items:[]}]
 const $ = s => document.querySelector(s);
 
+// 圖片燈箱：點縮圖/截圖在頁內放大，不開新分頁
+const _lb = document.createElement("div");
+_lb.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px;cursor:zoom-out";
+_lb.innerHTML = '<img style="max-width:100%;max-height:100%;border-radius:10px;object-fit:contain">';
+document.body.appendChild(_lb);
+_lb.addEventListener("click", ()=>{ _lb.style.display="none"; _lb.querySelector("img").src=""; });
+document.addEventListener("click", e=>{
+  const t = e.target.closest(".zoomable,.zoomlink");
+  if(!t) return;
+  e.preventDefault();
+  const url = t.getAttribute("data-full");
+  if(!url) return;
+  _lb.querySelector("img").src = url;
+  _lb.style.display = "flex";
+});
+
 // 狀態下拉選項 = 六個流程狀態 + 已取消
 const ALL_STATUS = [...ORDER_STATUS, "已取消"];
 
@@ -179,7 +195,7 @@ function orderCard(o){
   const payBits=[];
   if(o.payType) payBits.push(`付款方式 <b>${esc(o.payType)}</b>`);
   if(o.payLast5) payBits.push(`末五碼 <b>${esc(o.payLast5)}</b>`);
-  if(o.paySlipUrl) payBits.push(`<a href="${esc(o.paySlipUrl)}" target="_blank" rel="noopener"><i class="fa-solid fa-image"></i> 看截圖</a>`);
+  if(o.paySlipUrl) payBits.push(`<a href="javascript:void(0)" class="zoomlink" data-full="${esc(o.paySlipUrl)}" style="cursor:zoom-in"><i class="fa-solid fa-image"></i> 看截圖</a>`);
   const payHtml = payBits.length
     ? `<div class="pay"><i class="fa-solid fa-money-check-dollar"></i> ${payBits.join("")}</div>` : "";
 
@@ -202,7 +218,7 @@ function orderCard(o){
       <div class="item ${cancelled?"cancelled":""}">
         <div class="iname">${esc(it.name||"（未命名）")}${cancelled?`<span class="tag-cancel">已取消</span>`:""}</div>
         <div class="imeta">${meta.map(m=>`<div>${m}</div>`).join("")}</div>
-        ${(it.photos&&it.photos.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">${it.photos.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid var(--line2);display:block"></a>`).join("")}</div>`:""}
+        ${(it.photos&&it.photos.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">${it.photos.map(u=>`<img src="${esc(u)}" data-full="${esc(u)}" loading="lazy" class="zoomable" style="width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid var(--line2);display:block;cursor:zoom-in">`).join("")}</div>`:""}
         <div class="costrow">
           <label>實付金額</label>
           <input type="number" step="any" inputmode="decimal" value="${esc(num(it.costPaid))}" data-cost="${esc(it.id)}">
