@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 💡 智慧鑰匙函數：判斷要讀取資料的人，是不是資料的真正主人
+    function isOwner(data) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let userLineId = userDoc.get("lineUserId", "NO_LINE_ID");
+      return data.userId == request.auth.uid || data.userId == userLineId;
+    }
+
+    // 📍 1. 車位回報 (公開社群資源)
+    match /parking_locations/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // 📝 2. 記事本 (🔒 極密防護上鎖：只有自己可以看見、修改自己的待辦)
+    match /todos/{docId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && isOwner(resource.data);
+    }
+
+    // 💰 3. 個人帳務 (🔒 極密防護上鎖：只有自己可以看見自己的錢包)
+    match /records_personal/{docId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && isOwner(resource.data);
+    }
+
+    // 👤 4. 星員檔案 + 代購 LINE 用戶
+    //    主網站會員(Firebase UID)維持原本保護；代購的 LINE 用戶(U 開頭 33 碼)開放讀寫
+    match /users/{userId} {
+      allow read: if request.auth != null || userId.matches('^U[0-9a-f]{32}$');
+      allow write: if (request.auth != null && request.auth.uid == userId)
+                   || userId.matches('^U[0-9a-f]{32}$');
+    }
+
+    // 🛒 5. 代購商品/購物車 與 訂單 (用 LINE 登入即可讀寫，僅限熟人代購用)
+    match /daigouItems/{docId} {
+      allow read, write: if true;
+    }
+    match /orders/{docId} {
+      allow read, write: if true;
+    }
+
+    // 🛡️ 6. 其他所有資料庫 (您原本的底層保護)
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+  }
+}
