@@ -60,6 +60,7 @@
   <h2>培根代購</h2>
   <p>用 LINE 一鍵登入，即可加入商品、送出訂單與追蹤進度。</p>
   <button class="line-login" id="lineLogin"><i class="fa-brands fa-line"></i> 使用 LINE 登入</button>
+  <a id="openInLine" href="https://liff.line.me/2009464550-UWeV9K8C" style="display:none;margin-top:18px;color:var(--line);font-size:14px;text-decoration:underline">在 LINE App 中開啟</a>
   <div class="tip" id="gateTip"></div>
 </div>
 
@@ -117,6 +118,11 @@ import { doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDo
 import { readCachedMe, cacheMe } from "./js/daigou-auth.js";
 
 const LIFF_ID = "2009464550-UWeV9K8C";
+const LIFF_URL = "https://liff.line.me/" + LIFF_ID;
+// 是否為「加到主畫面」的獨立視窗(PWA);這種情況 redirect 登入會跳到瀏覽器回不來
+const IS_STANDALONE = (window.navigator.standalone === true) ||
+  (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+function inLineApp(){ try{ return liff.isInClient(); }catch(e){ return false; } }
 const $ = s => document.querySelector(s);
 let me = null;
 
@@ -139,14 +145,28 @@ async function boot(){
     }catch(e){
       $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.code?("["+e.code+"] "):"") + (e.message||e);
     }
-  }else if(_cachedMe && _cachedMe.hasRealName){
-    // 快取還在但 LINE 登入已失效 → 導去重新登入
-    liff.login();
+    return;
   }
-  // 未登入(且無快取)就停在漂亮的登入頁,等使用者點按鈕
+  // ---- 未登入 ----
+  // 一般瀏覽器:快取失效就自動重新登入(PWA 不走這條,redirect 會跳不回來)
+  if(_cachedMe && _cachedMe.hasRealName && !(IS_STANDALONE && !inLineApp())){
+    liff.login();
+    return;
+  }
+  // PWA(獨立視窗)且不在 LINE 內:提示改用 LINE App 開啟
+  if(IS_STANDALONE && !inLineApp()){
+    $("#openInLine").style.display = "inline-block";
+    $("#gateTip").innerHTML = "偵測到你用「加到主畫面(PWA)」開啟。<br>PWA 無法直接完成 LINE 登入，請點下方<b>「在 LINE App 中開啟」</b>即可自動登入。";
+  }
+  // 其餘(一般瀏覽器未登入)就停在登入頁,等使用者點按鈕
 }
 
 $("#lineLogin").onclick = () => {
+  // PWA 獨立視窗:redirect 登入會跳到瀏覽器回不來,改用 LIFF 連結在 LINE App 內開啟
+  if(IS_STANDALONE && !inLineApp()){
+    location.href = LIFF_URL;
+    return;
+  }
   if(!liff.isLoggedIn()){
     $("#lineLogin").disabled = true;
     $("#lineLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中…';
