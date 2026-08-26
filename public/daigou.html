@@ -8,105 +8,125 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans TC","Segoe UI",sans-serif}
-  :root{--line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c}
+  :root{--line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff}
   body{background:var(--bg);color:var(--txt);min-height:100vh}
   header{position:sticky;top:0;z-index:20;background:rgba(15,20,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
   header h1{font-size:19px;display:flex;align-items:center;gap:8px}
-  .who{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
-  .who img{width:28px;height:28px;border-radius:50%}
-  .btn{border:none;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;color:#fff}
-  .btn-line{background:var(--line)}.btn-primary{background:#3b6cff}.btn-ghost{background:var(--card);border:1px solid var(--line2);color:var(--txt)}
-  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px}
-  .toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-  .toolbar input{flex:1;min-width:180px;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;color:var(--txt);font-size:15px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
-  .prod{background:var(--card);border:1px solid var(--line2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:.2s}
-  .prod:hover{transform:translateY(-3px);border-color:#3b6cff}
+  .who{font-size:14px;color:var(--txt);display:flex;align-items:center;gap:8px}
+  .who img{width:30px;height:30px;border-radius:50%;border:2px solid var(--line)}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 80px}
+  .toolbar{display:flex;gap:10px;margin-bottom:18px}
+  .toolbar input{flex:1;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:11px 16px;color:var(--txt);font-size:15px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+  @media(min-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}}
+  .prod{background:var(--card);border:1px solid var(--line2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:.2s}
+  .prod:active{transform:scale(.98)}
+  .prod:hover{border-color:var(--blue)}
   .prod .img{aspect-ratio:1;background:#0d1117 center/cover no-repeat;position:relative}
-  .prod .img .status{position:absolute;top:8px;left:8px;font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(6,199,85,.9);color:#fff;font-weight:600}
-  .prod .body{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
-  .prod .name{font-size:15px;font-weight:600;line-height:1.4}
+  .prod .img .status{position:absolute;top:8px;left:8px;font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(6,199,85,.92);color:#fff;font-weight:600}
+  .prod .body{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .prod .name{font-size:14.5px;font-weight:600;line-height:1.4}
   .prod .price{color:var(--gold);font-size:17px;font-weight:700}
-  .prod .meta{font-size:12px;color:var(--muted);margin-top:auto;display:flex;justify-content:space-between}
-  .empty{text-align:center;color:var(--muted);padding:60px 20px}
-  .fab{position:fixed;right:20px;bottom:22px;background:#3b6cff;color:#fff;border:none;border-radius:999px;padding:14px 20px;font-size:16px;font-weight:700;box-shadow:0 8px 24px rgba(59,108,255,.4);cursor:pointer;display:flex;align-items:center;gap:8px}
+  .prod .meta{font-size:11.5px;color:var(--muted);margin-top:auto;display:flex;justify-content:space-between}
+  .empty{text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1}
+  .fab{position:fixed;right:18px;bottom:20px;background:var(--blue);color:#fff;border:none;border-radius:999px;padding:15px 22px;font-size:16px;font-weight:700;box-shadow:0 8px 24px rgba(59,108,255,.45);cursor:pointer;display:flex;align-items:center;gap:8px;z-index:15}
+  /* 全螢幕 LINE 登入入口 */
+  .gate{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -8%,#132443 0%,var(--bg) 58%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;z-index:60}
+  .gate .logo{width:112px;height:112px;border-radius:30px;background:linear-gradient(135deg,#06C755,#04a045);display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 20px 50px rgba(6,199,85,.45);margin-bottom:26px;animation:pop .5s ease}
+  @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  .gate h2{font-size:27px;margin-bottom:12px;letter-spacing:1px}
+  .gate p{color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:36px;max-width:300px}
+  .line-login{display:inline-flex;align-items:center;gap:11px;background:var(--line);color:#fff;border:none;border-radius:14px;padding:16px 44px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 12px 28px rgba(6,199,85,.42);transition:.2s}
+  .line-login:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(6,199,85,.55)}
+  .line-login:disabled{opacity:.6}
+  .line-login i{font-size:25px}
+  .gate .tip{margin-top:28px;font-size:12px;color:#5b6b8c;max-width:280px;line-height:1.6}
+  .hide{display:none!important}
   /* modal */
-  .mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:70;padding:18px}
   .mask.show{display:flex}
-  .modal{background:var(--card);border:1px solid var(--line2);border-radius:18px;padding:26px;width:100%;max-width:400px}
-  .modal h2{font-size:19px;margin-bottom:6px}
-  .modal p{color:var(--muted);font-size:13px;margin-bottom:18px}
-  .modal input{width:100%;background:#0d1117;border:1px solid var(--line2);border-radius:10px;padding:12px;color:var(--txt);font-size:16px;margin-bottom:14px}
-  .modal .btn{width:100%}
-  .login-hint{text-align:center;padding:70px 20px}
-  .login-hint i{font-size:46px;color:var(--line);margin-bottom:14px}
+  .modal{background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:28px;width:100%;max-width:400px}
+  .modal h2{font-size:20px;margin-bottom:8px}
+  .modal p{color:var(--muted);font-size:13.5px;margin-bottom:20px;line-height:1.6}
+  .modal input{width:100%;background:#0d1117;border:1px solid var(--line2);border-radius:12px;padding:13px;color:var(--txt);font-size:16px;margin-bottom:16px}
+  .modal .save{width:100%;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
-<header>
-  <h1>🛒 代購商品牆</h1>
-  <div style="display:flex;align-items:center;gap:10px">
-    <span class="who" id="who"></span>
-    <button class="btn btn-line" id="loginBtn"><i class="fa-brands fa-line"></i> LINE 登入</button>
-  </div>
-</header>
 
-<div class="wrap">
-  <div id="content">
-    <div class="login-hint">
-      <div><i class="fa-brands fa-line"></i></div>
-      <p style="color:var(--muted)">請先用 LINE 登入才能瀏覽與下單</p>
-    </div>
-  </div>
+<!-- 全螢幕 LINE 登入入口 -->
+<div class="gate" id="gate">
+  <div class="logo">🛒</div>
+  <h2>AIXIMERADA 代購</h2>
+  <p>用 LINE 一鍵登入，即可瀏覽商品、下單與追蹤你的訂單。</p>
+  <button class="line-login" id="lineLogin"><i class="fa-brands fa-line"></i> 使用 LINE 登入</button>
+  <div class="tip" id="gateTip"></div>
 </div>
 
-<button class="fab" id="fab" style="display:none" onclick="location.href='daigou-new.html'"><i class="fa-solid fa-plus"></i> 上架商品</button>
+<!-- 主畫面(登入後才顯示) -->
+<div id="app" class="hide">
+  <header>
+    <h1>🛒 代購</h1>
+    <span class="who" id="who"></span>
+  </header>
+  <div class="wrap">
+    <div class="toolbar"><input id="search" placeholder="🔍 搜尋商品名稱…"></div>
+    <div class="grid" id="grid"><div class="empty">載入中…</div></div>
+  </div>
+  <button class="fab" onclick="location.href='daigou-new.html'"><i class="fa-solid fa-plus"></i> 上架</button>
+</div>
 
 <!-- 填本名 modal -->
 <div class="mask" id="nameMask">
   <div class="modal">
-    <h2>👋 歡迎！請填寫你的本名</h2>
-    <p>因為 LINE 暱稱常常不是真名，代購取貨/對帳需要你的<b>真實姓名</b>。只需填一次。</p>
+    <h2>👋 歡迎！請填寫本名</h2>
+    <p>LINE 暱稱常常不是真名，代購取貨/對帳需要你的<b>真實姓名</b>，只需填一次。</p>
     <input type="text" id="realNameInput" placeholder="請輸入你的本名（例：徐培軒）" maxlength="20">
-    <button class="btn btn-primary" id="saveName">確認，開始使用</button>
+    <button class="save" id="saveName">確認，開始使用</button>
   </div>
 </div>
 
 <script type="module">
-// 沿用你現有的 firebase-config.js(裡面已 initializeApp 並匯出 db),不重複貼金鑰
 import { db } from "./js/firebase-config.js";
 import { doc, getDoc, setDoc, collection, query, orderBy, getDocs }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const LIFF_ID = "2009464550-Odl0cheD";   // 沿用你現有的 LIFF
-
-let me = null;   // { lineUserId, displayName, avatar, realName }
-
+const LIFF_ID = "2009464550-Odl0cheD";
 const $ = s => document.querySelector(s);
+let me = null;
 
 async function boot(){
   try{
     await liff.init({ liffId: LIFF_ID });
   }catch(e){
-    // 本機預覽 LIFF 會失敗(正常),顯示提示
-    $("#content").innerHTML = `<div class="empty">⚠️ LINE 服務未就緒（本機預覽正常，部署到網域後即可登入）。<br>下方仍會嘗試載入商品牆。</div>`;
-    loadProducts();
+    $("#gateTip").innerHTML = "⚠️ LINE 服務初始化失敗<br>若你是站長，請確認 LINE Console 的 LIFF Endpoint 已包含本頁網址";
     return;
   }
+  if(liff.isLoggedIn()){
+    await handleLoggedIn();
+  }
+  // 未登入就停在漂亮的登入頁,等使用者點按鈕
+}
+
+$("#lineLogin").onclick = () => {
   if(!liff.isLoggedIn()){
-    $("#loginBtn").style.display = "inline-flex";
-    return;
+    $("#lineLogin").disabled = true;
+    $("#lineLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中…';
+    liff.login();   // 導去 LINE 授權,回來後 boot() 會偵測到已登入
+  }else{
+    handleLoggedIn();
   }
+};
+
+async function handleLoggedIn(){
   const p = await liff.getProfile();
   me = { lineUserId:p.userId, displayName:p.displayName, avatar:p.pictureUrl };
-  // 讀 Firestore 使用者資料,看有沒有填過本名
   const uref = doc(db, "users", p.userId);
   const snap = await getDoc(uref);
   if(snap.exists() && snap.data().realName){
     me.realName = snap.data().realName;
-    afterLogin();
+    enterApp();
   }else{
-    // 建/更新基本資料,並要求填本名
     await setDoc(uref, { lineUserId:p.userId, displayName:p.displayName, avatar:p.pictureUrl||"" }, { merge:true });
     $("#nameMask").classList.add("show");
   }
@@ -118,46 +138,37 @@ $("#saveName").onclick = async () => {
   await setDoc(doc(db,"users",me.lineUserId), { realName:v }, { merge:true });
   me.realName = v;
   $("#nameMask").classList.remove("show");
-  afterLogin();
+  enterApp();
 };
 
-$("#loginBtn").onclick = () => { if(liff && !liff.isLoggedIn()) liff.login(); };
-
-function afterLogin(){
-  $("#loginBtn").style.display = "none";
-  $("#fab").style.display = "flex";
-  $("#who").innerHTML = `${me.avatar?`<img src="${me.avatar}">`:""} ${me.realName}`;
+function enterApp(){
+  $("#gate").classList.add("hide");
+  $("#app").classList.remove("hide");
+  $("#who").innerHTML = `${me.avatar?`<img src="${me.avatar}">`:""} ${esc(me.realName)}`;
   loadProducts();
 }
 
 async function loadProducts(){
-  const c = $("#content");
-  c.innerHTML = `
-    <div class="toolbar"><input id="search" placeholder="🔍 搜尋商品名稱…"></div>
-    <div class="grid" id="grid"><div class="empty">載入中…</div></div>`;
   let items = [];
   try{
     const qs = await getDocs(query(collection(db,"products"), orderBy("createdAt","desc")));
     qs.forEach(d => items.push({ id:d.id, ...d.data() }));
-  }catch(e){ /* 未部署/無權限時略過 */ }
+  }catch(e){}
   render(items);
   $("#search").oninput = e => {
     const kw = e.target.value.trim();
     render(items.filter(x => (x.name||"").includes(kw)));
   };
 }
-
 function render(items){
   const g = $("#grid");
-  if(!items.length){ g.innerHTML = `<div class="empty">目前還沒有商品，點右下角「上架商品」新增第一個吧！</div>`; return; }
+  if(!items.length){ g.innerHTML = `<div class="empty">目前還沒有商品，點右下角「上架」新增第一個吧！</div>`; return; }
   g.innerHTML = items.map(x => `
     <div class="prod" onclick="location.href='daigou-product.html?id=${x.id}'">
-      <div class="img" style="background-image:url('${(x.photos&&x.photos[0])||""}')">
-        <span class="status">${x.status||"開團中"}</span>
-      </div>
+      <div class="img" style="background-image:url('${(x.photos&&x.photos[0])||""}')"><span class="status">${esc(x.status||"開團中")}</span></div>
       <div class="body">
         <div class="name">${esc(x.name||"未命名商品")}</div>
-        <div class="price">${x.currency||"NT$"} ${x.price??"—"}</div>
+        <div class="price">${esc(x.currency||"NT$")} ${x.price??"—"}</div>
         <div class="meta"><span>賣家：${esc(x.sellerName||"—")}</span><span>已訂 ${x.orderedQty||0}</span></div>
       </div>
     </div>`).join("");
