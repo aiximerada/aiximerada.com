@@ -35,6 +35,23 @@ async function getUserProfile(userId) {
     } catch (e) { return "會員"; }
 }
 
+// 代購:把使用者在 LINE 傳的圖片下載後存到 Firebase Storage,回傳可讀 URL
+const DAIGOU_BUCKET = "yulubox.firebasestorage.app";
+async function saveLineImageToStorage(messageId, userId) {
+    const res = await axios.get(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+        responseType: "arraybuffer",
+        headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` }
+    });
+    const buffer = Buffer.from(res.data);
+    const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const filePath = `daigou/${userId}/line_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+    const bucket = admin.storage().bucket(DAIGOU_BUCKET);
+    await bucket.file(filePath).save(buffer, {
+        metadata: { contentType: "image/jpeg", metadata: { firebaseStorageDownloadTokens: token } }
+    });
+    return `https://firebasestorage.googleapis.com/v0/b/${DAIGOU_BUCKET}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
+}
+
 // =====================================================================
 // 🌟 核心引擎：通用高質感卡片生成器 (Flex Message)
 // =====================================================================
@@ -254,6 +271,36 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
             continue;
         }
 
+        // 🖼️ 圖片訊息:代購新增訂單流程中收圖當備註/商品圖
+        if (event.type === "message" && event.message.type === "image") {
+            const userId = event.source.userId;
+            const replyToken = event.replyToken;
+            const userRef = db.collection("users").doc(userId);
+            const userDoc = await userRef.get();
+            const userData = userDoc.exists ? userDoc.data() : {};
+            if (userData.state === "DG_NEW_EXTRA") {
+                try {
+                    const url = await saveLineImageToStorage(event.message.id, userId);
+                    const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
+                    dg.photos = dg.photos || [];
+                    dg.photos.push(url);
+                    await userRef.set({ tempRecord: { dg } }, { merge: true });
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "新增代購訂單",
+                        `✅ 已加入圖片(共 ${dg.photos.length} 張)。\n還有的話繼續傳圖片或打字補充備註，完成請按「送出訂單」。`,
+                        "#06C755",
+                        [{ type: "action", action: { type: "message", label: "✅ 送出訂單", text: "送出" } },
+                         { type: "action", action: { type: "message", label: "🚫 取消", text: "取消" } }])]);
+                } catch (e) {
+                    console.error("代購收圖失敗:", e.message);
+                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "圖片處理失敗，請再試一次，或按「送出訂單」直接完成。", "#ff4757",
+                        [{ type: "action", action: { type: "message", label: "✅ 送出訂單", text: "送出" } }])]);
+                }
+            }
+            // 非新增訂單流程的圖片:忽略不回應
+            continue;
+        }
+
         // 💬 文字訊息處理
         if (event.type === "message" && event.message.type === "text") {
             const userId = event.source.userId;
@@ -376,15 +423,31 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
                 }
                 const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
                 dg.price = pr;
-                await userRef.set({ state: "DG_NEW_NOTE", tempRecord: { dg } }, { merge: true });
+                await userRef.set({ state: "DG_NEW_EXTRA", tempRecord: { dg } }, { merge: true });
                 await replyLineMessage(replyToken, [createCardMessage(
-                    "新增代購訂單", "最後，請輸入「店家/備註」(沒有就打 無)：", "#06C755",
-                    [{ type: "action", action: { type: "message", label: "無", text: "無" } }, ...DG_CANCEL_QR])]);
+                    "新增代購訂單",
+                    "可「傳商品圖片」或「打字補充店家/備註」(可多次)。\n都好了請按「送出訂單」，沒有備註也可直接按送出。",
+                    "#06C755",
+                    [{ type: "action", action: { type: "message", label: "✅ 送出訂單", text: "送出" } },
+                     { type: "action", action: { type: "message", label: "無備註直接送出", text: "無" } },
+                     ...DG_CANCEL_QR])]);
                 continue;
             }
-            if (state === "DG_NEW_NOTE") {
+            if (state === "DG_NEW_EXTRA") {
                 const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
-                const note = (text === "無") ? "" : text;
+                // 尚未按送出:把文字當備註累加,繼續等圖片/備註
+                if (!["送出", "無", "完成", "送出訂單"].includes(text)) {
+                    dg.note = dg.note ? (dg.note + "\n" + text) : text;
+                    await userRef.set({ tempRecord: { dg } }, { merge: true });
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "新增代購訂單",
+                        `已記下備註。\n目前圖片 ${((dg.photos && dg.photos.length) || 0)} 張。\n還有的話繼續傳圖或打字，完成請按「送出訂單」。`,
+                        "#06C755",
+                        [{ type: "action", action: { type: "message", label: "✅ 送出訂單", text: "送出" } }, ...DG_CANCEL_QR])]);
+                    continue;
+                }
+                // 按了送出/無 → 建立訂單
+                const note = dg.note || "";
                 const displayName = await getUserProfile(userId);
                 const realName = userData.realName || displayName;
                 try {
@@ -396,14 +459,14 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
                     await db.collection("daigouItems").add({
                         ownerUid: userId, ownerLineId: userId, ownerRealName: realName, ownerDisplayName: displayName,
                         name: dg.name || "商品", price: dg.price || 0, currency: "NT$", qty: dg.qty || 1,
-                        store: "", refLink: "", note: note, photos: [],
+                        store: "", refLink: "", note: note, photos: (dg.photos || []),
                         submitted: true, orderId: orderRef.id, cancelled: false, costPaid: 0,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(), submittedAt: admin.firestore.FieldValue.serverTimestamp()
                     });
                     await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
                     await replyLineMessage(replyToken, [createCardMessage(
                         "訂單已建立",
-                        `✅ 已幫你建立訂單！\n\n🛍️ ${dg.name}\n數量：${dg.qty}\n預估單價：NT$ ${dg.price}${note ? "\n店家/備註：" + note : ""}`,
+                        `✅ 已幫你建立訂單！\n\n🛍️ ${dg.name}\n數量：${dg.qty}\n預估單價：NT$ ${dg.price}${note ? "\n店家/備註：" + note : ""}${(dg.photos && dg.photos.length) ? "\n📷 圖片 " + dg.photos.length + " 張" : ""}`,
                         "#06C755",
                         [{ type: "action", action: { type: "message", label: "🛒 再新增一筆", text: "新增訂單" } }],
                         { label: "🧾 查看我的訂單", uri: "https://aiximerada.com/daigou-orders.html" })]);
