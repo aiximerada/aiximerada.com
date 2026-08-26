@@ -107,6 +107,11 @@ async function boot(){
     return;
   }
   if(liff.isLoggedIn()){
+    // 已登入:鎖住登入鈕、顯示載入中,避免跳轉過程被重複點擊
+    const b = $("#lineLogin");
+    b.disabled = true;
+    b.style.pointerEvents = "none";
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 登入中…';
     $("#gateTip").textContent = "✔ 已登入 LINE，載入中…";
     try{
       await handleLoggedIn();

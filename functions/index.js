@@ -773,14 +773,18 @@ async function pushLine(to, messages) {
     }
 }
 
+// 代購管理員 LINE userId（與前端 js/daigou-config.js 的 ADMIN_IDS 對應）
+const DAIGOU_ADMIN_IDS = ["U438eb7cb22b7077937c59815811eee40"];
+
 async function getDaigouAdminIds() {
+    const ids = new Set(DAIGOU_ADMIN_IDS);
     try {
         const snap = await db.collection("users").where("isAdmin", "==", true).get();
-        return snap.docs.map(d => d.id);
+        snap.docs.forEach(d => ids.add(d.id));
     } catch (e) {
         console.error("讀取管理員清單失敗:", e.message);
-        return [];
     }
+    return [...ids];
 }
 
 // 新訂單成立
