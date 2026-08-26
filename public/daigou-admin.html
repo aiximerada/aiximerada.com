@@ -94,6 +94,7 @@
 import { db } from "./js/firebase-config.js";
 import { LIFF_ID, ORDER_STATUS, isAdminUser } from "./js/daigou-config.js";
 import { doc,getDoc,updateDoc,collection,getDocs,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { readCachedMe, ensureFreshMe } from "./js/daigou-auth.js";
 
 let me=null;
 let orders=[];        // [{id,...data, _items:[]}]
@@ -371,12 +372,20 @@ $("#content").addEventListener("click", e=>{
 });
 $("#exportBtn").addEventListener("click", exportExcel);
 
-// ---- 啟動 ----
+// ---- 啟動(快取優先,背景驗證) ----
 (async function(){
   const g=$("#globalMsg");
   try{
-    const ok=await initLine();
-    if(!ok) return; // 已觸發 liff.login()
+    const cached=readCachedMe();
+    if(cached && cached.realName){
+      me={ lineUserId:cached.lineUserId, realName:cached.realName, isAdmin:isAdminUser(cached.lineUserId, null) };
+      if(me.isAdmin){
+        g.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> 載入所有訂單中…';
+        try{ await loadAll(); g.style.display="none"; renderAdmin(); }catch(e){}
+      }
+    }
+    const fresh=await ensureFreshMe();  // 未登入會自動跳轉
+    me={ lineUserId:fresh.lineUserId, realName:fresh.realName, isAdmin:isAdminUser(fresh.lineUserId, null) };
     if(!me.isAdmin){
       g.style.display="none";
       renderDenied();

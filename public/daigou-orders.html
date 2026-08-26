@@ -160,6 +160,7 @@
     import { LIFF_ID, ORDER_STATUS } from "./js/daigou-config.js";
     import { doc,getDoc,updateDoc,collection,query,where,getDocs,writeBatch,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getStorage,ref,uploadBytes,getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+    import { readCachedMe, ensureFreshMe } from "./js/daigou-auth.js";
 
     let me=null; const storage=getStorage();
     const app=document.getElementById("app");
@@ -417,11 +418,12 @@
       }
     }
 
-    // ---- 啟動 ----
+    // ---- 啟動(快取優先,背景驗證) ----
     (async ()=>{
       try{
-        const ok=await initLine();
-        if(!ok) return; // 導向 LINE 登入
+        const cached=readCachedMe();
+        if(cached && cached.realName){ me=cached; try{ await render(); }catch(e){} }
+        me=await ensureFreshMe();   // 未登入會自動跳轉登入
         await render();
       }catch(err){
         console.error(err);

@@ -70,21 +70,18 @@ import { db } from "./js/firebase-config.js";
 import { LIFF_ID } from "./js/daigou-config.js";
 import { doc,getDoc,addDoc,collection,serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getStorage,ref,uploadBytes,getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { readCachedMe, ensureFreshMe } from "./js/daigou-auth.js";
 
 let me=null; const storage=getStorage();
 const $ = s => document.querySelector(s);
 const photoFiles=[null,null,null];
 let curIdx=0;
 
-(async function(){
-  try{
-    await liff.init({liffId:LIFF_ID});
-    if(!liff.isLoggedIn()){ liff.login(); return; }
-    const p=await liff.getProfile();
-    const snap=await getDoc(doc(db,"users",p.userId));
-    me={ lineUserId:p.userId, displayName:p.displayName, realName:(snap.exists()&&snap.data().realName)||p.displayName };
-  }catch(e){ document.querySelector("#msg").textContent="⚠️ 本機預覽無法登入 LINE（部署後正常）"; }
-})();
+// 先用快取即時就緒,背景再驗證登入(切頁不用重跑登入載入)
+me = readCachedMe();
+ensureFreshMe().then(m => { me = m; }).catch(e => {
+  document.querySelector("#msg").textContent = "⚠️ 本機預覽無法登入 LINE（部署後正常）";
+});
 
 // 照片選擇 / 刪除
 $("#photos").addEventListener("click", e => {

@@ -114,6 +114,7 @@
 import { db } from "./js/firebase-config.js";
 import { doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDocs, writeBatch, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { readCachedMe, cacheMe } from "./js/daigou-auth.js";
 
 const LIFF_ID = "2009464550-UWeV9K8C";
 const $ = s => document.querySelector(s);
@@ -138,8 +139,11 @@ async function boot(){
     }catch(e){
       $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.code?("["+e.code+"] "):"") + (e.message||e);
     }
+  }else if(_cachedMe && _cachedMe.hasRealName){
+    // 快取還在但 LINE 登入已失效 → 導去重新登入
+    liff.login();
   }
-  // 未登入就停在漂亮的登入頁,等使用者點按鈕
+  // 未登入(且無快取)就停在漂亮的登入頁,等使用者點按鈕
 }
 
 $("#lineLogin").onclick = () => {
@@ -159,6 +163,7 @@ async function handleLoggedIn(){
   const snap = await getDoc(uref);
   if(snap.exists() && snap.data().realName){
     me.realName = snap.data().realName;
+    cacheMe({ lineUserId:me.lineUserId, displayName:me.displayName, avatar:me.avatar||"", realName:me.realName, hasRealName:true });
     enterApp();
   }else{
     await setDoc(uref, { lineUserId:p.userId, displayName:p.displayName, avatar:p.pictureUrl||"" }, { merge:true });
@@ -171,6 +176,7 @@ $("#saveName").onclick = async () => {
   if(v.length < 2){ alert("請輸入正確的本名"); return; }
   await setDoc(doc(db,"users",me.lineUserId), { realName:v }, { merge:true });
   me.realName = v;
+  cacheMe({ lineUserId:me.lineUserId, displayName:me.displayName, avatar:me.avatar||"", realName:v, hasRealName:true });
   $("#nameMask").classList.remove("show");
   enterApp();
 };
@@ -261,6 +267,12 @@ $("#confirmSubmit").onclick = async () => {
 
 function esc(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
 
+// 快取優先:已登入過就直接進購物車,不再等登入載入;boot() 背景驗證
+const _cachedMe = readCachedMe();
+if(_cachedMe && _cachedMe.hasRealName){
+  me = _cachedMe;
+  enterApp();
+}
 boot();
 </script>
 </body>
