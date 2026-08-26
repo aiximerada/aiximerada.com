@@ -34,11 +34,19 @@
   <input id="name" placeholder="例：日本限定 Pokemon 抱枕">
 
   <div class="row">
-    <div><label>單價 *</label><input id="price" type="number" inputmode="decimal" placeholder="0"></div>
+    <div><label>預估單價 *</label><input id="price" type="number" inputmode="decimal" placeholder="0"></div>
     <div><label>幣別</label>
-      <select id="currency"><option>NT$</option><option>JPY</option><option>USD</option><option>KRW</option></select>
+      <select id="currency"><option>NT$</option><option>JPY</option><option>USD</option></select>
     </div>
   </div>
+
+  <div class="row">
+    <div><label>數量</label><input id="qty" type="number" inputmode="numeric" min="1" value="1"></div>
+    <div><label>可購買店家（選填）</label><input id="store" placeholder="例：唐吉訶德、Amazon"></div>
+  </div>
+
+  <label>參考連結（選填）</label>
+  <input id="refLink" type="url" inputmode="url" placeholder="貼上商品網址…">
 
   <label>商品照片（最多 3 張）</label>
   <div class="photos" id="photos">
@@ -117,6 +125,9 @@ $("#submit").onclick = async () => {
     }
     await addDoc(collection(db,"products"), {
       name, price: Number(price)||0, currency: $("#currency").value,
+      qty: Number($("#qty").value)||1,
+      store: $("#store").value.trim(),
+      refLink: $("#refLink").value.trim(),
       note: $("#note").value.trim(), photos: urls,
       sellerUid: me.lineUserId, sellerName: me.realName,
       status: "開團中", orderedQty: 0, createdAt: serverTimestamp()
