@@ -336,6 +336,86 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
             }
 
             // ==========================================
+            // 🛒 代購:對話式快速新增一筆訂單
+            // ==========================================
+            const DG_CANCEL_QR = [{ type: "action", action: { type: "message", label: "🚫 取消", text: "取消" } }];
+            if (["新增訂單", "新增代購", "代購下單", "新增代購訂單"].includes(text)) {
+                await userRef.set({ state: "DG_NEW_NAME", tempRecord: { dg: {} } }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "新增代購訂單", "🛍️ 請輸入「商品名稱」：", "#06C755", DG_CANCEL_QR)]);
+                continue;
+            }
+            if (state === "DG_NEW_NAME") {
+                const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
+                dg.name = text;
+                await userRef.set({ state: "DG_NEW_QTY", tempRecord: { dg } }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "新增代購訂單", `商品：${text}\n\n請輸入「數量」：`, "#06C755",
+                    [{ type: "action", action: { type: "message", label: "1", text: "1" } }, ...DG_CANCEL_QR])]);
+                continue;
+            }
+            if (state === "DG_NEW_QTY") {
+                const q = parseInt(text);
+                if (isNaN(q) || q < 1) {
+                    await replyLineMessage(replyToken, [createCardMessage("新增代購訂單", "⚠️ 請輸入正確的數量數字(例如 1)。", "#ff4757", DG_CANCEL_QR)]);
+                    continue;
+                }
+                const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
+                dg.qty = q;
+                await userRef.set({ state: "DG_NEW_PRICE", tempRecord: { dg } }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "新增代購訂單", "請輸入「預估單價」(數字，不確定就打 0)：", "#06C755",
+                    [{ type: "action", action: { type: "message", label: "0", text: "0" } }, ...DG_CANCEL_QR])]);
+                continue;
+            }
+            if (state === "DG_NEW_PRICE") {
+                const pr = parseFloat(text);
+                if (isNaN(pr) || pr < 0) {
+                    await replyLineMessage(replyToken, [createCardMessage("新增代購訂單", "⚠️ 請輸入正確的單價數字(不確定打 0)。", "#ff4757", DG_CANCEL_QR)]);
+                    continue;
+                }
+                const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
+                dg.price = pr;
+                await userRef.set({ state: "DG_NEW_NOTE", tempRecord: { dg } }, { merge: true });
+                await replyLineMessage(replyToken, [createCardMessage(
+                    "新增代購訂單", "最後，請輸入「店家/備註」(沒有就打 無)：", "#06C755",
+                    [{ type: "action", action: { type: "message", label: "無", text: "無" } }, ...DG_CANCEL_QR])]);
+                continue;
+            }
+            if (state === "DG_NEW_NOTE") {
+                const dg = (userData.tempRecord && userData.tempRecord.dg) || {};
+                const note = (text === "無") ? "" : text;
+                const displayName = await getUserProfile(userId);
+                const realName = userData.realName || displayName;
+                try {
+                    const orderRef = await db.collection("orders").add({
+                        ownerUid: userId, ownerLineId: userId, ownerRealName: realName, ownerDisplayName: displayName,
+                        itemCount: 1, payType: "未指定", status: "下單", payLast5: "", paySlipUrl: "",
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    await db.collection("daigouItems").add({
+                        ownerUid: userId, ownerLineId: userId, ownerRealName: realName, ownerDisplayName: displayName,
+                        name: dg.name || "商品", price: dg.price || 0, currency: "NT$", qty: dg.qty || 1,
+                        store: "", refLink: "", note: note, photos: [],
+                        submitted: true, orderId: orderRef.id, cancelled: false, costPaid: 0,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(), submittedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+                    await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
+                    await replyLineMessage(replyToken, [createCardMessage(
+                        "訂單已建立",
+                        `✅ 已幫你建立訂單！\n\n🛍️ ${dg.name}\n數量：${dg.qty}\n預估單價：NT$ ${dg.price}${note ? "\n店家/備註：" + note : ""}`,
+                        "#06C755",
+                        [{ type: "action", action: { type: "message", label: "🛒 再新增一筆", text: "新增訂單" } }],
+                        { label: "🧾 查看我的訂單", uri: "https://aiximerada.com/daigou-orders.html" })]);
+                } catch (e) {
+                    console.error("LINE 新增訂單失敗:", e.message);
+                    await userRef.set({ state: "IDLE", tempRecord: admin.firestore.FieldValue.delete() }, { merge: true });
+                    await replyLineMessage(replyToken, [createCardMessage("系統提示", "建立訂單時發生錯誤，請稍後再試。", "#ff4757")]);
+                }
+                continue;
+            }
+
+            // ==========================================
             // 🔄 狀態機流程控制 (WAITING 狀態)
             // ==========================================
             if (state === "WAITING_DELETE_SCOPE") {
@@ -735,6 +815,8 @@ exports.lineWebhook = functions.runWith({ secrets: ["LINE_TOKEN", "CWA_API_KEY"]
 
                 // 終極防呆導航
                 await replyLineMessage(replyToken, [createCardMessage("系統導航", "🤖 系統無法辨識您的指令喔！\n\n您可以點擊下方快捷按鈕，開啟各項功能選單：👇", "#00f3ff", [
+                    { type: "action", action: { type: "message", label: "🛒 新增代購訂單", text: "新增訂單" } },
+                    { type: "action", action: { type: "message", label: "🧾 我的代購訂單", text: "訂單" } },
                     { type: "action", action: { type: "message", label: "💰 記帳系統", text: "記帳" } },
                     { type: "action", action: { type: "message", label: "📝 記事本", text: "記事本" } },
                     { type: "action", action: { type: "message", label: "🏍️ 找車位", text: "車位" } }
