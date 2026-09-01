@@ -8,48 +8,186 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans TC","Segoe UI",sans-serif}
-  :root{--line:#06C755;--bg:#0f1420;--card:#182130;--line2:#26324a;--txt:#e8eefc;--muted:#8b98b5;--gold:#f2c94c;--blue:#3b6cff}
+  /* 星街(Hoshimachi Suisei)配色:白底 + 青綠主色 + 星海深藍 */
+  :root{
+    --suisei:#4a9fb2;        /* 星街青綠(主色,降彩度不刺眼) */
+    --suisei-deep:#2f7d8f;   /* 深青 */
+    --suisei-soft:#eaf2f4;   /* 淡青(底/hover) */
+    --navy:#28345a;          /* 星海深藍 */
+    --star:#e0a93b;          /* 星星/價格點綴 */
+    --line:#06C755;          /* LINE 綠(登入鈕) */
+    --bg:#f1f4f7;
+    --card:#ffffff;
+    --line2:#e0e7ee;
+    --txt:#22303f;
+    --muted:#71808f;
+  }
   body{background:var(--bg);color:var(--txt);min-height:100vh}
-  header{position:sticky;top:0;z-index:20;background:rgba(15,20,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-  header h1{font-size:19px;display:flex;align-items:center;gap:8px}
-  .who{font-size:14px;color:var(--txt);display:flex;align-items:center;gap:8px}
-  .who img{width:30px;height:30px;border-radius:50%;border:2px solid var(--line)}
-  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 80px}
-  .toolbar{display:flex;gap:10px;margin-bottom:18px}
-  .toolbar input{flex:1;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:11px 16px;color:var(--txt);font-size:15px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-  @media(min-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}}
-  .prod{background:var(--card);border:1px solid var(--line2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:.2s}
-  .prod:active{transform:scale(.98)}
-  .prod:hover{border-color:var(--blue)}
-  .prod .img{aspect-ratio:1;background:#0d1117 center/cover no-repeat;position:relative}
-  .prod .img .status{position:absolute;top:8px;left:8px;font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(6,199,85,.92);color:#fff;font-weight:600}
-  .prod .body{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
-  .prod .name{font-size:14.5px;font-weight:600;line-height:1.4}
-  .prod .price{color:var(--gold);font-size:17px;font-weight:700}
-  .prod .meta{font-size:11.5px;color:var(--muted);margin-top:auto;display:flex;justify-content:space-between}
-  .empty{text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1}
-  .fab{position:fixed;right:18px;bottom:20px;background:var(--blue);color:#fff;border:none;border-radius:999px;padding:15px 22px;font-size:16px;font-weight:700;box-shadow:0 8px 24px rgba(59,108,255,.45);cursor:pointer;display:flex;align-items:center;gap:8px;z-index:15}
+  a{color:inherit;text-decoration:none}
+
+  /* 頁首 */
+  header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line2);padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    box-shadow:0 2px 12px rgba(31,43,87,.05)}
+  header h1{font-size:20px;font-weight:800;display:flex;align-items:center;gap:9px;color:var(--navy)}
+  header h1 .dot{width:11px;height:11px;border-radius:50%;background:var(--suisei);box-shadow:0 0 0 4px var(--suisei-soft)}
+
+  /* 使用者頭像 + 下拉選單 */
+  .usermenu{position:relative}
+  .avatar-btn{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line2);
+    border-radius:999px;padding:5px 14px 5px 5px;cursor:pointer;transition:.15s}
+  .avatar-btn:hover{border-color:var(--suisei);box-shadow:0 4px 14px rgba(23,195,224,.18)}
+  .avatar-btn img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2.5px solid var(--suisei)}
+  .avatar-btn .nm{font-size:15px;font-weight:700;color:var(--navy);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .avatar-btn .caret{color:var(--muted);font-size:12px;transition:.2s}
+  .avatar-btn.open .caret{transform:rotate(180deg)}
+  .menu{position:absolute;right:0;top:calc(100% + 10px);min-width:210px;background:var(--card);border:1px solid var(--line2);
+    border-radius:16px;box-shadow:0 16px 40px rgba(31,43,87,.18);overflow:hidden;padding:6px;z-index:30}
+  .menu a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:11px;font-size:15px;font-weight:600;color:var(--txt);cursor:pointer}
+  .menu a:hover{background:var(--suisei-soft);color:var(--suisei-deep)}
+  .menu a i{width:20px;text-align:center;font-size:16px;color:var(--suisei)}
+  .menu a.admin i{color:var(--star)}
+  .menu .sep{height:1px;background:var(--line2);margin:5px 8px}
+
+  .wrap{max-width:1360px;margin:0 auto;padding:20px 22px 120px}
+
+  /* 熱門商品牆(自動橫向滾動) */
+  .hotwall{position:relative;margin-bottom:20px;border:1px solid var(--line2);border-radius:20px;overflow:hidden;
+    background:linear-gradient(135deg,#ffffff 0%,var(--suisei-soft) 100%);box-shadow:0 6px 22px rgba(31,43,87,.06)}
+  .hotwall .cap{display:flex;align-items:center;gap:8px;padding:14px 18px 6px;font-size:15px;font-weight:800;color:var(--navy)}
+  .hotwall .cap i{color:var(--suisei)}
+  .hotwall .cap .tag{font-size:11px;font-weight:700;color:#fff;background:var(--suisei);padding:2px 9px;border-radius:999px}
+  .hotmask{overflow:hidden;padding:6px 0 16px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+  .hottrack{display:flex;gap:14px;width:max-content;padding:0 18px;animation:hotscroll 45s linear infinite}
+  .hotwall:hover .hottrack{animation-play-state:paused}
+  @keyframes hotscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .hotcard{width:158px;flex:none;background:var(--card);border:1px solid var(--line2);border-radius:14px;overflow:hidden;
+    cursor:pointer;transition:.18s;display:flex;flex-direction:column}
+  .hotcard:hover{transform:translateY(-4px);border-color:var(--suisei);box-shadow:0 10px 24px rgba(23,195,224,.22)}
+  .hotcard .img{aspect-ratio:1;background:var(--suisei-soft) center/cover no-repeat;position:relative}
+  .hotcard .add{position:absolute;right:7px;bottom:7px;width:30px;height:30px;border-radius:50%;background:var(--suisei);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 4px 12px rgba(23,195,224,.5)}
+  .hotcard .b{padding:9px 11px}
+  .hotcard .nm{font-size:13.5px;font-weight:700;line-height:1.35;color:var(--txt);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:37px}
+  .hotcard .pr{color:var(--suisei-deep);font-size:15px;font-weight:800;margin-top:3px}
+  /* 行程目的地卡片(真實照片) */
+  .destcard{width:172px}
+  .destcard .img{position:relative;background-size:cover;background-position:center}
+  .destcard .img .jp{position:absolute;bottom:7px;right:10px;font-size:11px;color:#fff;font-weight:700;letter-spacing:.5px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+  .destcard .nm{font-size:16px;-webkit-line-clamp:1;min-height:0}
+  .destcard .pr{color:var(--suisei-deep);font-size:13px;font-weight:800;margin-top:2px}
+  .destcard .tg{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  /* 新增商品 大按鈕 */
+  .addbtn{width:100%;background:var(--card);border:2px dashed var(--suisei);border-radius:16px;padding:18px;
+    color:var(--suisei-deep);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:20px;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:9px}
+  .addbtn:hover{background:var(--suisei-soft);box-shadow:0 6px 18px rgba(23,195,224,.18)}
+
+  .sec-title{font-size:16px;color:var(--navy);font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .sec-title i{color:var(--suisei)}
+
+  /* 購物車:寬螢幕多欄填滿版面 */
+  #cart{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:720px){#cart{grid-template-columns:1fr 1fr}}
+  @media(min-width:1100px){#cart{grid-template-columns:1fr 1fr 1fr}}
+  .citem{display:flex;gap:13px;background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:13px;align-items:center;
+    box-shadow:0 3px 12px rgba(31,43,87,.05)}
+  .citem .pic{width:66px;height:66px;border-radius:12px;flex:none;background:var(--suisei-soft) center/cover no-repeat}
+  .citem .nm{font-weight:700;font-size:15px;line-height:1.4;color:var(--txt)}
+  .citem .pr{color:var(--suisei-deep);font-weight:800;margin-top:3px}
+  .citem .st{font-size:12px;color:var(--muted);margin-top:3px}
+  .citem .del{background:transparent;border:none;color:#c0ccdb;font-size:17px;cursor:pointer;padding:8px}
+  .citem .del:hover{color:#e5484d}
+  .empty{text-align:center;color:var(--muted);padding:56px 20px;grid-column:1/-1;background:var(--card);border:1px dashed var(--line2);border-radius:16px}
+
+  /* 底部送出列 */
+  #submitBar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:16;background:rgba(255,255,255,.97);
+    backdrop-filter:blur(10px);border-top:1px solid var(--line2);padding:12px 16px;box-shadow:0 -4px 20px rgba(31,43,87,.08)}
+  #submitBar .in{max-width:1360px;margin:0 auto;display:flex;align-items:center;gap:12px}
+  .btn-go{background:var(--suisei);color:#fff;border:none;border-radius:12px;padding:13px 30px;font-size:16px;font-weight:800;cursor:pointer;
+    box-shadow:0 8px 20px rgba(23,195,224,.35)}
+  .btn-go:hover{background:var(--suisei-deep)}
+
   /* 全螢幕 LINE 登入入口 */
-  .gate{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -8%,#132443 0%,var(--bg) 58%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;z-index:60}
-  .gate .logo{width:112px;height:112px;border-radius:30px;background:linear-gradient(135deg,#06C755,#04a045);display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 20px 50px rgba(6,199,85,.45);margin-bottom:26px;animation:pop .5s ease}
+  .gate{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -6%,var(--suisei-soft) 0%,var(--bg) 60%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;z-index:60}
+  .gate .logo{width:112px;height:112px;border-radius:30px;background:linear-gradient(135deg,var(--suisei),var(--navy));
+    display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 20px 50px rgba(23,195,224,.4);margin-bottom:26px;animation:pop .5s ease}
   @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-  .gate h2{font-size:27px;margin-bottom:12px;letter-spacing:1px}
+  .gate h2{font-size:28px;margin-bottom:12px;letter-spacing:1px;color:var(--navy);font-weight:800}
   .gate p{color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:36px;max-width:300px}
-  .line-login{display:inline-flex;align-items:center;gap:11px;background:var(--line);color:#fff;border:none;border-radius:14px;padding:16px 44px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 12px 28px rgba(6,199,85,.42);transition:.2s}
-  .line-login:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(6,199,85,.55)}
+  .line-login{display:inline-flex;align-items:center;gap:11px;background:var(--line);color:#fff;border:none;border-radius:14px;
+    padding:16px 44px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 12px 28px rgba(6,199,85,.4);transition:.2s}
+  .line-login:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(6,199,85,.5)}
   .line-login:disabled{opacity:.6}
   .line-login i{font-size:25px}
-  .gate .tip{margin-top:28px;font-size:12px;color:#5b6b8c;max-width:280px;line-height:1.6}
+  .gate .tip{margin-top:28px;font-size:12px;color:#8b98b5;max-width:280px;line-height:1.6}
   .hide{display:none!important}
+
   /* modal */
-  .mask{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:70;padding:18px}
+  .mask{position:fixed;inset:0;background:rgba(31,43,87,.4);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:70;padding:18px}
   .mask.show{display:flex}
-  .modal{background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:28px;width:100%;max-width:400px}
-  .modal h2{font-size:20px;margin-bottom:8px}
+  .modal{background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:28px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(31,43,87,.25)}
+  .modal h2{font-size:21px;margin-bottom:8px;color:var(--navy)}
   .modal p{color:var(--muted);font-size:13.5px;margin-bottom:20px;line-height:1.6}
-  .modal input{width:100%;background:#0d1117;border:1px solid var(--line2);border-radius:12px;padding:13px;color:var(--txt);font-size:16px;margin-bottom:16px}
-  .modal .save{width:100%;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}
+  .modal input,.modal select{width:100%;background:#f2f7fb;border:1px solid var(--line2);border-radius:12px;padding:13px;color:var(--txt);font-size:16px;margin-bottom:16px}
+  .modal .save{width:100%;background:var(--suisei);color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:800;cursor:pointer}
+  .modal .save:hover{background:var(--suisei-deep)}
+
+  /* 熱門商品瀏覽(點目的地開啟) */
+  .shopmask{position:fixed;inset:0;background:rgba(31,43,87,.45);backdrop-filter:blur(4px);display:none;z-index:80;align-items:flex-end;justify-content:center}
+  .shopmask.show{display:flex}
+  .shop{background:var(--bg);width:100%;max-width:820px;max-height:90vh;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -10px 50px rgba(31,43,87,.32)}
+  @media(min-width:640px){.shopmask{align-items:center}.shop{border-radius:22px;max-height:86vh}}
+  .shop .hd{display:flex;align-items:center;gap:10px;padding:16px 18px;background:var(--card);border-bottom:1px solid var(--line2)}
+  .shop .hd .t{font-size:18px;font-weight:800;color:var(--navy);flex:1}
+  .shop .hd .x{background:transparent;border:none;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:2px 8px}
+  .shop .tabs{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--line2);scrollbar-width:none}
+  .shop .tabs::-webkit-scrollbar{display:none}
+  .shop .tab{flex:none;padding:8px 15px;border-radius:999px;background:var(--suisei-soft);color:var(--suisei-deep);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .shop .tab.on{background:var(--suisei);color:#fff}
+  .shop .grid{overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;-webkit-overflow-scrolling:touch}
+  @media(min-width:640px){.shop .grid{grid-template-columns:1fr 1fr 1fr}}
+  .pcard{background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 8px rgba(31,43,87,.04)}
+  .pcard .n{font-size:14px;font-weight:700;line-height:1.4;color:var(--txt);flex:1}
+  .pcard .py{font-size:16px;font-weight:800;color:var(--suisei-deep)}
+  .pcard .py small{font-size:12px;color:var(--muted);font-weight:600}
+  .pcard .add{background:var(--suisei);color:#fff;border:none;border-radius:10px;padding:9px;font-size:13.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+  .pcard .add:hover{background:var(--suisei-deep)}
+  .pcard .add.done{background:var(--line)}
+
+  /* ===== 手機優化 ===== */
+  @media(max-width:600px){
+    header{padding:10px 14px}
+    header h1{font-size:17px;gap:7px}
+    header h1 .dot{width:9px;height:9px}
+    .avatar-btn{padding:4px 10px 4px 4px;gap:7px}
+    .avatar-btn img{width:36px;height:36px;border-width:2px}
+    .avatar-btn .nm{max-width:96px;font-size:14px}
+    .menu{min-width:190px;top:calc(100% + 8px)}
+    .wrap{padding:14px 12px 108px}
+    .hotwall{border-radius:16px}
+    .hotwall .cap{padding:12px 14px 4px;font-size:14px}
+    .hottrack{padding:0 14px;gap:11px}
+    .hotcard{width:138px}
+    .hotcard .nm{font-size:12.5px;min-height:34px}
+    .addbtn{font-size:15px;padding:15px;border-radius:14px}
+    .sec-title{font-size:15px}
+    .citem{padding:11px;border-radius:14px}
+    .citem .pic{width:58px;height:58px}
+    .citem .nm{font-size:14.5px}
+    #submitBar{padding:10px 14px}
+    #submitBar .in{gap:8px}
+    .btn-go{padding:12px 22px;font-size:15px}
+    .modal{padding:22px;border-radius:18px}
+    /* 手機用瀏覽器(非 PWA)時,底部送出列避開手勢列 */
+    #submitBar{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  }
+  /* 觸控:熱門牆可用手指左右滑(auto-scroll 之外也能手動看) */
+  @media(hover:none){ .hotmask{overflow-x:auto;-webkit-overflow-scrolling:touch} }
 </style>
 </head>
 <body>
@@ -60,30 +198,46 @@
   <h2>培根代購</h2>
   <p>用 LINE 一鍵登入，即可加入商品、送出訂單與追蹤進度。</p>
   <button class="line-login" id="lineLogin"><i class="fa-brands fa-line"></i> 使用 LINE 登入</button>
-  <a id="openInLine" href="https://liff.line.me/2009464550-UWeV9K8C" style="display:none;margin-top:18px;color:var(--line);font-size:14px;text-decoration:underline">在 LINE App 中開啟</a>
+  <a id="openInLine" href="https://liff.line.me/2009464550-UWeV9K8C" style="display:none;margin-top:18px;color:var(--suisei-deep);font-size:14px;text-decoration:underline">在 LINE App 中開啟</a>
   <div class="tip" id="gateTip"></div>
 </div>
 
 <!-- 主畫面(登入後才顯示) -->
 <div id="app" class="hide">
   <header>
-    <h1>🥓 培根代購</h1>
-    <div style="display:flex;align-items:center;gap:14px">
-      <a id="adminLink" href="daigou-admin.html" title="後台管理" style="color:var(--gold);font-size:18px;display:none"><i class="fa-solid fa-user-shield"></i></a>
-      <a id="ordersLink" href="daigou-orders.html" title="我的訂單" style="color:var(--muted);font-size:19px"><i class="fa-solid fa-receipt"></i></a>
-      <span class="who" id="who" title="我的訂單" style="cursor:pointer"></span>
+    <h1><span class="dot"></span>培根代購</h1>
+    <div class="usermenu">
+      <button class="avatar-btn" id="avatarBtn">
+        <img id="avatarImg" src="" alt="">
+        <span class="nm" id="avatarName"></span>
+        <i class="fa-solid fa-chevron-down caret"></i>
+      </button>
+      <div class="menu hide" id="userMenu">
+        <a href="daigou-orders.html"><i class="fa-solid fa-receipt"></i> 訂單歷史</a>
+        <a class="admin" id="adminLink" href="daigou-admin.html" style="display:none"><i class="fa-solid fa-user-shield"></i> 後台管理</a>
+      </div>
     </div>
   </header>
-  <div class="wrap" style="padding-bottom:120px">
-    <button onclick="location.href='daigou-new.html'" style="width:100%;background:transparent;border:2px dashed var(--line2);border-radius:14px;padding:16px;color:var(--muted);font-size:15px;font-weight:600;cursor:pointer;margin-bottom:18px"><i class="fa-solid fa-plus"></i> 新增商品到購物車</button>
-    <h2 style="font-size:15px;color:var(--muted);margin-bottom:12px"><i class="fa-solid fa-cart-shopping"></i> 我的購物車</h2>
+
+  <div class="wrap">
+    <!-- 熱門商品牆 -->
+    <div class="hotwall hide" id="hotwall">
+      <div class="cap"><i class="fa-solid fa-location-dot"></i> 本次代購行程・可下單地點 <span class="tag">點地點看當地熱門商品</span></div>
+      <div class="hotmask"><div class="hottrack" id="hottrack"></div></div>
+    </div>
+
+    <!-- 新增商品 -->
+    <button class="addbtn" onclick="location.href='daigou-new.html'"><i class="fa-solid fa-plus"></i> 新增商品到購物車</button>
+
+    <div class="sec-title"><i class="fa-solid fa-cart-shopping"></i> 我的購物車</div>
     <div id="cart"><div class="empty">載入中…</div></div>
   </div>
+
   <!-- 底部送出列 -->
-  <div id="submitBar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:16;background:rgba(15,20,32,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line2);padding:12px 16px">
-    <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px">
-      <div style="flex:1;font-size:14px;color:var(--muted)">共 <b id="cartCount" style="color:var(--txt)">0</b> 件商品</div>
-      <button id="submitOrder" style="background:var(--line);color:#fff;border:none;border-radius:12px;padding:13px 28px;font-size:16px;font-weight:700;cursor:pointer">送出訂單</button>
+  <div id="submitBar">
+    <div class="in">
+      <div style="flex:1;font-size:14px;color:var(--muted)">共 <b id="cartCount" style="color:var(--navy)">0</b> 件商品</div>
+      <button id="submitOrder" class="btn-go">送出訂單</button>
     </div>
   </div>
 </div>
@@ -92,11 +246,9 @@
 <div class="mask" id="submitMask">
   <div class="modal">
     <h2>送出訂單</h2>
-    <p id="submitDesc" style="color:var(--muted);font-size:14px;margin-bottom:16px"></p>
+    <p id="submitDesc"></p>
     <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px">付款方式</label>
-    <select id="payType" style="width:100%;background:#0d1117;border:1px solid var(--line2);border-radius:12px;padding:13px;color:var(--txt);font-size:16px;margin-bottom:16px">
-      <option>訂金</option><option>全額</option>
-    </select>
+    <select id="payType"><option>訂金</option><option>全額</option></select>
     <button class="save" id="confirmSubmit">確定送出</button>
     <button id="cancelSubmit" style="width:100%;background:transparent;border:none;color:var(--muted);padding:12px;margin-top:6px;cursor:pointer">取消</button>
   </div>
@@ -112,16 +264,24 @@
   </div>
 </div>
 
+<!-- 熱門商品瀏覽(點目的地開啟) -->
+<div class="shopmask" id="shopMask">
+  <div class="shop">
+    <div class="hd"><i class="fa-solid fa-location-dot" style="color:var(--suisei)"></i><span class="t" id="shopTitle"></span><button class="x" id="shopClose">&times;</button></div>
+    <div class="tabs" id="shopTabs"></div>
+    <div class="grid" id="shopGrid"></div>
+  </div>
+</div>
+
 <script type="module">
 import { db } from "./js/firebase-config.js";
-import { doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDocs, writeBatch, serverTimestamp }
+import { doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDocs, writeBatch, serverTimestamp, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { readCachedMe, cacheMe } from "./js/daigou-auth.js";
 import { isAdminUser } from "./js/daigou-config.js";
 
 const LIFF_ID = "2009464550-UWeV9K8C";
 const LIFF_URL = "https://liff.line.me/" + LIFF_ID;
-// 是否為「加到主畫面」的獨立視窗(PWA);這種情況 redirect 登入會跳到瀏覽器回不來
 const IS_STANDALONE = (window.navigator.standalone === true) ||
   (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
 function inLineApp(){ try{ return liff.isInClient(); }catch(e){ return false; } }
@@ -136,46 +296,28 @@ async function boot(){
     return;
   }
   if(liff.isLoggedIn()){
-    // 已登入:鎖住登入鈕、顯示載入中,避免跳轉過程被重複點擊
     const b = $("#lineLogin");
-    b.disabled = true;
-    b.style.pointerEvents = "none";
+    b.disabled = true; b.style.pointerEvents = "none";
     b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 登入中…';
     $("#gateTip").textContent = "✔ 已登入 LINE，載入中…";
-    try{
-      await handleLoggedIn();
-    }catch(e){
-      $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.code?("["+e.code+"] "):"") + (e.message||e);
-    }
+    try{ await handleLoggedIn(); }
+    catch(e){ $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.code?("["+e.code+"] "):"") + (e.message||e); }
     return;
   }
-  // ---- 未登入 ----
-  // 一般瀏覽器:快取失效就自動重新登入(PWA 不走這條,redirect 會跳不回來)
-  if(_cachedMe && _cachedMe.hasRealName && !(IS_STANDALONE && !inLineApp())){
-    liff.login();
-    return;
-  }
-  // PWA(獨立視窗)且不在 LINE 內:提示改用 LINE App 開啟
+  if(_cachedMe && _cachedMe.hasRealName && !(IS_STANDALONE && !inLineApp())){ liff.login(); return; }
   if(IS_STANDALONE && !inLineApp()){
     $("#openInLine").style.display = "inline-block";
     $("#gateTip").innerHTML = "偵測到你用「加到主畫面(PWA)」開啟。<br>PWA 無法直接完成 LINE 登入，請點下方<b>「在 LINE App 中開啟」</b>即可自動登入。";
   }
-  // 其餘(一般瀏覽器未登入)就停在登入頁,等使用者點按鈕
 }
 
 $("#lineLogin").onclick = () => {
-  // PWA 獨立視窗:redirect 登入會跳到瀏覽器回不來,改用 LIFF 連結在 LINE App 內開啟
-  if(IS_STANDALONE && !inLineApp()){
-    location.href = LIFF_URL;
-    return;
-  }
+  if(IS_STANDALONE && !inLineApp()){ location.href = LIFF_URL; return; }
   if(!liff.isLoggedIn()){
     $("#lineLogin").disabled = true;
     $("#lineLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 連線中…';
-    liff.login();   // 導去 LINE 授權,回來後 boot() 會偵測到已登入
-  }else{
-    handleLoggedIn();
-  }
+    liff.login();
+  }else{ handleLoggedIn(); }
 };
 
 async function handleLoggedIn(){
@@ -208,11 +350,132 @@ let cartItems = [];
 function enterApp(){
   $("#gate").classList.add("hide");
   $("#app").classList.remove("hide");
-  $("#who").innerHTML = `${me.avatar?`<img src="${me.avatar}">`:""} ${esc(me.realName)}`;
-  $("#who").onclick = () => location.href = "daigou-orders.html";
-  if(isAdminUser(me.lineUserId, null)){ $("#adminLink").style.display = "inline-block"; }
+  $("#avatarImg").src = me.avatar || "";
+  if(!me.avatar) $("#avatarImg").style.display = "none";
+  $("#avatarName").textContent = me.realName || me.displayName || "我";
+  if(isAdminUser(me.lineUserId, null)){ $("#adminLink").style.display = "flex"; }
+  setupMenu();
   loadCart();
+  loadHotWall();
 }
+
+// 頭像下拉選單
+function setupMenu(){
+  const btn = $("#avatarBtn"), menu = $("#userMenu");
+  btn.onclick = (e) => { e.stopPropagation(); const open = menu.classList.toggle("hide")===false; btn.classList.toggle("open", open); };
+  document.addEventListener("click", (e) => {
+    if(!menu.classList.contains("hide") && !menu.contains(e.target) && !btn.contains(e.target)){
+      menu.classList.add("hide"); btn.classList.remove("open");
+    }
+  });
+}
+
+// 本次行程目的地牆(依 2026/09 東京・鎌倉・橫濱行程),無限橫向滾動;點卡片→去新增商品
+const TRIP = [
+  { name:"秋葉原",  jp:"Akihabara", date:"9/05",    tag:"電器・動漫周邊", img:"img/dest/akihabara.jpg" },
+  { name:"鎌倉・大船", jp:"Kamakura", date:"9/06",   tag:"大佛・伴手禮",   img:"img/dest/kamakura.jpg" },
+  { name:"橫濱",    jp:"Yokohama",  date:"9/07–08", tag:"中華街・港區",   img:"img/dest/yokohama.jpg" },
+  { name:"六本木",  jp:"Roppongi",  date:"9/09–10", tag:"精品・話題店",   img:"img/dest/roppongi.jpg" },
+  { name:"淺草橋",  jp:"Asakusa",   date:"9/11–12", tag:"雷門・老鋪",     img:"img/dest/asakusa.jpg" },
+];
+function loadHotWall(){
+  const card = d => `
+    <div class="hotcard destcard" data-place="${esc(d.name)}">
+      <div class="img" style="background-image:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.5)),url('${d.img}')"><span class="jp">${esc(d.jp)}</span></div>
+      <div class="b"><div class="nm">${esc(d.name)}</div><div class="pr">${d.date}</div><div class="tg">${esc(d.tag)}</div></div>
+    </div>`;
+  $("#hottrack").innerHTML = TRIP.map(card).join("") + TRIP.map(card).join("");
+  $("#hotwall").classList.remove("hide");
+  $("#hottrack").style.animationDuration = Math.max(24, TRIP.length*4.5) + "s";
+}
+
+// ===== 熱門商品庫(2026 網路熱門代購品,參考估價;¥→NT$約×0.21) =====
+const YEN2NT = 0.21;
+const CATS = [
+  { key:"snack",  label:"🍫 零食甜點" },
+  { key:"drug",   label:"💊 藥妝保健" },
+  { key:"beauty", label:"💄 美妝保養" },
+  { key:"denki",  label:"🎮 電器/動漫" },
+  { key:"food",   label:"🍜 食品泡麵" },
+  { key:"life",   label:"🧴 生活雜貨" },
+];
+const CATALOG = {
+  snack: [
+    ["白色戀人 白巧克力夾心 12入",900],["六花亭 蘭姆葡萄奶油夾心 10入",1450],["東京香蕉 8入",1180],
+    ["雷神 巧克力棒(北海道限定)",600],["Alfort 帆船巧克力餅乾",260],["龜田 柿種米果+花生",350],
+    ["明治 蘑菇山/竹筍村",250],["KitKat 抹茶 12入",750],["Royce' 生巧克力",850],["樂天 小熊餅乾",200],
+  ],
+  drug: [
+    ["大正 百保能感冒顆粒(金)",1400],["新Lulu-A錠 DX 綜合感冒藥",1600],["龍角散 喉糖/喉粉",770],
+    ["EVE 止痛藥(白兔)",900],["太田胃散 腸胃藥",1000],["休足時間 舒緩貼片",600],
+    ["小林 退熱貼",450],["曼秀雷敦 AD 止癢乳液",900],["命の母(女性保健)",1800],["武田 維他命C 2000",1500],
+  ],
+  beauty: [
+    ["資生堂 ANESSA 安耐曬 金瓶",3000],["Skin Aqua 水潤肌 防曬精華",900],["ELIXIR 彈潤美肌乳(防曬)",3000],
+    ["Melano CC 美白精華",1000],["Melano CC 面膜 20入",880],["肌研 極潤 化妝水",900],
+    ["Saborino 早安面膜 32片",1300],["FANCL 卸妝油",1800],["KOSE 雪肌精 化妝水",2500],["Curel 珂潤 保濕乳",2000],
+  ],
+  denki: [
+    ["Nintendo Switch 2 遊戲片",6000],["一番賞(熱門IP)",800],["扭蛋/景品公仔",500],
+    ["壽屋/海洋堂 組裝模型",4000],["寶可夢 卡牌 一盒",5500],["動漫 壓克力立牌/吊飾",1000],
+    ["Panasonic 眼部溫感按摩器",8000],["象印/虎牌 保溫瓶",3500],["Switch 健身環大冒險",8000],["Sony 藍牙耳機 WF系列",15000],
+  ],
+  food: [
+    ["日清 CUP NOODLE 杯麵",200],["日清 咚兵衛 豆皮烏龍",180],["一蘭拉麵 泡麵 5食",1500],
+    ["日清 出前一丁 袋麵",100],["日清 拉王 袋麵",250],["明星 一平ちゃん 炒麵",200],
+    ["無印 即食咖哩(奶油雞)",350],["永谷園 即食味噌湯",300],["S&B 咖哩塊(佛蒙特)",300],["龜田 柿種 大袋",400],
+  ],
+  life: [
+    ["花王 蒸氣感眼罩 Megrhythm",500],["UTAMARO 魔法家事皂",150],["3COINS 防靜電美髮梳",550],
+    ["手持渦輪風扇(多段)",1500],["KOKUYO 文具/中性筆",300],["無印 旅行收納組",800],
+    ["貝印 指甲剪",1000],["LION 洗衣槽清潔劑",300],["象印/膳魔師 便當盒",1500],["Marna 廚房小物",600],
+  ],
+};
+// 各目的地優先顯示的特色分類
+const DEST_SPECIALTY = { "秋葉原":"denki", "鎌倉・大船":"snack", "橫濱":"snack", "六本木":"beauty", "淺草橋":"snack" };
+let shopDest = "";
+
+function openShop(destName){
+  shopDest = destName;
+  $("#shopTitle").textContent = destName + " · 熱門代購商品";
+  $("#shopTabs").innerHTML = CATS.map(c => `<div class="tab" data-k="${c.key}">${c.label}</div>`).join("");
+  renderShopCat(DEST_SPECIALTY[destName] || "snack");
+  $("#shopMask").classList.add("show");
+}
+function renderShopCat(key){
+  $("#shopTabs").querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.k===key));
+  const items = CATALOG[key] || [];
+  $("#shopGrid").innerHTML = items.map((it,i) => {
+    const nt = Math.round(it[1]*YEN2NT);
+    return `<div class="pcard"><div class="n">${esc(it[0])}</div>
+      <div class="py">¥${it[1]} <small>≈NT$${nt}</small></div>
+      <button class="add" data-k="${key}" data-i="${i}"><i class="fa-solid fa-cart-plus"></i> 加入購物車</button></div>`;
+  }).join("");
+  $("#shopGrid").scrollTop = 0;
+}
+// 點目的地卡片 → 打開該地熱門商品
+$("#hottrack").addEventListener("click", (e) => {
+  const c = e.target.closest(".destcard"); if(c) openShop(c.dataset.place);
+});
+// 切換分類
+$("#shopTabs").addEventListener("click", (e) => { const t = e.target.closest(".tab"); if(t) renderShopCat(t.dataset.k); });
+$("#shopClose").onclick = () => $("#shopMask").classList.remove("show");
+$("#shopMask").addEventListener("click", (e) => { if(e.target === $("#shopMask")) $("#shopMask").classList.remove("show"); });
+// 加入購物車
+$("#shopGrid").addEventListener("click", async (e) => {
+  const b = e.target.closest(".add"); if(!b || !me) return;
+  const it = CATALOG[b.dataset.k][+b.dataset.i];
+  b.disabled = true;
+  try{
+    await addDoc(collection(db,"daigouItems"), {
+      ownerUid:me.lineUserId, name:it[0], price:it[1], currency:"¥",
+      store:shopDest+" 代購", qty:1, photos:[], submitted:false, createdAt:serverTimestamp()
+    });
+    b.classList.add("done"); b.innerHTML = '<i class="fa-solid fa-check"></i> 已加入';
+    loadCart();
+    setTimeout(() => { b.disabled=false; b.classList.remove("done"); b.innerHTML = '<i class="fa-solid fa-cart-plus"></i> 加入購物車'; }, 1300);
+  }catch(err){ b.disabled=false; alert("加入失敗:"+err.message); }
+});
 
 async function loadCart(){
   cartItems = [];
@@ -221,7 +484,6 @@ async function loadCart(){
       where("ownerUid","==",me.lineUserId), where("submitted","==",false)));
     qs.forEach(d => cartItems.push({ id:d.id, ...d.data() }));
   }catch(e){
-    // 缺 composite index 時退回只查 ownerUid,前端過濾
     try{
       const qs2 = await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId)));
       qs2.forEach(d => { const x = { id:d.id, ...d.data() }; if(!x.submitted) cartItems.push(x); });
@@ -234,25 +496,24 @@ async function loadCart(){
 function renderCart(){
   const c = $("#cart");
   if(!cartItems.length){
-    c.innerHTML = `<div class="empty">購物車是空的，點上方「新增商品」加入你想代購的東西吧！</div>`;
+    c.innerHTML = `<div class="empty">購物車是空的，點上方「新增商品」或熱門商品牆加入你想代購的東西吧！</div>`;
     $("#submitBar").style.display = "none";
     return;
   }
   c.innerHTML = cartItems.map(x => `
-    <div style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:12px;margin-bottom:12px;align-items:center">
-      <div style="width:64px;height:64px;border-radius:10px;flex:none;background:#0d1117 center/cover no-repeat;background-image:url('${(x.photos&&x.photos[0])||""}')"></div>
+    <div class="citem">
+      <div class="pic" style="background-image:url('${(x.photos&&x.photos[0])||""}')"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:15px;line-height:1.4">${esc(x.name||"未命名商品")}</div>
-        <div style="color:var(--gold);font-weight:700;margin-top:2px">${esc(x.currency||"NT$")} ${x.price??"—"} <span style="color:var(--muted);font-weight:400;font-size:13px">× ${x.qty||1}</span></div>
-        ${x.store?`<div style="font-size:12px;color:var(--muted);margin-top:2px"><i class="fa-solid fa-store"></i> ${esc(x.store)}</div>`:""}
+        <div class="nm">${esc(x.name||"未命名商品")}</div>
+        <div class="pr">${esc(x.currency||"NT$")} ${x.price??"—"} <span style="color:var(--muted);font-weight:400;font-size:13px">× ${x.qty||1}</span></div>
+        ${x.store?`<div class="st"><i class="fa-solid fa-store"></i> ${esc(x.store)}</div>`:""}
       </div>
-      <button class="delItem" data-id="${x.id}" title="刪除" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:8px"><i class="fa-solid fa-trash"></i></button>
+      <button class="del delItem" data-id="${x.id}" title="刪除"><i class="fa-solid fa-trash"></i></button>
     </div>`).join("");
   $("#cartCount").textContent = cartItems.length;
   $("#submitBar").style.display = "block";
 }
 
-// 刪除購物車商品
 $("#cart").addEventListener("click", async e => {
   const btn = e.target.closest(".delItem"); if(!btn) return;
   if(!confirm("確定從購物車刪除這個商品?")) return;
@@ -261,10 +522,9 @@ $("#cart").addEventListener("click", async e => {
   loadCart();
 });
 
-// 送出訂單流程
 $("#submitOrder").onclick = () => {
   if(!cartItems.length) return;
-  $("#submitDesc").textContent = `本次共 ${cartItems.length} 件商品，送出後可到「我的訂單」追蹤進度。`;
+  $("#submitDesc").textContent = `本次共 ${cartItems.length} 件商品，送出後可到「訂單歷史」追蹤進度。`;
   $("#submitMask").classList.add("show");
 };
 $("#cancelSubmit").onclick = () => $("#submitMask").classList.remove("show");
@@ -290,12 +550,8 @@ $("#confirmSubmit").onclick = async () => {
 
 function esc(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
 
-// 快取優先:已登入過就直接進購物車,不再等登入載入;boot() 背景驗證
 const _cachedMe = readCachedMe();
-if(_cachedMe && _cachedMe.hasRealName){
-  me = _cachedMe;
-  enterApp();
-}
+if(_cachedMe && _cachedMe.hasRealName){ me = _cachedMe; enterApp(); }
 boot();
 </script>
 </body>
