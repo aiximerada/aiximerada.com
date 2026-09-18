@@ -4,8 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="培根代購">
+<meta name="theme-color" content="#2f80c4">
 <title>培根代購</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -109,7 +117,8 @@
   .pcard .img .cat{position:absolute;top:8px;left:8px;background:rgba(31,95,151,.82);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
   .pcard .b{padding:11px 12px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
   .pcard .nm{font-size:14.5px;font-weight:800;line-height:1.35;color:var(--txt);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .pcard .pr{font-size:15px;font-weight:800;color:var(--blue-deep)}
+  .pcard .pr{font-size:19px;font-weight:800;color:var(--blue-deep);line-height:1.15}
+  .pcard .pr .prtax{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-top:1px}
   .pcard .meta{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
   .pcard .meta span{display:flex;align-items:center;gap:5px}
   .pcard .meta i{color:var(--sky);width:13px}
@@ -261,8 +270,8 @@
   .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 
   /* ===== 首頁 星海主視覺 ===== */
-  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 66px;overflow:hidden;
-    background:linear-gradient(180deg,#1a2456 0%,#2a3a7a 46%,#7f93c8 80%,#eef4fb 100%)}
+  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 96px;overflow:hidden;
+    background:linear-gradient(180deg,#1a2456 0%,#20295c 22%,#2c3c78 40%,#4459a0 56%,#6d84bf 70%,#9db6e0 82%,#c9dcf4 91%,#e6f0fc 97%,#eaf4ff 100%)}
   .hero .stars,.hero .stars2{position:absolute;inset:0}
   .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
   @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
@@ -277,7 +286,7 @@
   .hero .htitle .big{font-size:34px;font-weight:800;letter-spacing:2px;margin:6px 0 2px;font-family:"Georgia",serif}
   .hero .htitle .big i{font-size:24px;vertical-align:6px;margin-right:4px;color:#ffe08a}
   .hero .htitle .zh{font-size:14px;letter-spacing:6px;opacity:.9;font-weight:600}
-  .hero .fade{position:absolute;left:0;right:0;bottom:0;height:72px;background:linear-gradient(180deg,transparent,#eef4fb);z-index:1}
+  .hero .fade{position:absolute;left:0;right:0;bottom:0;height:130px;background:linear-gradient(180deg,transparent 0%,rgba(234,244,255,.35) 45%,rgba(234,244,255,.8) 78%,#eaf4ff 100%);z-index:1}
 
   /* 倒數 */
   .cd-wrap{text-align:center;margin:-6px 2px 20px}
@@ -532,8 +541,12 @@
       <label>商品名稱 *</label>
       <input id="p_name" placeholder="例：資生堂 安耐曬 金瓶">
       <div class="row">
-        <div><label>金額 *</label><input id="p_price" type="number" inputmode="decimal" placeholder="0"></div>
-        <div><label>幣別</label><select id="p_currency"><option>NT$</option><option>JPY</option><option>USD</option></select></div>
+        <div><label>免稅價 税抜 *</label><input id="p_price" type="number" inputmode="decimal" placeholder="0"></div>
+        <div><label>含稅價 税込</label><input id="p_priceTax" type="number" inputmode="decimal" placeholder="自動計算"></div>
+      </div>
+      <div class="row">
+        <div><label>幣別</label><select id="p_currency"><option>JPY</option><option>NT$</option><option>USD</option></select></div>
+        <div><label>稅率</label><select id="p_taxrate"><option value="0.10">10%（日本標準）</option><option value="0.08">8%（食品）</option><option value="0">0%（免稅品）</option></select></div>
       </div>
       <label>類別 *</label>
       <select id="p_cat"></select>
@@ -650,6 +663,9 @@ function enterApp(){
   loadProducts();
   loadCart();
   renderProfile();
+  // 記住上次所在分頁,重整後回到原位(不強制回首頁)
+  let lastTab=null; try{ lastTab=localStorage.getItem("daigou_tab"); }catch(e){}
+  if(lastTab && lastTab!=="home" && $("#page-"+lastTab)) switchTab(lastTab);
 }
 
 /* ============== 個人資料 ============== */
@@ -689,6 +705,7 @@ function showLoading(ms=360){
 }
 function switchTab(name){
   showLoading();
+  try{ localStorage.setItem("daigou_tab", name); }catch(e){}
   $$(".tabbar .tab").forEach(t => t.classList.toggle("on", t.dataset.tab===name));
   $$("section.page").forEach(s => s.classList.toggle("on", s.id==="page-"+name));
   $("#addProdFab").classList.toggle("hide", !(isAdmin && name==="shop"));
@@ -833,7 +850,7 @@ function renderProducts(){
       ${img}
       <div class="b">
         <div class="nm">${esc(p.name||"未命名")}</div>
-        <div class="pr">${esc(p.currency||"NT$")} ${esc(p.price??"—")}</div>
+        <div class="pr">${esc(p.currency||"NT$")} ${esc(p.price??"—")}${p.priceTax?`<span class="prtax">含稅 ${esc(p.currency||"NT$")} ${esc(p.priceTax)}</span>`:""}</div>
         ${meta.length?`<div class="meta">${meta.join("")}</div>`:""}
         ${p.effect?`<div class="eff">${esc(p.effect)}</div>`:""}
         <div class="ops">
@@ -874,6 +891,11 @@ $("#shopGrid").addEventListener("click", async e => {
 
 /* ====== 上架商品(管理員) ====== */
 let prodPhoto = null;
+// 免稅價 ⇄ 含稅價 自動互算
+function taxRate(){ return parseFloat($("#p_taxrate").value)||0; }
+$("#p_price").addEventListener("input", ()=>{ const v=parseFloat($("#p_price").value); $("#p_priceTax").value = v?Math.round(v*(1+taxRate())):""; });
+$("#p_priceTax").addEventListener("input", ()=>{ const v=parseFloat($("#p_priceTax").value); $("#p_price").value = v?Math.round(v/(1+taxRate())):""; });
+$("#p_taxrate").addEventListener("change", ()=>{ const v=parseFloat($("#p_price").value); if(v) $("#p_priceTax").value=Math.round(v*(1+taxRate())); });
 $("#addProdFab").onclick = () => { $("#prodMask").classList.add("show"); };
 $("#prodClose").onclick = () => $("#prodMask").classList.remove("show");
 $("#p_photo").onclick = () => { fileTarget = "prod"; $("#fileInput").click(); };
@@ -889,12 +911,13 @@ $("#p_submit").onclick = async () => {
       const r = ref(storage, `daigou_products/${Date.now()}.jpg`);
       await uploadBytes(r, prodPhoto); img = await getDownloadURL(r);
     }
+    const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
     await addDoc(collection(db,"daigouProducts"), {
-      name, price:Number(price)||0, currency:$("#p_currency").value, category:$("#p_cat").value,
+      name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
       store:$("#p_store").value.trim(), effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
       img, createdBy:me.lineUserId, createdAt:serverTimestamp()
     });
-    ["p_name","p_price","p_store","p_effect","p_ref"].forEach(id=>$("#"+id).value="");
+    ["p_name","p_price","p_priceTax","p_store","p_effect","p_ref"].forEach(id=>$("#"+id).value="");
     prodPhoto=null; $("#p_photo").style.backgroundImage=""; $("#p_photo").innerHTML='<i class="fa-solid fa-image"></i>';
     $("#prodMask").classList.remove("show");
     loadProducts();

@@ -1,21 +1,16 @@
 {
-  "name": "玉露寶庫指揮中心",
-  "short_name": "玉露寶庫",
-  "start_url": "./vip_area.html",
+  "name": "培根代購",
+  "short_name": "培根代購",
+  "description": "星海嚴選 · 為你帶回",
+  "start_url": "/daigou.html",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0b1021",
-  "theme_color": "#0b1021",
   "orientation": "portrait",
+  "background_color": "#1a2456",
+  "theme_color": "#2f80c4",
   "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
