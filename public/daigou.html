@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>培根代購</title>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans TC","Segoe UI",-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
@@ -157,6 +158,17 @@
   .ordmode.on{background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border-color:transparent;box-shadow:0 5px 14px rgba(47,128,196,.28)}
   .order-buyer{font-size:13.5px;font-weight:800;color:var(--blue-deep);margin-bottom:6px;display:flex;align-items:center;gap:6px}
   .order-buyer i{color:var(--sky)}
+  /* 全部訂單 分人折疊卡 */
+  .grp{background:var(--card);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--bd);border-radius:18px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+  .grp-head{display:flex;align-items:center;justify-content:space-between;padding:14px 15px;cursor:pointer}
+  .grp-name{font-size:15.5px;font-weight:800;color:var(--blue-deep);display:flex;align-items:center;gap:8px}
+  .grp-name i{color:var(--sky)}
+  .grp-cnt{font-size:12px;font-weight:700;color:#fff;background:var(--blue);padding:2px 9px;border-radius:999px}
+  .grp-ops{display:flex;align-items:center;gap:12px}
+  .grp-exp{background:var(--blue-lite);border:none;color:var(--blue-deep);width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px}
+  .grp-caret{color:var(--muted);transition:.2s}
+  .grp-body{padding:0 12px 12px}
+  .grp-body .order{box-shadow:none;border-color:var(--bd2)}
   .order{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--bd);
     border-radius:20px;box-shadow:var(--shadow);padding:15px;margin-bottom:14px}
   .order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
@@ -295,7 +307,7 @@
   .announce .mq span{display:inline-block;padding-left:100%;animation:mq 16s linear infinite;font-size:13.5px;color:#8a6a1e;font-weight:600}
   @keyframes mq{to{transform:translateX(-100%)}}
   /* 訂單快捷 */
-  .quick-grid{display:flex;gap:10px}
+  .quick-grid{display:flex;gap:10px;margin-bottom:14px}
   .quick{flex:1;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border-radius:16px;padding:14px;cursor:pointer;box-shadow:0 8px 20px rgba(47,128,196,.28)}
   .quick.gold{background:linear-gradient(135deg,#f0c05a,#d99a2b)}
   .quick .qn{font-size:26px;font-weight:800;font-family:"Georgia",serif}
@@ -353,9 +365,7 @@
         <div class="shoot" style="top:60px;left:80%"></div>
         <div class="shoot" style="top:120px;left:60%;animation-delay:3s"></div>
         <div class="htitle">
-          <div class="sub">BACON DAIGOU</div>
           <div class="big"><i class="fa-solid fa-star"></i>培根代購</div>
-          <div class="zh">星 海 嚴 選 · 為 你 帶 回</div>
         </div>
         <div class="fade"></div>
       </div>
@@ -393,7 +403,7 @@
       </div>
 
       <div class="home-card" id="tripCard">
-        <div class="h"><i class="fa-solid fa-plane-departure"></i> 本次代購行程 <span class="more" id="tripEdit" style="display:none">編輯</span></div>
+        <div class="h"><i class="fa-solid fa-location-dot"></i> 本次代購地點</div>
         <div id="tripBody"></div>
       </div>
     </section>
@@ -411,10 +421,6 @@
       <div class="glass-card form" id="addForm">
         <label>商品名稱 *</label>
         <input id="a_name" placeholder="例：日本限定 Pokemon 抱枕">
-        <div class="row">
-          <div><label>預估單價 *</label><input id="a_price" type="number" inputmode="decimal" placeholder="0"></div>
-          <div><label>幣別</label><select id="a_currency"><option>NT$</option><option>JPY</option><option>USD</option></select></div>
-        </div>
         <div class="row">
           <div><label>數量</label><input id="a_qty" type="number" inputmode="numeric" min="1" value="1"></div>
           <div><label>可購買店家（選填）</label><input id="a_store" placeholder="例：唐吉訶德"></div>
@@ -640,7 +646,7 @@ function enterApp(){
   $("#addProdFab").style.display = "flex"; $("#addProdFab").classList.add("hide"); // 預設在首頁,隱藏
   buildStars();
   buildCategoryUI();
-  loadConfig();
+  configReady = loadConfig();
   loadProducts();
   loadCart();
   renderProfile();
@@ -695,7 +701,7 @@ $$(".tabbar .tab").forEach(t => t.onclick = () => switchTab(t.dataset.tab));
 
 /* ============== 首頁 ============== */
 const DEFAULT_CFG = { countdownTitle:"距離出發", countdownTarget:"2026-10-17T12:00:00+08:00", announce:"", trip:"" };
-let CFG = {...DEFAULT_CFG}, cdTimer=null;
+let CFG = {...DEFAULT_CFG}, cdTimer=null, configReady=null;
 function buildStars(){
   const c=$("#starsA"); if(!c || c.children.length) return;
   let h="";
@@ -735,11 +741,10 @@ function startCountdown(){
   tick(); cdTimer=setInterval(tick,1000);
 }
 function renderTrip(){
-  const def="出發｜2026/10/17 12:00\n收單截止｜出發前 3 天\n付款方式｜訂金 或 全額\n聯絡｜LINE 小助手";
+  const def="神戶\n大阪\n京都\n奈良";
   const lines=(CFG.trip||def).split("\n").map(x=>x.trim()).filter(Boolean);
-  const icons=["fa-plane-departure","fa-hourglass-half","fa-money-bill-wave","fa-headset","fa-circle-info","fa-location-dot"];
-  $("#tripBody").innerHTML=lines.map((ln,i)=>{ const p=ln.split("｜"); const label=p[0]||ln; const val=p.slice(1).join("｜")||"";
-    return `<div class="trip-row"><i class="fa-solid ${icons[i%icons.length]}"></i>${esc(label)}${val?`<b>${esc(val)}</b>`:""}</div>`; }).join("");
+  $("#tripBody").innerHTML=lines.map(ln=>{ const p=ln.split("｜"); const label=p[0]||ln; const val=p.slice(1).join("｜")||"";
+    return `<div class="trip-row"><i class="fa-solid fa-location-dot"></i>${esc(label)}${val?`<b>${esc(val)}</b>`:""}</div>`; }).join("");
 }
 async function updateQuick(){
   $("#qCart").textContent = cartItems.length;
@@ -917,9 +922,8 @@ $("#fileInput").addEventListener("change", e => {
   e.target.value="";
 });
 $("#a_submit").onclick = async () => {
-  const name=$("#a_name").value.trim(), price=$("#a_price").value.trim(), msg=$("#a_msg"); msg.className="fmsg";
+  const name=$("#a_name").value.trim(), msg=$("#a_msg"); msg.className="fmsg";
   if(!name){ msg.className="fmsg err"; msg.textContent="請填商品名稱"; return; }
-  if(!price){ msg.className="fmsg err"; msg.textContent="請填預估單價"; return; }
   if(!me){ msg.className="fmsg err"; msg.textContent="尚未登入"; return; }
   const btn=$("#a_submit"); btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 上傳中…';
   try{
@@ -928,11 +932,11 @@ $("#a_submit").onclick = async () => {
       const r=ref(storage,`daigou/${me.lineUserId}/${Date.now()}_${i}.jpg`); await uploadBytes(r,addPhotos[i]); urls.push(await getDownloadURL(r)); }
     await addDoc(collection(db,"daigouItems"), {
       ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
-      name, price:Number(price)||0, currency:$("#a_currency").value, qty:Number($("#a_qty").value)||1,
+      name, price:null, currency:"", qty:Number($("#a_qty").value)||1,
       store:$("#a_store").value.trim(), refLink:$("#a_ref").value.trim(), note:$("#a_note").value.trim(), photos:urls,
       submitted:false, orderId:null, cancelled:false, costPaid:0, createdAt:serverTimestamp(), submittedAt:null
     });
-    ["a_name","a_price","a_store","a_ref","a_note"].forEach(id=>$("#"+id).value=""); $("#a_qty").value="1";
+    ["a_name","a_store","a_ref","a_note"].forEach(id=>$("#"+id).value=""); $("#a_qty").value="1";
     for(let i=0;i<3;i++){ addPhotos[i]=null; const ph=$(`#a_photos .ph[data-i="${i}"]`); ph.style.backgroundImage=""; ph.innerHTML=i===0?'<i class="fa-solid fa-camera"></i>':'<i class="fa-solid fa-plus"></i>'; }
     msg.className="fmsg"; msg.textContent="✅ 已加入購物車";
     loadCart(); setTimeout(()=>{ msg.textContent=""; openCart(); }, 700);
@@ -1015,6 +1019,7 @@ let ORDERS=[], ITEMS={}, orderMode="mine";
 async function loadOrders(){
   const box=$("#ordersBox");
   box.innerHTML=`<div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+  try{ await configReady; }catch(e){}
   const all = (orderMode==="all" && isAdmin);
   try{
     let oList=[];
@@ -1034,8 +1039,56 @@ async function loadOrders(){
     ORDERS = archSec ? oList.filter(o=>secOf(o.createdAt) >= archSec) : oList;
   }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
   if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
-  box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), all)).join("");
+  if(all){ renderGroupedOrders(); }
+  else{
+    box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), false)).join("");
+    bindOrderEvents();
+  }
+}
+// 全部訂單:按人分組、可展開折疊、可匯出圖片
+function renderGroupedOrders(){
+  const groups={};
+  ORDERS.forEach(o=>{ const k=o.ownerRealName||o.ownerDisplayName||"（未填名）"; (groups[k]=groups[k]||[]).push(o); });
+  const box=$("#ordersBox");
+  box.innerHTML=Object.entries(groups).map(([name,os],gi)=>{
+    const pid="p"+gi;
+    const inner=os.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), false)).join("");
+    return `<div class="grp">
+      <div class="grp-head" data-grp="${pid}">
+        <div class="grp-name"><i class="fa-solid fa-user"></i> ${esc(name)} <span class="grp-cnt">${os.length} 筆</span></div>
+        <div class="grp-ops">
+          <button class="grp-exp" data-export="${pid}" data-name="${esc(name)}" title="匯出圖片"><i class="fa-solid fa-image"></i></button>
+          <i class="fa-solid fa-chevron-down grp-caret"></i>
+        </div>
+      </div>
+      <div class="grp-body" id="grp-body-${pid}" style="display:none">${inner}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".grp-head").forEach(h=>h.onclick=e=>{
+    if(e.target.closest("[data-export]")) return;
+    const b=document.getElementById("grp-body-"+h.dataset.grp);
+    const open=b.style.display==="none"; b.style.display=open?"block":"none";
+    h.querySelector(".grp-caret").style.transform=open?"rotate(180deg)":"";
+  });
+  box.querySelectorAll("[data-export]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); exportPersonImage(b.dataset.export, b.dataset.name, b); });
   bindOrderEvents();
+}
+async function exportPersonImage(pid, name, btn){
+  const el=document.getElementById("grp-body-"+pid); if(!el) return;
+  const wasHidden = el.style.display==="none";
+  if(wasHidden) el.style.display="block";
+  const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-spinner spin"></i>'; btn.disabled=true;
+  try{
+    const canvas=await html2canvas(el,{backgroundColor:"#eef4fb",scale:2,useCORS:true});
+    await new Promise(res=>canvas.toBlob(async blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download=`訂單_${name}.png`; document.body.appendChild(a); a.click(); a.remove();
+      try{ if(navigator.clipboard && window.ClipboardItem){ await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]); } }catch(e){}
+      setTimeout(()=>URL.revokeObjectURL(url),3000); res();
+    },"image/png"));
+  }catch(e){ alert("匯出失敗:"+(e.message||e)); }
+  if(wasHidden) el.style.display="none";
+  btn.innerHTML=old; btn.disabled=false;
 }
 function stepsHtml(status){
   const cancelled = status==="已取消"; const idx=ORDER_STATUS.indexOf(status);
