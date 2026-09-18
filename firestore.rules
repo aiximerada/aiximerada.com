@@ -43,6 +43,10 @@ service cloud.firestore {
     match /orders/{docId} {
       allow read, write: if true;
     }
+    // 好物推薦商品庫 (管理員上架，所有人可瀏覽)
+    match /daigouProducts/{docId} {
+      allow read, write: if true;
+    }
 
     // 🛡️ 6. 其他所有資料庫 (您原本的底層保護)
     match /{document=**} {
