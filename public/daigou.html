@@ -83,7 +83,7 @@
   .menu .sep{height:1px;background:var(--bd2);margin:4px 8px}
 
   /* 內容區 */
-  main{flex:1;padding:16px 16px calc(var(--tabh) + env(safe-area-inset-bottom) + 20px)}
+  main{flex:1;padding:env(safe-area-inset-top) 16px calc(var(--tabh) + env(safe-area-inset-bottom) + 20px)}
   section.page{display:none;animation:fade .28s ease}
   section.page.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -152,6 +152,11 @@
     border:1px solid var(--bd);border-radius:20px;box-shadow:var(--shadow);padding:18px 16px}
 
   /* ===== 我的訂單 ===== */
+  #orderModeBar{gap:8px;margin-bottom:14px}
+  .ordmode{flex:1;padding:9px;border-radius:11px;border:1px solid var(--bd2);background:rgba(255,255,255,.7);color:var(--muted);font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .ordmode.on{background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border-color:transparent;box-shadow:0 5px 14px rgba(47,128,196,.28)}
+  .order-buyer{font-size:13.5px;font-weight:800;color:var(--blue-deep);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .order-buyer i{color:var(--sky)}
   .order{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--bd);
     border-radius:20px;box-shadow:var(--shadow);padding:15px;margin-bottom:14px}
   .order-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
@@ -244,8 +249,8 @@
   .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 
   /* ===== 首頁 星海主視覺 ===== */
-  .hero{position:relative;margin:-16px -16px 18px;height:340px;overflow:hidden;
-    background:linear-gradient(180deg,#1a2456 0%,#2a3a7a 34%,#4a5fa8 62%,#c8d6f0 90%,#eef4fb 100%)}
+  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 66px;overflow:hidden;
+    background:linear-gradient(180deg,#1a2456 0%,#2a3a7a 46%,#7f93c8 80%,#eef4fb 100%)}
   .hero .stars,.hero .stars2{position:absolute;inset:0}
   .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
   @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
@@ -254,7 +259,7 @@
   @keyframes shoot{0%{opacity:0;transform:translate(0,0) rotate(-32deg)}
     6%{opacity:1}18%{opacity:0}100%{opacity:0;transform:translate(-340px,220px) rotate(-32deg)}}
   .hero .castle{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:min(420px,96%);opacity:.92;z-index:1;filter:drop-shadow(0 6px 18px rgba(20,30,70,.4))}
-  .hero .htitle{position:absolute;top:34px;left:0;right:0;text-align:center;z-index:2;color:#fff;
+  .hero .htitle{position:relative;text-align:center;z-index:2;color:#fff;
     text-shadow:0 3px 18px rgba(20,30,70,.55);padding:0 20px}
   .hero .htitle .sub{font-size:12px;letter-spacing:5px;opacity:.85;font-weight:600}
   .hero .htitle .big{font-size:34px;font-weight:800;letter-spacing:2px;margin:6px 0 2px;font-family:"Georgia",serif}
@@ -340,26 +345,6 @@
 
 <!-- ===== App ===== -->
 <div id="app" class="hide">
-  <header>
-    <div class="brand">
-      <div class="ic"><i class="fa-solid fa-bag-shopping"></i></div>
-      <h1>培根代購<small>BACON DAIGOU</small></h1>
-    </div>
-    <div class="usermenu">
-      <button class="avatar-btn" id="avatarBtn">
-        <img id="avatarImg" src="" alt="">
-        <span class="nm" id="avatarName"></span>
-        <i class="fa-solid fa-chevron-down caret"></i>
-      </button>
-      <div class="menu hide" id="userMenu">
-        <a id="menuOrders"><i class="fa-solid fa-receipt"></i> 我的訂單</a>
-        <a class="admin" id="adminLink" href="daigou-admin.html" style="display:none"><i class="fa-solid fa-user-shield"></i> 後台管理</a>
-        <div class="sep"></div>
-        <a id="menuReload"><i class="fa-solid fa-rotate"></i> 重新整理</a>
-      </div>
-    </div>
-  </header>
-
   <main>
     <!-- Tab0 首頁 -->
     <section class="page on" id="page-home">
@@ -372,17 +357,6 @@
           <div class="big"><i class="fa-solid fa-star"></i>培根代購</div>
           <div class="zh">星 海 嚴 選 · 為 你 帶 回</div>
         </div>
-        <svg class="castle" viewBox="0 0 420 150" xmlns="http://www.w3.org/2000/svg" fill="rgba(255,255,255,.9)">
-          <polygon points="40,150 40,80 30,80 48,55 66,80 56,80 56,150"/>
-          <polygon points="360,150 360,80 350,80 372,55 390,80 380,80 380,150"/>
-          <rect x="120" y="70" width="180" height="80"/>
-          <polygon points="120,70 210,20 300,70"/>
-          <polygon points="150,70 150,40 140,40 165,15 190,40 180,40 180,70"/>
-          <rect x="90" y="95" width="60" height="55"/><polygon points="90,95 120,62 150,95"/>
-          <rect x="270" y="95" width="60" height="55"/><polygon points="270,95 300,62 330,95"/>
-          <rect x="198" y="105" width="24" height="45" fill="rgba(120,150,220,.6)"/>
-          <circle cx="210" cy="30" r="4" fill="#ffe08a"/>
-        </svg>
         <div class="fade"></div>
       </div>
 
@@ -462,8 +436,33 @@
 
     <!-- Tab3 我的訂單 -->
     <section class="page" id="page-orders">
-      <div class="sec-title"><i class="fa-solid fa-receipt"></i> 我的訂單</div>
+      <div class="sec-title"><i class="fa-solid fa-receipt"></i> <span id="ordersTitle">我的訂單</span></div>
+      <div id="orderModeBar" style="display:none">
+        <button class="ordmode on" data-mode="mine"><i class="fa-solid fa-user"></i> 我的訂單</button>
+        <button class="ordmode" data-mode="all"><i class="fa-solid fa-users"></i> 全部訂單</button>
+      </div>
       <div id="ordersBox"><div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div></div>
+    </section>
+
+    <!-- Tab4 個人資料 -->
+    <section class="page" id="page-profile">
+      <div class="sec-title"><i class="fa-solid fa-user"></i> 個人資料</div>
+      <div class="glass-card" style="text-align:center">
+        <img id="pfAvatar" src="" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--sky);margin-bottom:10px">
+        <div id="pfName" style="font-size:19px;font-weight:800;color:var(--blue-deep)"></div>
+        <div id="pfRole" style="font-size:12px;color:var(--muted);margin-top:3px"></div>
+      </div>
+      <div class="glass-card form">
+        <label>修改顯示名稱</label>
+        <input id="pfNameInput" maxlength="20" placeholder="你的名稱">
+        <button class="btn-main" id="pfSaveName"><i class="fa-solid fa-check"></i> 儲存名稱</button>
+        <div class="fmsg" id="pfMsg"></div>
+      </div>
+      <div class="glass-card" id="pfAdminBox" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:800;color:var(--blue-deep);margin-bottom:10px"><i class="fa-solid fa-user-shield" style="color:var(--gold)"></i> 管理員</div>
+        <a href="daigou-admin.html" class="btn-line" style="display:block;text-align:center;text-decoration:none"><i class="fa-solid fa-gauge-high"></i> 進入後台管理</a>
+      </div>
+      <button class="btn-line" id="pfReload" style="margin-top:6px"><i class="fa-solid fa-rotate"></i> 重新整理</button>
     </section>
   </main>
 
@@ -479,6 +478,7 @@
     <div class="tab" data-tab="shop"><i class="fa-solid fa-fire"></i>好物推薦</div>
     <div class="tab" data-tab="add"><i class="fa-solid fa-plus-circle"></i>新增商品</div>
     <div class="tab" data-tab="orders"><i class="fa-solid fa-receipt"></i>我的訂單</div>
+    <div class="tab" data-tab="profile"><i class="fa-solid fa-user"></i>個人資料</div>
   </nav>
 </div>
 
@@ -635,28 +635,45 @@ $("#saveName").onclick = async () => {
 function enterApp(){
   $("#gate").classList.add("hide");
   $("#app").classList.remove("hide");
-  $("#avatarImg").src = me.avatar || "";
-  if(!me.avatar) $("#avatarImg").style.display = "none";
-  $("#avatarName").textContent = me.realName || me.displayName || "我";
   isAdmin = isAdminUser(me.lineUserId, null);
-  if(isAdmin){ $("#adminLink").style.display = "flex"; $("#cdSetBtn").style.display = "inline-block"; }
+  if(isAdmin){ $("#cdSetBtn").style.display = "inline-block"; $("#orderModeBar").style.display="flex"; $("#pfAdminBox").style.display="block"; }
   $("#addProdFab").style.display = "flex"; $("#addProdFab").classList.add("hide"); // 預設在首頁,隱藏
-  setupMenu();
   buildStars();
   buildCategoryUI();
   loadConfig();
   loadProducts();
   loadCart();
+  renderProfile();
 }
 
-/* ============== 頭像選單 ============== */
-function setupMenu(){
-  const btn = $("#avatarBtn"), menu = $("#userMenu");
-  btn.onclick = e => { e.stopPropagation(); const open = menu.classList.toggle("hide")===false; btn.classList.toggle("open", open); };
-  document.addEventListener("click", e => { if(!menu.classList.contains("hide") && !menu.contains(e.target) && !btn.contains(e.target)){ menu.classList.add("hide"); btn.classList.remove("open"); } });
-  $("#menuOrders").onclick = () => { menu.classList.add("hide"); switchTab("orders"); };
-  $("#menuReload").onclick = () => location.reload();
+/* ============== 個人資料 ============== */
+function renderProfile(){
+  const av=$("#pfAvatar");
+  if(me.avatar){ av.src=me.avatar; av.style.display=""; } else av.style.display="none";
+  $("#pfName").textContent = me.realName||me.displayName||"我";
+  $("#pfRole").textContent = isAdmin?"管理員":"會員";
+  $("#pfNameInput").value = me.realName||"";
 }
+$("#pfSaveName").onclick = async () => {
+  const v=$("#pfNameInput").value.trim(), msg=$("#pfMsg"); msg.className="fmsg";
+  if(v.length<2){ msg.className="fmsg err"; msg.textContent="請輸入正確名稱（至少 2 字）"; return; }
+  const b=$("#pfSaveName"); b.disabled=true;
+  try{
+    await setDoc(doc(db,"users",me.lineUserId),{realName:v},{merge:true});
+    me.realName=v; cacheMe({lineUserId:me.lineUserId,displayName:me.displayName,avatar:me.avatar||"",realName:v,hasRealName:true});
+    $("#pfName").textContent=v; msg.textContent="✅ 已更新名稱";
+  }catch(e){ msg.className="fmsg err"; msg.textContent=e.message; }
+  b.disabled=false;
+};
+$("#pfReload").onclick = () => location.reload();
+// 訂單模式切換(管理員:我的/全部)
+$("#orderModeBar").addEventListener("click", e => {
+  const b=e.target.closest(".ordmode"); if(!b) return;
+  orderMode=b.dataset.mode;
+  $$("#orderModeBar .ordmode").forEach(x=>x.classList.toggle("on", x===b));
+  $("#ordersTitle").textContent = orderMode==="all"?"全部訂單":"我的訂單";
+  loadOrders();
+});
 
 /* ============== Tab 切換 ============== */
 let loadingTimer=null;
@@ -672,6 +689,7 @@ function switchTab(name){
   window.scrollTo({top:0});
   if(name==="orders") loadOrders();
   if(name==="home"){ updateQuick(); renderCarousel(); }
+  if(name==="profile") renderProfile();
 }
 $$(".tabbar .tab").forEach(t => t.onclick = () => switchTab(t.dataset.tab));
 
@@ -993,22 +1011,29 @@ $("#confirmSubmit").onclick = async () => {
 function secOf(t){ return (t&&t.seconds)||0; }
 function fmtDate(t){ if(!t||!t.seconds) return "—"; const d=new Date(t.seconds*1000);
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
-let ORDERS=[], ITEMS={};
+let ORDERS=[], ITEMS={}, orderMode="mine";
 async function loadOrders(){
   const box=$("#ordersBox");
   box.innerHTML=`<div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+  const all = (orderMode==="all" && isAdmin);
   try{
     let oList=[];
-    try{ const qs=await getDocs(query(collection(db,"orders"), where("ownerUid","==",me.lineUserId))); qs.forEach(d=>oList.push({id:d.id,...d.data()})); }
-    catch(e){ const qs=await getDocs(collection(db,"orders")); qs.forEach(d=>{const o={id:d.id,...d.data()}; if(o.ownerUid===me.lineUserId)oList.push(o);}); }
+    if(all){
+      const qs=await getDocs(collection(db,"orders")); qs.forEach(d=>oList.push({id:d.id,...d.data()}));
+    }else{
+      try{ const qs=await getDocs(query(collection(db,"orders"), where("ownerUid","==",me.lineUserId))); qs.forEach(d=>oList.push({id:d.id,...d.data()})); }
+      catch(e){ const qs=await getDocs(collection(db,"orders")); qs.forEach(d=>{const o={id:d.id,...d.data()}; if(o.ownerUid===me.lineUserId)oList.push(o);}); }
+    }
     oList.sort((a,b)=>secOf(b.createdAt)-secOf(a.createdAt));
     ITEMS={};
-    const qi=await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
+    const qi = all
+      ? await getDocs(query(collection(db,"daigouItems"), where("submitted","==",true)))
+      : await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
     qi.forEach(d=>{ const it={id:d.id,...d.data()}; (ITEMS[it.orderId]=ITEMS[it.orderId]||[]).push(it); });
     ORDERS=oList;
   }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
-  if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>你還沒有送出任何訂單</div>`; return; }
-  box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)))).join("");
+  if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
+  box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), all)).join("");
   bindOrderEvents();
 }
 function stepsHtml(status){
@@ -1017,10 +1042,11 @@ function stepsHtml(status){
   ORDER_STATUS.forEach((st,i)=>{ const on=!cancelled&&idx>=0&&i<=idx; h+=`<div class="step${on?" on":""}"><div class="d"></div><div class="l">${esc(st)}</div></div>`; });
   return h+`</div>`;
 }
-function orderCard(o, items){
+function orderCard(o, items, showBuyer){
   const cancelled=o.status==="已取消", done=o.status==="已取貨";
   const canEdit=!cancelled&&!done;   // 已取貨/已取消 不可改
   const badge = cancelled?`<span class="st-badge cancel">已取消</span>`:`<span class="st-badge">${esc(o.status||"下單")}</span>`;
+  const buyerHtml = showBuyer?`<div class="order-buyer"><i class="fa-solid fa-user"></i> ${esc(o.ownerRealName||o.ownerDisplayName||"（未填名）")}</div>`:"";
   const itemsHtml = items.length ? items.map(it=>{
     const ic=it.cancelled===true;
     const photo=(Array.isArray(it.photos)&&it.photos[0])||"";
@@ -1054,6 +1080,7 @@ function orderCard(o, items){
   }else payHtml="";
 
   return `<div class="order">
+    ${buyerHtml}
     <div class="order-head">
       <div><div class="order-time"><i class="fa-regular fa-clock"></i> ${fmtDate(o.createdAt)}</div><div class="order-id">單號 ${esc(o.id)}</div></div>
       ${badge}
