@@ -124,6 +124,8 @@
   .pcard .meta i{color:var(--sky);width:13px}
   .pcard .eff{font-size:12px;color:#5b7089;background:var(--blue-lite);padding:5px 8px;border-radius:8px;line-height:1.5;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pcard .colorsel{width:100%;font-size:12.5px;padding:7px 9px;border:1px solid var(--bd2);border-radius:9px;background:#fff;color:var(--txt);appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
   .pcard .ops{display:flex;gap:7px;margin-top:auto;padding-top:4px}
   .pcard .addc{flex:1;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:11px;
     padding:10px;font-size:13.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 5px 14px rgba(47,128,196,.28)}
@@ -552,6 +554,8 @@
       <select id="p_cat"></select>
       <label>購買地點（選填）</label>
       <input id="p_store" placeholder="例：松本清、Bic Camera">
+      <label>色號 / 款式（選填，多個用逗號分隔，讓客人挑選）</label>
+      <input id="p_colors" placeholder="例：01 象牙白, 02 自然色, 03 蜜色">
       <label>功效 / 特色（選填）</label>
       <textarea id="p_effect" placeholder="例：SPF50+ 防曬、保濕不黏膩…"></textarea>
       <label>參考網址（選填）</label>
@@ -853,6 +857,7 @@ function renderProducts(){
         <div class="pr">${esc(p.currency||"NT$")} ${esc(p.price??"—")}${p.priceTax?`<span class="prtax">含稅 ${esc(p.currency||"NT$")} ${esc(p.priceTax)}</span>`:""}</div>
         ${meta.length?`<div class="meta">${meta.join("")}</div>`:""}
         ${p.effect?`<div class="eff">${esc(p.effect)}</div>`:""}
+        ${(Array.isArray(p.colors)&&p.colors.length)?`<select class="colorsel" data-color="${esc(p.id)}">${p.colors.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`:""}
         <div class="ops">
           <button class="addc" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> 加入</button>
           ${p.refLink?`<button class="ref" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i></button>`:""}
@@ -873,12 +878,14 @@ $("#shopGrid").addEventListener("click", async e => {
   }
   if(addb && me){
     const p = PRODUCTS.find(x=>x.id===addb.dataset.add); if(!p) return;
+    const sel = e.target.closest(".pcard").querySelector(".colorsel");
+    const color = sel ? sel.value : "";
     addb.disabled = true;
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
         name:p.name, price:Number(p.price)||0, currency:p.currency||"NT$", qty:1,
-        store:p.store||"", category:p.category||"", refLink:p.refLink||"", note:p.effect?("功效:"+p.effect):"", photos:p.img?[p.img]:[],
+        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"", note:p.effect?("功效:"+p.effect):"", photos:p.img?[p.img]:[],
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
       });
@@ -912,12 +919,13 @@ $("#p_submit").onclick = async () => {
       await uploadBytes(r, prodPhoto); img = await getDownloadURL(r);
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
+    const colors = $("#p_colors").value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     await addDoc(collection(db,"daigouProducts"), {
       name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
-      store:$("#p_store").value.trim(), effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
+      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
       img, createdBy:me.lineUserId, createdAt:serverTimestamp()
     });
-    ["p_name","p_price","p_priceTax","p_store","p_effect","p_ref"].forEach(id=>$("#"+id).value="");
+    ["p_name","p_price","p_priceTax","p_store","p_colors","p_effect","p_ref"].forEach(id=>$("#"+id).value="");
     prodPhoto=null; $("#p_photo").style.backgroundImage=""; $("#p_photo").innerHTML='<i class="fa-solid fa-image"></i>';
     $("#prodMask").classList.remove("show");
     loadProducts();
@@ -995,6 +1003,7 @@ function renderCart(){
       <div style="flex:1;min-width:0">
         <div class="nm">${esc(x.name||"未命名")}</div>
         <div class="pr">${esc(x.currency||"NT$")} ${esc(x.price??"—")} <span style="color:var(--muted);font-weight:400;font-size:12px">× ${esc(x.qty||1)}</span></div>
+        ${x.color?`<div class="st"><i class="fa-solid fa-palette"></i> ${esc(x.color)}</div>`:""}
         ${x.store?`<div class="st"><i class="fa-solid fa-store"></i> ${esc(x.store)}</div>`:""}
       </div>
       <button class="del" data-del="${esc(x.id)}"><i class="fa-solid fa-trash"></i></button>
@@ -1129,6 +1138,7 @@ function orderCard(o, items, showBuyer){
     const photo=(Array.isArray(it.photos)&&it.photos[0])||"";
     const meta=[];
     if(it.price!=null&&it.price!=="") meta.push(`<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>`);
+    if(it.color) meta.push(`<span><i class="fa-solid fa-palette" style="opacity:.6"></i> ${esc(it.color)}</span>`);
     if(it.store) meta.push(`<span><i class="fa-solid fa-store" style="opacity:.6"></i> ${esc(it.store)}</span>`);
     return `<div class="oitem${ic?" cancelled":""}">
       <div class="th" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
