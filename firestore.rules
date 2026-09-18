@@ -47,6 +47,10 @@ service cloud.firestore {
     match /daigouProducts/{docId} {
       allow read, write: if true;
     }
+    // 代購首頁設定 (倒數、公告、行程；管理員設定，所有人可讀)
+    match /daigouConfig/{docId} {
+      allow read, write: if true;
+    }
 
     // 🛡️ 6. 其他所有資料庫 (您原本的底層保護)
     match /{document=**} {

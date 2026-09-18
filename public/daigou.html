@@ -242,6 +242,88 @@
   .cart-foot{border-top:1px solid var(--bd2);padding:14px 2px 4px;margin-top:6px}
   .cart-foot .go{width:100%;background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;border:none;border-radius:14px;padding:15px;font-size:16.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 24px rgba(31,95,151,.32)}
   .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ===== 首頁 星海主視覺 ===== */
+  .hero{position:relative;margin:-16px -16px 18px;height:340px;overflow:hidden;
+    background:linear-gradient(180deg,#1a2456 0%,#2a3a7a 34%,#4a5fa8 62%,#c8d6f0 90%,#eef4fb 100%)}
+  .hero .stars,.hero .stars2{position:absolute;inset:0}
+  .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
+  @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  .hero .shoot{position:absolute;width:120px;height:2px;background:linear-gradient(90deg,transparent,#fff);
+    border-radius:2px;transform:rotate(-32deg);opacity:0;filter:drop-shadow(0 0 4px #cfe0ff);animation:shoot 6s linear infinite}
+  @keyframes shoot{0%{opacity:0;transform:translate(0,0) rotate(-32deg)}
+    6%{opacity:1}18%{opacity:0}100%{opacity:0;transform:translate(-340px,220px) rotate(-32deg)}}
+  .hero .castle{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:min(420px,96%);opacity:.92;z-index:1;filter:drop-shadow(0 6px 18px rgba(20,30,70,.4))}
+  .hero .htitle{position:absolute;top:34px;left:0;right:0;text-align:center;z-index:2;color:#fff;
+    text-shadow:0 3px 18px rgba(20,30,70,.55);padding:0 20px}
+  .hero .htitle .sub{font-size:12px;letter-spacing:5px;opacity:.85;font-weight:600}
+  .hero .htitle .big{font-size:34px;font-weight:800;letter-spacing:2px;margin:6px 0 2px;font-family:"Georgia",serif}
+  .hero .htitle .big i{font-size:24px;vertical-align:6px;margin-right:4px;color:#ffe08a}
+  .hero .htitle .zh{font-size:14px;letter-spacing:6px;opacity:.9;font-weight:600}
+  .hero .fade{position:absolute;left:0;right:0;bottom:0;height:72px;background:linear-gradient(180deg,transparent,#eef4fb);z-index:1}
+
+  /* 倒數 */
+  .cd-wrap{text-align:center;margin:-6px 2px 20px}
+  .cd-live{font-size:13px;letter-spacing:4px;font-weight:800;color:#e07a9a;margin-bottom:4px}
+  .cd-title{font-size:20px;font-weight:800;color:var(--blue-deep);margin-bottom:2px}
+  .cd-target{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .cd-grid{display:flex;gap:9px;justify-content:center}
+  .cd-cell{flex:1;max-width:78px;background:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border:1px solid var(--bd);border-radius:16px;padding:14px 4px 10px;box-shadow:0 8px 22px rgba(31,95,151,.12)}
+  .cd-cell .n{font-size:30px;font-weight:800;color:var(--blue-deep);font-family:"Georgia",serif;line-height:1}
+  .cd-cell .hr{width:22px;height:2px;background:var(--bd2);margin:7px auto 6px;border-radius:2px}
+  .cd-cell .u{font-size:11px;color:var(--muted);letter-spacing:1px}
+  .cd-done{font-size:16px;font-weight:800;color:var(--blue);padding:10px}
+  .cd-set{margin-top:12px;background:transparent;border:1px solid var(--bd2);border-radius:10px;padding:7px 14px;font-size:12.5px;color:var(--blue-deep);cursor:pointer;font-weight:700}
+
+  /* 首頁區塊卡 */
+  .home-card{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--bd);
+    border-radius:18px;box-shadow:var(--shadow);padding:14px 15px;margin-bottom:14px}
+  .home-card .h{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:var(--blue-deep);margin-bottom:10px}
+  .home-card .h i{color:var(--blue)}
+  .home-card .h .more{margin-left:auto;font-size:12px;color:var(--blue);cursor:pointer;font-weight:700}
+  /* 公告 */
+  .announce{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#fff6e0,#fde4c4);border:1px solid #f2d9a8;
+    border-radius:14px;padding:11px 14px;margin-bottom:14px;overflow:hidden}
+  .announce i{color:var(--gold);font-size:16px;flex:0 0 auto}
+  .announce .mq{overflow:hidden;flex:1;white-space:nowrap}
+  .announce .mq span{display:inline-block;padding-left:100%;animation:mq 16s linear infinite;font-size:13.5px;color:#8a6a1e;font-weight:600}
+  @keyframes mq{to{transform:translateX(-100%)}}
+  /* 訂單快捷 */
+  .quick-grid{display:flex;gap:10px}
+  .quick{flex:1;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border-radius:16px;padding:14px;cursor:pointer;box-shadow:0 8px 20px rgba(47,128,196,.28)}
+  .quick.gold{background:linear-gradient(135deg,#f0c05a,#d99a2b)}
+  .quick .qn{font-size:26px;font-weight:800;font-family:"Georgia",serif}
+  .quick .ql{font-size:12.5px;opacity:.92;margin-top:2px}
+  /* 好物輪播 */
+  .carousel{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;scroll-snap-type:x mandatory}
+  .carousel::-webkit-scrollbar{display:none}
+  .cc{flex:0 0 132px;scroll-snap-align:start;background:#fff;border:1px solid var(--bd);border-radius:15px;overflow:hidden;box-shadow:var(--shadow)}
+  .cc .im{height:100px;background:#dfeaf5 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#a9c2d8}
+  .cc .cb{padding:8px 10px}
+  .cc .cn{font-size:12.5px;font-weight:700;line-height:1.35;height:34px;overflow:hidden}
+  .cc .cp{font-size:13px;font-weight:800;color:var(--blue-deep);margin-top:3px}
+  /* 匯率 */
+  .rate{display:flex;align-items:center;gap:8px}
+  .rate input{flex:1;background:var(--blue-lite);border:1px solid var(--bd2);border-radius:11px;padding:11px;font-size:16px}
+  .rate .eq{font-size:18px;color:var(--muted)}
+  .rate .out{flex:1;background:var(--blue-lite);border:1px solid var(--bd2);border-radius:11px;padding:11px;font-size:16px;font-weight:800;color:var(--blue-deep);text-align:right}
+  .rate-note{font-size:11px;color:var(--muted);margin-top:6px;text-align:right}
+  /* 行程卡 */
+  .trip-row{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--txt);padding:6px 0;border-bottom:1px dashed var(--bd2)}
+  .trip-row:last-child{border-bottom:none}
+  .trip-row i{width:26px;height:26px;border-radius:8px;background:var(--blue-lite);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto}
+  .trip-row b{margin-left:auto;color:var(--blue-deep)}
+
+  /* 切換載入動畫 */
+  #loadingOv{position:fixed;inset:0;z-index:70;background:linear-gradient(180deg,rgba(42,58,122,.35),rgba(238,244,251,.55));
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+  #loadingOv.show{display:flex;animation:lfade .2s}
+  @keyframes lfade{from{opacity:0}to{opacity:1}}
+  #loadingOv .box{text-align:center;color:var(--blue-deep)}
+  #loadingOv .st{font-size:40px;color:#ffd97a;filter:drop-shadow(0 0 10px rgba(255,217,122,.7));animation:spin2 1.1s ease-in-out infinite}
+  @keyframes spin2{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.25)}100%{transform:rotate(360deg) scale(1)}}
+  #loadingOv .tx{margin-top:12px;font-size:13px;font-weight:700;letter-spacing:2px;opacity:.85}
 </style>
 </head>
 <body>
@@ -279,8 +361,71 @@
   </header>
 
   <main>
+    <!-- Tab0 首頁 -->
+    <section class="page on" id="page-home">
+      <div class="hero">
+        <div class="stars" id="starsA"></div>
+        <div class="shoot" style="top:60px;left:80%"></div>
+        <div class="shoot" style="top:120px;left:60%;animation-delay:3s"></div>
+        <div class="htitle">
+          <div class="sub">BACON DAIGOU</div>
+          <div class="big"><i class="fa-solid fa-star"></i>培根代購</div>
+          <div class="zh">星 海 嚴 選 · 為 你 帶 回</div>
+        </div>
+        <svg class="castle" viewBox="0 0 420 150" xmlns="http://www.w3.org/2000/svg" fill="rgba(255,255,255,.9)">
+          <polygon points="40,150 40,80 30,80 48,55 66,80 56,80 56,150"/>
+          <polygon points="360,150 360,80 350,80 372,55 390,80 380,80 380,150"/>
+          <rect x="120" y="70" width="180" height="80"/>
+          <polygon points="120,70 210,20 300,70"/>
+          <polygon points="150,70 150,40 140,40 165,15 190,40 180,40 180,70"/>
+          <rect x="90" y="95" width="60" height="55"/><polygon points="90,95 120,62 150,95"/>
+          <rect x="270" y="95" width="60" height="55"/><polygon points="270,95 300,62 330,95"/>
+          <rect x="198" y="105" width="24" height="45" fill="rgba(120,150,220,.6)"/>
+          <circle cx="210" cy="30" r="4" fill="#ffe08a"/>
+        </svg>
+        <div class="fade"></div>
+      </div>
+
+      <div class="cd-wrap">
+        <div class="cd-live">✦ NEXT ✦</div>
+        <div class="cd-title" id="cdTitle">距離出發</div>
+        <div class="cd-target" id="cdTarget">—</div>
+        <div class="cd-grid" id="cdGrid"></div>
+        <button class="cd-set" id="cdSetBtn" style="display:none"><i class="fa-solid fa-gear"></i> 設定倒數</button>
+      </div>
+
+      <div class="announce" id="announceBox" style="display:none">
+        <i class="fa-solid fa-bullhorn"></i><div class="mq"><span id="announceText"></span></div>
+      </div>
+
+      <div class="quick-grid">
+        <div class="quick" data-goto="orders"><div class="qn" id="qOngoing">0</div><div class="ql"><i class="fa-solid fa-truck-fast"></i> 進行中訂單</div></div>
+        <div class="quick gold" data-opencart><div class="qn" id="qCart">0</div><div class="ql"><i class="fa-solid fa-cart-shopping"></i> 購物車</div></div>
+      </div>
+
+      <div class="home-card" id="carouselCard" style="display:none">
+        <div class="h"><i class="fa-solid fa-fire"></i> 熱門好物 <span class="more" data-goto="shop">看全部 ›</span></div>
+        <div class="carousel" id="homeCarousel"></div>
+      </div>
+
+      <div class="home-card">
+        <div class="h"><i class="fa-solid fa-yen-sign"></i> 日幣換算</div>
+        <div class="rate">
+          <input id="rateYen" type="number" inputmode="decimal" placeholder="¥ 日幣">
+          <span class="eq">≈</span>
+          <div class="out" id="rateNt">NT$ 0</div>
+        </div>
+        <div class="rate-note">參考匯率 1 JPY ≈ 0.21 NT$（僅供估算）</div>
+      </div>
+
+      <div class="home-card" id="tripCard">
+        <div class="h"><i class="fa-solid fa-plane-departure"></i> 本次代購行程 <span class="more" id="tripEdit" style="display:none">編輯</span></div>
+        <div id="tripBody"></div>
+      </div>
+    </section>
+
     <!-- Tab1 好物推薦 -->
-    <section class="page on" id="page-shop">
+    <section class="page" id="page-shop">
       <div class="sec-title"><i class="fa-solid fa-fire"></i> 好物推薦</div>
       <div class="cats" id="shopCats"></div>
       <div class="grid" id="shopGrid"></div>
@@ -330,10 +475,30 @@
 
   <!-- 底部 tab -->
   <nav class="tabbar">
-    <div class="tab on" data-tab="shop"><i class="fa-solid fa-fire"></i>好物推薦</div>
+    <div class="tab on" data-tab="home"><i class="fa-solid fa-house"></i>首頁</div>
+    <div class="tab" data-tab="shop"><i class="fa-solid fa-fire"></i>好物推薦</div>
     <div class="tab" data-tab="add"><i class="fa-solid fa-plus-circle"></i>新增商品</div>
     <div class="tab" data-tab="orders"><i class="fa-solid fa-receipt"></i>我的訂單</div>
   </nav>
+</div>
+
+<!-- 切換載入動畫 -->
+<div id="loadingOv"><div class="box"><i class="fa-solid fa-star st"></i><div class="tx">載入中…</div></div></div>
+
+<!-- 設定倒數 modal(管理員) -->
+<div class="mask center" id="cdMask">
+  <div class="cmodal">
+    <h2>設定倒數計時</h2>
+    <p>設定標題與目標時間，所有人首頁都會即時倒數。</p>
+    <label style="font-size:13px;color:var(--muted)">標題</label>
+    <input id="cdInTitle" placeholder="例：距離出發" maxlength="12">
+    <label style="font-size:13px;color:var(--muted)">目標日期時間</label>
+    <input id="cdInTarget" type="datetime-local">
+    <label style="font-size:13px;color:var(--muted);margin-top:8px;display:block">首頁公告（跑馬燈，留空則不顯示）</label>
+    <input id="cdInAnnounce" placeholder="例：本團 10/15 晚上截止收單！" maxlength="80">
+    <button class="save" id="cdSave">儲存</button>
+    <button class="cancel" id="cdCancel">取消</button>
+  </div>
 </div>
 
 <!-- 購物車 sheet -->
@@ -474,9 +639,12 @@ function enterApp(){
   if(!me.avatar) $("#avatarImg").style.display = "none";
   $("#avatarName").textContent = me.realName || me.displayName || "我";
   isAdmin = isAdminUser(me.lineUserId, null);
-  if(isAdmin){ $("#adminLink").style.display = "flex"; $("#addProdFab").style.display = "flex"; }
+  if(isAdmin){ $("#adminLink").style.display = "flex"; $("#cdSetBtn").style.display = "inline-block"; }
+  $("#addProdFab").style.display = "flex"; $("#addProdFab").classList.add("hide"); // 預設在首頁,隱藏
   setupMenu();
+  buildStars();
   buildCategoryUI();
+  loadConfig();
   loadProducts();
   loadCart();
 }
@@ -491,14 +659,114 @@ function setupMenu(){
 }
 
 /* ============== Tab 切換 ============== */
+let loadingTimer=null;
+function showLoading(ms=360){
+  const ov=$("#loadingOv"); ov.classList.add("show");
+  clearTimeout(loadingTimer); loadingTimer=setTimeout(()=>ov.classList.remove("show"), ms);
+}
 function switchTab(name){
+  showLoading();
   $$(".tabbar .tab").forEach(t => t.classList.toggle("on", t.dataset.tab===name));
   $$("section.page").forEach(s => s.classList.toggle("on", s.id==="page-"+name));
   $("#addProdFab").classList.toggle("hide", !(isAdmin && name==="shop"));
   window.scrollTo({top:0});
   if(name==="orders") loadOrders();
+  if(name==="home"){ updateQuick(); renderCarousel(); }
 }
 $$(".tabbar .tab").forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+
+/* ============== 首頁 ============== */
+const DEFAULT_CFG = { countdownTitle:"距離出發", countdownTarget:"2026-10-17T12:00:00+08:00", announce:"", trip:"" };
+let CFG = {...DEFAULT_CFG}, cdTimer=null;
+function buildStars(){
+  const c=$("#starsA"); if(!c || c.children.length) return;
+  let h="";
+  for(let i=0;i<64;i++){ const x=Math.random()*100, y=Math.random()*72, s=Math.random()*2+1, d=Math.random()*3;
+    h+=`<span class="star" style="left:${x}%;top:${y}%;width:${s.toFixed(1)}px;height:${s.toFixed(1)}px;animation-delay:${d.toFixed(1)}s"></span>`; }
+  c.innerHTML=h;
+}
+async function loadConfig(){
+  try{ const s=await getDoc(doc(db,"daigouConfig","main")); if(s.exists()) CFG={...DEFAULT_CFG,...s.data()}; }catch(e){}
+  renderHomeConfig();
+}
+function fmtTarget(t){ if(isNaN(t)) return "—"; const w=["日","一","二","三","四","五","六"][t.getDay()];
+  const p=n=>String(n).padStart(2,"0");
+  return `${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} (${w}) ${p(t.getHours())}:${p(t.getMinutes())}`; }
+function renderHomeConfig(){
+  $("#cdTitle").textContent = CFG.countdownTitle||"倒數";
+  $("#cdTarget").textContent = fmtTarget(new Date(CFG.countdownTarget));
+  startCountdown();
+  if(CFG.announce){ $("#announceText").textContent=CFG.announce; $("#announceBox").style.display="flex"; }
+  else $("#announceBox").style.display="none";
+  renderTrip();
+}
+function startCountdown(){
+  clearInterval(cdTimer);
+  const grid=$("#cdGrid");
+  const tick=()=>{
+    const target=new Date(CFG.countdownTarget).getTime();
+    if(isNaN(target)){ grid.innerHTML=""; return; }
+    let diff=Math.floor((target-Date.now())/1000);
+    if(diff<=0){ grid.innerHTML=`<div class="cd-done">🎉 已經出發！旅途愉快</div>`; clearInterval(cdTimer); return; }
+    const d=Math.floor(diff/86400); diff-=d*86400;
+    const h=Math.floor(diff/3600); diff-=h*3600;
+    const m=Math.floor(diff/60); const s=diff-m*60;
+    const cell=(n,u)=>`<div class="cd-cell"><div class="n">${String(n).padStart(2,"0")}</div><div class="hr"></div><div class="u">${u}</div></div>`;
+    grid.innerHTML=cell(d,"days")+cell(h,"hrs")+cell(m,"min")+cell(s,"sec");
+  };
+  tick(); cdTimer=setInterval(tick,1000);
+}
+function renderTrip(){
+  const def="出發｜2026/10/17 12:00\n收單截止｜出發前 3 天\n付款方式｜訂金 或 全額\n聯絡｜LINE 小助手";
+  const lines=(CFG.trip||def).split("\n").map(x=>x.trim()).filter(Boolean);
+  const icons=["fa-plane-departure","fa-hourglass-half","fa-money-bill-wave","fa-headset","fa-circle-info","fa-location-dot"];
+  $("#tripBody").innerHTML=lines.map((ln,i)=>{ const p=ln.split("｜"); const label=p[0]||ln; const val=p.slice(1).join("｜")||"";
+    return `<div class="trip-row"><i class="fa-solid ${icons[i%icons.length]}"></i>${esc(label)}${val?`<b>${esc(val)}</b>`:""}</div>`; }).join("");
+}
+async function updateQuick(){
+  $("#qCart").textContent = cartItems.length;
+  try{
+    let cnt=0;
+    const qs=await getDocs(query(collection(db,"orders"), where("ownerUid","==",me.lineUserId)));
+    qs.forEach(d=>{ const s=d.data().status; if(s!=="已取貨"&&s!=="已取消") cnt++; });
+    $("#qOngoing").textContent=cnt;
+  }catch(e){}
+}
+function renderCarousel(){
+  const list=PRODUCTS.filter(p=>p.img).slice(0,10);
+  const card=$("#carouselCard");
+  if(!list.length){ card.style.display="none"; return; }
+  card.style.display="block";
+  $("#homeCarousel").innerHTML=list.map(p=>`<div class="cc" data-goto="shop">
+    <div class="im" style="background-image:url('${esc(p.img)}')"></div>
+    <div class="cb"><div class="cn">${esc(p.name)}</div><div class="cp">${esc(p.currency||"NT$")} ${esc(p.price)}</div></div></div>`).join("");
+}
+// 首頁互動
+$("#page-home").addEventListener("click", e=>{
+  const goto=e.target.closest("[data-goto]"); if(goto){ switchTab(goto.dataset.goto); return; }
+  if(e.target.closest("[data-opencart]")){ openCart(); return; }
+});
+$("#rateYen").addEventListener("input", ()=>{ const y=parseFloat($("#rateYen").value)||0; $("#rateNt").textContent="NT$ "+Math.round(y*0.21).toLocaleString(); });
+// 設定倒數(管理員)
+$("#cdSetBtn").onclick=()=>{
+  $("#cdInTitle").value=CFG.countdownTitle||"";
+  const t=new Date(CFG.countdownTarget); const p=n=>String(n).padStart(2,"0");
+  if(!isNaN(t)) $("#cdInTarget").value=`${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`;
+  $("#cdInAnnounce").value=CFG.announce||"";
+  $("#cdMask").classList.add("show");
+};
+$("#cdCancel").onclick=()=>$("#cdMask").classList.remove("show");
+$("#cdSave").onclick=async()=>{
+  const title=$("#cdInTitle").value.trim()||"倒數"; const tv=$("#cdInTarget").value; const ann=$("#cdInAnnounce").value.trim();
+  const b=$("#cdSave"); b.disabled=true; b.textContent="儲存中…";
+  try{
+    const iso=tv?new Date(tv).toISOString():CFG.countdownTarget;
+    CFG={...CFG, countdownTitle:title, countdownTarget:iso, announce:ann};
+    await setDoc(doc(db,"daigouConfig","main"), CFG, {merge:true});
+    $("#cdMask").classList.remove("show"); renderHomeConfig();
+  }catch(e){ alert("儲存失敗:"+e.message); }
+  b.disabled=false; b.textContent="儲存";
+};
 
 /* ============== 好物推薦 ============== */
 let PRODUCTS = [], curCat = "全部";
@@ -524,6 +792,7 @@ async function loadProducts(){
     PRODUCTS.sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0));
   }catch(e){}
   renderProducts();
+  renderCarousel();
 }
 function renderProducts(){
   const list = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => (p.category||"其他")===curCat);
@@ -842,7 +1111,7 @@ async function cancelOrder(orderId, btn){
 }
 
 /* 點遮罩關閉 sheet */
-["cartMask","prodMask","submitMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
+["cartMask","prodMask","submitMask","cdMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
 
 /* ============== 啟動 ============== */
 const _cachedMe = readCachedMe();
