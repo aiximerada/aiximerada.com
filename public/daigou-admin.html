@@ -170,17 +170,22 @@ async function initLine(){
 
 // ---- 讀取全部資料 ----
 async function loadAll(){
-  const [oSnap,iSnap]=await Promise.all([
+  const [oSnap,iSnap,cfgSnap]=await Promise.all([
     getDocs(collection(db,"orders")),
-    getDocs(collection(db,"daigouItems"))
+    getDocs(collection(db,"daigouItems")),
+    getDoc(doc(db,"daigouConfig","main"))
   ]);
-  const oList=[]; oSnap.forEach(d=>oList.push({id:d.id,...d.data()}));
+  let oList=[]; oSnap.forEach(d=>oList.push({id:d.id,...d.data()}));
   const itemsByOrder={};
   iSnap.forEach(d=>{
     const it={id:d.id,...d.data()};
     const oid=it.orderId||"";
     (itemsByOrder[oid]=itemsByOrder[oid]||[]).push(it);
   });
+  // 封存隱藏:此時間點之前的舊訂單不顯示(可逆,改 daigouConfig/main archivedBefore 即還原)
+  const arch = cfgSnap.exists() && cfgSnap.data().archivedBefore;
+  const archMs = arch ? toMs(arch) : 0;
+  if(archMs) oList = oList.filter(o=>toMs(o.createdAt) >= archMs);
   oList.forEach(o=>{ o._items=itemsByOrder[o.id]||[]; });
   oList.sort((a,b)=>toMs(b.createdAt)-toMs(a.createdAt));
   orders=oList;

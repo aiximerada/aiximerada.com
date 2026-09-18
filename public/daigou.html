@@ -1030,7 +1030,8 @@ async function loadOrders(){
       ? await getDocs(query(collection(db,"daigouItems"), where("submitted","==",true)))
       : await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
     qi.forEach(d=>{ const it={id:d.id,...d.data()}; (ITEMS[it.orderId]=ITEMS[it.orderId]||[]).push(it); });
-    ORDERS=oList;
+    const archSec = CFG.archivedBefore && CFG.archivedBefore.seconds;
+    ORDERS = archSec ? oList.filter(o=>secOf(o.createdAt) >= archSec) : oList;
   }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
   if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
   box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), all)).join("");
