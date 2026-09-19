@@ -112,9 +112,20 @@
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
   .pcard{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
-  .pcard .img{aspect-ratio:1/1;background:#dfeaf5 center/cover no-repeat;position:relative}
+  .pcard .img{aspect-ratio:1/1;background:#dfeaf5 center/cover no-repeat;position:relative;overflow:hidden}
+  /* 多張照片:疊在一起用淡入淡出輪播 */
+  .pcard .img .sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity .45s ease}
+  .pcard .img .sl.on{opacity:1}
+  .pcard .img .nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:24px;height:40px;border:none;cursor:pointer;
+    background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:var(--blue-deep);font-size:16px;font-weight:800;line-height:1;padding:0}
+  .pcard .img .nav.pv{left:0;border-radius:0 9px 9px 0}
+  .pcard .img .nav.nx{right:0;border-radius:9px 0 0 9px}
+  .pcard .img .dots{position:absolute;z-index:2;left:0;right:0;bottom:7px;display:flex;justify-content:center;gap:4px}
+  .pcard .img .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:width .25s,background .25s}
+  .pcard .img .dot.on{width:13px;border-radius:3px;background:#fff}
+  #p_photos{grid-template-columns:repeat(4,1fr)}
   .pcard .img .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:34px}
-  .pcard .img .cat{position:absolute;top:8px;left:8px;background:rgba(31,95,151,.82);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .pcard .img .cat{position:absolute;z-index:3;top:8px;left:8px;background:rgba(31,95,151,.82);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
   .pcard .b{padding:11px 12px 13px;display:flex;flex-direction:column;gap:6px;flex:1}
   .pcard .nm{font-size:14.5px;font-weight:800;line-height:1.35;color:var(--txt);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pcard .pr{font-size:19px;font-weight:800;color:var(--blue-deep);line-height:1.15}
@@ -553,8 +564,13 @@
   <div class="sheet">
     <div class="sh-hd"><h2><i class="fa-solid fa-store" style="color:var(--gold)"></i> <span id="prodSheetTitle">上架好物</span></h2><button class="x" id="prodClose">&times;</button></div>
     <div class="sh-body form">
-      <label>商品圖片（可點擊選圖，或直接 Ctrl/⌘+V 貼上）</label>
-      <div class="photos" style="grid-template-columns:1fr"><div class="ph" id="p_photo" style="aspect-ratio:16/10"><i class="fa-solid fa-image"></i></div></div>
+      <label>商品圖片（最多 4 張，第一張是封面；可點擊選圖或 Ctrl/⌘+V 貼上）</label>
+      <div class="photos" id="p_photos">
+        <div class="ph" data-pi="0"><i class="fa-solid fa-image"></i></div>
+        <div class="ph" data-pi="1"><i class="fa-solid fa-plus"></i></div>
+        <div class="ph" data-pi="2"><i class="fa-solid fa-plus"></i></div>
+        <div class="ph" data-pi="3"><i class="fa-solid fa-plus"></i></div>
+      </div>
       <label>商品名稱 *</label>
       <input id="p_name" placeholder="例：資生堂 安耐曬 金瓶">
       <div class="row">
@@ -633,6 +649,9 @@ const approxPrice = (v, cur) => {
   const n = roughNum(v);
   return n==null ? null : `約 ${cur||"NT$"} ${n.toLocaleString("en-US")}`;
 };
+
+// 商品照片:新版存 imgs 陣列,舊資料只有單張 img
+const productImgs = p => (p && Array.isArray(p.imgs) && p.imgs.length) ? p.imgs.filter(Boolean) : ((p && p.img) ? [p.img] : []);
 
 const CATEGORIES = ["美妝保養","藥妝保健","零食甜點","生活雜貨","電器動漫","服飾配件","食品飲料","其他"];
 
@@ -875,8 +894,16 @@ function renderProducts(){
     return;
   }
   g.innerHTML = list.map(p => {
-    const img = p.img ? `<div class="img" style="background-image:url('${esc(p.img)}')"><span class="cat">${esc(p.category||"其他")}</span></div>`
-                      : `<div class="img"><span class="cat">${esc(p.category||"其他")}</span><span class="noimg"><i class="fa-regular fa-image"></i></span></div>`;
+    const pics = productImgs(p);
+    const cat = `<span class="cat">${esc(p.category||"其他")}</span>`;
+    const img = !pics.length
+      ? `<div class="img">${cat}<span class="noimg"><i class="fa-regular fa-image"></i></span></div>`
+      : `<div class="img"${pics.length>1?' data-multi="1" data-idx="0"':''}>
+          ${pics.map((u,i)=>`<div class="sl${i?"":" on"}" style="background-image:url('${esc(u)}')"></div>`).join("")}
+          ${cat}
+          ${pics.length>1?`<button class="nav pv" data-nav="-1">‹</button><button class="nav nx" data-nav="1">›</button>
+            <div class="dots">${pics.map((_,i)=>`<i class="dot${i?"":" on"}"></i>`).join("")}</div>`:""}
+        </div>`;
     const meta = [];
     if(p.store) meta.push(`<span><i class="fa-solid fa-store"></i>${esc(p.store)}</span>`);
     return `<div class="pcard" data-id="${esc(p.id)}">
@@ -899,6 +926,24 @@ function renderProducts(){
     </div>`;
   }).join("");
 }
+/* 好物照片輪播:每 2 秒自動換一張;手動切換後先暫停 10 秒再繼續 */
+const SLIDE_MS = 2000, PAUSE_MS = 10000;
+function showSlide(box, i){
+  const sl = box.querySelectorAll(".sl"); const n = sl.length;
+  if(n < 2) return;
+  const idx = ((i % n) + n) % n;
+  box.dataset.idx = idx;
+  sl.forEach((s,k)=> s.classList.toggle("on", k===idx));
+  box.querySelectorAll(".dot").forEach((d,k)=> d.classList.toggle("on", k===idx));
+}
+setInterval(()=>{
+  const now = Date.now();
+  document.querySelectorAll("#shopGrid .img[data-multi]").forEach(box=>{
+    if(Number(box.dataset.pause||0) > now) return;
+    showSlide(box, Number(box.dataset.idx||0) + 1);
+  });
+}, SLIDE_MS);
+
 // 結束選數量狀態,數量歸 1
 function endPick(card){
   if(!card) return;
@@ -913,7 +958,14 @@ $("#shopGrid").addEventListener("click", async e => {
   const stepb = e.target.closest("[data-step]");
   const cxb = e.target.closest("[data-cancelq]");
   const editb = e.target.closest("[data-edit]");
+  const navb = e.target.closest("[data-nav]");
   const card = e.target.closest(".pcard");
+  if(navb){
+    const box = navb.closest(".img");
+    showSlide(box, Number(box.dataset.idx||0) + Number(navb.dataset.nav));
+    box.dataset.pause = Date.now() + PAUSE_MS;
+    return;
+  }
   if(editb){
     const p = PRODUCTS.find(x=>x.id===editb.dataset.edit);
     if(p) openProdSheet(p);
@@ -948,7 +1000,7 @@ $("#shopGrid").addEventListener("click", async e => {
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
         name:p.name, price:Number(p.price)||0, currency:p.currency||"NT$", qty,
-        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"", note:p.effect?("功效:"+p.effect):"", photos:p.img?[p.img]:[],
+        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"", note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
       });
@@ -962,18 +1014,39 @@ $("#shopGrid").addEventListener("click", async e => {
 });
 
 /* ====== 上架商品(管理員) ====== */
-let prodPhoto = null;
+const PROD_SLOTS = 4;
+let prodSlots = new Array(PROD_SLOTS).fill(null);  // 每格 {url} 既有照片 或 {file,preview} 新選的
+let prodPickIdx = 0;
+function renderProdSlots(){
+  for(let i=0;i<PROD_SLOTS;i++){
+    const ph = $(`#p_photos .ph[data-pi="${i}"]`); if(!ph) continue;
+    const s = prodSlots[i];
+    if(s){ ph.style.backgroundImage = `url('${s.url||s.preview}')`; ph.innerHTML = '<button class="del">&times;</button>'; }
+    else { ph.style.backgroundImage = ""; ph.innerHTML = i===0 ? '<i class="fa-solid fa-image"></i>' : '<i class="fa-solid fa-plus"></i>'; }
+  }
+}
+function setProdSlot(i, file){
+  prodSlots[i] = { file, preview: URL.createObjectURL(file) };
+  renderProdSlots();
+}
+$("#p_photos").addEventListener("click", e => {
+  const ph = e.target.closest(".ph"); if(!ph) return;
+  const i = +ph.dataset.pi;
+  if(e.target.classList.contains("del")){ prodSlots[i]=null; renderProdSlots(); return; }
+  fileTarget = "prod"; prodPickIdx = i; $("#fileInput").click();
+});
 // 免稅價 ⇄ 含稅價 自動互算
 function taxRate(){ return parseFloat($("#p_taxrate").value)||0; }
 $("#p_price").addEventListener("input", ()=>{ const v=parseFloat($("#p_price").value); $("#p_priceTax").value = v?Math.round(v*(1+taxRate())):""; });
 $("#p_priceTax").addEventListener("input", ()=>{ const v=parseFloat($("#p_priceTax").value); $("#p_price").value = v?Math.round(v/(1+taxRate())):""; });
 $("#p_taxrate").addEventListener("change", ()=>{ const v=parseFloat($("#p_price").value); if(v) $("#p_priceTax").value=Math.round(v*(1+taxRate())); });
 // 傳商品進來=編輯,不傳=上架新商品
-let editingId = null, editingImg = "";
+let editingId = null;
 function openProdSheet(p){
   editingId = p ? p.id : null;
-  editingImg = (p && p.img) || "";
-  prodPhoto = null;
+  prodSlots = new Array(PROD_SLOTS).fill(null);
+  productImgs(p).slice(0, PROD_SLOTS).forEach((u,i)=> prodSlots[i] = { url:u });
+  renderProdSlots();
   $("#p_name").value = (p && p.name) || "";
   $("#p_price").value = (p && p.price != null) ? p.price : "";
   $("#p_priceTax").value = (p && p.priceTax != null) ? p.priceTax : "";
@@ -983,9 +1056,6 @@ function openProdSheet(p){
   $("#p_colors").value = (p && Array.isArray(p.colors)) ? p.colors.join(", ") : "";
   $("#p_effect").value = (p && p.effect) || "";
   $("#p_ref").value = (p && p.refLink) || "";
-  const ph = $("#p_photo");
-  if(editingImg){ ph.style.backgroundImage = `url('${editingImg}')`; ph.innerHTML = ""; }
-  else { ph.style.backgroundImage = ""; ph.innerHTML = '<i class="fa-solid fa-image"></i>'; }
   $("#prodSheetTitle").textContent = p ? "編輯好物" : "上架好物";
   $("#p_submit").innerHTML = p ? '<i class="fa-solid fa-floppy-disk"></i> 儲存變更' : '<i class="fa-solid fa-cloud-arrow-up"></i> 上架';
   const msg = $("#p_msg"); msg.className = "fmsg"; msg.textContent = "";
@@ -993,11 +1063,11 @@ function openProdSheet(p){
 }
 $("#addProdFab").onclick = () => openProdSheet(null);
 $("#prodClose").onclick = () => $("#prodMask").classList.remove("show");
-$("#p_photo").onclick = () => { fileTarget = "prod"; $("#fileInput").click(); };
-// 貼上圖片(Ctrl/Cmd+V 或行動裝置貼上)→ 直接當商品圖
+// 貼上圖片(Ctrl/Cmd+V 或行動裝置貼上)→ 放進第一個空格
 function setProdPhoto(file){
-  prodPhoto=file; const u=URL.createObjectURL(file);
-  $("#p_photo").style.backgroundImage=`url('${u}')`; $("#p_photo").innerHTML="";
+  const i = prodSlots.findIndex(s => !s);
+  if(i < 0){ const m=$("#p_msg"); m.className="fmsg err"; m.textContent=`已經 ${PROD_SLOTS} 張了,先刪一張再貼`; return; }
+  setProdSlot(i, file);
 }
 window.addEventListener("paste", e=>{
   if(!$("#prodMask").classList.contains("show")) return;
@@ -1013,24 +1083,27 @@ $("#p_submit").onclick = async () => {
   const btn = $("#p_submit"); btn.disabled = true;
   btn.innerHTML = `<i class="fa-solid fa-spinner spin"></i> ${isEdit?"儲存中…":"上架中…"}`;
   try{
-    // 編輯時沒重選圖就沿用原本那張
-    let img = isEdit ? editingImg : "";
-    if(prodPhoto){
-      const r = ref(storage, `daigou_products/${Date.now()}.jpg`);
-      await uploadBytes(r, prodPhoto); img = await getDownloadURL(r);
+    // 已經在雲端的照片沿用網址,只上傳這次新選的
+    const imgs = [];
+    for(let i=0;i<PROD_SLOTS;i++){
+      const s = prodSlots[i]; if(!s) continue;
+      if(s.url){ imgs.push(s.url); continue; }
+      const r = ref(storage, `daigou_products/${Date.now()}_${i}.jpg`);
+      await uploadBytes(r, s.file); imgs.push(await getDownloadURL(r));
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
     const colors = $("#p_colors").value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     const data = {
       name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
-      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(), img
+      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
+      imgs, img:imgs[0]||""   // img 保留給首頁輪播等舊程式用
     };
     if(isEdit){
       await updateDoc(doc(db,"daigouProducts",editingId), { ...data, updatedAt:serverTimestamp() });
     }else{
       await addDoc(collection(db,"daigouProducts"), { ...data, createdBy:me.lineUserId, createdAt:serverTimestamp() });
     }
-    editingId=null; editingImg=""; prodPhoto=null;
+    editingId=null; prodSlots = new Array(PROD_SLOTS).fill(null);
     $("#prodMask").classList.remove("show");
     loadProducts();
   }catch(err){ msg.className="fmsg err"; msg.textContent=err.message; }
@@ -1050,7 +1123,7 @@ $("#a_photos").addEventListener("click", e => {
 $("#fileInput").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
   if(fileTarget==="prod"){
-    prodPhoto=f; const u=URL.createObjectURL(f); $("#p_photo").style.backgroundImage=`url('${u}')`; $("#p_photo").innerHTML="";
+    setProdSlot(prodPickIdx, f);
   }else{
     addPhotos[curPhIdx]=f; const u=URL.createObjectURL(f);
     const ph=$(`#a_photos .ph[data-i="${curPhIdx}"]`); ph.style.backgroundImage=`url('${u}')`; ph.innerHTML='<button class="del">&times;</button>';
