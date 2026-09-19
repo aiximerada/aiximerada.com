@@ -110,19 +110,6 @@
 
   /* 好物推薦 grid */
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
-  /* ===== 電腦版:內容置中不要拉整片,卡片變小、一排多放幾個 ===== */
-  @media (min-width:760px){
-    main{max-width:1280px;margin:0 auto;padding-left:28px;padding-right:28px}
-    .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
-    .pcard .nm{font-size:13.5px}
-    .pcard .pr{font-size:16.5px}
-    .pcard .pr .prtax{font-size:10.5px}
-    .pcard .more{font-size:11.5px}
-    .tabbar{max-width:1280px;margin:0 auto;border-radius:20px 20px 0 0}
-    /* 浮動鈕跟著內容欄靠右,不要黏在整個螢幕邊緣;視窗比內容窄時退回 20px */
-    #cartFab{right:max(20px, calc((100vw - 1280px)/2 + 20px))}
-    #addProdFab{right:max(23px, calc((100vw - 1280px)/2 + 23px))}
-  }
   .pcard{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
   .pcard .img{aspect-ratio:1/1}
@@ -220,6 +207,13 @@
   .ph{aspect-ratio:1;border:2px dashed var(--bd2);border-radius:14px;display:flex;align-items:center;justify-content:center;
     color:#a9c2d8;cursor:pointer;background:center/cover no-repeat;position:relative;overflow:hidden;font-size:22px}
   .ph .del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);border:none;color:#fff;border-radius:50%;width:24px;height:24px;line-height:1;cursor:pointer;font-size:15px}
+  /* 照片排順序:可以拖,也可以按左右箭頭(手機拖不動時用) */
+  .ph.filled{cursor:grab}
+  .ph.filled:active{cursor:grabbing}
+  .ph.over{outline:2px dashed var(--blue);outline-offset:2px;opacity:.75}
+  .ph .mv{position:absolute;left:4px;bottom:4px;display:flex;gap:4px}
+  .ph .mv button{width:23px;height:23px;border:none;border-radius:7px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:800;line-height:1;cursor:pointer;padding:0}
+  .ph .cover{position:absolute;top:5px;left:5px;background:rgba(31,95,151,.88);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
   .btn-main{width:100%;margin-top:22px;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:14px;
     padding:15px;font-size:16.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 24px rgba(47,128,196,.3)}
   .btn-main:disabled{opacity:.55}
@@ -418,6 +412,41 @@
   #loadingOv .st{font-size:40px;color:#ffd97a;filter:drop-shadow(0 0 10px rgba(255,217,122,.7));animation:spin2 1.1s ease-in-out infinite}
   @keyframes spin2{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.25)}100%{transform:rotate(360deg) scale(1)}}
   #loadingOv .tx{margin-top:12px;font-size:13px;font-weight:700;letter-spacing:2px;opacity:.85}
+
+  /* ===== 以下 RWD 放在最後,才不會被前面的基礎樣式蓋掉 ===== */
+  /* ===== 電腦版:內容置中不要拉整片,卡片變小、一排多放幾個 ===== */
+  @media (min-width:760px){
+    main{max-width:1280px;margin:0 auto;padding-left:28px;padding-right:28px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
+    .pcard .nm{font-size:13.5px}
+    .pcard .pr{font-size:16.5px}
+    .pcard .pr .prtax{font-size:10.5px}
+    .pcard .more{font-size:11.5px}
+    .tabbar{max-width:1280px;margin:0 auto;border-radius:20px 20px 0 0}
+    /* 浮動鈕跟著內容欄靠右,不要黏在整個螢幕邊緣;視窗比內容窄時退回 20px */
+    #cartFab{right:max(20px, calc((100vw - 1280px)/2 + 20px))}
+    #addProdFab{right:max(23px, calc((100vw - 1280px)/2 + 23px))}
+  }
+  /* 電腦版的 sheet 改成置中對話框,商品詳情與上架表單都排左右兩欄,不要拉成一長條 */
+  @media (min-width:900px){
+    .mask{align-items:center}
+    .sheet{max-width:900px;max-height:86vh;border-radius:22px;box-shadow:0 24px 70px rgba(31,95,151,.28);
+      animation:pop .22s cubic-bezier(.2,.9,.3,1);padding-bottom:0}
+    .sheet .sh-hd{padding:18px 22px 12px}
+    .sheet .sh-hd:before{display:none}      /* 手機的拖曳條電腦版不需要 */
+    .sheet .sh-body{padding:4px 22px 22px}
+
+    /* 商品詳情:左圖右資訊 */
+    #pvBody{display:grid;grid-template-columns:340px 1fr;gap:26px;align-items:start}
+    #pvBody .pvimg{margin-top:0}
+    #pvBody .pvnm{margin-top:0}
+
+    /* 上架/編輯表單:照片整排在上,其餘左右兩欄 */
+    .form .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;align-items:start}
+    .form .fwide{grid-column:1/-1}
+    .form .fcol > label:first-child{margin-top:10px}
+  }
+  @keyframes pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
 </style>
 </head>
 <body>
@@ -604,13 +633,17 @@
   <div class="sheet">
     <div class="sh-hd"><h2><i class="fa-solid fa-store" style="color:var(--gold)"></i> <span id="prodSheetTitle">上架好物</span></h2><button class="x" id="prodClose">&times;</button></div>
     <div class="sh-body form">
-      <label>商品圖片（最多 4 張，第一張是封面；可點擊選圖或 Ctrl/⌘+V 貼上）</label>
+     <div class="fgrid">
+      <div class="fwide">
+      <label>商品圖片（最多 4 張，第一張是封面；可點擊選圖或 Ctrl/⌘+V 貼上；<b>可拖曳調整順序</b>）</label>
       <div class="photos" id="p_photos">
         <div class="ph" data-pi="0"><i class="fa-solid fa-image"></i></div>
         <div class="ph" data-pi="1"><i class="fa-solid fa-plus"></i></div>
         <div class="ph" data-pi="2"><i class="fa-solid fa-plus"></i></div>
         <div class="ph" data-pi="3"><i class="fa-solid fa-plus"></i></div>
       </div>
+      </div>
+      <div class="fcol">
       <label>商品名稱 *</label>
       <input id="p_name" placeholder="例：資生堂 安耐曬 金瓶">
       <div class="row">
@@ -625,6 +658,8 @@
       <select id="p_cat"></select>
       <label>購買地點（選填）</label>
       <input id="p_store" placeholder="例：松本清、Bic Camera">
+      </div>
+      <div class="fcol">
       <label>色號 / 款式（選填，讓客人挑選）</label>
       <div id="p_colorList"></div>
       <button type="button" class="addopt" id="p_colorAdd"><i class="fa-solid fa-plus"></i> 新增一個選項</button>
@@ -635,8 +670,12 @@
       <div class="hint">用 **星號** 包住的字會變紅色粗體，例：**限定色**售完為止</div>
       <label>參考網址（選填）</label>
       <input id="p_ref" type="url" inputmode="url" placeholder="商品官網或參考連結…">
+      </div>
+      <div class="fwide">
       <button class="btn-main" id="p_submit"><i class="fa-solid fa-cloud-arrow-up"></i> 上架</button>
       <div class="fmsg" id="p_msg"></div>
+      </div>
+     </div>
     </div>
   </div>
 </div>
@@ -1066,7 +1105,8 @@ function openProductView(id){
   meta.push(`<span><i class="fa-solid fa-tag"></i>${esc(p.category||"其他")}</span>`);
   const cols = Array.isArray(p.colors) ? p.colors.filter(Boolean) : [];
   $("#pvBody").innerHTML = `
-    ${sliderHtml(p, "pvimg")}
+    <div class="pvleft">${sliderHtml(p, "pvimg")}</div>
+    <div class="pvright">
     <div class="pvnm">${esc(p.name||"未命名")}</div>
     <div class="pvpr" id="pvPrice">${pvPriceHtml(p, 0)}</div>
     <div class="pvmeta">${meta.join("")}</div>
@@ -1083,6 +1123,7 @@ function openProductView(id){
     </div>
     ${p.refLink?`<button class="pvlink" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i> 看商品原始頁面</button>`:""}
     ${isAdmin?`<div class="pvadm"><button data-edit="1"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="1"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
+    </div>
   `;
   const sel = $("#pvColor");
   if(sel) sel.onchange = () => { $("#pvPrice").innerHTML = pvPriceHtml(p, Number(sel.value)||0); };
@@ -1139,10 +1180,58 @@ function renderProdSlots(){
   for(let i=0;i<PROD_SLOTS;i++){
     const ph = $(`#p_photos .ph[data-pi="${i}"]`); if(!ph) continue;
     const s = prodSlots[i];
-    if(s){ ph.style.backgroundImage = `url('${s.url||s.preview}')`; ph.innerHTML = '<button class="del">&times;</button>'; }
+    ph.draggable = !!s;
+    ph.classList.toggle("filled", !!s);
+    if(s){
+      ph.style.backgroundImage = `url('${s.url||s.preview}')`;
+      ph.innerHTML = `<button class="del">&times;</button>`
+        + (i===0 ? `<span class="cover">封面</span>` : "")
+        + `<div class="mv">${i>0?`<button data-mv="${i}:-1">‹</button>`:""}${i<PROD_SLOTS-1?`<button data-mv="${i}:1">›</button>`:""}</div>`;
+    }
     else { ph.style.backgroundImage = ""; ph.innerHTML = i===0 ? '<i class="fa-solid fa-image"></i>' : '<i class="fa-solid fa-plus"></i>'; }
   }
 }
+// 把第 from 張往左/右搬,順序跟著整體位移(不是單純對調)
+function moveSlot(from, dir){
+  const to = from + dir;
+  if(to < 0 || to >= PROD_SLOTS) return;
+  const [m] = prodSlots.splice(from, 1);
+  prodSlots.splice(to, 0, m);
+  renderProdSlots();
+}
+let dragFrom = null;
+$("#p_photos").addEventListener("dragstart", e => {
+  const ph = e.target.closest(".ph");
+  if(!ph || !prodSlots[+ph.dataset.pi]){ e.preventDefault(); return; }
+  dragFrom = +ph.dataset.pi;
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", String(dragFrom)); }catch(_){}
+});
+$("#p_photos").addEventListener("dragover", e => {
+  if(dragFrom === null) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  const ph = e.target.closest(".ph");
+  $$("#p_photos .ph").forEach(x => x.classList.toggle("over", x === ph));
+});
+$("#p_photos").addEventListener("drop", e => {
+  e.preventDefault();
+  const ph = e.target.closest(".ph");
+  $$("#p_photos .ph").forEach(x => x.classList.remove("over"));
+  if(ph && dragFrom !== null){
+    const to = +ph.dataset.pi;
+    if(to !== dragFrom){
+      const [m] = prodSlots.splice(dragFrom, 1);
+      prodSlots.splice(to, 0, m);
+      renderProdSlots();
+    }
+  }
+  dragFrom = null;
+});
+$("#p_photos").addEventListener("dragend", () => {
+  dragFrom = null;
+  $$("#p_photos .ph").forEach(x => x.classList.remove("over"));
+});
 function setProdSlot(i, file){
   prodSlots[i] = { file, preview: URL.createObjectURL(file) };
   renderProdSlots();
@@ -1185,6 +1274,8 @@ $("#p_hl").onclick = () => {
   ta.focus(); ta.setSelectionRange(s, t+4);
 };
 $("#p_photos").addEventListener("click", e => {
+  const mv = e.target.closest("[data-mv]");
+  if(mv){ const [from, dir] = mv.dataset.mv.split(":").map(Number); moveSlot(from, dir); return; }
   const ph = e.target.closest(".ph"); if(!ph) return;
   const i = +ph.dataset.pi;
   if(e.target.classList.contains("del")){ prodSlots[i]=null; renderProdSlots(); return; }
