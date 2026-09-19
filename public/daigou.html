@@ -641,8 +641,6 @@
     <div class="sh-body">
       <div id="cartList"></div>
       <div class="cart-foot" id="cartFoot" style="display:none">
-        <label style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px">付款方式</label>
-        <select id="payType" style="width:100%;border:1px solid var(--bd2);border-radius:11px;padding:12px;font-size:15px;margin-bottom:10px"><option>訂金</option><option>全額</option></select>
         <button class="go" id="submitOrder">送出訂單（<span id="cartCount">0</span> 件）</button>
       </div>
     </div>
@@ -1665,7 +1663,7 @@ $("#confirmSubmit").onclick = async () => {
   try{
     const orderRef = await addDoc(collection(db,"orders"), {
       ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
-      itemCount:cartItems.length, payType:$("#payType").value, status:"下單",
+      itemCount:cartItems.length, payType:"", status:"下單",   // 付款方式改成徐自己跟客人談,不在下單時選
       payLast5:"", paySlipUrl:"", createdAt:serverTimestamp(), updatedAt:serverTimestamp()
     });
     const batch = writeBatch(db);
