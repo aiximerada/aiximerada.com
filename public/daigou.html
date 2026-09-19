@@ -800,8 +800,11 @@ const effectHtml = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<span class="hl">$1<
 function sliderHtml(p, cls, extra){
   const pics = productImgs(p);
   if(!pics.length) return `<div class="${cls} slbox">${extra||""}<span class="noimg"><i class="fa-regular fa-image"></i></span></div>`;
+  // 第一張直接載,後面的先放 data-bg,輪到才載(不然一次抓一堆圖會很慢)
   return `<div class="${cls} slbox"${pics.length>1?' data-multi="1" data-idx="0"':''}>
-    ${pics.map((u,i)=>`<div class="sl${i?"":" on"}" style="background-image:url('${esc(u)}')"></div>`).join("")}
+    ${pics.map((u,i)=> i===0
+        ? `<div class="sl on" style="background-image:url('${esc(u)}')"></div>`
+        : `<div class="sl" data-bg="${esc(u)}"></div>`).join("")}
     ${extra||""}
     ${pics.length>1?`<button class="nav pv" data-nav="-1">‹</button><button class="nav nx" data-nav="1">›</button>
       <div class="dots">${pics.map((_,i)=>`<i class="dot${i?"":" on"}"></i>`).join("")}</div>`:""}
@@ -1102,26 +1105,57 @@ async function loadProducts(force){
   if(rb) rb.classList.remove("spin");
 }
 $("#shopRefresh").onclick = () => loadProducts(true);
-function renderProducts(){
-  const list = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => fixCat(p.category)===curCat);
+/* 分批渲染:一開始只畫前幾張,往下捲才接著畫。
+   照片是跟著卡片一起載的,所以不畫就不會去抓圖,清單開起來才快。 */
+const FIRST_BATCH = 4, NEXT_BATCH = 8;
+let shopList = [], shopShown = 0, shopIO = null;
+// 卡片只放封面+名稱+價格,其他都收進詳情 sheet(手機版列表才不會亂)
+function cardHtml(p){
+  const nCol = Array.isArray(p.colors) ? p.colors.length : 0;
+  const lp = listPrice(p);
+  return `<div class="pcard" data-open="${esc(p.id)}">
+    ${sliderHtml(p, "img", `<span class="cat">${esc(fixCat(p.category))}</span>`)}
+    <div class="b">
+      <div class="nm">${esc(p.name||"未命名")}</div>
+      <div class="pr">${esc(approxPrice(lp.price,p.currency)||"價格洽詢")}${lp.from?" 起":""}${approxPrice(lp.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(lp.priceTax,p.currency))}${lp.from?" 起":""}</span>`:""}</div>
+      <div class="more">${nCol?`${nCol} 款可選・`:""}看詳情 <i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+  </div>`;
+}
+function appendProducts(n){
   const g = $("#shopGrid");
-  if(!list.length){
+  const slice = shopList.slice(shopShown, shopShown + n);
+  const sen = $("#shopMore");
+  if(slice.length){
+    const html = slice.map(cardHtml).join("");
+    if(sen) sen.insertAdjacentHTML("beforebegin", html);
+    else g.insertAdjacentHTML("beforeend", html);
+    shopShown += slice.length;
+  }
+  if(shopShown >= shopList.length && sen){   // 全部畫完就把觸發器收掉
+    if(shopIO) shopIO.unobserve(sen);
+    sen.remove();
+  }
+}
+function renderProducts(){
+  shopList = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => fixCat(p.category)===curCat);
+  const g = $("#shopGrid");
+  shopShown = 0;
+  if(!shopList.length){
     g.innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-regular fa-face-smile"></i>${PRODUCTS.length? "這個類別還沒有好物～":"還沒有上架任何好物"}${isAdmin?"<br>點右下 <b>＋</b> 上架第一個商品":""}</div>`;
     return;
   }
-  // 卡片只放封面+名稱+價格,其他都收進詳情 sheet(手機版列表才不會亂)
-  g.innerHTML = list.map(p => {
-    const nCol = Array.isArray(p.colors) ? p.colors.length : 0;
-    const lp = listPrice(p);
-    return `<div class="pcard" data-open="${esc(p.id)}">
-      ${sliderHtml(p, "img", `<span class="cat">${esc(fixCat(p.category))}</span>`)}
-      <div class="b">
-        <div class="nm">${esc(p.name||"未命名")}</div>
-        <div class="pr">${esc(approxPrice(lp.price,p.currency)||"價格洽詢")}${lp.from?" 起":""}${approxPrice(lp.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(lp.priceTax,p.currency))}${lp.from?" 起":""}</span>`:""}</div>
-        <div class="more">${nCol?`${nCol} 款可選・`:""}看詳情 <i class="fa-solid fa-chevron-right"></i></div>
-      </div>
-    </div>`;
-  }).join("");
+  g.innerHTML = `<div id="shopMore" style="grid-column:1/-1;height:1px"></div>`;
+  if(!shopIO && "IntersectionObserver" in window){
+    // 提前 500px 就先補,捲到底才載會來不及
+    shopIO = new IntersectionObserver(es => {
+      if(es.some(e => e.isIntersecting)) appendProducts(NEXT_BATCH);
+    }, { rootMargin: "500px 0px" });
+  }
+  appendProducts(FIRST_BATCH);
+  const sen = $("#shopMore");
+  if(sen && shopIO) shopIO.observe(sen);
+  else if(sen && !shopIO) appendProducts(shopList.length);   // 舊瀏覽器沒有 IO 就一次畫完
 }
 /* 好物照片輪播:每 2 秒自動換一張;手動切換後先暫停 10 秒再繼續 */
 const SLIDE_MS = 3000, PAUSE_MS = 10000;
@@ -1130,7 +1164,13 @@ function showSlide(box, i){
   if(n < 2) return;
   const idx = ((i % n) + n) % n;
   box.dataset.idx = idx;
-  sl.forEach((s,k)=> s.classList.toggle("on", k===idx));
+  sl.forEach((s,k)=>{
+    s.classList.toggle("on", k===idx);
+    if(k===idx && s.dataset.bg){   // 這張要顯示了才去抓圖
+      s.style.backgroundImage = `url('${s.dataset.bg}')`;
+      delete s.dataset.bg;
+    }
+  });
   box.querySelectorAll(".dot").forEach((d,k)=> d.classList.toggle("on", k===idx));
 }
 setInterval(()=>{
