@@ -171,7 +171,11 @@
   #introMask h3{font-size:19px;font-weight:800;color:var(--blue-deep);margin-bottom:10px}
   #introMask p{font-size:14px;color:#4a5f77;line-height:1.85}
   #introMask p b{color:var(--blue-deep)}
-  #introMask .chk{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:13.5px;color:var(--muted);cursor:pointer}
+  #introMask .warn{margin-top:14px;background:rgba(229,85,110,.08);border:1px solid rgba(229,85,110,.22);border-radius:12px;
+    padding:10px 12px;font-size:13px;font-weight:700;color:var(--danger);line-height:1.75;text-align:center}
+  #introMask .warn i{margin-right:5px}
+  #introMask .warn .nb{white-space:nowrap}
+  #introMask .chk{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-size:13.5px;color:var(--muted);cursor:pointer}
   #introMask .chk input{width:17px;height:17px;accent-color:var(--blue)}
   #introMask .ok{width:100%;margin-top:14px;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:13px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
 
@@ -637,6 +641,7 @@
     <div class="iic"><i class="fa-solid fa-fire"></i></div>
     <h3>好物推薦</h3>
     <p>這裡是<b>日本 SNS 熱門商品推薦</b>。<br>都是在日本社群上討論度高、台灣不好買的東西，點商品就能看詳細介紹、挑款式和數量，直接加入購物車給我代購。</p>
+    <div class="warn"><i class="fa-solid fa-circle-exclamation"></i> 所有商品都有機會現場無法購買到，<span class="nb">請見諒 😢</span></div>
     <label class="chk"><input type="checkbox" id="introHide"> 今天不再顯示</label>
     <button class="ok" id="introOk">我知道了</button>
   </div>
