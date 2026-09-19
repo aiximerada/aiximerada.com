@@ -99,6 +99,8 @@
 
   .sec-title{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;color:var(--blue-deep);margin:4px 2px 14px}
   .sec-title i{color:var(--blue)}
+  .sec-title #shopRefresh{margin-left:auto;background:rgba(255,255,255,.8);border:1px solid var(--bd2);border-radius:10px;
+    width:34px;height:30px;color:var(--blue);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
 
   /* 類別 chips */
   .cats{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:none;-ms-overflow-style:none}
@@ -139,7 +141,15 @@
   .pcard .more i{font-size:10px}
 
   /* 商品詳情 sheet:內容、選項、數量都收在這裡,列表才不會擠 */
-  #pvBody .pvimg{aspect-ratio:4/3;border-radius:14px;margin-top:4px}
+  #pvBody .pvimg{aspect-ratio:4/3;border-radius:14px;margin-top:4px;cursor:zoom-in}
+  /* 放大看圖 */
+  .lb{position:fixed;inset:0;z-index:80;background:rgba(10,22,38,.93);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;padding:18px}
+  .lb.show{display:flex}
+  .lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;animation:pop .2s ease}
+  .lb .x{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:16px;background:rgba(255,255,255,.16);border:none;color:#fff;
+    font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;line-height:1}
+  .lb .hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 18px);text-align:center;color:rgba(255,255,255,.65);font-size:12.5px}
   #pvBody .pvimg .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:38px}
   #pvBody .pvnm{font-size:17px;font-weight:800;line-height:1.45;color:var(--txt);margin-top:14px}
   #pvBody .pvpr{font-size:25px;font-weight:800;color:var(--blue-deep);line-height:1.2;margin-top:8px}
@@ -516,7 +526,9 @@
 
     <!-- Tab1 好物推薦 -->
     <section class="page" id="page-shop">
-      <div class="sec-title"><i class="fa-solid fa-fire"></i> 好物推薦</div>
+      <div class="sec-title"><i class="fa-solid fa-fire"></i> 好物推薦
+        <button id="shopRefresh" title="重新抓最新商品"><i class="fa-solid fa-rotate"></i></button>
+      </div>
       <div class="cats" id="shopCats"></div>
       <div class="grid" id="shopGrid"></div>
     </section>
@@ -688,6 +700,13 @@
   </div>
 </div>
 
+<!-- 點商品照片放大看 -->
+<div class="lb" id="lbMask">
+  <img id="lbImg" alt="商品照片">
+  <button class="x" id="lbClose">&times;</button>
+  <div class="hint">點任意處關閉</div>
+</div>
+
 <!-- 好物推薦說明(每次打開顯示,可勾今天不再顯示) -->
 <div class="mask center" id="introMask">
   <div class="ibox">
@@ -786,7 +805,10 @@ function sliderHtml(p, cls, extra){
   </div>`;
 }
 
-const CATEGORIES = ["美妝保養","藥妝保健","零食甜點","生活雜貨","電器動漫","服飾配件","食品飲料","其他"];
+const CATEGORIES = ["美妝保養","藥妝保健","食品","生活雜貨","電器動漫","服飾配件","其他"];
+// 舊分類對應到新分類(零食甜點／食品飲料 已合併成「食品」)
+const CAT_ALIAS = { "零食甜點":"食品", "食品飲料":"食品" };
+const fixCat = c => CAT_ALIAS[c] || c || "其他";
 
 /* ================= 登入 ================= */
 async function boot(){
@@ -1023,13 +1045,15 @@ $("#shopCats").addEventListener("click", e => {
   $$("#shopCats .chip").forEach(x => x.classList.toggle("on", x===c));
   renderProducts();
 });
-/* 好物清單快取:先用上次存的畫出來(秒開、不會閃「還沒上架」),
-   再到後台撈一次;內容真的有變才重畫,沒變就不動。 */
+/* 好物清單快取:先用上次存的畫出來(秒開、不會閃「還沒上架」)。
+   快取還新鮮(5分鐘內)就完全不連網;過期才背景更新,內容真的有變才重畫。
+   上架/編輯/下架後會強制重抓,右上角的重新整理鈕也是。 */
 const PCACHE = "daigou_products_v1";
+const PCACHE_TTL = 5 * 60 * 1000;
 function readProdCache(){
   try{
     const o = JSON.parse(localStorage.getItem(PCACHE) || "null");
-    return (o && Array.isArray(o.items)) ? o.items : null;
+    return (o && Array.isArray(o.items)) ? o : null;   // {ts, items}
   }catch(e){ return null; }
 }
 function writeProdCache(items){
@@ -1043,14 +1067,17 @@ function prodSig(list){
     (p.colors||[]).join("|"), (p.optPrices||[]).join("|")
   ]));
 }
-async function loadProducts(){
+async function loadProducts(force){
   const cached = readProdCache();
-  if(cached && cached.length){
-    PRODUCTS = cached;
+  if(cached && cached.items.length){
+    PRODUCTS = cached.items;
     renderProducts(); renderCarousel();
+    // 快取還新鮮就到此為止,完全不連網(這段最花時間)
+    if(!force && (Date.now() - (cached.ts||0)) < PCACHE_TTL) return;
   }else{
     $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
   }
+  const rb = $("#shopRefresh"); if(rb) rb.classList.add("spin");
   try{
     let qs;
     try{ qs = await getDocs(query(collection(db,"daigouProducts"), orderBy("createdAt","desc"))); }
@@ -1069,9 +1096,11 @@ async function loadProducts(){
       $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-triangle-exclamation"></i>載入失敗,請確認網路後重新整理</div>`;
     }
   }
+  if(rb) rb.classList.remove("spin");
 }
+$("#shopRefresh").onclick = () => loadProducts(true);
 function renderProducts(){
-  const list = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => (p.category||"其他")===curCat);
+  const list = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => fixCat(p.category)===curCat);
   const g = $("#shopGrid");
   if(!list.length){
     g.innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-regular fa-face-smile"></i>${PRODUCTS.length? "這個類別還沒有好物～":"還沒有上架任何好物"}${isAdmin?"<br>點右下 <b>＋</b> 上架第一個商品":""}</div>`;
@@ -1082,7 +1111,7 @@ function renderProducts(){
     const nCol = Array.isArray(p.colors) ? p.colors.length : 0;
     const lp = listPrice(p);
     return `<div class="pcard" data-open="${esc(p.id)}">
-      ${sliderHtml(p, "img", `<span class="cat">${esc(p.category||"其他")}</span>`)}
+      ${sliderHtml(p, "img", `<span class="cat">${esc(fixCat(p.category))}</span>`)}
       <div class="b">
         <div class="nm">${esc(p.name||"未命名")}</div>
         <div class="pr">${esc(approxPrice(lp.price,p.currency)||"價格洽詢")}${lp.from?" 起":""}${approxPrice(lp.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(lp.priceTax,p.currency))}${lp.from?" 起":""}</span>`:""}</div>
@@ -1092,7 +1121,7 @@ function renderProducts(){
   }).join("");
 }
 /* 好物照片輪播:每 2 秒自動換一張;手動切換後先暫停 10 秒再繼續 */
-const SLIDE_MS = 2000, PAUSE_MS = 10000;
+const SLIDE_MS = 3000, PAUSE_MS = 10000;
 function showSlide(box, i){
   const sl = box.querySelectorAll(".sl"); const n = sl.length;
   if(n < 2) return;
@@ -1136,7 +1165,7 @@ function openProductView(id){
   pvId = id;
   const meta = [];
   if(p.store) meta.push(`<span><i class="fa-solid fa-store"></i>${esc(p.store)}</span>`);
-  meta.push(`<span><i class="fa-solid fa-tag"></i>${esc(p.category||"其他")}</span>`);
+  meta.push(`<span><i class="fa-solid fa-tag"></i>${esc(fixCat(p.category))}</span>`);
   const cols = Array.isArray(p.colors) ? p.colors.filter(Boolean) : [];
   $("#pvBody").innerHTML = `
     <div class="pvleft">${sliderHtml(p, "pvimg")}</div>
@@ -1164,10 +1193,24 @@ function openProductView(id){
   $("#pvMask").classList.add("show");
 }
 $("#pvClose").onclick = () => $("#pvMask").classList.remove("show");
+// 點詳情的照片放大看
+function openLightbox(url){
+  if(!url) return;
+  $("#lbImg").src = url;
+  $("#lbMask").classList.add("show");
+}
+$("#lbMask").onclick = () => $("#lbMask").classList.remove("show");
+document.addEventListener("keydown", e => { if(e.key === "Escape") $("#lbMask").classList.remove("show"); });
 $("#pvBody").addEventListener("click", async e => {
   const p = PRODUCTS.find(x=>x.id===pvId); if(!p) return;
   const navb = e.target.closest("[data-nav]");
   if(navb){ slideNav(navb); return; }
+  const imgbox = e.target.closest(".pvimg");
+  if(imgbox){
+    const pics = productImgs(p);
+    openLightbox(pics[Number(imgbox.dataset.idx||0)] || pics[0]);
+    return;
+  }
   const stepb = e.target.closest("[data-step]");
   if(stepb){
     const qv = $("#pvBody .qv");
@@ -1180,7 +1223,7 @@ $("#pvBody").addEventListener("click", async e => {
   if(e.target.closest("[data-del]")){
     if(!confirm("確定下架這個商品?")) return;
     await deleteDoc(doc(db,"daigouProducts",p.id));
-    $("#pvMask").classList.remove("show"); loadProducts(); return;
+    $("#pvMask").classList.remove("show"); loadProducts(true); return;
   }
   const addb = e.target.closest("#pvAdd");
   if(addb && me){
@@ -1194,7 +1237,7 @@ $("#pvBody").addEventListener("click", async e => {
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
         name:p.name, price:Number(opt ? opt.price : p.price)||0, currency:p.currency||"NT$", qty,
-        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"",
+        store:p.store||"", category:fixCat(p.category), color, refLink:p.refLink||"",
         note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
@@ -1331,7 +1374,7 @@ function openProdSheet(p){
   $("#p_price").value = (p && p.price != null) ? p.price : "";
   $("#p_priceTax").value = (p && p.priceTax != null) ? p.priceTax : "";
   $("#p_currency").value = (p && p.currency) || "JPY";
-  $("#p_cat").value = (p && p.category) || CATEGORIES[0];
+  $("#p_cat").value = (p && fixCat(p.category)) || CATEGORIES[0];
   $("#p_store").value = (p && p.store) || "";
   const _cols = (p && Array.isArray(p.colors)) ? p.colors : [];
   const _ops  = (p && Array.isArray(p.optPrices)) ? p.optPrices : [];
@@ -1391,7 +1434,7 @@ $("#p_submit").onclick = async () => {
     }
     editingId=null; prodSlots = new Array(PROD_SLOTS).fill(null);
     $("#prodMask").classList.remove("show");
-    loadProducts();
+    loadProducts(true);
   }catch(err){ msg.className="fmsg err"; msg.textContent=err.message; }
   btn.disabled=false;
   btn.innerHTML = isEdit ? '<i class="fa-solid fa-floppy-disk"></i> 儲存變更' : '<i class="fa-solid fa-cloud-arrow-up"></i> 上架';
