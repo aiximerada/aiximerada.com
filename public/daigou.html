@@ -273,7 +273,7 @@
 
   /* ===== 首頁 星海主視覺 ===== */
   .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 150px;overflow:hidden;
-    background:linear-gradient(180deg,#1a2456 0%,#1b2452 40%,#243063 56%,#33448a 68%,#5570b0 79%,#89a3d4 88%,#c1d5f2 94%,#e6f0fc 98%,#eaf4ff 100%)}
+    background:linear-gradient(180deg,#1a2456 0%,#1b2453 46%,#20295c 60%,#28336e 72%,#374a92 82%,#5e78b8 89%,#9db6e0 94%,#d3e4f7 98%,#eaf4ff 100%)}
   .hero .stars,.hero .stars2{position:absolute;inset:0}
   .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
   @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
@@ -288,7 +288,7 @@
   .hero .htitle .big{font-size:34px;font-weight:800;letter-spacing:2px;margin:6px 0 2px;font-family:"Georgia",serif}
   .hero .htitle .big i{font-size:24px;vertical-align:6px;margin-right:4px;color:#ffe08a}
   .hero .htitle .zh{font-size:14px;letter-spacing:6px;opacity:.9;font-weight:600}
-  .hero .fade{position:absolute;left:0;right:0;bottom:0;height:130px;background:linear-gradient(180deg,transparent 0%,rgba(234,244,255,.35) 45%,rgba(234,244,255,.8) 78%,#eaf4ff 100%);z-index:1}
+  .hero .fade{position:absolute;left:0;right:0;bottom:0;height:170px;background:linear-gradient(180deg,transparent 0%,rgba(234,244,255,.15) 30%,rgba(234,244,255,.45) 55%,rgba(234,244,255,.8) 80%,#eaf4ff 100%);z-index:1}
 
   /* 倒數 */
   .cd-wrap{text-align:center;margin:-6px 2px 20px}
@@ -619,18 +619,21 @@ async function boot(){
     catch(e){ $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.message||e); }
     return;
   }
-  if(_cachedMe && _cachedMe.hasRealName && !(IS_STANDALONE && !inLineApp())){ liff.login(); return; }
+  // 已記住登入者(含PWA):用 LIFF OAuth 登入,完成後跳回本頁(PWA),不走 LINE 內建瀏覽器
+  if(_cachedMe && _cachedMe.hasRealName){ liff.login({ redirectUri: location.href }); return; }
   if(IS_STANDALONE && !inLineApp()){
-    $("#openInLine").style.display = "inline-block";
-    $("#gateTip").innerHTML = "偵測到你用「加到主畫面(PWA)」開啟。<br>PWA 無法直接完成 LINE 登入，請點<b>「在 LINE App 中開啟」</b>。";
+    $("#gateTip").innerHTML = "點上方按鈕用 LINE 登入，完成後會自動回到這個 App。";
   }
 }
 $("#lineLogin").onclick = () => {
-  if(IS_STANDALONE && !inLineApp()){ location.href = LIFF_URL; return; }
-  if(!liff.isLoggedIn()){ $("#lineLogin").disabled = true; $("#lineLogin").innerHTML = '<i class="fa-solid fa-spinner spin"></i> 連線中…'; liff.login(); }
+  if(!liff.isLoggedIn()){
+    $("#lineLogin").disabled = true; $("#lineLogin").innerHTML = '<i class="fa-solid fa-spinner spin"></i> 連線中…';
+    // 登入完成後導回目前 PWA 網址(而非 LINE 內建瀏覽器)
+    liff.login({ redirectUri: location.href });
+  }
   else handleLoggedIn();
 };
-$("#openInLine").onclick = () => location.href = LIFF_URL;
+$("#openInLine").onclick = () => liff.login({ redirectUri: location.href });
 
 async function handleLoggedIn(){
   const p = await liff.getProfile();
