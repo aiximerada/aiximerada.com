@@ -112,17 +112,18 @@
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
   .pcard{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
-  .pcard .img{aspect-ratio:1/1;background:#dfeaf5 center/cover no-repeat;position:relative;overflow:hidden}
-  /* 多張照片:疊在一起用淡入淡出輪播 */
-  .pcard .img .sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity .45s ease}
-  .pcard .img .sl.on{opacity:1}
-  .pcard .img .nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:24px;height:40px;border:none;cursor:pointer;
+  .pcard .img{aspect-ratio:1/1}
+  /* 多張照片:疊在一起用淡入淡出輪播(商品卡與詳情頁共用) */
+  .slbox{position:relative;overflow:hidden;background:#dfeaf5 center/cover no-repeat}
+  .slbox .sl{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity .45s ease}
+  .slbox .sl.on{opacity:1}
+  .slbox .nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:24px;height:40px;border:none;cursor:pointer;
     background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:var(--blue-deep);font-size:16px;font-weight:800;line-height:1;padding:0}
-  .pcard .img .nav.pv{left:0;border-radius:0 9px 9px 0}
-  .pcard .img .nav.nx{right:0;border-radius:9px 0 0 9px}
-  .pcard .img .dots{position:absolute;z-index:2;left:0;right:0;bottom:7px;display:flex;justify-content:center;gap:4px}
-  .pcard .img .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:width .25s,background .25s}
-  .pcard .img .dot.on{width:13px;border-radius:3px;background:#fff}
+  .slbox .nav.pv{left:0;border-radius:0 9px 9px 0}
+  .slbox .nav.nx{right:0;border-radius:9px 0 0 9px}
+  .slbox .dots{position:absolute;z-index:2;left:0;right:0;bottom:7px;display:flex;justify-content:center;gap:4px}
+  .slbox .dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:width .25s,background .25s}
+  .slbox .dot.on{width:13px;border-radius:3px;background:#fff}
   #p_photos{grid-template-columns:repeat(4,1fr)}
   .pcard .img .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:34px}
   .pcard .img .cat{position:absolute;z-index:3;top:8px;left:8px;background:rgba(31,95,151,.82);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
@@ -133,33 +134,46 @@
   .pcard .meta{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
   .pcard .meta span{display:flex;align-items:center;gap:5px}
   .pcard .meta i{color:var(--sky);width:13px}
-  .pcard .eff{font-size:12px;color:#5b7089;background:var(--blue-lite);padding:5px 8px;border-radius:8px;line-height:1.5;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .pcard .colorsel{width:100%;font-size:12.5px;padding:7px 9px;border:1px solid var(--bd2);border-radius:9px;background:#fff;color:var(--txt);appearance:none;-webkit-appearance:none;cursor:pointer;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
-  .pcard .ops{display:flex;gap:7px;margin-top:auto;padding-top:4px}
-  /* 數量是按了「加入」之後才出現的,平常收起來 */
-  .pcard .qty,.pcard .okc,.pcard .cxq{display:none}
-  .pcard.picking .addc,.pcard.picking .ref{display:none}
-  .pcard.picking .qty{display:flex}
-  .pcard.picking .okc{display:flex}
-  .pcard.picking .cxq{display:block}
-  /* 窄卡片放不下一整排,選數量時排成兩列:上列數量+取消,下列確定 */
-  .pcard.picking .ops{flex-wrap:wrap}
-  .pcard .okc{flex:1 0 100%;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:11px;
-    padding:10px;font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer;align-items:center;justify-content:center;gap:6px;box-shadow:0 5px 14px rgba(47,128,196,.28)}
-  .pcard .cxq{width:38px;background:rgba(255,255,255,.85);border:1px solid var(--bd2);border-radius:11px;color:var(--muted);cursor:pointer;font-size:14px}
-  .pcard .qty{align-items:center;flex:1;justify-content:space-between;background:#fff;border:1px solid var(--bd2);border-radius:11px;overflow:hidden}
-  .pcard .qty button{width:27px;align-self:stretch;border:none;background:transparent;color:var(--blue);font-size:15px;font-weight:800;line-height:1;cursor:pointer;padding:0}
-  .pcard .qty button:active{background:var(--blue-lite)}
-  .pcard .qty .qv{min-width:20px;text-align:center;font-size:13.5px;font-weight:800;color:var(--txt)}
-  .pcard .addc{flex:1;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:11px;
-    padding:10px;font-size:13.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 5px 14px rgba(47,128,196,.28)}
-  .pcard .addc.done{background:var(--green)}
-  .pcard .ref{width:42px;background:rgba(255,255,255,.85);border:1px solid var(--bd2);border-radius:11px;color:var(--blue);cursor:pointer;font-size:14px}
-  .pcard .adm{display:flex;gap:6px;padding:0 12px 11px}
-  .pcard .adm button{flex:1;background:transparent;border:1px solid var(--bd2);border-radius:9px;padding:6px;font-size:12px;color:var(--muted);cursor:pointer}
-  .pcard .adm button.del{color:var(--danger);border-color:rgba(229,85,110,.3)}
+  .pcard{cursor:pointer}
+  .pcard .more{margin-top:auto;padding-top:2px;font-size:12px;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:4px}
+  .pcard .more i{font-size:10px}
+
+  /* 商品詳情 sheet:內容、選項、數量都收在這裡,列表才不會擠 */
+  #pvBody .pvimg{aspect-ratio:4/3;border-radius:14px;margin-top:4px}
+  #pvBody .pvimg .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:38px}
+  #pvBody .pvnm{font-size:17px;font-weight:800;line-height:1.45;color:var(--txt);margin-top:14px}
+  #pvBody .pvpr{font-size:25px;font-weight:800;color:var(--blue-deep);line-height:1.2;margin-top:8px}
+  #pvBody .pvpr .prtax{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-top:3px}
+  #pvBody .pvmeta{font-size:13px;color:var(--muted);margin-top:10px;display:flex;flex-direction:column;gap:5px}
+  #pvBody .pvmeta span{display:flex;align-items:center;gap:7px}
+  #pvBody .pvmeta i{color:var(--sky);width:14px}
+  #pvBody .pveff{font-size:13.5px;color:#4a5f77;background:var(--blue-lite);padding:12px 13px;border-radius:12px;line-height:1.75;margin-top:13px;white-space:pre-wrap}
+  #pvBody .pvlb{display:block;font-size:13px;color:var(--muted);font-weight:600;margin:15px 0 6px}
+  #pvBody .colorsel{width:100%;font-size:15px;padding:12px;border:1px solid var(--bd2);border-radius:12px;background:#fff;color:var(--txt);appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 13px center}
+  #pvBody .pvrow{display:flex;gap:9px;margin-top:16px}
+  #pvBody .qty{display:flex;align-items:center;flex:none;background:#fff;border:1px solid var(--bd2);border-radius:13px;overflow:hidden}
+  #pvBody .qty button{width:38px;align-self:stretch;border:none;background:transparent;color:var(--blue);font-size:18px;font-weight:800;line-height:1;cursor:pointer;padding:0}
+  #pvBody .qty button:active{background:var(--blue-lite)}
+  #pvBody .qty .qv{min-width:30px;text-align:center;font-size:16px;font-weight:800;color:var(--txt)}
+  #pvBody .pvadd{flex:1;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:13px;
+    padding:14px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 6px 16px rgba(47,128,196,.3)}
+  #pvBody .pvadd.done{background:var(--green)}
+  #pvBody .pvlink{width:100%;margin-top:10px;background:#fff;border:1px solid var(--bd2);border-radius:12px;padding:11px;font-size:13.5px;font-weight:700;color:var(--blue);cursor:pointer}
+  #pvBody .pvadm{display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--bd2);padding-top:14px}
+  #pvBody .pvadm button{flex:1;background:transparent;border:1px solid var(--bd2);border-radius:11px;padding:10px;font-size:13px;color:var(--muted);cursor:pointer}
+  #pvBody .pvadm button.del{color:var(--danger);border-color:rgba(229,85,110,.3)}
+
+  /* 好物推薦說明彈窗 */
+  #introMask{padding:22px;justify-content:center}
+  #introMask .ibox{width:100%;max-width:400px;background:#fff;border-radius:20px;padding:24px 20px 18px;text-align:center;box-shadow:0 20px 50px rgba(20,40,66,.28)}
+  #introMask .iic{font-size:34px;color:var(--sky);margin-bottom:12px}
+  #introMask h3{font-size:19px;font-weight:800;color:var(--blue-deep);margin-bottom:10px}
+  #introMask p{font-size:14px;color:#4a5f77;line-height:1.85}
+  #introMask p b{color:var(--blue-deep)}
+  #introMask .chk{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;font-size:13.5px;color:var(--muted);cursor:pointer}
+  #introMask .chk input{width:17px;height:17px;accent-color:var(--blue)}
+  #introMask .ok{width:100%;margin-top:14px;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:13px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
 
   .empty{text-align:center;color:var(--muted);padding:44px 24px;font-size:14px;line-height:1.8}
   .empty i{font-size:40px;color:#bcd3e8;display:block;margin-bottom:12px}
@@ -174,6 +188,14 @@
   .form input,.form textarea,.form select{width:100%;background:rgba(255,255,255,.82);border:1px solid var(--bd2);border-radius:12px;
     padding:13px;color:var(--txt);font-size:16px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
   .form textarea{min-height:74px;resize:vertical}
+  /* 選項逐行新增 + 小工具鈕 */
+  .addopt{width:100%;margin-top:8px;background:var(--blue-lite);border:1px dashed var(--bd2);border-radius:11px;padding:9px;
+    font-size:13px;font-weight:700;color:var(--blue-deep);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+  .optrow{display:flex;gap:7px;align-items:center;margin-top:7px}
+  .optrow .oi{flex:1}
+  .optrow .rm{width:40px;flex:none;background:#fff;border:1px solid var(--bd2);border-radius:12px;color:var(--danger);font-size:16px;cursor:pointer;padding:10px 0}
+  .hl{color:var(--danger);font-weight:800}
   .form select{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
   .form .row{display:flex;gap:11px}.form .row>div{flex:1}
   .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
@@ -585,15 +607,38 @@
       <select id="p_cat"></select>
       <label>購買地點（選填）</label>
       <input id="p_store" placeholder="例：松本清、Bic Camera">
-      <label>色號 / 款式（選填，多個用逗號分隔，讓客人挑選）</label>
-      <input id="p_colors" placeholder="例：01 象牙白, 02 自然色, 03 蜜色">
+      <label>色號 / 款式（選填，讓客人挑選）</label>
+      <div id="p_colorList"></div>
+      <button type="button" class="addopt" id="p_colorAdd"><i class="fa-solid fa-plus"></i> 新增一個選項</button>
+      <div class="hint">一行一個；貼上「A, B, C」會自動拆成多行</div>
       <label>功效 / 特色（選填）</label>
       <textarea id="p_effect" placeholder="例：SPF50+ 防曬、保濕不黏膩…"></textarea>
+      <button type="button" class="addopt" id="p_hl"><i class="fa-solid fa-highlighter"></i> 把選取的字標成紅色重點</button>
+      <div class="hint">用 **星號** 包住的字會變紅色粗體，例：**限定色**售完為止</div>
       <label>參考網址（選填）</label>
       <input id="p_ref" type="url" inputmode="url" placeholder="商品官網或參考連結…">
       <button class="btn-main" id="p_submit"><i class="fa-solid fa-cloud-arrow-up"></i> 上架</button>
       <div class="fmsg" id="p_msg"></div>
     </div>
+  </div>
+</div>
+
+<!-- 商品詳情 sheet(點商品卡才打開) -->
+<div class="mask" id="pvMask">
+  <div class="sheet">
+    <div class="sh-hd"><h2><i class="fa-solid fa-bag-shopping" style="color:var(--blue)"></i> 商品詳情</h2><button class="x" id="pvClose">&times;</button></div>
+    <div class="sh-body" id="pvBody"></div>
+  </div>
+</div>
+
+<!-- 好物推薦說明(每次打開顯示,可勾今天不再顯示) -->
+<div class="mask center" id="introMask">
+  <div class="ibox">
+    <div class="iic"><i class="fa-solid fa-fire"></i></div>
+    <h3>好物推薦</h3>
+    <p>這裡是<b>日本 SNS 熱門商品推薦</b>。<br>都是在日本社群上討論度高、台灣不好買的東西，點商品就能看詳細介紹、挑款式和數量，直接加入購物車給我代購。</p>
+    <label class="chk"><input type="checkbox" id="introHide"> 今天不再顯示</label>
+    <button class="ok" id="introOk">我知道了</button>
   </div>
 </div>
 
@@ -652,6 +697,19 @@ const approxPrice = (v, cur) => {
 
 // 商品照片:新版存 imgs 陣列,舊資料只有單張 img
 const productImgs = p => (p && Array.isArray(p.imgs) && p.imgs.length) ? p.imgs.filter(Boolean) : ((p && p.img) ? [p.img] : []);
+// 功效特色:**用星號包住的字** 顯示成紅色重點
+const effectHtml = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<span class="hl">$1</span>');
+// 照片區(商品卡與詳情頁共用)
+function sliderHtml(p, cls, extra){
+  const pics = productImgs(p);
+  if(!pics.length) return `<div class="${cls} slbox">${extra||""}<span class="noimg"><i class="fa-regular fa-image"></i></span></div>`;
+  return `<div class="${cls} slbox"${pics.length>1?' data-multi="1" data-idx="0"':''}>
+    ${pics.map((u,i)=>`<div class="sl${i?"":" on"}" style="background-image:url('${esc(u)}')"></div>`).join("")}
+    ${extra||""}
+    ${pics.length>1?`<button class="nav pv" data-nav="-1">‹</button><button class="nav nx" data-nav="1">›</button>
+      <div class="dots">${pics.map((_,i)=>`<i class="dot${i?"":" on"}"></i>`).join("")}</div>`:""}
+  </div>`;
+}
 
 const CATEGORIES = ["美妝保養","藥妝保健","零食甜點","生活雜貨","電器動漫","服飾配件","食品飲料","其他"];
 
@@ -718,7 +776,24 @@ function enterApp(){
   // 記住上次所在分頁,重整後回到原位(不強制回首頁)
   let lastTab=null; try{ lastTab=localStorage.getItem("daigou_tab"); }catch(e){}
   if(lastTab && lastTab!=="home" && $("#page-"+lastTab)) switchTab(lastTab);
+  setTimeout(maybeShowIntro, 400);
 }
+
+/* 好物推薦說明:每次打開都跳,勾了「今天不再顯示」當天就不跳 */
+function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
+function maybeShowIntro(){
+  let hide=null; try{ hide=localStorage.getItem("daigou_intro_hide"); }catch(e){}
+  if(hide === todayKey()) return;
+  $("#introHide").checked = false;
+  $("#introMask").classList.add("show");
+}
+$("#introOk").onclick = () => {
+  try{
+    if($("#introHide").checked) localStorage.setItem("daigou_intro_hide", todayKey());
+    else localStorage.removeItem("daigou_intro_hide");
+  }catch(e){}
+  $("#introMask").classList.remove("show");
+};
 
 /* ============== 個人資料 ============== */
 function renderProfile(){
@@ -893,36 +968,16 @@ function renderProducts(){
     g.innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-regular fa-face-smile"></i>${PRODUCTS.length? "這個類別還沒有好物～":"還沒有上架任何好物"}${isAdmin?"<br>點右下 <b>＋</b> 上架第一個商品":""}</div>`;
     return;
   }
+  // 卡片只放封面+名稱+價格,其他都收進詳情 sheet(手機版列表才不會亂)
   g.innerHTML = list.map(p => {
-    const pics = productImgs(p);
-    const cat = `<span class="cat">${esc(p.category||"其他")}</span>`;
-    const img = !pics.length
-      ? `<div class="img">${cat}<span class="noimg"><i class="fa-regular fa-image"></i></span></div>`
-      : `<div class="img"${pics.length>1?' data-multi="1" data-idx="0"':''}>
-          ${pics.map((u,i)=>`<div class="sl${i?"":" on"}" style="background-image:url('${esc(u)}')"></div>`).join("")}
-          ${cat}
-          ${pics.length>1?`<button class="nav pv" data-nav="-1">‹</button><button class="nav nx" data-nav="1">›</button>
-            <div class="dots">${pics.map((_,i)=>`<i class="dot${i?"":" on"}"></i>`).join("")}</div>`:""}
-        </div>`;
-    const meta = [];
-    if(p.store) meta.push(`<span><i class="fa-solid fa-store"></i>${esc(p.store)}</span>`);
-    return `<div class="pcard" data-id="${esc(p.id)}">
-      ${img}
+    const nCol = Array.isArray(p.colors) ? p.colors.length : 0;
+    return `<div class="pcard" data-open="${esc(p.id)}">
+      ${sliderHtml(p, "img", `<span class="cat">${esc(p.category||"其他")}</span>`)}
       <div class="b">
         <div class="nm">${esc(p.name||"未命名")}</div>
         <div class="pr">${esc(approxPrice(p.price,p.currency)||"價格洽詢")}${approxPrice(p.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(p.priceTax,p.currency))}</span>`:""}</div>
-        ${meta.length?`<div class="meta">${meta.join("")}</div>`:""}
-        ${p.effect?`<div class="eff">${esc(p.effect)}</div>`:""}
-        ${(Array.isArray(p.colors)&&p.colors.length)?`<select class="colorsel" data-color="${esc(p.id)}">${p.colors.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`:""}
-        <div class="ops">
-          <button class="addc" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> 加入</button>
-          <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
-          <button class="cxq" data-cancelq="1"><i class="fa-solid fa-xmark"></i></button>
-          <button class="okc" data-ok="${esc(p.id)}"><i class="fa-solid fa-check"></i> 確定加入</button>
-          ${p.refLink?`<button class="ref" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i></button>`:""}
-        </div>
+        <div class="more">${nCol?`${nCol} 款可選・`:""}看詳情 <i class="fa-solid fa-chevron-right"></i></div>
       </div>
-      ${isAdmin?`<div class="adm"><button data-edit="${esc(p.id)}"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="${esc(p.id)}"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
     </div>`;
   }).join("");
 }
@@ -938,78 +993,88 @@ function showSlide(box, i){
 }
 setInterval(()=>{
   const now = Date.now();
-  document.querySelectorAll("#shopGrid .img[data-multi]").forEach(box=>{
+  document.querySelectorAll(".slbox[data-multi]").forEach(box=>{
     if(Number(box.dataset.pause||0) > now) return;
     showSlide(box, Number(box.dataset.idx||0) + 1);
   });
 }, SLIDE_MS);
-
-// 結束選數量狀態,數量歸 1
-function endPick(card){
-  if(!card) return;
-  card.classList.remove("picking");
-  const qv = card.querySelector(".qv"); if(qv) qv.textContent = "1";
+// 手動切換:切完先暫停,讓客人看得完
+function slideNav(btn){
+  const box = btn.closest(".slbox"); if(!box) return;
+  showSlide(box, Number(box.dataset.idx||0) + Number(btn.dataset.nav));
+  box.dataset.pause = Date.now() + PAUSE_MS;
 }
-$("#shopGrid").addEventListener("click", async e => {
-  const addb = e.target.closest("[data-add]");
-  const okb = e.target.closest("[data-ok]");
-  const refb = e.target.closest("[data-ref]");
-  const delb = e.target.closest("[data-del]");
-  const stepb = e.target.closest("[data-step]");
-  const cxb = e.target.closest("[data-cancelq]");
-  const editb = e.target.closest("[data-edit]");
+$("#shopGrid").addEventListener("click", e => {
   const navb = e.target.closest("[data-nav]");
-  const card = e.target.closest(".pcard");
-  if(navb){
-    const box = navb.closest(".img");
-    showSlide(box, Number(box.dataset.idx||0) + Number(navb.dataset.nav));
-    box.dataset.pause = Date.now() + PAUSE_MS;
-    return;
-  }
-  if(editb){
-    const p = PRODUCTS.find(x=>x.id===editb.dataset.edit);
-    if(p) openProdSheet(p);
-    return;
-  }
+  if(navb){ slideNav(navb); return; }
+  const card = e.target.closest("[data-open]");
+  if(card) openProductView(card.dataset.open);
+});
+
+/* ====== 商品詳情 sheet ====== */
+let pvId = null;
+function openProductView(id){
+  const p = PRODUCTS.find(x=>x.id===id); if(!p) return;
+  pvId = id;
+  const meta = [];
+  if(p.store) meta.push(`<span><i class="fa-solid fa-store"></i>${esc(p.store)}</span>`);
+  meta.push(`<span><i class="fa-solid fa-tag"></i>${esc(p.category||"其他")}</span>`);
+  const cols = Array.isArray(p.colors) ? p.colors.filter(Boolean) : [];
+  $("#pvBody").innerHTML = `
+    ${sliderHtml(p, "pvimg")}
+    <div class="pvnm">${esc(p.name||"未命名")}</div>
+    <div class="pvpr">${esc(approxPrice(p.price,p.currency)||"價格洽詢")}${approxPrice(p.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(p.priceTax,p.currency))}</span>`:""}</div>
+    <div class="pvmeta">${meta.join("")}</div>
+    ${p.effect?`<div class="pveff">${effectHtml(p.effect)}</div>`:""}
+    ${cols.length?`<label class="pvlb">選擇色號 / 款式</label>
+      <select class="colorsel" id="pvColor">${cols.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`:""}
+    <label class="pvlb">數量</label>
+    <div class="pvrow">
+      <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
+      <button class="pvadd" id="pvAdd"><i class="fa-solid fa-cart-plus"></i> 加入購物車</button>
+    </div>
+    ${p.refLink?`<button class="pvlink" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i> 看商品原始頁面</button>`:""}
+    ${isAdmin?`<div class="pvadm"><button data-edit="1"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="1"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
+  `;
+  $("#pvMask").classList.add("show");
+}
+$("#pvClose").onclick = () => $("#pvMask").classList.remove("show");
+$("#pvBody").addEventListener("click", async e => {
+  const p = PRODUCTS.find(x=>x.id===pvId); if(!p) return;
+  const navb = e.target.closest("[data-nav]");
+  if(navb){ slideNav(navb); return; }
+  const stepb = e.target.closest("[data-step]");
   if(stepb){
-    const qv = stepb.parentElement.querySelector(".qv");
+    const qv = $("#pvBody .qv");
     qv.textContent = Math.min(99, Math.max(1, (parseInt(qv.textContent,10)||1) + Number(stepb.dataset.step)));
     return;
   }
-  if(cxb){ endPick(card); return; }
+  const refb = e.target.closest("[data-ref]");
   if(refb){ window.open(refb.dataset.ref, "_blank"); return; }
-  if(delb){
+  if(e.target.closest("[data-edit]")){ $("#pvMask").classList.remove("show"); openProdSheet(p); return; }
+  if(e.target.closest("[data-del]")){
     if(!confirm("確定下架這個商品?")) return;
-    await deleteDoc(doc(db,"daigouProducts",delb.dataset.del)); loadProducts(); return;
+    await deleteDoc(doc(db,"daigouProducts",p.id));
+    $("#pvMask").classList.remove("show"); loadProducts(); return;
   }
+  const addb = e.target.closest("#pvAdd");
   if(addb && me){
-    // 按「加入」先展開數量,選好再按「確定」
-    $("#shopGrid").querySelectorAll(".pcard.picking").forEach(c => { if(c!==card) endPick(c); });
-    card.classList.add("picking");
-    return;
-  }
-  if(okb && me){
-    const p = PRODUCTS.find(x=>x.id===okb.dataset.ok); if(!p) return;
-    const sel = card.querySelector(".colorsel");
-    const color = sel ? sel.value : "";
-    const qvEl = card.querySelector(".qv");
-    const qty = Math.min(99, Math.max(1, parseInt(qvEl?.textContent,10) || 1));
-    const addc = card.querySelector(".addc");
-    okb.disabled = true;
+    const sel = $("#pvColor");
+    const qty = Math.min(99, Math.max(1, parseInt($("#pvBody .qv").textContent,10) || 1));
+    addb.disabled = true;
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
         name:p.name, price:Number(p.price)||0, currency:p.currency||"NT$", qty,
-        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"", note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
+        store:p.store||"", category:p.category||"", color:sel?sel.value:"", refLink:p.refLink||"",
+        note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
       });
-      endPick(card);
-      okb.disabled = false;
-      addc.classList.add("done"); addc.innerHTML = `<i class="fa-solid fa-check"></i> 已加入 ${qty}`;
+      addb.classList.add("done"); addb.innerHTML = `<i class="fa-solid fa-check"></i> 已加入 ${qty} 件`;
       loadCart();
-      setTimeout(()=>{ addc.classList.remove("done"); addc.innerHTML='<i class="fa-solid fa-cart-plus"></i> 加入'; }, 1400);
-    }catch(err){ okb.disabled=false; alert("加入失敗:"+err.message); }
+      setTimeout(()=>{ $("#pvMask").classList.remove("show"); }, 800);
+    }catch(err){ addb.disabled=false; alert("加入失敗:"+err.message); }
   }
 });
 
@@ -1029,6 +1094,36 @@ function setProdSlot(i, file){
   prodSlots[i] = { file, preview: URL.createObjectURL(file) };
   renderProdSlots();
 }
+// 色號/款式:一行一個,方便逐筆新增
+let prodColors = [];
+function renderColorList(focusLast){
+  const box = $("#p_colorList");
+  box.innerHTML = prodColors.map((c,i)=>
+    `<div class="optrow"><input class="oi" data-ci="${i}" value="${esc(c)}" placeholder="例：01 象牙白"><button type="button" class="rm" data-cdel="${i}">&times;</button></div>`
+  ).join("");
+  if(focusLast){ const ins = box.querySelectorAll(".oi"); if(ins.length) ins[ins.length-1].focus(); }
+}
+$("#p_colorAdd").onclick = () => { prodColors.push(""); renderColorList(true); };
+$("#p_colorList").addEventListener("click", e => {
+  const d = e.target.closest("[data-cdel]"); if(!d) return;
+  prodColors.splice(+d.dataset.cdel, 1); renderColorList();
+});
+$("#p_colorList").addEventListener("input", e => {
+  const inp = e.target.closest("[data-ci]"); if(!inp) return;
+  const i = +inp.dataset.ci;
+  if(/[,，]/.test(inp.value)){   // 整串貼進來就自動拆行
+    const parts = inp.value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    prodColors.splice(i, 1, ...parts); renderColorList(); return;
+  }
+  prodColors[i] = inp.value;
+});
+// 把選取的字用 ** 包起來 → 前台顯示紅色重點
+$("#p_hl").onclick = () => {
+  const ta = $("#p_effect"), s = ta.selectionStart, t = ta.selectionEnd;
+  if(s === t){ const m=$("#p_msg"); m.className="fmsg err"; m.textContent="先把要標紅的字選取起來,再按這個鈕"; return; }
+  ta.value = ta.value.slice(0,s) + "**" + ta.value.slice(s,t) + "**" + ta.value.slice(t);
+  ta.focus(); ta.setSelectionRange(s, t+4);
+};
 $("#p_photos").addEventListener("click", e => {
   const ph = e.target.closest(".ph"); if(!ph) return;
   const i = +ph.dataset.pi;
@@ -1053,7 +1148,8 @@ function openProdSheet(p){
   $("#p_currency").value = (p && p.currency) || "JPY";
   $("#p_cat").value = (p && p.category) || CATEGORIES[0];
   $("#p_store").value = (p && p.store) || "";
-  $("#p_colors").value = (p && Array.isArray(p.colors)) ? p.colors.join(", ") : "";
+  prodColors = (p && Array.isArray(p.colors)) ? p.colors.slice() : [];
+  renderColorList();
   $("#p_effect").value = (p && p.effect) || "";
   $("#p_ref").value = (p && p.refLink) || "";
   $("#prodSheetTitle").textContent = p ? "編輯好物" : "上架好物";
@@ -1092,7 +1188,7 @@ $("#p_submit").onclick = async () => {
       await uploadBytes(r, s.file); imgs.push(await getDownloadURL(r));
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
-    const colors = $("#p_colors").value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const colors = prodColors.map(s=>s.trim()).filter(Boolean);
     const data = {
       name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
       store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
@@ -1403,7 +1499,7 @@ async function cancelOrder(orderId, btn){
 }
 
 /* 點遮罩關閉 sheet */
-["cartMask","prodMask","submitMask","cdMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
+["cartMask","prodMask","submitMask","cdMask","pvMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
 
 /* ============== 啟動 ============== */
 const _cachedMe = readCachedMe();
