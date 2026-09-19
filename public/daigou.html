@@ -1129,13 +1129,12 @@ function appendProducts(n){
   const slice = shopList.slice(shopShown, shopShown + n);
   const sen = $("#shopMore");
   if(slice.length){
-    // 插入新卡片時瀏覽器的 scroll anchoring 會把畫面往下推,先記住位置補回來
-    const keep = window.scrollY;
+    // 不要在這裡改捲動位置:手機上會打斷慣性捲動,反而變成捲不動、載不完。
+    // 畫面被推走的問題交給 CSS 的 overflow-anchor:none 處理。
     const html = slice.map(cardHtml).join("");
     if(sen) sen.insertAdjacentHTML("beforebegin", html);
     else g.insertAdjacentHTML("beforeend", html);
     shopShown += slice.length;
-    if(window.scrollY !== keep) window.scrollTo(0, keep);
   }
   if(shopShown >= shopList.length && sen){   // 全部畫完就把觸發器收掉
     if(shopIO) shopIO.unobserve(sen);
@@ -1162,6 +1161,18 @@ function renderProducts(){
   if(sen && shopIO) shopIO.observe(sen);
   else if(sen && !shopIO) appendProducts(shopList.length);   // 舊瀏覽器沒有 IO 就一次畫完
 }
+// 保險:萬一 IntersectionObserver 沒觸發(某些瀏覽器/情境會漏),捲到接近底部也補
+let moreTick = false;
+window.addEventListener("scroll", () => {
+  if(moreTick || shopShown === 0 || shopShown >= shopList.length) return;
+  moreTick = true;
+  requestAnimationFrame(() => {
+    moreTick = false;
+    const sen = $("#shopMore");
+    if(!sen) return;
+    if(sen.getBoundingClientRect().top - window.innerHeight < 600) appendProducts(NEXT_BATCH);
+  });
+}, { passive:true });
 /* 好物照片輪播:每 2 秒自動換一張;手動切換後先暫停 10 秒再繼續 */
 const SLIDE_MS = 3000, PAUSE_MS = 10000;
 function showSlide(box, i){
