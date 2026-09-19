@@ -1710,7 +1710,8 @@ async function loadOrders(){
       : await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
     qi.forEach(d=>{ const it={id:d.id,...d.data()}; (ITEMS[it.orderId]=ITEMS[it.orderId]||[]).push(it); });
     const archSec = CFG.archivedBefore && CFG.archivedBefore.seconds;
-    ORDERS = archSec ? oList.filter(o=>secOf(o.createdAt) >= archSec) : oList;
+    if(archSec) oList = oList.filter(o=>secOf(o.createdAt) >= archSec);
+    ORDERS = oList.filter(o => o.deleted !== true);   // 按過刪除的取消訂單不再顯示(資料還在,只是隱藏)
   }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
   if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
   if(all){ renderGroupedOrders(); }
@@ -1819,6 +1820,7 @@ function orderCard(o, items, showBuyer){
     ${itemsHtml}
     ${payHtml}
     ${canEdit?`<button class="btn-line red" data-cancelorder="${esc(o.id)}"><i class="fa-solid fa-ban"></i> 取消整筆訂單</button>`:""}
+    ${cancelled?`<button class="btn-line red" data-delorder="${esc(o.id)}"><i class="fa-solid fa-trash"></i> 刪除這筆(不再顯示)</button>`:""}
   </div>`;
 }
 function bindOrderEvents(){
@@ -1828,6 +1830,19 @@ function bindOrderEvents(){
   box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeItem(b.dataset.rm,b));
   box.querySelectorAll("[data-cancelorder]").forEach(b=>b.onclick=()=>cancelOrder(b.dataset.cancelorder,b));
   box.querySelectorAll("[data-bought]").forEach(b=>b.onclick=()=>setBought(b));
+  box.querySelectorAll("[data-delorder]").forEach(b=>b.onclick=()=>deleteOrder(b.dataset.delorder,b));
+}
+// 刪除已取消的訂單:只標記隱藏,資料留著(萬一誤刪還救得回來)
+async function deleteOrder(orderId, btn){
+  if(!confirm("確定刪除這筆已取消的訂單?\n刪除後就不會再出現在清單裡。")) return;
+  btn.disabled=true; const old=btn.innerHTML;
+  btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 刪除中…';
+  try{
+    await updateDoc(doc(db,"orders",orderId), { deleted:true, updatedAt:serverTimestamp() });
+    await loadOrders();
+  }catch(err){
+    alert("刪除失敗:"+err.message); btn.disabled=false; btn.innerHTML=old;
+  }
 }
 // 標記單件商品買到了沒(只有管理員看得到這排按鈕)
 async function setBought(btn){

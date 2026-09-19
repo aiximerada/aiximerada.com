@@ -186,6 +186,7 @@ async function loadAll(){
   const arch = cfgSnap.exists() && cfgSnap.data().archivedBefore;
   const archMs = arch ? toMs(arch) : 0;
   if(archMs) oList = oList.filter(o=>toMs(o.createdAt) >= archMs);
+  oList = oList.filter(o=>o.deleted !== true);   // 在 App 按過刪除的取消訂單,後台也不顯示
   oList.forEach(o=>{ o._items=itemsByOrder[o.id]||[]; });
   oList.sort((a,b)=>toMs(b.createdAt)-toMs(a.createdAt));
   orders=oList;
