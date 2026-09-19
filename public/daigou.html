@@ -1023,18 +1023,52 @@ $("#shopCats").addEventListener("click", e => {
   $$("#shopCats .chip").forEach(x => x.classList.toggle("on", x===c));
   renderProducts();
 });
+/* 好物清單快取:先用上次存的畫出來(秒開、不會閃「還沒上架」),
+   再到後台撈一次;內容真的有變才重畫,沒變就不動。 */
+const PCACHE = "daigou_products_v1";
+function readProdCache(){
+  try{
+    const o = JSON.parse(localStorage.getItem(PCACHE) || "null");
+    return (o && Array.isArray(o.items)) ? o.items : null;
+  }catch(e){ return null; }
+}
+function writeProdCache(items){
+  try{ localStorage.setItem(PCACHE, JSON.stringify({ ts:Date.now(), items })); }catch(e){}
+}
+// 只比對畫面上會用到的欄位,時間戳不算(避免每次都判定成有變)
+function prodSig(list){
+  return JSON.stringify(list.map(p => [
+    p.id, p.name, p.price, p.priceTax, p.currency, p.category, p.store,
+    p.effect, p.refLink, p.img, (p.imgs||[]).join("|"),
+    (p.colors||[]).join("|"), (p.optPrices||[]).join("|")
+  ]));
+}
 async function loadProducts(){
-  $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
-  PRODUCTS = [];
+  const cached = readProdCache();
+  if(cached && cached.length){
+    PRODUCTS = cached;
+    renderProducts(); renderCarousel();
+  }else{
+    $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+  }
   try{
     let qs;
     try{ qs = await getDocs(query(collection(db,"daigouProducts"), orderBy("createdAt","desc"))); }
     catch(e){ qs = await getDocs(collection(db,"daigouProducts")); }
-    qs.forEach(d => PRODUCTS.push({ id:d.id, ...d.data() }));
-    PRODUCTS.sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0));
-  }catch(e){}
-  renderProducts();
-  renderCarousel();
+    const fresh = [];
+    qs.forEach(d => fresh.push({ id:d.id, ...d.data() }));
+    fresh.sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0));
+    writeProdCache(fresh);
+    if(prodSig(fresh) !== prodSig(PRODUCTS)){   // 有變才重畫
+      PRODUCTS = fresh;
+      renderProducts(); renderCarousel();
+    }
+  }catch(e){
+    // 撈失敗但有快取就繼續用快取,不要把畫面清空
+    if(!PRODUCTS.length){
+      $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-triangle-exclamation"></i>載入失敗,請確認網路後重新整理</div>`;
+    }
+  }
 }
 function renderProducts(){
   const list = curCat==="全部" ? PRODUCTS : PRODUCTS.filter(p => (p.category||"其他")===curCat);
