@@ -161,6 +161,9 @@
   #pvBody .pvlb{display:block;font-size:13px;color:var(--muted);font-weight:600;margin:15px 0 6px}
   #pvBody .colorsel{width:100%;font-size:15px;padding:12px;border:1px solid var(--bd2);border-radius:12px;background:#fff;color:var(--txt);appearance:none;-webkit-appearance:none;cursor:pointer;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 13px center}
+  #pvBody .altwarn{margin-top:10px;background:rgba(229,85,110,.07);border:1px solid rgba(229,85,110,.22);border-radius:11px;
+    padding:9px 11px;font-size:12.5px;color:var(--danger);line-height:1.7}
+  #pvBody .altwarn i{margin-right:5px}
   #pvBody .pvrow{display:flex;gap:9px;margin-top:16px}
   #pvBody .qty{display:flex;align-items:center;flex:none;background:#fff;border:1px solid var(--bd2);border-radius:13px;overflow:hidden}
   #pvBody .qty button{width:38px;align-self:stretch;border:none;background:transparent;color:var(--blue);font-size:18px;font-weight:800;line-height:1;cursor:pointer;padding:0}
@@ -1178,7 +1181,13 @@ function openProductView(id){
       <select class="colorsel" id="pvColor">${cols.map((c,i)=>{
         const o = optionPrice(p, i);
         return `<option value="${i}">${esc(c)}${o?`　${esc(approxPrice(o.priceTax,p.currency))}`:""}</option>`;
-      }).join("")}</select>`:""}
+      }).join("")}</select>
+      <label class="pvlb">備選款式（選填，第一順位缺貨時改買這個）</label>
+      <select class="colorsel" id="pvColorAlt">
+        <option value="">不用備選（缺貨就不買）</option>
+        ${cols.map((c,i)=>`<option value="${i}">${esc(c)}</option>`).join("")}
+      </select>
+      <div class="altwarn"><i class="fa-solid fa-circle-exclamation"></i> 日本現場常缺貨，<b>建議選一個備選款式</b>；第一順位買不到時就直接幫你帶備選的，不用再問一次。</div>`:""}
     <label class="pvlb">數量</label>
     <div class="pvrow">
       <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
@@ -1231,13 +1240,15 @@ $("#pvBody").addEventListener("click", async e => {
     const idx = sel ? (Number(sel.value)||0) : -1;
     const opt = idx >= 0 ? optionPrice(p, idx) : null;
     const color = idx >= 0 ? ((p.colors||[])[idx] || "") : "";
+    const altSel = $("#pvColorAlt");
+    const colorAlt = (altSel && altSel.value !== "") ? ((p.colors||[])[Number(altSel.value)] || "") : "";
     const qty = Math.min(99, Math.max(1, parseInt($("#pvBody .qv").textContent,10) || 1));
     addb.disabled = true;
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
         name:p.name, price:Number(opt ? opt.price : p.price)||0, currency:p.currency||"NT$", qty,
-        store:p.store||"", category:fixCat(p.category), color, refLink:p.refLink||"",
+        store:p.store||"", category:fixCat(p.category), color, colorAlt, refLink:p.refLink||"",
         note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
@@ -1510,7 +1521,7 @@ function renderCart(){
       <div style="flex:1;min-width:0">
         <div class="nm">${esc(x.name||"未命名")}</div>
         <div class="pr">${esc(x.currency||"NT$")} ${esc(x.price??"—")} <span style="color:var(--muted);font-weight:400;font-size:12px">× ${esc(x.qty||1)}</span></div>
-        ${x.color?`<div class="st"><i class="fa-solid fa-palette"></i> ${esc(x.color)}</div>`:""}
+        ${x.color?`<div class="st"><i class="fa-solid fa-palette"></i> ${esc(x.color)}${x.colorAlt?`　<span style="color:var(--muted)">備選:${esc(x.colorAlt)}</span>`:""}</div>`:""}
         ${x.store?`<div class="st"><i class="fa-solid fa-store"></i> ${esc(x.store)}</div>`:""}
       </div>
       <button class="del" data-del="${esc(x.id)}"><i class="fa-solid fa-trash"></i></button>
@@ -1645,7 +1656,7 @@ function orderCard(o, items, showBuyer){
     const photo=(Array.isArray(it.photos)&&it.photos[0])||"";
     const meta=[];
     if(it.price!=null&&it.price!=="") meta.push(`<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>`);
-    if(it.color) meta.push(`<span><i class="fa-solid fa-palette" style="opacity:.6"></i> ${esc(it.color)}</span>`);
+    if(it.color) meta.push(`<span><i class="fa-solid fa-palette" style="opacity:.6"></i> ${esc(it.color)}${it.colorAlt?`（備選:${esc(it.colorAlt)}）`:""}</span>`);
     if(it.store) meta.push(`<span><i class="fa-solid fa-store" style="opacity:.6"></i> ${esc(it.store)}</span>`);
     return `<div class="oitem${ic?" cancelled":""}">
       <div class="th" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>

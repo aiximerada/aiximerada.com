@@ -231,6 +231,7 @@ function orderCard(o){
       ? `<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>` : "";
     const meta=[];
     meta.push(`數量 <b>${esc(it.qty!=null?it.qty:1)}</b>${priceStr?` ・ 預估單價 ${priceStr}`:""}`);
+    if(it.color) meta.push(`款式 <b>${esc(it.color)}</b>${it.colorAlt?` ・ 備選 <b style="color:var(--blue)">${esc(it.colorAlt)}</b>`:""}`);
     if(it.store) meta.push(`店家 <b>${esc(it.store)}</b>`);
     if(it.refLink) meta.push(`<a href="${esc(it.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> 參考連結</a>`);
     if(it.note) meta.push(`<span class="inote">備註：${esc(it.note)}</span>`);
@@ -416,6 +417,8 @@ function exportExcel(){
         "買家本名": o.ownerRealName||"",
         "LINE暱稱": o.ownerDisplayName||"",
         "商品": it.name||"",
+        "款式": it.color||"",
+        "備選款式": it.colorAlt||"",
         "數量": it.qty!=null?it.qty:1,
         "預估單價": (it.price!=null&&it.price!=="")?num(it.price):"",
         "幣別": it.currency||"",
