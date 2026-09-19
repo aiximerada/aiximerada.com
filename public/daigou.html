@@ -619,10 +619,9 @@ async function boot(){
     catch(e){ $("#gateTip").innerHTML = "⚠️ 登入後載入失敗<br>" + (e.message||e); }
     return;
   }
-  // 已記住登入者(含PWA):用 LIFF OAuth 登入,完成後跳回本頁(PWA),不走 LINE 內建瀏覽器
-  if(_cachedMe && _cachedMe.hasRealName){ liff.login({ redirectUri: location.href }); return; }
+  // 未登入且無快取:顯示登入按鈕(不自動跳轉)。登入一次後會存快取,之後直接進入。
   if(IS_STANDALONE && !inLineApp()){
-    $("#gateTip").innerHTML = "點上方按鈕用 LINE 登入，完成後會自動回到這個 App。";
+    $("#gateTip").innerHTML = "點上方按鈕用 LINE 登入，登入一次後就會記住，之後開啟直接進入。";
   }
 }
 $("#lineLogin").onclick = () => {
