@@ -197,7 +197,8 @@
     font-size:13px;font-weight:700;color:var(--blue-deep);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
   .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.5}
   .optrow{display:flex;gap:7px;align-items:center;margin-top:7px}
-  .optrow .oi{flex:1}
+  .optrow .oi{flex:1;min-width:0}
+  .optrow .op{width:88px;flex:none}
   .optrow .rm{width:40px;flex:none;background:#fff;border:1px solid var(--bd2);border-radius:12px;color:var(--danger);font-size:16px;cursor:pointer;padding:10px 0}
   .hl{color:var(--danger);font-weight:800}
   .form select{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
@@ -614,7 +615,7 @@
       <label>色號 / 款式（選填，讓客人挑選）</label>
       <div id="p_colorList"></div>
       <button type="button" class="addopt" id="p_colorAdd"><i class="fa-solid fa-plus"></i> 新增一個選項</button>
-      <div class="hint">一行一個；貼上「A, B, C」會自動拆成多行</div>
+      <div class="hint">一行一個；貼上「A, B, C」會自動拆成多行。<b>右邊的含稅價選填</b>——有填的話，客人選到這個款式時價格就會換成它；留空就用上面的商品價格。</div>
       <label>功效 / 特色（選填）</label>
       <textarea id="p_effect" placeholder="例：SPF50+ 防曬、保濕不黏膩…"></textarea>
       <button type="button" class="addopt" id="p_hl"><i class="fa-solid fa-highlighter"></i> 把選取的字標成紅色重點</button>
@@ -700,6 +701,23 @@ const approxPrice = (v, cur) => {
   return n==null ? null : `約 ${cur||"NT$"} ${n.toLocaleString("en-US")}`;
 };
 
+// 款式各自的價格:optPrices[i] 是該款式的含稅價,0/未設就用商品主價格
+// 免稅價按主商品的稅率比例換算,這樣不同稅率的商品都對
+function optionPrice(p, idx){
+  const arr = (p && Array.isArray(p.optPrices)) ? p.optPrices : [];
+  const t = Number(arr[idx]);
+  if(!t) return null;
+  const ratio = (p.price && p.priceTax) ? (p.price / p.priceTax) : (1/1.1);
+  return { priceTax: t, price: Math.round(t * ratio) };
+}
+// 列表上顯示最低價,款式價格不只一種就加「起」
+function listPrice(p){
+  const arr = ((p && Array.isArray(p.optPrices)) ? p.optPrices : []).map(Number).filter(n=>n>0);
+  if(!arr.length) return { price:p.price, priceTax:p.priceTax, from:false };
+  const minTax = Math.min(...arr);
+  const ratio = (p.price && p.priceTax) ? (p.price / p.priceTax) : (1/1.1);
+  return { price: Math.round(minTax*ratio), priceTax: minTax, from: new Set(arr).size > 1 };
+}
 // 商品照片:新版存 imgs 陣列,舊資料只有單張 img
 const productImgs = p => (p && Array.isArray(p.imgs) && p.imgs.length) ? p.imgs.filter(Boolean) : ((p && p.img) ? [p.img] : []);
 // 功效特色:**用星號包住的字** 顯示成紅色重點
@@ -976,11 +994,12 @@ function renderProducts(){
   // 卡片只放封面+名稱+價格,其他都收進詳情 sheet(手機版列表才不會亂)
   g.innerHTML = list.map(p => {
     const nCol = Array.isArray(p.colors) ? p.colors.length : 0;
+    const lp = listPrice(p);
     return `<div class="pcard" data-open="${esc(p.id)}">
       ${sliderHtml(p, "img", `<span class="cat">${esc(p.category||"其他")}</span>`)}
       <div class="b">
         <div class="nm">${esc(p.name||"未命名")}</div>
-        <div class="pr">${esc(approxPrice(p.price,p.currency)||"價格洽詢")}${approxPrice(p.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(p.priceTax,p.currency))}</span>`:""}</div>
+        <div class="pr">${esc(approxPrice(lp.price,p.currency)||"價格洽詢")}${lp.from?" 起":""}${approxPrice(lp.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(lp.priceTax,p.currency))}${lp.from?" 起":""}</span>`:""}</div>
         <div class="more">${nCol?`${nCol} 款可選・`:""}看詳情 <i class="fa-solid fa-chevron-right"></i></div>
       </div>
     </div>`;
@@ -1018,6 +1037,14 @@ $("#shopGrid").addEventListener("click", e => {
 
 /* ====== 商品詳情 sheet ====== */
 let pvId = null;
+// 價格區塊:選到有自己價格的款式就顯示該款式的價格
+function pvPriceHtml(p, idx){
+  const o = optionPrice(p, idx);
+  const price    = o ? o.price    : p.price;
+  const priceTax = o ? o.priceTax : p.priceTax;
+  return `${esc(approxPrice(price, p.currency)||"價格洽詢")}`
+       + `${approxPrice(priceTax, p.currency)?`<span class="prtax">含稅${esc(approxPrice(priceTax, p.currency))}</span>`:""}`;
+}
 function openProductView(id){
   const p = PRODUCTS.find(x=>x.id===id); if(!p) return;
   pvId = id;
@@ -1028,11 +1055,14 @@ function openProductView(id){
   $("#pvBody").innerHTML = `
     ${sliderHtml(p, "pvimg")}
     <div class="pvnm">${esc(p.name||"未命名")}</div>
-    <div class="pvpr">${esc(approxPrice(p.price,p.currency)||"價格洽詢")}${approxPrice(p.priceTax,p.currency)?`<span class="prtax">含稅${esc(approxPrice(p.priceTax,p.currency))}</span>`:""}</div>
+    <div class="pvpr" id="pvPrice">${pvPriceHtml(p, 0)}</div>
     <div class="pvmeta">${meta.join("")}</div>
     ${p.effect?`<div class="pveff">${effectHtml(p.effect)}</div>`:""}
     ${cols.length?`<label class="pvlb">選擇色號 / 款式</label>
-      <select class="colorsel" id="pvColor">${cols.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`:""}
+      <select class="colorsel" id="pvColor">${cols.map((c,i)=>{
+        const o = optionPrice(p, i);
+        return `<option value="${i}">${esc(c)}${o?`　${esc(approxPrice(o.priceTax,p.currency))}`:""}</option>`;
+      }).join("")}</select>`:""}
     <label class="pvlb">數量</label>
     <div class="pvrow">
       <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
@@ -1041,6 +1071,8 @@ function openProductView(id){
     ${p.refLink?`<button class="pvlink" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i> 看商品原始頁面</button>`:""}
     ${isAdmin?`<div class="pvadm"><button data-edit="1"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="1"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
   `;
+  const sel = $("#pvColor");
+  if(sel) sel.onchange = () => { $("#pvPrice").innerHTML = pvPriceHtml(p, Number(sel.value)||0); };
   $("#pvMask").classList.add("show");
 }
 $("#pvClose").onclick = () => $("#pvMask").classList.remove("show");
@@ -1065,13 +1097,16 @@ $("#pvBody").addEventListener("click", async e => {
   const addb = e.target.closest("#pvAdd");
   if(addb && me){
     const sel = $("#pvColor");
+    const idx = sel ? (Number(sel.value)||0) : -1;
+    const opt = idx >= 0 ? optionPrice(p, idx) : null;
+    const color = idx >= 0 ? ((p.colors||[])[idx] || "") : "";
     const qty = Math.min(99, Math.max(1, parseInt($("#pvBody .qv").textContent,10) || 1));
     addb.disabled = true;
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
-        name:p.name, price:Number(p.price)||0, currency:p.currency||"NT$", qty,
-        store:p.store||"", category:p.category||"", color:sel?sel.value:"", refLink:p.refLink||"",
+        name:p.name, price:Number(opt ? opt.price : p.price)||0, currency:p.currency||"NT$", qty,
+        store:p.store||"", category:p.category||"", color, refLink:p.refLink||"",
         note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
@@ -1099,28 +1134,35 @@ function setProdSlot(i, file){
   prodSlots[i] = { file, preview: URL.createObjectURL(file) };
   renderProdSlots();
 }
-// 色號/款式:一行一個,方便逐筆新增
-let prodColors = [];
+// 色號/款式:一行一個,每個可各自帶含稅價(留空=用商品主價格)
+let prodColors = [];   // [{name, priceTax}]
 function renderColorList(focusLast){
   const box = $("#p_colorList");
   box.innerHTML = prodColors.map((c,i)=>
-    `<div class="optrow"><input class="oi" data-ci="${i}" value="${esc(c)}" placeholder="例：01 象牙白"><button type="button" class="rm" data-cdel="${i}">&times;</button></div>`
+    `<div class="optrow">
+      <input class="oi" data-ci="${i}" value="${esc(c.name)}" placeholder="例：01 象牙白">
+      <input class="op" data-cp="${i}" type="number" inputmode="decimal" value="${esc(c.priceTax)}" placeholder="含稅價">
+      <button type="button" class="rm" data-cdel="${i}">&times;</button>
+    </div>`
   ).join("");
   if(focusLast){ const ins = box.querySelectorAll(".oi"); if(ins.length) ins[ins.length-1].focus(); }
 }
-$("#p_colorAdd").onclick = () => { prodColors.push(""); renderColorList(true); };
+$("#p_colorAdd").onclick = () => { prodColors.push({name:"", priceTax:""}); renderColorList(true); };
 $("#p_colorList").addEventListener("click", e => {
   const d = e.target.closest("[data-cdel]"); if(!d) return;
   prodColors.splice(+d.dataset.cdel, 1); renderColorList();
 });
 $("#p_colorList").addEventListener("input", e => {
+  const pr = e.target.closest("[data-cp]");
+  if(pr){ prodColors[+pr.dataset.cp].priceTax = pr.value; return; }
   const inp = e.target.closest("[data-ci]"); if(!inp) return;
   const i = +inp.dataset.ci;
   if(/[,，]/.test(inp.value)){   // 整串貼進來就自動拆行
-    const parts = inp.value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+    const parts = inp.value.split(/[,，]/).map(s=>s.trim()).filter(Boolean)
+                    .map(s=>({name:s, priceTax:""}));
     prodColors.splice(i, 1, ...parts); renderColorList(); return;
   }
-  prodColors[i] = inp.value;
+  prodColors[i].name = inp.value;
 });
 // 把選取的字用 ** 包起來 → 前台顯示紅色重點
 $("#p_hl").onclick = () => {
@@ -1153,7 +1195,9 @@ function openProdSheet(p){
   $("#p_currency").value = (p && p.currency) || "JPY";
   $("#p_cat").value = (p && p.category) || CATEGORIES[0];
   $("#p_store").value = (p && p.store) || "";
-  prodColors = (p && Array.isArray(p.colors)) ? p.colors.slice() : [];
+  const _cols = (p && Array.isArray(p.colors)) ? p.colors : [];
+  const _ops  = (p && Array.isArray(p.optPrices)) ? p.optPrices : [];
+  prodColors = _cols.map((c,i)=>({ name:c, priceTax: _ops[i] ? String(_ops[i]) : "" }));
   renderColorList();
   $("#p_effect").value = (p && p.effect) || "";
   $("#p_ref").value = (p && p.refLink) || "";
@@ -1193,10 +1237,13 @@ $("#p_submit").onclick = async () => {
       await uploadBytes(r, s.file); imgs.push(await getDownloadURL(r));
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
-    const colors = prodColors.map(s=>s.trim()).filter(Boolean);
+    const opts = prodColors.map(o=>({ name:(o.name||"").trim(), priceTax:Number(o.priceTax)||0 }))
+                           .filter(o=>o.name);
+    const colors = opts.map(o=>o.name);
+    const optPrices = opts.map(o=>o.priceTax);
     const data = {
       name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
-      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
+      store:$("#p_store").value.trim(), colors, optPrices, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
       imgs, img:imgs[0]||""   // img 保留給首頁輪播等舊程式用
     };
     if(isEdit){
