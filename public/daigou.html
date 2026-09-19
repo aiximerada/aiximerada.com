@@ -1189,11 +1189,48 @@ function showSlide(box, i){
   });
   box.querySelectorAll(".dot").forEach((d,k)=> d.classList.toggle("on", k===idx));
 }
+/* 先在背景把圖載好,載好了才換過去;沒載好就這輪不換,避免切過去看到空白。
+   載失敗的標記起來,輪播時直接跳過,不然會卡在那張一直等。 */
+function preloadSlide(slide){
+  if(!slide || !slide.dataset.bg || slide.dataset.loading) return;
+  const url = slide.dataset.bg;
+  slide.dataset.loading = "1";
+  const img = new Image();
+  img.onload = () => {
+    slide.style.backgroundImage = `url('${url}')`;
+    delete slide.dataset.bg;
+    delete slide.dataset.loading;
+  };
+  img.onerror = () => {
+    delete slide.dataset.loading;
+    slide.dataset.failed = "1";   // 這張載不起來,以後跳過
+  };
+  img.src = url;
+}
+// 從 from 往後找下一張「可以顯示」的(跳過載失敗的)
+function nextUsable(sl, from){
+  const n = sl.length;
+  for(let step=1; step<=n; step++){
+    const k = (from + step) % n;
+    if(!sl[k].dataset.failed) return k;
+  }
+  return from;
+}
 setInterval(()=>{
   const now = Date.now();
   document.querySelectorAll(".slbox[data-multi]").forEach(box=>{
     if(Number(box.dataset.pause||0) > now) return;
-    showSlide(box, Number(box.dataset.idx||0) + 1);
+    const sl = box.querySelectorAll(".sl");
+    if(sl.length < 2) return;
+    const cur = Number(box.dataset.idx||0);
+    const next = nextUsable(sl, cur);
+    if(next === cur) return;
+    if(sl[next].dataset.bg){        // 還沒載好 → 先開始載,這輪不換
+      preloadSlide(sl[next]);
+      return;
+    }
+    showSlide(box, next);
+    preloadSlide(sl[nextUsable(sl, next)]);   // 順手先把再下一張載起來
   });
 }, SLIDE_MS);
 // 手動切換:切完先暫停,讓客人看得完
@@ -1255,6 +1292,8 @@ function openProductView(id){
   `;
   const sel = $("#pvColor");
   if(sel) sel.onchange = () => { $("#pvPrice").innerHTML = pvPriceHtml(p, Number(sel.value)||0); };
+  // 客人正在看這個商品,把它的照片全部先載起來(只有這一個商品,不會拖慢清單)
+  $$("#pvBody .sl").forEach(preloadSlide);
   $("#pvMask").classList.add("show");
 }
 $("#pvClose").onclick = () => $("#pvMask").classList.remove("show");
