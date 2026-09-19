@@ -127,7 +127,18 @@
   .pcard .colorsel{width:100%;font-size:12.5px;padding:7px 9px;border:1px solid var(--bd2);border-radius:9px;background:#fff;color:var(--txt);appearance:none;-webkit-appearance:none;cursor:pointer;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%236b7a8d' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
   .pcard .ops{display:flex;gap:7px;margin-top:auto;padding-top:4px}
-  .pcard .qty{display:flex;align-items:center;flex:none;background:#fff;border:1px solid var(--bd2);border-radius:11px;overflow:hidden}
+  /* 數量是按了「加入」之後才出現的,平常收起來 */
+  .pcard .qty,.pcard .okc,.pcard .cxq{display:none}
+  .pcard.picking .addc,.pcard.picking .ref{display:none}
+  .pcard.picking .qty{display:flex}
+  .pcard.picking .okc{display:flex}
+  .pcard.picking .cxq{display:block}
+  /* 窄卡片放不下一整排,選數量時排成兩列:上列數量+取消,下列確定 */
+  .pcard.picking .ops{flex-wrap:wrap}
+  .pcard .okc{flex:1 0 100%;background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none;border-radius:11px;
+    padding:10px;font-size:13.5px;font-weight:800;white-space:nowrap;cursor:pointer;align-items:center;justify-content:center;gap:6px;box-shadow:0 5px 14px rgba(47,128,196,.28)}
+  .pcard .cxq{width:38px;background:rgba(255,255,255,.85);border:1px solid var(--bd2);border-radius:11px;color:var(--muted);cursor:pointer;font-size:14px}
+  .pcard .qty{align-items:center;flex:1;justify-content:space-between;background:#fff;border:1px solid var(--bd2);border-radius:11px;overflow:hidden}
   .pcard .qty button{width:27px;align-self:stretch;border:none;background:transparent;color:var(--blue);font-size:15px;font-weight:800;line-height:1;cursor:pointer;padding:0}
   .pcard .qty button:active{background:var(--blue-lite)}
   .pcard .qty .qv{min-width:20px;text-align:center;font-size:13.5px;font-weight:800;color:var(--txt)}
@@ -877,8 +888,10 @@ function renderProducts(){
         ${p.effect?`<div class="eff">${esc(p.effect)}</div>`:""}
         ${(Array.isArray(p.colors)&&p.colors.length)?`<select class="colorsel" data-color="${esc(p.id)}">${p.colors.map(c=>`<option>${esc(c)}</option>`).join("")}</select>`:""}
         <div class="ops">
-          <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
           <button class="addc" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> 加入</button>
+          <div class="qty"><button data-step="-1">−</button><span class="qv">1</span><button data-step="1">＋</button></div>
+          <button class="cxq" data-cancelq="1"><i class="fa-solid fa-xmark"></i></button>
+          <button class="okc" data-ok="${esc(p.id)}"><i class="fa-solid fa-check"></i> 確定加入</button>
           ${p.refLink?`<button class="ref" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i></button>`:""}
         </div>
       </div>
@@ -886,29 +899,45 @@ function renderProducts(){
     </div>`;
   }).join("");
 }
+// 結束選數量狀態,數量歸 1
+function endPick(card){
+  if(!card) return;
+  card.classList.remove("picking");
+  const qv = card.querySelector(".qv"); if(qv) qv.textContent = "1";
+}
 $("#shopGrid").addEventListener("click", async e => {
   const addb = e.target.closest("[data-add]");
+  const okb = e.target.closest("[data-ok]");
   const refb = e.target.closest("[data-ref]");
   const delb = e.target.closest("[data-del]");
   const stepb = e.target.closest("[data-step]");
+  const cxb = e.target.closest("[data-cancelq]");
+  const card = e.target.closest(".pcard");
   if(stepb){
     const qv = stepb.parentElement.querySelector(".qv");
     qv.textContent = Math.min(99, Math.max(1, (parseInt(qv.textContent,10)||1) + Number(stepb.dataset.step)));
     return;
   }
+  if(cxb){ endPick(card); return; }
   if(refb){ window.open(refb.dataset.ref, "_blank"); return; }
   if(delb){
     if(!confirm("確定下架這個商品?")) return;
     await deleteDoc(doc(db,"daigouProducts",delb.dataset.del)); loadProducts(); return;
   }
   if(addb && me){
-    const p = PRODUCTS.find(x=>x.id===addb.dataset.add); if(!p) return;
-    const card = e.target.closest(".pcard");
+    // 按「加入」先展開數量,選好再按「確定」
+    $("#shopGrid").querySelectorAll(".pcard.picking").forEach(c => { if(c!==card) endPick(c); });
+    card.classList.add("picking");
+    return;
+  }
+  if(okb && me){
+    const p = PRODUCTS.find(x=>x.id===okb.dataset.ok); if(!p) return;
     const sel = card.querySelector(".colorsel");
     const color = sel ? sel.value : "";
     const qvEl = card.querySelector(".qv");
     const qty = Math.min(99, Math.max(1, parseInt(qvEl?.textContent,10) || 1));
-    addb.disabled = true;
+    const addc = card.querySelector(".addc");
+    okb.disabled = true;
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
@@ -917,11 +946,12 @@ $("#shopGrid").addEventListener("click", async e => {
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
         createdAt:serverTimestamp(), submittedAt:null
       });
-      addb.classList.add("done"); addb.innerHTML = `<i class="fa-solid fa-check"></i> 已加入 ${qty}`;
-      if(qvEl) qvEl.textContent = "1";
+      endPick(card);
+      okb.disabled = false;
+      addc.classList.add("done"); addc.innerHTML = `<i class="fa-solid fa-check"></i> 已加入 ${qty}`;
       loadCart();
-      setTimeout(()=>{ addb.disabled=false; addb.classList.remove("done"); addb.innerHTML='<i class="fa-solid fa-cart-plus"></i> 加入'; }, 1200);
-    }catch(err){ addb.disabled=false; alert("加入失敗:"+err.message); }
+      setTimeout(()=>{ addc.classList.remove("done"); addc.innerHTML='<i class="fa-solid fa-cart-plus"></i> 加入'; }, 1400);
+    }catch(err){ okb.disabled=false; alert("加入失敗:"+err.message); }
   }
 });
 
