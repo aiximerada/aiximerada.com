@@ -110,6 +110,19 @@
 
   /* 好物推薦 grid */
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  /* ===== 電腦版:內容置中不要拉整片,卡片變小、一排多放幾個 ===== */
+  @media (min-width:760px){
+    main{max-width:1280px;margin:0 auto;padding-left:28px;padding-right:28px}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
+    .pcard .nm{font-size:13.5px}
+    .pcard .pr{font-size:16.5px}
+    .pcard .pr .prtax{font-size:10.5px}
+    .pcard .more{font-size:11.5px}
+    .tabbar{max-width:1280px;margin:0 auto;border-radius:20px 20px 0 0}
+    /* 浮動鈕跟著內容欄靠右,不要黏在整個螢幕邊緣;視窗比內容窄時退回 20px */
+    #cartFab{right:max(20px, calc((100vw - 1280px)/2 + 20px))}
+    #addProdFab{right:max(23px, calc((100vw - 1280px)/2 + 23px))}
+  }
   .pcard{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
   .pcard .img{aspect-ratio:1/1}
@@ -1551,7 +1564,8 @@ async function cancelOrder(orderId, btn){
 }
 
 /* 點遮罩關閉 sheet */
-["cartMask","prodMask","submitMask","cdMask","pvMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
+// 上架/編輯表單(prodMask)刻意不放進來:填到一半點到外面就關掉會很嘔,只能按 × 或儲存
+["cartMask","submitMask","cdMask","pvMask"].forEach(id=>{ const m=$("#"+id); m.addEventListener("click",e=>{ if(e.target===m) m.classList.remove("show"); }); });
 
 /* ============== 啟動 ============== */
 const _cachedMe = readCachedMe();
