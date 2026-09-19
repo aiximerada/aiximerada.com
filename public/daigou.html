@@ -272,8 +272,8 @@
   .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 
   /* ===== 首頁 星海主視覺 ===== */
-  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 96px;overflow:hidden;
-    background:linear-gradient(180deg,#1a2456 0%,#20295c 22%,#2c3c78 40%,#4459a0 56%,#6d84bf 70%,#9db6e0 82%,#c9dcf4 91%,#e6f0fc 97%,#eaf4ff 100%)}
+  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 150px;overflow:hidden;
+    background:linear-gradient(180deg,#1a2456 0%,#1b2452 40%,#243063 56%,#33448a 68%,#5570b0 79%,#89a3d4 88%,#c1d5f2 94%,#e6f0fc 98%,#eaf4ff 100%)}
   .hero .stars,.hero .stars2{position:absolute;inset:0}
   .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
   @keyframes tw{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
@@ -538,7 +538,7 @@
   <div class="sheet">
     <div class="sh-hd"><h2><i class="fa-solid fa-store" style="color:var(--gold)"></i> 上架好物</h2><button class="x" id="prodClose">&times;</button></div>
     <div class="sh-body form">
-      <label>商品圖片</label>
+      <label>商品圖片（可點擊選圖，或直接 Ctrl/⌘+V 貼上）</label>
       <div class="photos" style="grid-template-columns:1fr"><div class="ph" id="p_photo" style="aspect-ratio:16/10"><i class="fa-solid fa-image"></i></div></div>
       <label>商品名稱 *</label>
       <input id="p_name" placeholder="例：資生堂 安耐曬 金瓶">
@@ -721,12 +721,12 @@ function switchTab(name){
 $$(".tabbar .tab").forEach(t => t.onclick = () => switchTab(t.dataset.tab));
 
 /* ============== 首頁 ============== */
-const DEFAULT_CFG = { countdownTitle:"距離出發", countdownTarget:"2026-10-17T12:00:00+08:00", announce:"", trip:"" };
+const DEFAULT_CFG = { countdownTitle:"距離結單", countdownTarget:"2026-10-17T12:00:00+08:00", announce:"", trip:"" };
 let CFG = {...DEFAULT_CFG}, cdTimer=null, configReady=null;
 function buildStars(){
   const c=$("#starsA"); if(!c || c.children.length) return;
   let h="";
-  for(let i=0;i<64;i++){ const x=Math.random()*100, y=Math.random()*72, s=Math.random()*2+1, d=Math.random()*3;
+  for(let i=0;i<90;i++){ const x=Math.random()*100, y=Math.random()*84, s=Math.random()*2+1, d=Math.random()*3;
     h+=`<span class="star" style="left:${x}%;top:${y}%;width:${s.toFixed(1)}px;height:${s.toFixed(1)}px;animation-delay:${d.toFixed(1)}s"></span>`; }
   c.innerHTML=h;
 }
@@ -906,6 +906,16 @@ $("#p_taxrate").addEventListener("change", ()=>{ const v=parseFloat($("#p_price"
 $("#addProdFab").onclick = () => { $("#prodMask").classList.add("show"); };
 $("#prodClose").onclick = () => $("#prodMask").classList.remove("show");
 $("#p_photo").onclick = () => { fileTarget = "prod"; $("#fileInput").click(); };
+// 貼上圖片(Ctrl/Cmd+V 或行動裝置貼上)→ 直接當商品圖
+function setProdPhoto(file){
+  prodPhoto=file; const u=URL.createObjectURL(file);
+  $("#p_photo").style.backgroundImage=`url('${u}')`; $("#p_photo").innerHTML="";
+}
+window.addEventListener("paste", e=>{
+  if(!$("#prodMask").classList.contains("show")) return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const it of items){ if(it.type&&it.type.indexOf("image")===0){ const f=it.getAsFile(); if(f){ setProdPhoto(f); e.preventDefault(); break; } } }
+});
 $("#p_submit").onclick = async () => {
   const name = $("#p_name").value.trim(), price = $("#p_price").value.trim();
   const msg = $("#p_msg"); msg.className = "fmsg";
