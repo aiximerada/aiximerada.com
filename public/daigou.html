@@ -111,7 +111,9 @@
   .chip.on{background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(47,128,196,.32)}
 
   /* 好物推薦 grid */
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+  /* 分批補卡片時不要讓瀏覽器自動捲動(scroll anchoring 會把畫面往下推) */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;overflow-anchor:none}
+  .grid > *{overflow-anchor:none}
   .pcard{background:var(--card);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
     border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
   .pcard .img{aspect-ratio:1/1}
@@ -1127,10 +1129,13 @@ function appendProducts(n){
   const slice = shopList.slice(shopShown, shopShown + n);
   const sen = $("#shopMore");
   if(slice.length){
+    // 插入新卡片時瀏覽器的 scroll anchoring 會把畫面往下推,先記住位置補回來
+    const keep = window.scrollY;
     const html = slice.map(cardHtml).join("");
     if(sen) sen.insertAdjacentHTML("beforebegin", html);
     else g.insertAdjacentHTML("beforeend", html);
     shopShown += slice.length;
+    if(window.scrollY !== keep) window.scrollTo(0, keep);
   }
   if(shopShown >= shopList.length && sen){   // 全部畫完就把觸發器收掉
     if(shopIO) shopIO.unobserve(sen);
