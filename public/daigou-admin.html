@@ -213,8 +213,7 @@ function orderCard(o){
 
   // 付款資訊
   const payBits=[];
-  if(o.payType) payBits.push(`付款方式 <b>${esc(o.payType)}</b>`);
-  if(o.payLast5) payBits.push(`末五碼 <b>${esc(o.payLast5)}</b>`);
+  // 付款改由本人事後跟客人收,不在系統顯示付款方式與末五碼
   if(o.paySlipUrl) payBits.push(`<a href="javascript:void(0)" class="zoomlink" data-full="${esc(o.paySlipUrl)}" style="cursor:zoom-in"><i class="fa-solid fa-image"></i> 看截圖</a>`);
   const payHtml = payBits.length
     ? `<div class="pay"><i class="fa-solid fa-money-check-dollar"></i> ${payBits.join("")}</div>` : "";
@@ -231,6 +230,7 @@ function orderCard(o){
       ? `<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>` : "";
     const meta=[];
     meta.push(`數量 <b>${esc(it.qty!=null?it.qty:1)}</b>${priceStr?` ・ 預估單價 ${priceStr}`:""}`);
+    if(it.bought) meta.push(`採購狀態 <b style="color:${it.bought==="已購買"?"#3ab27a":"var(--red)"}">${esc(it.bought)}</b>`);
     if(it.color) meta.push(`款式 <b>${esc(it.color)}</b>${it.colorAlt?` ・ 備選 <b style="color:var(--blue)">${esc(it.colorAlt)}</b>`:""}`);
     if(it.store) meta.push(`店家 <b>${esc(it.store)}</b>`);
     if(it.refLink) meta.push(`<a href="${esc(it.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> 參考連結</a>`);
@@ -426,15 +426,15 @@ function exportExcel(){
         "參考連結": it.refLink||"",
         "訂單狀態": o.status||ORDER_STATUS[0],
         "是否取消": it.cancelled===true?"是":"否",
+        "採購狀態": it.bought||"",
         "實付金額": num(it.costPaid),
-        "末五碼": o.payLast5||"",
         "備註": it.note||"",
         "買家LINE_ID": o.ownerLineId||""
       });
     });
   });
   if(!rows.length){ alert("目前沒有可匯出的商品資料。"); return; }
-  const header=["下單時間","訂單ID","買家本名","LINE暱稱","商品","數量","預估單價","幣別","店家","參考連結","訂單狀態","是否取消","實付金額","末五碼","備註","買家LINE_ID"];
+  const header=["下單時間","訂單ID","買家本名","LINE暱稱","商品","數量","預估單價","幣別","店家","參考連結","訂單狀態","是否取消","實付金額","採購狀態","備註","買家LINE_ID"];
   const ws=XLSX.utils.json_to_sheet(rows,{header});
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,"代購訂單");

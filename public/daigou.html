@@ -285,6 +285,16 @@
   .qtybox button{width:30px;height:30px;background:var(--blue-lite);border:none;color:var(--blue-deep);font-size:16px;font-weight:800;cursor:pointer}
   .qtybox span{min-width:36px;text-align:center;font-size:14px;font-weight:700}
   .oitem .rm{background:transparent;border:none;color:var(--danger);font-size:12px;cursor:pointer;margin-top:6px;padding:0}
+  /* 逐件採購狀態(管理員用) */
+  .buyst{display:flex;gap:6px;margin-top:8px}
+  .buyst button{flex:1;background:#fff;border:1px solid var(--bd2);border-radius:9px;padding:7px 4px;
+    font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+  .buyst button.on.n{background:var(--blue-lite);color:var(--blue-deep);border-color:var(--blue-lite)}
+  .buyst button.on.y{background:var(--green);color:#fff;border-color:var(--green)}
+  .buyst button.on.x{background:var(--danger);color:#fff;border-color:var(--danger)}
+  .bs-tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:800}
+  .bs-tag.y{background:rgba(58,178,122,.14);color:var(--green)}
+  .bs-tag.x{background:rgba(229,85,110,.12);color:var(--danger)}
   .pay{margin-top:12px;border-top:1px dashed var(--bd2);padding-top:11px}
   .pay .paid{font-size:13px;color:var(--green);font-weight:700}
   .pay .paid a{color:var(--blue);margin-left:8px}
@@ -1760,6 +1770,14 @@ function stepsHtml(status){
   ORDER_STATUS.forEach((st,i)=>{ const on=!cancelled&&idx>=0&&i<=idx; h+=`<div class="step${on?" on":""}"><div class="d"></div><div class="l">${esc(st)}</div></div>`; });
   return h+`</div>`;
 }
+/* 逐件採購狀態:徐在日本現場一件一件標,客人也看得到自己的哪件買到了 */
+const BOUGHT_STATES = [
+  { v:"",      t:"未處理", k:"n" },
+  { v:"已購買", t:"已購買", k:"y" },
+  { v:"買不到", t:"買不到", k:"x" },
+];
+const BOUGHT_LABEL = { "已購買":"已購買", "買不到":"買不到" };
+const BOUGHT_KEY   = { "已購買":"y", "買不到":"x" };
 function orderCard(o, items, showBuyer){
   const cancelled=o.status==="已取消", done=o.status==="已取貨";
   const canEdit=!cancelled&&!done;   // 已取貨/已取消 不可改
@@ -1780,23 +1798,16 @@ function orderCard(o, items, showBuyer){
         ${(!ic&&canEdit)?`<div class="qtybox"><button data-dec="${esc(it.id)}">−</button><span id="q-${esc(it.id)}">${esc(it.qty||1)}</span><button data-inc="${esc(it.id)}">＋</button></div>
           <button class="rm" data-rm="${esc(it.id)}"><i class="fa-solid fa-xmark"></i> 移除此商品</button>`
          :(!ic?`<div class="im">數量 × ${esc(it.qty||1)}</div>`:"")}
+        ${(isAdmin && !ic)?`<div class="buyst" data-bs="${esc(it.id)}">
+          ${BOUGHT_STATES.map(s=>`<button data-bought="${esc(it.id)}|${esc(s.v)}" class="${(it.bought||"")===s.v?"on "+s.k:""}">${esc(s.t)}</button>`).join("")}
+        </div>`:""}
+        ${(!isAdmin && it.bought)?`<div class="im"><span class="bs-tag ${esc(BOUGHT_KEY[it.bought]||"")}">${esc(BOUGHT_LABEL[it.bought]||it.bought)}</span></div>`:""}
       </div>
     </div>`;
   }).join("") : `<div style="color:var(--muted);font-size:13px;padding:8px 0">此訂單沒有商品</div>`;
 
-  let payHtml;
-  if(o.payLast5){
-    const slip=o.paySlipUrl?` <a href="${esc(o.paySlipUrl)}" target="_blank"><i class="fa-solid fa-image"></i> 截圖</a>`:"";
-    payHtml=`<div class="pay"><div class="paid"><i class="fa-solid fa-circle-check"></i> 匯款末五碼：${esc(o.payLast5)}${slip}</div></div>`;
-  }else if(!cancelled){
-    payHtml=`<div class="pay">
-      <button class="btn-line" data-togglepay="${esc(o.id)}"><i class="fa-solid fa-money-bill-wave"></i> 填付款資訊</button>
-      <div class="payform" id="pf-${esc(o.id)}">
-        <label>匯款帳號末五碼</label><input inputmode="numeric" maxlength="5" placeholder="12345" id="l5-${esc(o.id)}">
-        <label>上傳匯款截圖（選填）</label><input type="file" accept="image/*" id="slip-${esc(o.id)}">
-        <button class="btn-line" style="background:linear-gradient(135deg,var(--sky),var(--blue));color:#fff;border:none" data-submitpay="${esc(o.id)}"><i class="fa-solid fa-paper-plane"></i> 送出</button>
-      </div></div>`;
-  }else payHtml="";
+  // 付款改由本人事後跟客人收,所以不再顯示付款方式與匯款回報
+  const payHtml = "";
 
   return `<div class="order">
     ${buyerHtml}
@@ -1815,9 +1826,26 @@ function bindOrderEvents(){
   box.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>changeQty(b.dataset.inc,1));
   box.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>changeQty(b.dataset.dec,-1));
   box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeItem(b.dataset.rm,b));
-  box.querySelectorAll("[data-togglepay]").forEach(b=>b.onclick=()=>{ const f=document.getElementById("pf-"+b.dataset.togglepay); if(f)f.classList.toggle("open"); });
-  box.querySelectorAll("[data-submitpay]").forEach(b=>b.onclick=()=>submitPay(b.dataset.submitpay,b));
   box.querySelectorAll("[data-cancelorder]").forEach(b=>b.onclick=()=>cancelOrder(b.dataset.cancelorder,b));
+  box.querySelectorAll("[data-bought]").forEach(b=>b.onclick=()=>setBought(b));
+}
+// 標記單件商品買到了沒(只有管理員看得到這排按鈕)
+async function setBought(btn){
+  const [itemId, val] = btn.dataset.bought.split("|");
+  const row = btn.closest(".buyst");
+  const prev = [...row.querySelectorAll("button")].map(b=>b.className);
+  row.querySelectorAll("button").forEach(b=>{
+    b.className = (b.dataset.bought.split("|")[1] === val)
+      ? "on " + (BOUGHT_STATES.find(s=>s.v===val)||{k:""}).k : "";
+    b.disabled = true;
+  });
+  try{
+    await updateDoc(doc(db,"daigouItems",itemId), { bought: val });
+  }catch(e){
+    row.querySelectorAll("button").forEach((b,i)=> b.className = prev[i]);   // 失敗就還原
+    alert("更新失敗:" + e.message);
+  }
+  row.querySelectorAll("button").forEach(b=> b.disabled = false);
 }
 async function changeQty(itemId, delta){
   const span=document.getElementById("q-"+itemId); if(!span) return;
@@ -1830,19 +1858,6 @@ async function removeItem(itemId, btn){
   btn.disabled=true;
   try{ await updateDoc(doc(db,"daigouItems",itemId), { cancelled:true }); await loadOrders(); }
   catch(err){ btn.disabled=false; alert("移除失敗:"+err.message); }
-}
-async function submitPay(orderId, btn){
-  const l5=(document.getElementById("l5-"+orderId)||{}).value||"";
-  const clean=l5.replace(/\D/g,"").slice(0,5);
-  if(clean.length<5){ alert("請輸入匯款末五碼（5 位數字）"); return; }
-  const fEl=document.getElementById("slip-"+orderId); const file=fEl&&fEl.files&&fEl.files[0];
-  btn.disabled=true; const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 送出中…';
-  try{
-    let url=null;
-    if(file){ const r=ref(storage,`daigou_slip/${me.lineUserId}/${orderId}_${Date.now()}.jpg`); await uploadBytes(r, await shrinkImage(file, 1600, 0.85)); url=await getDownloadURL(r); }
-    const upd={ payLast5:clean, updatedAt:serverTimestamp() }; if(url) upd.paySlipUrl=url;
-    await updateDoc(doc(db,"orders",orderId), upd); await loadOrders();
-  }catch(err){ alert("送出失敗:"+err.message); btn.disabled=false; btn.innerHTML=old; }
 }
 async function cancelOrder(orderId, btn){
   if(!confirm("確定取消整筆訂單?")) return;
