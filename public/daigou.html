@@ -794,6 +794,23 @@ function listPrice(p){
   const ratio = (p.price && p.priceTax) ? (p.price / p.priceTax) : (1/1.1);
   return { price: Math.round(minTax*ratio), priceTax: minTax, from: new Set(arr).size > 1 };
 }
+/* 上傳前先壓縮:手機拍的照片動輒好幾MB,原檔上傳會讓清單載很久。
+   縮到長邊 1280、轉 JPEG 品質 0.82,通常可以小一個數量級,畫質看不出差。 */
+async function shrinkImage(file, maxSide = 1280, quality = 0.82){
+  try{
+    if(!file || !file.type || file.type.indexOf("image/") !== 0) return file;
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    if(bmp.close) bmp.close();
+    const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", quality));
+    if(!blob || blob.size >= file.size) return file;   // 壓不小就用原檔
+    return blob;
+  }catch(e){ return file; }   // 任何意外都退回原檔,不要害使用者傳不上去
+}
 // 商品照片:新版存 imgs 陣列,舊資料只有單張 img
 const productImgs = p => (p && Array.isArray(p.imgs) && p.imgs.length) ? p.imgs.filter(Boolean) : ((p && p.img) ? [p.img] : []);
 // 功效特色:**用星號包住的字** 顯示成紅色重點
@@ -1521,7 +1538,7 @@ $("#p_submit").onclick = async () => {
       const s = prodSlots[i]; if(!s) continue;
       if(s.url){ imgs.push(s.url); continue; }
       const r = ref(storage, `daigou_products/${Date.now()}_${i}.jpg`);
-      await uploadBytes(r, s.file); imgs.push(await getDownloadURL(r));
+      await uploadBytes(r, await shrinkImage(s.file)); imgs.push(await getDownloadURL(r));
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
     const opts = prodColors.map(o=>({ name:(o.name||"").trim(), priceTax:Number(o.priceTax)||0 }))
@@ -1573,7 +1590,7 @@ $("#a_submit").onclick = async () => {
   try{
     const urls=[];
     for(let i=0;i<addPhotos.length;i++){ if(!addPhotos[i])continue;
-      const r=ref(storage,`daigou/${me.lineUserId}/${Date.now()}_${i}.jpg`); await uploadBytes(r,addPhotos[i]); urls.push(await getDownloadURL(r)); }
+      const r=ref(storage,`daigou/${me.lineUserId}/${Date.now()}_${i}.jpg`); await uploadBytes(r, await shrinkImage(addPhotos[i])); urls.push(await getDownloadURL(r)); }
     await addDoc(collection(db,"daigouItems"), {
       ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
       name, price:null, currency:"", qty:Number($("#a_qty").value)||1,
@@ -1820,7 +1837,7 @@ async function submitPay(orderId, btn){
   btn.disabled=true; const old=btn.innerHTML; btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 送出中…';
   try{
     let url=null;
-    if(file){ const r=ref(storage,`daigou_slip/${me.lineUserId}/${orderId}_${Date.now()}.jpg`); await uploadBytes(r,file); url=await getDownloadURL(r); }
+    if(file){ const r=ref(storage,`daigou_slip/${me.lineUserId}/${orderId}_${Date.now()}.jpg`); await uploadBytes(r, await shrinkImage(file, 1600, 0.85)); url=await getDownloadURL(r); }
     const upd={ payLast5:clean, updatedAt:serverTimestamp() }; if(url) upd.paySlipUrl=url;
     await updateDoc(doc(db,"orders",orderId), upd); await loadOrders();
   }catch(err){ alert("送出失敗:"+err.message); btn.disabled=false; btn.innerHTML=old; }
