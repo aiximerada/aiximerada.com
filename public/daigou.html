@@ -551,7 +551,7 @@
 <!-- 上架商品 sheet(管理員) -->
 <div class="mask" id="prodMask">
   <div class="sheet">
-    <div class="sh-hd"><h2><i class="fa-solid fa-store" style="color:var(--gold)"></i> 上架好物</h2><button class="x" id="prodClose">&times;</button></div>
+    <div class="sh-hd"><h2><i class="fa-solid fa-store" style="color:var(--gold)"></i> <span id="prodSheetTitle">上架好物</span></h2><button class="x" id="prodClose">&times;</button></div>
     <div class="sh-body form">
       <label>商品圖片（可點擊選圖，或直接 Ctrl/⌘+V 貼上）</label>
       <div class="photos" style="grid-template-columns:1fr"><div class="ph" id="p_photo" style="aspect-ratio:16/10"><i class="fa-solid fa-image"></i></div></div>
@@ -895,7 +895,7 @@ function renderProducts(){
           ${p.refLink?`<button class="ref" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i></button>`:""}
         </div>
       </div>
-      ${isAdmin?`<div class="adm"><button class="del" data-del="${esc(p.id)}"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
+      ${isAdmin?`<div class="adm"><button data-edit="${esc(p.id)}"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="${esc(p.id)}"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
     </div>`;
   }).join("");
 }
@@ -912,7 +912,13 @@ $("#shopGrid").addEventListener("click", async e => {
   const delb = e.target.closest("[data-del]");
   const stepb = e.target.closest("[data-step]");
   const cxb = e.target.closest("[data-cancelq]");
+  const editb = e.target.closest("[data-edit]");
   const card = e.target.closest(".pcard");
+  if(editb){
+    const p = PRODUCTS.find(x=>x.id===editb.dataset.edit);
+    if(p) openProdSheet(p);
+    return;
+  }
   if(stepb){
     const qv = stepb.parentElement.querySelector(".qv");
     qv.textContent = Math.min(99, Math.max(1, (parseInt(qv.textContent,10)||1) + Number(stepb.dataset.step)));
@@ -962,7 +968,30 @@ function taxRate(){ return parseFloat($("#p_taxrate").value)||0; }
 $("#p_price").addEventListener("input", ()=>{ const v=parseFloat($("#p_price").value); $("#p_priceTax").value = v?Math.round(v*(1+taxRate())):""; });
 $("#p_priceTax").addEventListener("input", ()=>{ const v=parseFloat($("#p_priceTax").value); $("#p_price").value = v?Math.round(v/(1+taxRate())):""; });
 $("#p_taxrate").addEventListener("change", ()=>{ const v=parseFloat($("#p_price").value); if(v) $("#p_priceTax").value=Math.round(v*(1+taxRate())); });
-$("#addProdFab").onclick = () => { $("#prodMask").classList.add("show"); };
+// 傳商品進來=編輯,不傳=上架新商品
+let editingId = null, editingImg = "";
+function openProdSheet(p){
+  editingId = p ? p.id : null;
+  editingImg = (p && p.img) || "";
+  prodPhoto = null;
+  $("#p_name").value = (p && p.name) || "";
+  $("#p_price").value = (p && p.price != null) ? p.price : "";
+  $("#p_priceTax").value = (p && p.priceTax != null) ? p.priceTax : "";
+  $("#p_currency").value = (p && p.currency) || "JPY";
+  $("#p_cat").value = (p && p.category) || CATEGORIES[0];
+  $("#p_store").value = (p && p.store) || "";
+  $("#p_colors").value = (p && Array.isArray(p.colors)) ? p.colors.join(", ") : "";
+  $("#p_effect").value = (p && p.effect) || "";
+  $("#p_ref").value = (p && p.refLink) || "";
+  const ph = $("#p_photo");
+  if(editingImg){ ph.style.backgroundImage = `url('${editingImg}')`; ph.innerHTML = ""; }
+  else { ph.style.backgroundImage = ""; ph.innerHTML = '<i class="fa-solid fa-image"></i>'; }
+  $("#prodSheetTitle").textContent = p ? "編輯好物" : "上架好物";
+  $("#p_submit").innerHTML = p ? '<i class="fa-solid fa-floppy-disk"></i> 儲存變更' : '<i class="fa-solid fa-cloud-arrow-up"></i> 上架';
+  const msg = $("#p_msg"); msg.className = "fmsg"; msg.textContent = "";
+  $("#prodMask").classList.add("show");
+}
+$("#addProdFab").onclick = () => openProdSheet(null);
 $("#prodClose").onclick = () => $("#prodMask").classList.remove("show");
 $("#p_photo").onclick = () => { fileTarget = "prod"; $("#fileInput").click(); };
 // 貼上圖片(Ctrl/Cmd+V 或行動裝置貼上)→ 直接當商品圖
@@ -980,26 +1009,33 @@ $("#p_submit").onclick = async () => {
   const msg = $("#p_msg"); msg.className = "fmsg";
   if(!name){ msg.className="fmsg err"; msg.textContent="請填商品名稱"; return; }
   if(!price){ msg.className="fmsg err"; msg.textContent="請填金額"; return; }
-  const btn = $("#p_submit"); btn.disabled = true; btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 上架中…';
+  const isEdit = !!editingId;
+  const btn = $("#p_submit"); btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner spin"></i> ${isEdit?"儲存中…":"上架中…"}`;
   try{
-    let img = "";
+    // 編輯時沒重選圖就沿用原本那張
+    let img = isEdit ? editingImg : "";
     if(prodPhoto){
       const r = ref(storage, `daigou_products/${Date.now()}.jpg`);
       await uploadBytes(r, prodPhoto); img = await getDownloadURL(r);
     }
     const priceTax = parseFloat($("#p_priceTax").value) || Math.round((Number(price)||0)*(1+taxRate()));
     const colors = $("#p_colors").value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
-    await addDoc(collection(db,"daigouProducts"), {
+    const data = {
       name, price:Number(price)||0, priceTax, currency:$("#p_currency").value, category:$("#p_cat").value,
-      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(),
-      img, createdBy:me.lineUserId, createdAt:serverTimestamp()
-    });
-    ["p_name","p_price","p_priceTax","p_store","p_colors","p_effect","p_ref"].forEach(id=>$("#"+id).value="");
-    prodPhoto=null; $("#p_photo").style.backgroundImage=""; $("#p_photo").innerHTML='<i class="fa-solid fa-image"></i>';
+      store:$("#p_store").value.trim(), colors, effect:$("#p_effect").value.trim(), refLink:$("#p_ref").value.trim(), img
+    };
+    if(isEdit){
+      await updateDoc(doc(db,"daigouProducts",editingId), { ...data, updatedAt:serverTimestamp() });
+    }else{
+      await addDoc(collection(db,"daigouProducts"), { ...data, createdBy:me.lineUserId, createdAt:serverTimestamp() });
+    }
+    editingId=null; editingImg=""; prodPhoto=null;
     $("#prodMask").classList.remove("show");
     loadProducts();
   }catch(err){ msg.className="fmsg err"; msg.textContent=err.message; }
-  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> 上架';
+  btn.disabled=false;
+  btn.innerHTML = isEdit ? '<i class="fa-solid fa-floppy-disk"></i> 儲存變更' : '<i class="fa-solid fa-cloud-arrow-up"></i> 上架';
 };
 
 /* ============== 新增商品 ============== */
