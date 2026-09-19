@@ -92,7 +92,9 @@
   .menu .sep{height:1px;background:var(--bd2);margin:4px 8px}
 
   /* 內容區 */
-  main{flex:1;padding:env(safe-area-inset-top) 16px calc(var(--tabh) + env(safe-area-inset-bottom) + 20px)}
+  /* iOS Safari 收起工具列時 safe-area-inset-top 會是 0,內容就會被狀態列壓住,所以給一個最小值 */
+  :root{--topgap:max(env(safe-area-inset-top), 46px)}
+  main{flex:1;padding:var(--topgap) 16px calc(var(--tabh) + env(safe-area-inset-bottom) + 20px)}
   section.page{display:none;animation:fade .28s ease}
   section.page.on{display:block}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -347,7 +349,7 @@
   .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 
   /* ===== 首頁 星海主視覺 ===== */
-  .hero{position:relative;margin:calc(-1 * env(safe-area-inset-top)) -16px 18px;padding:calc(env(safe-area-inset-top) + 52px) 0 150px;overflow:hidden;
+  .hero{position:relative;margin:calc(-1 * var(--topgap)) -16px 18px;padding:calc(var(--topgap) + 52px) 0 150px;overflow:hidden;
     background:linear-gradient(180deg,#1a2456 0%,#1b2453 46%,#20295c 60%,#28336e 72%,#374a92 82%,#5e78b8 89%,#9db6e0 94%,#d3e4f7 98%,#eaf4ff 100%)}
   .hero .stars,.hero .stars2{position:absolute;inset:0}
   .hero .star{position:absolute;background:#fff;border-radius:50%;animation:tw 3s infinite ease-in-out}
@@ -431,6 +433,7 @@
   /* ===== 以下 RWD 放在最後,才不會被前面的基礎樣式蓋掉 ===== */
   /* ===== 電腦版:內容置中不要拉整片,卡片變小、一排多放幾個 ===== */
   @media (min-width:760px){
+    :root{--topgap:22px}   /* 電腦版沒有狀態列,留 22px 就夠(hero 的負邊距也跟著這個值) */
     main{max-width:1280px;margin:0 auto;padding-left:28px;padding-right:28px}
     .grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:16px}
     .pcard .nm{font-size:13.5px}
