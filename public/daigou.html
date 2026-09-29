@@ -1070,7 +1070,9 @@ $("#cdSave").onclick=async()=>{
 };
 
 /* ============== 好物推薦 ============== */
-let PRODUCTS = [], curCat = "全部";
+/* prodLoaded:是否已經「成功」拿到過一次結果。
+   沒拿到過就只能顯示「載入中」,不可以說「還沒上架」——那是這個畫面誤判的主因。 */
+let PRODUCTS = [], curCat = "全部", prodLoaded = false, prodFailed = false;
 function buildCategoryUI(){
   const cats = ["全部", ...CATEGORIES];
   $("#shopCats").innerHTML = cats.map(c => `<div class="chip${c===curCat?" on":""}" data-c="${esc(c)}">${esc(c)}</div>`).join("");
@@ -1094,6 +1096,8 @@ function readProdCache(){
   }catch(e){ return null; }
 }
 function writeProdCache(items){
+  // 空清單一律不寫快取:寧可下次重抓,也不要把「沒商品」存起來一直卡著
+  if(!items || !items.length) return;
   try{ localStorage.setItem(PCACHE, JSON.stringify({ ts:Date.now(), items })); }catch(e){}
 }
 // 只比對畫面上會用到的欄位,時間戳不算(避免每次都判定成有變)
@@ -1104,36 +1108,61 @@ function prodSig(list){
     (p.colors||[]).join("|"), (p.optPrices||[]).join("|")
   ]));
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function fetchProducts(){
+  let qs;
+  try{ qs = await getDocs(query(collection(db,"daigouProducts"), orderBy("createdAt","desc"))); }
+  catch(e){ qs = await getDocs(collection(db,"daigouProducts")); }
+  const fresh = [];
+  qs.forEach(d => fresh.push({ id:d.id, ...d.data() }));
+  fresh.sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0));
+  return fresh;
+}
+let prodLoading = false;
 async function loadProducts(force){
+  // 同時被叫兩次不要重複打;但上架/編輯後的強制重抓一定要放行
+  if(prodLoading && !force) return;
+  prodLoading = true; prodFailed = false;
   const cached = readProdCache();
   if(cached && cached.items.length){
-    PRODUCTS = cached.items;
+    PRODUCTS = cached.items; prodLoaded = true;
     renderProducts(); renderCarousel();
     // 快取還新鮮就到此為止,完全不連網(這段最花時間)
-    if(!force && (Date.now() - (cached.ts||0)) < PCACHE_TTL) return;
+    if(!force && (Date.now() - (cached.ts||0)) < PCACHE_TTL){ prodLoading = false; return; }
   }else{
-    $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+    renderProducts();                // 還沒有資料 → 一律顯示載入中,不會說「還沒上架」
   }
   const rb = $("#shopRefresh"); if(rb) rb.classList.add("spin");
-  try{
-    let qs;
-    try{ qs = await getDocs(query(collection(db,"daigouProducts"), orderBy("createdAt","desc"))); }
-    catch(e){ qs = await getDocs(collection(db,"daigouProducts")); }
-    const fresh = [];
-    qs.forEach(d => fresh.push({ id:d.id, ...d.data() }));
-    fresh.sort((a,b)=>((b.createdAt&&b.createdAt.seconds)||0)-((a.createdAt&&a.createdAt.seconds)||0));
-    writeProdCache(fresh);
+  /* 連續抓 3 次(間隔 0.6s / 1.5s)。空結果也算一次失敗重來:
+     連線不穩時 Firestore 偶爾會回 0 筆,以前直接照單全收才會變成「沒有上架」。 */
+  let fresh = null;
+  for(let i=0; i<3; i++){
+    try{
+      const r = await fetchProducts();
+      if(r.length){ fresh = r; break; }
+      // 回 0 筆:手上已有商品就當作異常重抓;三次都 0 筆才承認是真的沒商品
+      if(i === 2 && (force || !PRODUCTS.length)){ fresh = r; break; }
+    }catch(e){ /* 連線失敗,等一下重試 */ }
+    if(i < 2) await sleep(i===0 ? 600 : 1500);
+  }
+  if(fresh){
+    const wasLoaded = prodLoaded;
+    prodLoaded = true;
+    if(fresh.length) writeProdCache(fresh);
+    else { try{ localStorage.removeItem(PCACHE); }catch(e){} }   // 真的全下架了才清掉舊快取
     if(prodSig(fresh) !== prodSig(PRODUCTS)){   // 有變才重畫
       PRODUCTS = fresh;
       renderProducts(); renderCarousel();
+    }else if(!wasLoaded){
+      renderProducts();   // 內容雖然沒變,但要把「載入中」換掉,否則會一直轉圈
     }
-  }catch(e){
-    // 撈失敗但有快取就繼續用快取,不要把畫面清空
-    if(!PRODUCTS.length){
-      $("#shopGrid").innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-solid fa-triangle-exclamation"></i>載入失敗,請確認網路後重新整理</div>`;
-    }
+  }else if(!PRODUCTS.length){
+    // 重試完仍失敗,而且手上沒有任何資料才顯示錯誤
+    prodFailed = true; renderProducts();
   }
+  // 撈失敗但有快取就繼續用快取,畫面不動
   if(rb) rb.classList.remove("spin");
+  prodLoading = false;
 }
 $("#shopRefresh").onclick = () => loadProducts(true);
 /* 分批渲染:一開始只畫前幾張,往下捲才接著畫。
@@ -1175,7 +1204,20 @@ function renderProducts(){
   const g = $("#shopGrid");
   shopShown = 0;
   if(!shopList.length){
-    g.innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fa-regular fa-face-smile"></i>${PRODUCTS.length? "這個類別還沒有好物～":"還沒有上架任何好物"}${isAdmin?"<br>點右下 <b>＋</b> 上架第一個商品":""}</div>`;
+    let inner;
+    if(PRODUCTS.length){                 // 有商品,只是這個類別沒有
+      inner = `<i class="fa-regular fa-face-smile"></i>這個類別還沒有好物～`;
+    }else if(!prodLoaded && !prodFailed){ // 還沒載完 → 只能說載入中,不可以說沒上架
+      inner = `<i class="fa-solid fa-spinner spin"></i>載入中…`;
+    }else if(prodFailed){
+      inner = `<i class="fa-solid fa-triangle-exclamation"></i>載入失敗,請確認網路<br>
+        <span id="shopRetry" style="display:inline-block;margin-top:12px;padding:8px 18px;border-radius:999px;
+        background:var(--brand,#2f5f97);color:#fff;font-size:14px;cursor:pointer">重新載入</span>`;
+    }else{
+      inner = `<i class="fa-regular fa-face-smile"></i>還沒有上架任何好物${isAdmin?"<br>點右下 <b>＋</b> 上架第一個商品":""}`;
+    }
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1">${inner}</div>`;
+    const rt = $("#shopRetry"); if(rt) rt.onclick = () => loadProducts(true);
     return;
   }
   g.innerHTML = `<div id="shopMore" style="grid-column:1/-1;height:1px"></div>`;
