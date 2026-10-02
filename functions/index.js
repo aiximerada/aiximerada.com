@@ -958,14 +958,16 @@ exports.dailyTodoRoutine = functions.runWith({ secrets: ["LINE_TOKEN"] }).region
 //      且買家/管理員需已加入「小助手」為好友。
 // =====================================================================
 async function pushLine(to, messages) {
-    if (!to) return;
+    if (!to) return false;
     try {
         await axios.post('https://api.line.me/v2/bot/message/push', {
             to: to,
             messages: messages
         }, { headers: { 'Authorization': `Bearer ${process.env.LINE_TOKEN}` } });
+        return true;
     } catch (e) {
         console.error(`代購推播失敗 (${to}):`, e.response ? JSON.stringify(e.response.data) : e.message);
+        return false;
     }
 }
 
@@ -990,8 +992,25 @@ async function getOrderItems(orderId) {
         return snap.docs.map(d => d.data()).filter(x => !x.cancelled);
     } catch (e) { return []; }
 }
-function itemsSummary(items) {
-    return items.map(x => `・${x.name || "商品"} ×${x.qty || 1}`).join("\n");
+function itemsSummary(items, max) {
+    // 只列前 max 項,其餘收成「…等 N 件」,避免大單洗版
+    const list = (max ? items.slice(0, max) : items).map(x => {
+        const nm = String(x.name || "商品");
+        return `・${nm.length > 24 ? nm.slice(0, 24) + "…" : nm} ×${x.qty || 1}`;
+    });
+    if (max && items.length > max) list.push(`…等共 ${items.length} 件`);
+    return list.join("\n");
+}
+const DAIGOU_LIFF_URL = "https://liff.line.me/2009464550-UWeV9K8C";
+// 新訂單通知:一張卡片(封面照 + 摘要 + 查看按鈕),不再另外連發照片
+function orderNoticeMessage(title, text, color, photo, button) {
+    const msg = createCardMessage(title, text, color, null, button);
+    if (photo) {
+        msg.contents.hero = {
+            type: "image", url: photo, size: "full", aspectRatio: "20:13", aspectMode: "cover",
+        };
+    }
+    return msg;
 }
 function collectPhotos(items, max) {
     const urls = [];
@@ -1008,25 +1027,31 @@ exports.daigouOrderCreated = functions.runWith({ secrets: ["LINE_TOKEN"] })
     .firestore.document("orders/{orderId}").onCreate(async (snap, context) => {
         const o = snap.data() || {};
         const items = await getOrderItems(context.params.orderId);
-        const summary = itemsSummary(items);
+        const count = o.itemCount || items.length || 0;
+        const summary = itemsSummary(items, 3);
+        // 付款改由本人事後收,不再顯示付款方式
         // 通知買家
         await pushLine(o.ownerLineId || o.ownerUid, [createCardMessage(
             "訂單已成立",
-            `✅ 已收到你的代購訂單！\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}\n\n可隨時到「我的訂單」查看進度。`,
-            "#06C755"
+            `✅ 已收到你的代購訂單！\n共 ${count} 件商品${summary ? "\n\n" + summary : ""}`,
+            "#06C755", null, { label: "查看我的訂單", uri: `${DAIGOU_LIFF_URL}?view=orders` }
         )]);
-        // 通知所有管理員(卡片 + 商品照片)
+        // 通知所有管理員:只推一張卡片(第一張商品照當封面),細節點按鈕到網站看
         const admins = await getDaigouAdminIds();
-        const adminMsg = createCardMessage(
+        const adminMsg = orderNoticeMessage(
             "有新的代購訂單",
-            `🛒 ${o.ownerRealName || o.ownerDisplayName || "買家"} 送出訂單\n共 ${o.itemCount || 0} 件商品\n付款方式：${o.payType || "-"}\n${summary ? "\n" + summary : ""}`,
-            "#3b6cff"
+            `🛒 ${o.ownerRealName || o.ownerDisplayName || "買家"}　共 ${count} 件${summary ? "\n\n" + summary : ""}`,
+            "#3b6cff", collectPhotos(items, 1)[0] || "",
+            { label: "查看訂單", uri: `${DAIGOU_LIFF_URL}?view=allorders` }
         );
-        const photos = collectPhotos(items, 4);
-        const imgMsgs = photos.map(u => ({ type: "image", originalContentUrl: u, previewImageUrl: u }));
         for (const id of admins) {
-            await pushLine(id, [adminMsg]);
-            if (imgMsgs.length) await pushLine(id, imgMsgs);
+            const ok = await pushLine(id, [adminMsg]);
+            // 封面照 LINE 不接受(格式/網址問題)時整則會被拒,改送不帶照片的版本,通知不能漏
+            if (!ok && adminMsg.contents.hero) {
+                const plain = JSON.parse(JSON.stringify(adminMsg));
+                delete plain.contents.hero;
+                await pushLine(id, [plain]);
+            }
         }
         return null;
     });

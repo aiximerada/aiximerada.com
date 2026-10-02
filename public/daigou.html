@@ -228,6 +228,11 @@
   .ph.filled{cursor:grab}
   .ph.filled:active{cursor:grabbing}
   .ph.over{outline:2px dashed var(--blue);outline-offset:2px;opacity:.75}
+  /* 新增商品:分享到好物推薦(要蓋掉 .form input 的 100% 寬) */
+  .form label.sharebox{display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:11px 12px;border-radius:12px;
+    background:var(--blue-lite);border:1px solid var(--bd2);color:var(--txt);font-weight:400;line-height:1.5;cursor:pointer}
+  .form label.sharebox input{width:18px;height:18px;flex:none;margin-top:2px;padding:0;accent-color:var(--blue)}
+  .form label.sharebox b{color:var(--blue-deep)}
   .ph .mv{position:absolute;left:4px;bottom:4px;display:flex;gap:4px}
   .ph .mv button{width:23px;height:23px;border:none;border-radius:7px;background:rgba(0,0,0,.55);color:#fff;font-size:14px;font-weight:800;line-height:1;cursor:pointer;padding:0}
   .ph .cover{position:absolute;top:5px;left:5px;background:rgba(31,95,151,.88);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
@@ -280,6 +285,24 @@
   .oitem .im{font-size:12.5px;color:var(--muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .oitem .im .price{color:var(--blue-deep);font-weight:700}
   .oitem.cancelled{opacity:.5}
+  /* 點訂單商品看詳情 */
+  .oitem [data-itemview]{cursor:pointer}
+  .oitem .in[data-itemview]:hover{color:var(--blue-deep);text-decoration:underline}
+  .oitem .shr{margin-top:7px;background:var(--blue-lite);border:1px solid var(--bd2);color:var(--blue-deep);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer}
+  .oitem .shr:disabled{opacity:.6;cursor:default}
+  .oitem .shared-tag{display:inline-block;margin-top:7px;font-size:12px;color:#1a8a4a;font-weight:700}
+  /* 全部商品(管理員):不分人逐件列出 */
+  .itsearch{width:100%;margin-bottom:10px;background:rgba(255,255,255,.85);border:1px solid var(--bd2);border-radius:12px;padding:11px 13px;font-size:15px;color:var(--txt)}
+  .itcount{font-size:12.5px;color:var(--muted);margin:0 2px 8px}
+  .itlist{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:2px 12px;box-shadow:var(--shadow)}
+  .itlist .oitem:first-child{border-top:none}
+  .itlist .who{font-size:12.5px;color:var(--blue-deep);font-weight:700}
+  /* 單件商品詳情 sheet */
+  #itBody .itnm{font-size:18px;font-weight:800;color:var(--txt);margin:12px 0 6px}
+  #itBody .itgrid{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin-top:8px}
+  #itBody .itgrid dt{color:var(--muted)}
+  #itBody .itgrid dd{margin:0;color:var(--txt);word-break:break-all}
+  #itBody .itnote{white-space:pre-wrap;background:var(--blue-lite);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px;line-height:1.6}
   .oitem .tagx{font-size:10px;color:var(--danger);border:1px solid rgba(229,85,110,.35);border-radius:6px;padding:1px 6px}
   .qtybox{display:flex;align-items:center;gap:0;margin-top:7px;width:fit-content;border:1px solid var(--bd2);border-radius:10px;overflow:hidden;background:#fff}
   .qtybox button{width:30px;height:30px;background:var(--blue-lite);border:none;color:var(--blue-deep);font-size:16px;font-weight:800;cursor:pointer}
@@ -564,7 +587,7 @@
         </div>
         <label>參考連結（選填）</label>
         <input id="a_ref" type="url" inputmode="url" placeholder="貼上商品網址…">
-        <label>商品照片（最多 3 張）</label>
+        <label>商品照片（最多 3 張；電腦可 Ctrl/⌘+V 貼上，或把圖片拖進格子）</label>
         <div class="photos" id="a_photos">
           <div class="ph" data-i="0"><i class="fa-solid fa-camera"></i></div>
           <div class="ph" data-i="1"><i class="fa-solid fa-plus"></i></div>
@@ -572,6 +595,8 @@
         </div>
         <label>說明 / 備註</label>
         <textarea id="a_note" placeholder="規格、顏色、尺寸、預計到貨…"></textarea>
+        <label class="sharebox"><input type="checkbox" id="a_share">
+          <span><b>同時分享到好物推薦</b>（放進「🔥 大家都在買」，其他人也能直接加入購物車）</span></label>
         <button class="btn-main" id="a_submit"><i class="fa-solid fa-cart-plus"></i> 加入購物車</button>
         <div class="fmsg" id="a_msg"></div>
       </div>
@@ -583,6 +608,7 @@
       <div id="orderModeBar" style="display:none">
         <button class="ordmode on" data-mode="mine"><i class="fa-solid fa-user"></i> 我的訂單</button>
         <button class="ordmode" data-mode="all"><i class="fa-solid fa-users"></i> 全部訂單</button>
+        <button class="ordmode" data-mode="items"><i class="fa-solid fa-boxes-stacked"></i> 全部商品</button>
       </div>
       <div id="ordersBox"><div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div></div>
     </section>
@@ -717,6 +743,14 @@
   </div>
 </div>
 
+<!-- 訂單內單件商品詳情(點訂單裡的商品打開) -->
+<div class="mask" id="itMask">
+  <div class="sheet">
+    <div class="sh-hd"><h2><i class="fa-solid fa-box-open" style="color:var(--blue)"></i> 訂單商品</h2><button class="x" id="itClose">&times;</button></div>
+    <div class="sh-body" id="itBody"></div>
+  </div>
+</div>
+
 <!-- 點商品照片放大看 -->
 <div class="lb" id="lbMask">
   <img id="lbImg" alt="商品照片">
@@ -843,6 +877,8 @@ function sliderHtml(p, cls, extra){
 }
 
 const CATEGORIES = ["美妝保養","藥妝保健","食品","生活雜貨","電器動漫","服飾配件","其他"];
+// 一般會員從「新增商品」分享上來的商品都歸這類,排在類別最前面方便大家找
+const HOT_CAT = "大家都在買";
 // 舊分類對應到新分類(零食甜點／食品飲料 已合併成「食品」)
 const CAT_ALIAS = { "零食甜點":"食品", "食品飲料":"食品" };
 const fixCat = c => CAT_ALIAS[c] || c || "其他";
@@ -909,7 +945,11 @@ function enterApp(){
   renderProfile();
   // 記住上次所在分頁,重整後回到原位(不強制回首頁)
   let lastTab=null; try{ lastTab=localStorage.getItem("daigou_tab"); }catch(e){}
-  if(lastTab && lastTab!=="home" && $("#page-"+lastTab)) switchTab(lastTab);
+  // LINE 通知的按鈕會帶 ?view=orders / ?view=allorders,直接打開對應的訂單畫面
+  let view=null; try{ view=new URLSearchParams(location.search).get("view"); }catch(e){}
+  if(view==="allorders" && isAdmin){ setOrderMode("all"); switchTab("orders"); }
+  else if(view==="orders" || view==="allorders"){ switchTab("orders"); }
+  else if(lastTab && lastTab!=="home" && $("#page-"+lastTab)) switchTab(lastTab);
   setTimeout(maybeShowIntro, 400);
 }
 
@@ -950,11 +990,16 @@ $("#pfSaveName").onclick = async () => {
 };
 $("#pfReload").onclick = () => location.reload();
 // 訂單模式切換(管理員:我的/全部)
+// 管理員:我的訂單 / 全部訂單 / 全部商品(不分人,逐件列出可搜尋)
+const ORDER_TITLES = { mine:"我的訂單", all:"全部訂單", items:"全部商品" };
+function setOrderMode(m){
+  orderMode=m;
+  $$("#orderModeBar .ordmode").forEach(x=>x.classList.toggle("on", x.dataset.mode===m));
+  $("#ordersTitle").textContent = ORDER_TITLES[m] || "我的訂單";
+}
 $("#orderModeBar").addEventListener("click", e => {
   const b=e.target.closest(".ordmode"); if(!b) return;
-  orderMode=b.dataset.mode;
-  $$("#orderModeBar .ordmode").forEach(x=>x.classList.toggle("on", x===b));
-  $("#ordersTitle").textContent = orderMode==="all"?"全部訂單":"我的訂單";
+  setOrderMode(b.dataset.mode);
   loadOrders();
 });
 
@@ -1074,9 +1119,9 @@ $("#cdSave").onclick=async()=>{
    沒拿到過就只能顯示「載入中」,不可以說「還沒上架」——那是這個畫面誤判的主因。 */
 let PRODUCTS = [], curCat = "全部", prodLoaded = false, prodFailed = false;
 function buildCategoryUI(){
-  const cats = ["全部", ...CATEGORIES];
-  $("#shopCats").innerHTML = cats.map(c => `<div class="chip${c===curCat?" on":""}" data-c="${esc(c)}">${esc(c)}</div>`).join("");
-  $("#p_cat").innerHTML = CATEGORIES.map(c => `<option>${esc(c)}</option>`).join("");
+  const cats = ["全部", HOT_CAT, ...CATEGORIES];
+  $("#shopCats").innerHTML = cats.map(c => `<div class="chip${c===curCat?" on":""}" data-c="${esc(c)}">${c===HOT_CAT?"🔥 ":""}${esc(c)}</div>`).join("");
+  $("#p_cat").innerHTML = [...CATEGORIES, HOT_CAT].map(c => `<option>${esc(c)}</option>`).join("");
 }
 $("#shopCats").addEventListener("click", e => {
   const c = e.target.closest(".chip"); if(!c) return;
@@ -1333,6 +1378,9 @@ function openProductView(id){
   const meta = [];
   if(p.store) meta.push(`<span><i class="fa-solid fa-store"></i>${esc(p.store)}</span>`);
   meta.push(`<span><i class="fa-solid fa-tag"></i>${esc(fixCat(p.category))}</span>`);
+  if(p.sharedByUser && p.sharedByName) meta.push(`<span><i class="fa-solid fa-user"></i>${esc(p.sharedByName)} 分享</span>`);
+  // 會員分享的商品,分享者本人也可以自己下架(編輯仍只限管理員)
+  const canDel = isAdmin || (p.sharedByUser && me && p.createdBy === me.lineUserId);
   const cols = Array.isArray(p.colors) ? p.colors.filter(Boolean) : [];
   $("#pvBody").innerHTML = `
     <div class="pvleft">${sliderHtml(p, "pvimg")}</div>
@@ -1358,7 +1406,7 @@ function openProductView(id){
       <button class="pvadd" id="pvAdd"><i class="fa-solid fa-cart-plus"></i> 加入購物車</button>
     </div>
     ${p.refLink?`<button class="pvlink" data-ref="${esc(p.refLink)}"><i class="fa-solid fa-link"></i> 看商品原始頁面</button>`:""}
-    ${isAdmin?`<div class="pvadm"><button data-edit="1"><i class="fa-solid fa-pen"></i> 編輯</button><button class="del" data-del="1"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
+    ${canDel?`<div class="pvadm">${isAdmin?`<button data-edit="1"><i class="fa-solid fa-pen"></i> 編輯</button>`:""}<button class="del" data-del="1"><i class="fa-solid fa-trash"></i> 下架</button></div>`:""}
     </div>
   `;
   const sel = $("#pvColor");
@@ -1413,7 +1461,8 @@ $("#pvBody").addEventListener("click", async e => {
     try{
       await addDoc(collection(db,"daigouItems"), {
         ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
-        name:p.name, price:Number(opt ? opt.price : p.price)||0, currency:p.currency||"NT$", qty,
+        // 會員分享的商品沒有價格:跟自己新增的商品一樣留空(購物車顯示「—」),不要變成 0
+        name:p.name, price:(Number(opt ? opt.price : p.price)||null), currency:(p.price||opt) ? (p.currency||"NT$") : "", qty,
         store:p.store||"", category:fixCat(p.category), color, colorAlt, refLink:p.refLink||"",
         note:p.effect?("功效:"+p.effect):"", photos:productImgs(p),
         fromProductId:p.id, submitted:false, orderId:null, cancelled:false, costPaid:0,
@@ -1626,15 +1675,54 @@ $("#a_photos").addEventListener("click", e => {
   }
   fileTarget="add"; curPhIdx=+ph.dataset.i; $("#fileInput").click();
 });
+function setAddPhoto(i, f){
+  addPhotos[i]=f; const u=URL.createObjectURL(f);
+  const ph=$(`#a_photos .ph[data-i="${i}"]`); ph.style.backgroundImage=`url('${u}')`; ph.innerHTML='<button class="del">&times;</button>';
+}
+// 貼上/拖進來的照片:指定格子有圖就往後找空格,三格都滿就提示
+function putAddPhoto(f, prefer){
+  let i = (prefer!=null && !addPhotos[prefer]) ? prefer : addPhotos.findIndex(x => !x);
+  if(i < 0){ const m=$("#a_msg"); m.className="fmsg err"; m.textContent="已經 3 張了,先刪一張再加"; return false; }
+  setAddPhoto(i, f); return true;
+}
 $("#fileInput").addEventListener("change", e => {
   const f = e.target.files[0]; if(!f) return;
   if(fileTarget==="prod"){
     setProdSlot(prodPickIdx, f);
   }else{
-    addPhotos[curPhIdx]=f; const u=URL.createObjectURL(f);
-    const ph=$(`#a_photos .ph[data-i="${curPhIdx}"]`); ph.style.backgroundImage=`url('${u}')`; ph.innerHTML='<button class="del">&times;</button>';
+    setAddPhoto(curPhIdx, f);
   }
   e.target.value="";
+});
+// 電腦上:在「新增商品」頁直接 Ctrl/⌘+V 貼圖(上架視窗開著時交給上架那邊處理)
+window.addEventListener("paste", e => {
+  if(!$("#page-add").classList.contains("on") || $("#prodMask").classList.contains("show")) return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  for(const it of items){
+    if(it.type && it.type.indexOf("image")===0){
+      const f=it.getAsFile();
+      if(f){ e.preventDefault(); putAddPhoto(f); break; }
+    }
+  }
+});
+// 從電腦把圖片檔拖進照片格(拖到哪格就放哪格,那格有圖就放下一個空格)
+$("#a_photos").addEventListener("dragover", e => {
+  if(!e.dataTransfer || ![...(e.dataTransfer.types||[])].includes("Files")) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = "copy";
+  const ph = e.target.closest(".ph");
+  $$("#a_photos .ph").forEach(x => x.classList.toggle("over", x === ph));
+});
+$("#a_photos").addEventListener("dragleave", e => {
+  if(!e.relatedTarget || !$("#a_photos").contains(e.relatedTarget)) $$("#a_photos .ph").forEach(x => x.classList.remove("over"));
+});
+$("#a_photos").addEventListener("drop", e => {
+  const files = [...((e.dataTransfer && e.dataTransfer.files) || [])].filter(f => f.type && f.type.indexOf("image/")===0);
+  $$("#a_photos .ph").forEach(x => x.classList.remove("over"));
+  if(!files.length) return;
+  e.preventDefault();
+  const ph = e.target.closest(".ph");
+  let prefer = ph ? +ph.dataset.i : null;
+  for(const f of files){ if(!putAddPhoto(f, prefer)) break; prefer = null; }
 });
 $("#a_submit").onclick = async () => {
   const name=$("#a_name").value.trim(), msg=$("#a_msg"); msg.className="fmsg";
@@ -1645,16 +1733,39 @@ $("#a_submit").onclick = async () => {
     const urls=[];
     for(let i=0;i<addPhotos.length;i++){ if(!addPhotos[i])continue;
       const r=ref(storage,`daigou/${me.lineUserId}/${Date.now()}_${i}.jpg`); await uploadBytes(r, await shrinkImage(addPhotos[i])); urls.push(await getDownloadURL(r)); }
-    await addDoc(collection(db,"daigouItems"), {
+    const itemRef = await addDoc(collection(db,"daigouItems"), {
       ownerUid:me.lineUserId, ownerLineId:me.lineUserId, ownerRealName:me.realName, ownerDisplayName:me.displayName||"",
       name, price:null, currency:"", qty:Number($("#a_qty").value)||1,
       store:$("#a_store").value.trim(), refLink:$("#a_ref").value.trim(), note:$("#a_note").value.trim(), photos:urls,
       submitted:false, orderId:null, cancelled:false, costPaid:0, createdAt:serverTimestamp(), submittedAt:null
     });
-    ["a_name","a_store","a_ref","a_note"].forEach(id=>$("#"+id).value=""); $("#a_qty").value="1";
+    // 勾了分享:同一份資料(照片沿用剛上傳的網址)上架到好物推薦的「大家都在買」
+    const shared = $("#a_share").checked;
+    let shareErr = "";
+    if(shared){
+      try{
+        const pref = await addDoc(collection(db,"daigouProducts"), {
+          name, price:null, priceTax:null, currency:"", category:HOT_CAT,
+          store:$("#a_store").value.trim(), colors:[], optPrices:[], effect:$("#a_note").value.trim(),
+          refLink:$("#a_ref").value.trim(), imgs:urls, img:urls[0]||"",
+          sharedByUser:true, sharedByName:me.realName||me.displayName||"", fromItemId:itemRef.id,
+          createdBy:me.lineUserId, createdAt:serverTimestamp()
+        });
+        // 記在購物車那件上,之後「我的訂單」就顯示已分享,不會重複上架
+        try{ await updateDoc(itemRef, { sharedProductId:pref.id }); }catch(e3){}
+        loadProducts(true);
+      }catch(e2){ shareErr = e2.message; }
+    }
+    ["a_name","a_store","a_ref","a_note"].forEach(id=>$("#"+id).value=""); $("#a_qty").value="1"; $("#a_share").checked=false;
     for(let i=0;i<3;i++){ addPhotos[i]=null; const ph=$(`#a_photos .ph[data-i="${i}"]`); ph.style.backgroundImage=""; ph.innerHTML=i===0?'<i class="fa-solid fa-camera"></i>':'<i class="fa-solid fa-plus"></i>'; }
-    msg.className="fmsg"; msg.textContent="✅ 已加入購物車";
-    loadCart(); setTimeout(()=>{ msg.textContent=""; openCart(); }, 700);
+    if(shareErr){
+      // 錯誤訊息留著讓人看到,不自動跳購物車
+      msg.className="fmsg err"; msg.textContent="✅ 已加入購物車,但分享到好物推薦失敗:"+shareErr;
+      loadCart();
+    }else{
+      msg.className="fmsg"; msg.textContent = shared ? "✅ 已加入購物車,也分享到「大家都在買」了" : "✅ 已加入購物車";
+      loadCart(); setTimeout(()=>{ msg.textContent=""; openCart(); }, shared ? 1400 : 700);
+    }
   }catch(err){ msg.className="fmsg err"; msg.textContent=err.message; }
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cart-plus"></i> 加入購物車';
 };
@@ -1736,7 +1847,7 @@ async function loadOrders(){
   const box=$("#ordersBox");
   box.innerHTML=`<div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
   try{ await configReady; }catch(e){}
-  const all = (orderMode==="all" && isAdmin);
+  const all = ((orderMode==="all" || orderMode==="items") && isAdmin);
   try{
     let oList=[];
     if(all){
@@ -1756,7 +1867,8 @@ async function loadOrders(){
     ORDERS = oList.filter(o => o.deleted !== true);   // 按過刪除的取消訂單不再顯示(資料還在,只是隱藏)
   }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
   if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
-  if(all){ renderGroupedOrders(); }
+  if(all && orderMode==="items"){ renderAllItems(); }
+  else if(all){ renderGroupedOrders(); }
   else{
     box.innerHTML = ORDERS.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), false)).join("");
     bindOrderEvents();
@@ -1833,10 +1945,17 @@ function orderCard(o, items, showBuyer){
     if(it.price!=null&&it.price!=="") meta.push(`<span class="price">${esc(it.currency||"")}${esc(it.price)}</span>`);
     if(it.color) meta.push(`<span><i class="fa-solid fa-palette" style="opacity:.6"></i> ${esc(it.color)}${it.colorAlt?`（備選:${esc(it.colorAlt)}）`:""}</span>`);
     if(it.store) meta.push(`<span><i class="fa-solid fa-store" style="opacity:.6"></i> ${esc(it.store)}</span>`);
+    // 自己新增(不是從好物推薦買)的商品,可以事後補分享到好物推薦
+    const mine = me && it.ownerUid===me.lineUserId;
+    const shareHtml = (!ic && mine && !it.fromProductId)
+      ? (it.sharedProductId
+          ? `<div class="shared-tag"><i class="fa-solid fa-check"></i> 已分享到好物推薦</div>`
+          : `<button class="shr" data-share="${esc(it.id)}"><i class="fa-solid fa-fire"></i> 分享到好物推薦</button>`)
+      : "";
     return `<div class="oitem${ic?" cancelled":""}">
-      <div class="th" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
+      <div class="th" data-itemview="${esc(it.id)}" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
       <div class="ib">
-        <div class="in">${esc(it.name||"未命名")}</div>
+        <div class="in" data-itemview="${esc(it.id)}">${esc(it.name||"未命名")}</div>
         <div class="im">${meta.join("")} ${ic?'<span class="tagx">已移除</span>':""}</div>
         ${(!ic&&canEdit)?`<div class="qtybox"><button data-dec="${esc(it.id)}">−</button><span id="q-${esc(it.id)}">${esc(it.qty||1)}</span><button data-inc="${esc(it.id)}">＋</button></div>
           <button class="rm" data-rm="${esc(it.id)}"><i class="fa-solid fa-xmark"></i> 移除此商品</button>`
@@ -1845,6 +1964,7 @@ function orderCard(o, items, showBuyer){
           ${BOUGHT_STATES.map(s=>`<button data-bought="${esc(it.id)}|${esc(s.v)}" class="${(it.bought||"")===s.v?"on "+s.k:""}">${esc(s.t)}</button>`).join("")}
         </div>`:""}
         ${(!isAdmin && it.bought)?`<div class="im"><span class="bs-tag ${esc(BOUGHT_KEY[it.bought]||"")}">${esc(BOUGHT_LABEL[it.bought]||it.bought)}</span></div>`:""}
+        ${shareHtml}
       </div>
     </div>`;
   }).join("") : `<div style="color:var(--muted);font-size:13px;padding:8px 0">此訂單沒有商品</div>`;
@@ -1873,6 +1993,102 @@ function bindOrderEvents(){
   box.querySelectorAll("[data-cancelorder]").forEach(b=>b.onclick=()=>cancelOrder(b.dataset.cancelorder,b));
   box.querySelectorAll("[data-bought]").forEach(b=>b.onclick=()=>setBought(b));
   box.querySelectorAll("[data-delorder]").forEach(b=>b.onclick=()=>deleteOrder(b.dataset.delorder,b));
+  box.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareItem(b.dataset.share,b));
+}
+// 點商品縮圖/名稱 → 單件詳情(事件代理,全部訂單/全部商品/我的訂單通用)
+$("#ordersBox").addEventListener("click", e => {
+  const v = e.target.closest("[data-itemview]");
+  if(v) openItemView(v.dataset.itemview);
+});
+function findItem(id){
+  for(const k in ITEMS){ const it = ITEMS[k].find(x=>x.id===id); if(it) return it; }
+  return null;
+}
+function openItemView(id){
+  const it = findItem(id); if(!it) return;
+  const o = ORDERS.find(x=>x.id===it.orderId) || {};
+  const pics = (Array.isArray(it.photos) ? it.photos : []).filter(Boolean);
+  const rows = [];
+  const add = (k,v) => { if(v!=null && v!=="") rows.push(`<dt>${k}</dt><dd>${v}</dd>`); };
+  add("數量", esc(it.qty||1));
+  if(it.price!=null && it.price!=="") add("價格", esc((it.currency||"")+" "+it.price));
+  add("款式", it.color ? esc(it.color)+(it.colorAlt?`（備選:${esc(it.colorAlt)}）`:"") : "");
+  add("店家", esc(it.store||""));
+  add("採購", it.bought ? esc(it.bought) : (isAdmin?"未處理":""));
+  if(it.cancelled===true) add("狀態", "已從訂單移除");
+  add("下單的人", esc(o.ownerRealName||o.ownerDisplayName||it.ownerRealName||""));
+  add("訂單", `${esc(o.status||"")}　${esc(fmtDate(o.createdAt))}`);
+  add("單號", esc(it.orderId||""));
+  $("#itBody").innerHTML = `
+    ${pics.length ? sliderHtml({imgs:pics}, "pvimg") : ""}
+    <div class="itnm">${esc(it.name||"未命名")}</div>
+    <dl class="itgrid">${rows.join("")}</dl>
+    ${it.note?`<div class="itnote">${esc(it.note)}</div>`:""}
+    ${it.refLink?`<button class="pvlink" data-ref="${esc(it.refLink)}"><i class="fa-solid fa-link"></i> 看商品原始頁面</button>`:""}`;
+  $$("#itBody .sl").forEach(preloadSlide);
+  $("#itMask").classList.add("show");
+}
+$("#itClose").onclick = () => $("#itMask").classList.remove("show");
+$("#itBody").addEventListener("click", e => {
+  const navb = e.target.closest("[data-nav]");
+  if(navb){ slideNav(navb); return; }
+  const refb = e.target.closest("[data-ref]");
+  if(refb){ window.open(refb.dataset.ref, "_blank"); return; }
+  const box = e.target.closest(".pvimg");
+  if(box){
+    const sl = box.querySelectorAll(".sl")[Number(box.dataset.idx||0)];
+    const url = sl && (sl.dataset.bg || (sl.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/)||[])[1]);
+    openLightbox(url);
+  }
+});
+// 全部商品(管理員):不分人,逐件列出,可搜尋名稱/下單的人/店家/備註
+let itemQuery = "";
+function renderAllItems(){
+  const box = $("#ordersBox");
+  const rows = [];
+  ORDERS.forEach(o => (ITEMS[o.id]||[]).forEach(it => { if(it.cancelled!==true) rows.push({o, it}); }));
+  rows.sort((a,b)=>secOf(b.o.createdAt)-secOf(a.o.createdAt) || secOf(a.it.createdAt)-secOf(b.it.createdAt));
+  box.innerHTML = `<input class="itsearch" id="itSearch" placeholder="搜尋商品名稱、下單的人、店家、備註…" value="${esc(itemQuery)}">
+    <div class="itcount" id="itCount"></div><div class="itlist" id="itList"></div>`;
+  const draw = () => {
+    const q = itemQuery.trim().toLowerCase();
+    const list = q ? rows.filter(({o,it}) => [it.name, o.ownerRealName, o.ownerDisplayName, it.store, it.note, it.color]
+      .some(s => String(s||"").toLowerCase().includes(q))) : rows;
+    $("#itCount").textContent = `共 ${list.length} 件${q?`（搜尋「${itemQuery.trim()}」）`:""}`;
+    $("#itList").innerHTML = list.length ? list.map(({o,it}) => {
+      const photo = (Array.isArray(it.photos)&&it.photos[0])||"";
+      const meta = [`<span class="who"><i class="fa-solid fa-user"></i> ${esc(o.ownerRealName||o.ownerDisplayName||"（未填名）")}</span>`, `<span>× ${esc(it.qty||1)}</span>`];
+      if(it.color) meta.push(`<span>${esc(it.color)}</span>`);
+      if(it.bought) meta.push(`<span class="bs-tag ${esc(BOUGHT_KEY[it.bought]||"")}">${esc(BOUGHT_LABEL[it.bought]||it.bought)}</span>`);
+      return `<div class="oitem">
+        <div class="th" data-itemview="${esc(it.id)}" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
+        <div class="ib"><div class="in" data-itemview="${esc(it.id)}">${esc(it.name||"未命名")}</div><div class="im">${meta.join("")}</div></div>
+      </div>`;
+    }).join("") : `<div class="empty" style="padding:24px 0">找不到符合的商品</div>`;
+  };
+  draw();
+  $("#itSearch").addEventListener("input", e => { itemQuery = e.target.value; draw(); });
+}
+// 我的訂單:把自己新增的商品補分享到好物推薦「大家都在買」
+async function shareItem(itemId, btn){
+  const it = findItem(itemId); if(!it || it.sharedProductId) return;
+  if(!confirm(`把「${it.name||"這個商品"}」分享到好物推薦的「大家都在買」?\n其他人會看到名稱、照片、店家、連結和備註。`)) return;
+  btn.disabled = true; const old = btn.innerHTML;
+  btn.innerHTML = '<i class="fa-solid fa-spinner spin"></i> 分享中…';
+  try{
+    const imgs = (Array.isArray(it.photos) ? it.photos : []).filter(Boolean);
+    const ref_ = await addDoc(collection(db,"daigouProducts"), {
+      name:it.name||"未命名", price:null, priceTax:null, currency:"", category:HOT_CAT,
+      store:it.store||"", colors:[], optPrices:[], effect:it.note||"", refLink:it.refLink||"",
+      imgs, img:imgs[0]||"",
+      sharedByUser:true, sharedByName:me.realName||me.displayName||"", fromItemId:it.id,
+      createdBy:me.lineUserId, createdAt:serverTimestamp()
+    });
+    await updateDoc(doc(db,"daigouItems",it.id), { sharedProductId:ref_.id });
+    it.sharedProductId = ref_.id;
+    btn.outerHTML = `<div class="shared-tag"><i class="fa-solid fa-check"></i> 已分享到好物推薦</div>`;
+    loadProducts(true);
+  }catch(err){ btn.disabled=false; btn.innerHTML=old; alert("分享失敗:"+err.message); }
 }
 // 刪除已取消的訂單:只標記隱藏,資料留著(萬一誤刪還救得回來)
 async function deleteOrder(orderId, btn){
