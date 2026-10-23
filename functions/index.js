@@ -1008,6 +1008,8 @@ function orderNoticeMessage(title, text, color, photo, button) {
     if (photo) {
         msg.contents.hero = {
             type: "image", url: photo, size: "full", aspectRatio: "20:13", aspectMode: "cover",
+            // 點封面照開原圖(LINE 內建瀏覽器看完整照片,不會被裁切)
+            action: { type: "uri", label: "查看照片", uri: photo },
         };
     }
     return msg;

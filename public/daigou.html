@@ -145,7 +145,8 @@
   .pcard .more i{font-size:10px}
 
   /* 商品詳情 sheet:內容、選項、數量都收在這裡,列表才不會擠 */
-  #pvBody .pvimg{aspect-ratio:4/3;border-radius:14px;margin-top:4px;cursor:zoom-in}
+  #pvBody .pvimg, #itBody .pvimg{aspect-ratio:4/3;border-radius:14px;margin-top:4px;cursor:zoom-in}
+  .oitem .th.zoom{cursor:zoom-in}
   /* 放大看圖 */
   .lb{position:fixed;inset:0;z-index:80;background:rgba(10,22,38,.93);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
     display:none;align-items:center;justify-content:center;padding:18px}
@@ -154,7 +155,7 @@
   .lb .x{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:16px;background:rgba(255,255,255,.16);border:none;color:#fff;
     font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;line-height:1}
   .lb .hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 18px);text-align:center;color:rgba(255,255,255,.65);font-size:12.5px}
-  #pvBody .pvimg .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:38px}
+  #pvBody .pvimg .noimg, #itBody .pvimg .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#a9c2d8;font-size:38px}
   #pvBody .pvnm{font-size:17px;font-weight:800;line-height:1.45;color:var(--txt);margin-top:14px}
   #pvBody .pvpr{font-size:25px;font-weight:800;color:var(--blue-deep);line-height:1.2;margin-top:8px}
   #pvBody .pvpr .prtax{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-top:3px}
@@ -1843,29 +1844,67 @@ function secOf(t){ return (t&&t.seconds)||0; }
 function fmtDate(t){ if(!t||!t.seconds) return "—"; const d=new Date(t.seconds*1000);
   return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
 let ORDERS=[], ITEMS={}, orderMode="mine";
-async function loadOrders(){
-  const box=$("#ordersBox");
-  box.innerHTML=`<div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+/* 訂單快取:上次載好的訂單存在手機裡,下次進來先秒出,再背景抓最新的,有變才重畫 */
+const ORDER_CACHE_KEY = all => `daigou_orders_v1_${(me&&me.lineUserId)||""}_${all?"all":"mine"}`;
+function readOrderCache(all){
+  try{ const c=JSON.parse(localStorage.getItem(ORDER_CACHE_KEY(all))||"null"); return (c && Array.isArray(c.orders)) ? c : null; }catch(e){ return null; }
+}
+function writeOrderCache(all){
+  // 空的不存:連線不穩時 Firestore 偶爾會回 0 筆,存了會害下次一直顯示沒訂單
+  if(!ORDERS.length) return;
+  try{ localStorage.setItem(ORDER_CACHE_KEY(all), JSON.stringify({ t:Date.now(), orders:ORDERS, items:ITEMS })); }catch(e){}
+}
+const orderSig = () => JSON.stringify([ORDERS, ITEMS]);
+async function fetchOrders(all){
+  const ownQ = all ? collection(db,"orders") : query(collection(db,"orders"), where("ownerUid","==",me.lineUserId));
+  const itemQ = all
+    ? query(collection(db,"daigouItems"), where("submitted","==",true))
+    : query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true));
+  // 訂單跟商品同時抓,不要一個等一個
+  const [qs, qi] = await Promise.all([
+    getDocs(ownQ).catch(async e => { if(all) throw e;
+      const s=await getDocs(collection(db,"orders")); return { forEach:f=>s.forEach(d=>{ if(d.data().ownerUid===me.lineUserId) f(d); }) }; }),
+    getDocs(itemQ),
+  ]);
+  let oList=[]; qs.forEach(d=>oList.push({id:d.id,...d.data()}));
+  oList.sort((a,b)=>secOf(b.createdAt)-secOf(a.createdAt));
+  const items={};
+  qi.forEach(d=>{ const it={id:d.id,...d.data()}; (items[it.orderId]=items[it.orderId]||[]).push(it); });
   try{ await configReady; }catch(e){}
+  const archSec = CFG.archivedBefore && CFG.archivedBefore.seconds;
+  if(archSec) oList = oList.filter(o=>secOf(o.createdAt) >= archSec);
+  return { orders: oList.filter(o => o.deleted !== true), items };   // 按過刪除的取消訂單不再顯示(資料還在,只是隱藏)
+}
+let orderLoadSeq = 0;
+// afterEdit:剛改過訂單(移除/取消/刪除),畫面先維持現狀,直接等最新資料,不拿舊快取出來閃一下
+async function loadOrders(afterEdit){
+  const box=$("#ordersBox");
   const all = ((orderMode==="all" || orderMode==="items") && isAdmin);
-  try{
-    let oList=[];
-    if(all){
-      const qs=await getDocs(collection(db,"orders")); qs.forEach(d=>oList.push({id:d.id,...d.data()}));
-    }else{
-      try{ const qs=await getDocs(query(collection(db,"orders"), where("ownerUid","==",me.lineUserId))); qs.forEach(d=>oList.push({id:d.id,...d.data()})); }
-      catch(e){ const qs=await getDocs(collection(db,"orders")); qs.forEach(d=>{const o={id:d.id,...d.data()}; if(o.ownerUid===me.lineUserId)oList.push(o);}); }
-    }
-    oList.sort((a,b)=>secOf(b.createdAt)-secOf(a.createdAt));
-    ITEMS={};
-    const qi = all
-      ? await getDocs(query(collection(db,"daigouItems"), where("submitted","==",true)))
-      : await getDocs(query(collection(db,"daigouItems"), where("ownerUid","==",me.lineUserId), where("submitted","==",true)));
-    qi.forEach(d=>{ const it={id:d.id,...d.data()}; (ITEMS[it.orderId]=ITEMS[it.orderId]||[]).push(it); });
-    const archSec = CFG.archivedBefore && CFG.archivedBefore.seconds;
-    if(archSec) oList = oList.filter(o=>secOf(o.createdAt) >= archSec);
-    ORDERS = oList.filter(o => o.deleted !== true);   // 按過刪除的取消訂單不再顯示(資料還在,只是隱藏)
-  }catch(err){ box.innerHTML=`<div class="empty">載入訂單失敗：${esc(err.message||err)}</div>`; return; }
+  const seq = ++orderLoadSeq, myMode = orderMode;
+  const cache = afterEdit ? null : readOrderCache(all);
+  if(cache){ ORDERS=cache.orders; ITEMS=cache.items||{}; renderOrders(all); }
+  else if(!afterEdit) box.innerHTML=`<div class="empty"><i class="fa-solid fa-spinner spin"></i>載入中…</div>`;
+  let fresh;
+  for(let i=0;i<3;i++){
+    try{
+      fresh = await fetchOrders(all);
+      if(fresh.orders.length || !cache || i===2) break;   // 回 0 筆但手上有快取 → 可能是連線怪,重抓一次
+    }catch(err){ fresh = null; if(i===2) break; }
+    await new Promise(r=>setTimeout(r, i?1500:600));
+  }
+  if(seq!==orderLoadSeq || myMode!==orderMode) return;   // 使用者已切到別的模式,這次的結果作廢
+  if(!fresh){
+    if(!cache && !afterEdit) box.innerHTML=`<div class="empty">載入訂單失敗,請稍後再試</div>`;
+    return;   // 有快取(或畫面上已有資料)就繼續顯示
+  }
+  const before = cache ? orderSig() : null;
+  ORDERS=fresh.orders; ITEMS=fresh.items;
+  if(ORDERS.length) writeOrderCache(all);
+  else try{ localStorage.removeItem(ORDER_CACHE_KEY(all)); }catch(e){}
+  if(before===null || before!==orderSig()) renderOrders(all);
+}
+function renderOrders(all){
+  const box=$("#ordersBox");
   if(!ORDERS.length){ box.innerHTML=`<div class="empty"><i class="fa-solid fa-box-open"></i>${all?"目前沒有任何訂單":"你還沒有送出任何訂單"}</div>`; return; }
   if(all && orderMode==="items"){ renderAllItems(); }
   else if(all){ renderGroupedOrders(); }
@@ -1879,18 +1918,22 @@ function renderGroupedOrders(){
   const groups={};
   ORDERS.forEach(o=>{ const k=o.ownerRealName||o.ownerDisplayName||"（未填名）"; (groups[k]=groups[k]||[]).push(o); });
   const box=$("#ordersBox");
+  // 背景更新重畫時,原本展開的人保持展開
+  const opened=new Set([...box.querySelectorAll(".grp-head")].filter(h=>{
+    const b=document.getElementById("grp-body-"+h.dataset.grp); return b && b.style.display!=="none";
+  }).map(h=>h.querySelector("[data-export]").dataset.name));
   box.innerHTML=Object.entries(groups).map(([name,os],gi)=>{
-    const pid="p"+gi;
+    const pid="p"+gi, isOpen=opened.has(name);
     const inner=os.map(o=>orderCard(o,(ITEMS[o.id]||[]).slice().sort((a,b)=>secOf(a.createdAt)-secOf(b.createdAt)), false)).join("");
     return `<div class="grp">
       <div class="grp-head" data-grp="${pid}">
         <div class="grp-name"><i class="fa-solid fa-user"></i> ${esc(name)} <span class="grp-cnt">${os.length} 筆</span></div>
         <div class="grp-ops">
           <button class="grp-exp" data-export="${pid}" data-name="${esc(name)}" title="匯出圖片"><i class="fa-solid fa-image"></i></button>
-          <i class="fa-solid fa-chevron-down grp-caret"></i>
+          <i class="fa-solid fa-chevron-down grp-caret"${isOpen?' style="transform:rotate(180deg)"':""}></i>
         </div>
       </div>
-      <div class="grp-body" id="grp-body-${pid}" style="display:none">${inner}</div>
+      <div class="grp-body" id="grp-body-${pid}" style="display:${isOpen?"block":"none"}">${inner}</div>
     </div>`;
   }).join("");
   box.querySelectorAll(".grp-head").forEach(h=>h.onclick=e=>{
@@ -1953,7 +1996,7 @@ function orderCard(o, items, showBuyer){
           : `<button class="shr" data-share="${esc(it.id)}"><i class="fa-solid fa-fire"></i> 分享到好物推薦</button>`)
       : "";
     return `<div class="oitem${ic?" cancelled":""}">
-      <div class="th" data-itemview="${esc(it.id)}" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
+      ${thumbHtml(it.id, photo)}
       <div class="ib">
         <div class="in" data-itemview="${esc(it.id)}">${esc(it.name||"未命名")}</div>
         <div class="im">${meta.join("")} ${ic?'<span class="tagx">已移除</span>':""}</div>
@@ -1995,8 +2038,16 @@ function bindOrderEvents(){
   box.querySelectorAll("[data-delorder]").forEach(b=>b.onclick=()=>deleteOrder(b.dataset.delorder,b));
   box.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareItem(b.dataset.share,b));
 }
-// 點商品縮圖/名稱 → 單件詳情(事件代理,全部訂單/全部商品/我的訂單通用)
+// 訂單商品縮圖:有照片點了直接放大看,沒照片就開單件詳情
+function thumbHtml(id, photo){
+  return photo
+    ? `<div class="th zoom" data-zoom="${esc(photo)}" style="background-image:url('${esc(photo)}')"></div>`
+    : `<div class="th" data-itemview="${esc(id)}"><i class="fa-regular fa-image"></i></div>`;
+}
+// 點商品縮圖/名稱 → 放大圖或單件詳情(事件代理,全部訂單/全部商品/我的訂單通用)
 $("#ordersBox").addEventListener("click", e => {
+  const z = e.target.closest("[data-zoom]");
+  if(z){ openLightbox(z.dataset.zoom); return; }
   const v = e.target.closest("[data-itemview]");
   if(v) openItemView(v.dataset.itemview);
 });
@@ -2061,7 +2112,7 @@ function renderAllItems(){
       if(it.color) meta.push(`<span>${esc(it.color)}</span>`);
       if(it.bought) meta.push(`<span class="bs-tag ${esc(BOUGHT_KEY[it.bought]||"")}">${esc(BOUGHT_LABEL[it.bought]||it.bought)}</span>`);
       return `<div class="oitem">
-        <div class="th" data-itemview="${esc(it.id)}" style="background-image:url('${esc(photo)}')">${photo?"":'<i class="fa-regular fa-image"></i>'}</div>
+        ${thumbHtml(it.id, photo)}
         <div class="ib"><div class="in" data-itemview="${esc(it.id)}">${esc(it.name||"未命名")}</div><div class="im">${meta.join("")}</div></div>
       </div>`;
     }).join("") : `<div class="empty" style="padding:24px 0">找不到符合的商品</div>`;
@@ -2097,7 +2148,7 @@ async function deleteOrder(orderId, btn){
   btn.innerHTML='<i class="fa-solid fa-spinner spin"></i> 刪除中…';
   try{
     await updateDoc(doc(db,"orders",orderId), { deleted:true, updatedAt:serverTimestamp() });
-    await loadOrders();
+    await loadOrders(true);
   }catch(err){
     alert("刪除失敗:"+err.message); btn.disabled=false; btn.innerHTML=old;
   }
@@ -2114,6 +2165,7 @@ async function setBought(btn){
   });
   try{
     await updateDoc(doc(db,"daigouItems",itemId), { bought: val });
+    patchItem(itemId, { bought: val });
   }catch(e){
     row.querySelectorAll("button").forEach((b,i)=> b.className = prev[i]);   // 失敗就還原
     alert("更新失敗:" + e.message);
@@ -2124,12 +2176,18 @@ async function changeQty(itemId, delta){
   const span=document.getElementById("q-"+itemId); if(!span) return;
   let q=(parseInt(span.textContent,10)||1)+delta; if(q<1) q=1;
   span.textContent=q;
-  try{ await updateDoc(doc(db,"daigouItems",itemId), { qty:q }); }catch(err){ alert("更新失敗:"+err.message); }
+  try{ await updateDoc(doc(db,"daigouItems",itemId), { qty:q }); patchItem(itemId, { qty:q }); }catch(err){ alert("更新失敗:"+err.message); }
+}
+// 單件改了數量/採購狀態:記憶體跟快取一起更新,下次開快取才不會是舊的
+function patchItem(itemId, patch){
+  const it = findItem(itemId); if(!it) return;
+  Object.assign(it, patch);
+  writeOrderCache((orderMode==="all" || orderMode==="items") && isAdmin);
 }
 async function removeItem(itemId, btn){
   if(!confirm("移除此商品?（訂單其他商品保留，不需重新送單）")) return;
   btn.disabled=true;
-  try{ await updateDoc(doc(db,"daigouItems",itemId), { cancelled:true }); await loadOrders(); }
+  try{ await updateDoc(doc(db,"daigouItems",itemId), { cancelled:true }); await loadOrders(true); }
   catch(err){ btn.disabled=false; alert("移除失敗:"+err.message); }
 }
 async function cancelOrder(orderId, btn){
@@ -2140,7 +2198,7 @@ async function cancelOrder(orderId, btn){
     const batch=writeBatch(db);
     items.forEach(it=>batch.update(doc(db,"daigouItems",it.id), { cancelled:true }));
     batch.update(doc(db,"orders",orderId), { status:"已取消", updatedAt:serverTimestamp() });
-    await batch.commit(); await loadOrders();
+    await batch.commit(); await loadOrders(true);
   }catch(err){ alert("取消失敗:"+err.message); btn.disabled=false; btn.innerHTML=old; }
 }
 
